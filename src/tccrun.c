@@ -16,10 +16,10 @@
 
 //TODO
 
-	//load program from stdin
-	//add symbol dl
-	//add more symbol
-	//run the program
+//load program from stdin
+//add symbol dl
+//add more symbol
+//run the program
 
 //#include "libffi.h"//no need when using libtcc (but need to pack as symbol)
 //#include "mydl.h"
@@ -35,44 +35,44 @@ void handle_error(void *opaque, const char *msg)
 }
 
 /* this function is called by the generated code */
-int add(int a, int b)
-{
-	return a + b;
-}
+//int add(int a, int b)
+//{
+//	return a + b;
+//}
 
 /* this strinc is referenced by the generated code */
-const char hello[] = "Hello World!";
+//const char hello[] = "Hello World!";
 
-char my_program[] =
-//"#include <tcclib.h>\n" /* include the "Simple libc header for TCC" */
-//"#include <stdio.h>\n"
-"extern int printf(const char *format, ...);\n"
-"extern int add(int a, int b);\n"
-"#ifdef _WIN32\n" /* dynamically linked data needs 'dllimport' */
-" __attribute__((dllimport))\n"
-"#endif\n"
-"extern const char hello[];\n"
-"int fib(int n)\n"
-"{\n"
-"    if (n <= 2)\n"
-"        return 1;\n"
-"    else\n"
-"        return fib(n-1) + fib(n-2);\n"
-"}\n"
-"\n"
-"int foo(int n)\n"
-"{\n"
-"    printf(\"%s\\n\", hello);\n"
-"    printf(\"fib(%d) = %d\\n\", n, fib(n));\n"
-"    printf(\"add(%d, %d) = %d\\n\", n, 2 * n, add(n, 2 * n));\n"
-"    return 0;\n"
-"}\n";
+//char my_program[] =
+////"#include <tcclib.h>\n" /* include the "Simple libc header for TCC" */
+////"#include <stdio.h>\n"
+//"extern int printf(const char *format, ...);\n"
+//"extern int add(int a, int b);\n"
+//"#ifdef _WIN32\n" /* dynamically linked data needs 'dllimport' */
+//" __attribute__((dllimport))\n"
+//"#endif\n"
+//"extern const char hello[];\n"
+//"int fib(int n)\n"
+//"{\n"
+//"    if (n <= 2)\n"
+//"        return 1;\n"
+//"    else\n"
+//"        return fib(n-1) + fib(n-2);\n"
+//"}\n"
+//"\n"
+//"int foo(int n)\n"
+//"{\n"
+//"    printf(\"%s\\n\", hello);\n"
+//"    printf(\"fib(%d) = %d\\n\", n, fib(n));\n"
+//"    printf(\"add(%d, %d) = %d\\n\", n, 2 * n, add(n, 2 * n));\n"
+//"    return 0;\n"
+//"}\n";
 
 int test_main(int argc, char **argv)
 {
 	TCCState *s;
 	int i;
-	int (*func)(int);
+	int (*func)(int,char**);
 
 	s = tcc_new();
 	if (!s) {
@@ -89,24 +89,30 @@ int test_main(int argc, char **argv)
 	assert(tcc_get_error_opaque(s) == stderr);
 
 	/* if tcclib.h and libtcc1.a are not installed, where can we find them */
-//	for (i = 1; i < argc; ++i) {
-//		char *a = argv[i];
-//		if (a[0] == '-') {
-//			if (a[1] == 'B')
-//				tcc_set_lib_path(s, a+2);
-//			else if (a[1] == 'I')
-//				tcc_add_include_path(s, a+2);
-//			else if (a[1] == 'L')
-//				tcc_add_library_path(s, a+2);
-//		}
-//	}
+	//	for (i = 1; i < argc; ++i) {
+	//		char *a = argv[i];
+	//		if (a[0] == '-') {
+	//			if (a[1] == 'B')
+	//				tcc_set_lib_path(s, a+2);
+	//			else if (a[1] == 'I')
+	//				tcc_add_include_path(s, a+2);
+	//			else if (a[1] == 'L')
+	//				tcc_add_library_path(s, a+2);
+	//		}
+	//	}
 
 	/* MUST BE CALLED before any compilation */
 	tcc_set_output_type(s, TCC_OUTPUT_MEMORY);
 
-	if (tcc_compile_string(s, my_program) == -1){
-		return 1;
-	}
+	//	char * my_program calloc();
+	//	int len = 1024;
+	//	char line[len];
+	//	while(0!=fgets(line,len,stdin)){
+	//		strcpy( my_program
+	//	};
+	//	if (tcc_compile_string(s, my_program) == -1){
+	//		return 1;
+	//	}
 
 	//TEST bug no use, still symbol there..
 	//tcc_undefine_symbol(s,"printf");
@@ -116,22 +122,25 @@ int test_main(int argc, char **argv)
 
 	/* as a test, we add symbols that the compiled program can use.
 		 You may also open a dll with tcc_add_dll() and use symbols from that */
-	tcc_add_symbol(s, "add", add);
-	tcc_add_symbol(s, "hello", hello);
+	//	tcc_add_symbol(s, "add", add);
+	//	tcc_add_symbol(s, "hello", hello);
 
 	tcc_add_symbol(s, "printf", printf);//manually push symbol
+
+	tcc_add_file(s,"-");
 
 	/* relocate the code */
 	if (tcc_relocate(s, TCC_RELOCATE_AUTO) < 0)
 		return 1;
 
 	/* get entry symbol */
-	func = tcc_get_symbol(s, "foo");
-	if (!func)
+	func = tcc_get_symbol(s, "main");
+	if (!func) {
 		return 1;
+	}
 
 	/* run the code */
-	func(32);
+	func(argc,argv);
 
 	/* delete the state */
 	tcc_delete(s);
@@ -142,7 +151,7 @@ int test_main(int argc, char **argv)
 //using ffi is not need
 int main(int argc, char **argv){
 
-	printf("main()\n");
+	//printf("main()\n"),fflush(stdout);
 	return test_main(argc,argv);
 }
 

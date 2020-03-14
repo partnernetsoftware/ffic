@@ -6,6 +6,7 @@ all:
 	#cc tccrun.c -I ../../tinycc/ -o tccrun
 	${CC} tccrun.i -o tccrun
 	ls -al tccrun*
+	cat 42.c | ./tccrun
 pp:
 	${CC} -E tccrun.c -I ../../tinycc/ -o tccrun.i
 run:
