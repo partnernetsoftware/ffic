@@ -14,6 +14,8 @@
 //@see assert.h
 #define NDEBUG
 
+#define ONE_SOURCE 1
+
 //#include "libtcc.h"
 #include "libtcc.c"
 
@@ -71,8 +73,11 @@ void handle_error(void *opaque, const char *msg)
 //"    return 0;\n"
 //"}\n";
 
+typedef void* any_ptr;
+typedef any_ptr (*function_ptr)();
+#define CAST(t) *(t*)
+
 TCCState *s;
-typedef void(*function_ptr)();
 //int test_main(int argc, char **argv)
 //{
 //	char * filename;
@@ -158,17 +163,41 @@ typedef void(*function_ptr)();
 //	return 0;
 //}
 
-//using ffi is not need
+//stub
+any_ptr ffi_void(){
+	//printf("ffi_void()");
+}
+
+function_ptr ffi(const char * libname, const char * funcname, ...){
+
+	//any_ptr addr = ffi_void; //= dlsym(RTLD_DEFAULT, funcname);
+	any_ptr addr = NULL;
+	char libfilename[128] = {0};
+	char * dllname = "lib%s.dylib";
+	sprintf(libfilename, dllname, libname);
+	any_ptr rt_dlopen = dlopen(libfilename,RTLD_LAZY);
+	if(0==rt_dlopen){
+		if(0==strcmp("c",libname)){
+			addr = dlsym(RTLD_DEFAULT, funcname);
+		}
+	}else{
+		addr = dlsym(rt_dlopen, funcname);
+	}
+	//printf("DEBUG libfilename=%s, addr=%d, rt_dlopen=%d\n", libfilename, (int) addr, (int)rt_dlopen);
+	if(NULL==addr){
+		fprintf(stderr,"ERR: not found lib(%s)\n", libname);
+		return ffi_void;
+	}
+	return addr;
+}
+
+function_ptr c(const char * funcname, ...){
+	return ffi("c",funcname);
+}
+
 int main(int argc, char **argv){
 
-	char * filename;
-	if(argc>1) filename = argv[1];
-	else filename = "-";//stdin default
-
-	int i;
-	//int (*func)(int,char**);
-	//void(*func)();
-	function_ptr func;
+	char * filename = (argc>1) ? argv[1] : "-";
 
 	s = tcc_new();
 	if (!s) {
@@ -176,52 +205,16 @@ int main(int argc, char **argv){
 		exit(1);
 	}
 
-	assert(tcc_get_error_func(s) == NULL);
-	assert(tcc_get_error_opaque(s) == NULL);
-
-	tcc_set_error_func(s, stderr, handle_error);
-
-	assert(tcc_get_error_func(s) == handle_error);
-	assert(tcc_get_error_opaque(s) == stderr);
-
-	/* if tcclib.h and libtcc1.a are not installed, where can we find them */
-	//	for (i = 1; i < argc; ++i) {
-	//		char *a = argv[i];
-	//		if (a[0] == '-') {
-	//			if (a[1] == 'B')
-	//				tcc_set_lib_path(s, a+2);
-	//			else if (a[1] == 'I')
-	//				tcc_add_include_path(s, a+2);
-	//			else if (a[1] == 'L')
-	//				tcc_add_library_path(s, a+2);
-	//		}
-	//	}
-
 	/* MUST BE CALLED before any compilation */
 	tcc_set_output_type(s, TCC_OUTPUT_MEMORY);
-
-	//	char * my_program calloc();
-	//	int len = 1024;
-	//	char line[len];
-	//	while(0!=fgets(line,len,stdin)){
-	//		strcpy( my_program
-	//	};
-	//	if (tcc_compile_string(s, my_program) == -1){
-	//		return 1;
-	//	}
-
-	//TEST bug no use, still symbol there..
-	//tcc_undefine_symbol(s,"printf");
 
 	tcc_set_options(s, "-nostdlib");
 	tcc_set_options(s, "-nostdinc");
 
-	/* as a test, we add symbols that the compiled program can use.
-		 You may also open a dll with tcc_add_dll() and use symbols from that */
-	//	tcc_add_symbol(s, "add", add);
-	//	tcc_add_symbol(s, "hello", hello);
-
-	tcc_add_symbol(s, "printf", printf);//manually push symbol
+	//tcc_add_symbol(s, "printf", printf);//manually push symbol
+	tcc_add_symbol(s, "c", c);
+	//tcc_add_symbol(s, "ffi", 0);
+	tcc_add_symbol(s, "ffi", ffi);
 
 	tcc_add_file(s,filename);
 
@@ -230,20 +223,14 @@ int main(int argc, char **argv){
 		return 1;
 
 	/* get entry symbol */
-	func = tcc_get_symbol(s, "main");
-	if (!func) {
-		return 1;
-	}
+	function_ptr func = tcc_get_symbol(s, "main");
+	if (!func) { return 1; }
 
-	/* run the code */
-	func(argc,argv);
+	int rt = (int) func(argc,argv);
 
 	/* delete the state */
 	tcc_delete(s);
 
-	return 0;
-
-	//printf("main()\n"),fflush(stdout);
-	//return test_main(argc,argv);
+	return rt;
 }
 
