@@ -191,9 +191,9 @@ function_ptr ffi(const char * libname, const char * funcname, ...){
 	return addr;
 }
 
-function_ptr c(const char * funcname, ...){
-	return ffi("c",funcname);
-}
+//function_ptr c(const char * funcname, ...){
+//	return ffi("c",funcname);
+//}
 
 int main(int argc, char **argv){
 
@@ -212,7 +212,7 @@ int main(int argc, char **argv){
 	tcc_set_options(s, "-nostdinc");
 
 	//tcc_add_symbol(s, "printf", printf);//manually push symbol
-	tcc_add_symbol(s, "c", c);
+	//tcc_add_symbol(s, "c", c);
 	//tcc_add_symbol(s, "ffi", 0);
 	tcc_add_symbol(s, "ffi", ffi);
 
