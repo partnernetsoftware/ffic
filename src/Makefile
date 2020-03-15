@@ -1,13 +1,15 @@
 #CC=gcc
 CC=cc
 all: 
-	ls -al tccrun*
-	${CC} -E tccrun.c -I ../../tinycc/ -o tccrun.i
-	#cc tccrun.c -I ../../tinycc/ -o tccrun
-	${CC} tccrun.i -o tccrun
-	ls -al tccrun*
-	cat 42.c | ./tccrun
+	ls -al tccffi*
+	${CC} -E tccffi.c -I ../../tinycc/ -o tccffi.i
+	#cc tccffi.c -I ../../tinycc/ -o tccffi
+	${CC} tccffi.i -o tccffi
+	ls -al tccffi*
+	cat 42.c | ./tccffi
+tcc:
+	tcc -nostdinc -E tccffi.c -I ../../tinycc/ -o tccffi.i
 pp:
-	${CC} -E tccrun.c -I ../../tinycc/ -o tccrun.i
+	${CC} -E tccffi.c -I ../../tinycc/ -o tccffi.i
 run:
-	./tccrun --help
+	./tccffi --help

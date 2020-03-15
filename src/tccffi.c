@@ -11,6 +11,9 @@
 # endif
 #endif
 
+//@see assert.h
+#define NDEBUG
+
 //#include "libtcc.h"
 #include "libtcc.c"
 

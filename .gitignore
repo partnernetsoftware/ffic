@@ -1,3 +1,4 @@
 *.out
 tccrun
 tccrun.i
+*.o
