@@ -71,11 +71,104 @@ void handle_error(void *opaque, const char *msg)
 //"    return 0;\n"
 //"}\n";
 
-int test_main(int argc, char **argv)
-{
-	TCCState *s;
+TCCState *s;
+typedef void(*function_ptr)();
+//int test_main(int argc, char **argv)
+//{
+//	char * filename;
+//	if(argc>1) filename = argv[1];
+//	else filename = "-";//stdin default
+//
+//	int i;
+//	//int (*func)(int,char**);
+//	//void(*func)();
+//	function_ptr func;
+//
+//	s = tcc_new();
+//	if (!s) {
+//		fprintf(stderr, "Could not create tcc state\n");
+//		exit(1);
+//	}
+//
+//	assert(tcc_get_error_func(s) == NULL);
+//	assert(tcc_get_error_opaque(s) == NULL);
+//
+//	tcc_set_error_func(s, stderr, handle_error);
+//
+//	assert(tcc_get_error_func(s) == handle_error);
+//	assert(tcc_get_error_opaque(s) == stderr);
+//
+//	/* if tcclib.h and libtcc1.a are not installed, where can we find them */
+//	//	for (i = 1; i < argc; ++i) {
+//	//		char *a = argv[i];
+//	//		if (a[0] == '-') {
+//	//			if (a[1] == 'B')
+//	//				tcc_set_lib_path(s, a+2);
+//	//			else if (a[1] == 'I')
+//	//				tcc_add_include_path(s, a+2);
+//	//			else if (a[1] == 'L')
+//	//				tcc_add_library_path(s, a+2);
+//	//		}
+//	//	}
+//
+//	/* MUST BE CALLED before any compilation */
+//	tcc_set_output_type(s, TCC_OUTPUT_MEMORY);
+//
+//	//	char * my_program calloc();
+//	//	int len = 1024;
+//	//	char line[len];
+//	//	while(0!=fgets(line,len,stdin)){
+//	//		strcpy( my_program
+//	//	};
+//	//	if (tcc_compile_string(s, my_program) == -1){
+//	//		return 1;
+//	//	}
+//
+//	//TEST bug no use, still symbol there..
+//	//tcc_undefine_symbol(s,"printf");
+//
+//	tcc_set_options(s, "-nostdlib");
+//	tcc_set_options(s, "-nostdinc");
+//
+//	/* as a test, we add symbols that the compiled program can use.
+//		 You may also open a dll with tcc_add_dll() and use symbols from that */
+//	//	tcc_add_symbol(s, "add", add);
+//	//	tcc_add_symbol(s, "hello", hello);
+//
+//	tcc_add_symbol(s, "printf", printf);//manually push symbol
+//
+//	tcc_add_file(s,filename);
+//
+//	/* relocate the code */
+//	if (tcc_relocate(s, TCC_RELOCATE_AUTO) < 0)
+//		return 1;
+//
+//	/* get entry symbol */
+//	func = tcc_get_symbol(s, "main");
+//	if (!func) {
+//		return 1;
+//	}
+//
+//	/* run the code */
+//	func(argc,argv);
+//
+//	/* delete the state */
+//	tcc_delete(s);
+//
+//	return 0;
+//}
+
+//using ffi is not need
+int main(int argc, char **argv){
+
+	char * filename;
+	if(argc>1) filename = argv[1];
+	else filename = "-";//stdin default
+
 	int i;
-	int (*func)(int,char**);
+	//int (*func)(int,char**);
+	//void(*func)();
+	function_ptr func;
 
 	s = tcc_new();
 	if (!s) {
@@ -130,7 +223,7 @@ int test_main(int argc, char **argv)
 
 	tcc_add_symbol(s, "printf", printf);//manually push symbol
 
-	tcc_add_file(s,"-");
+	tcc_add_file(s,filename);
 
 	/* relocate the code */
 	if (tcc_relocate(s, TCC_RELOCATE_AUTO) < 0)
@@ -149,12 +242,8 @@ int test_main(int argc, char **argv)
 	tcc_delete(s);
 
 	return 0;
-}
-
-//using ffi is not need
-int main(int argc, char **argv){
 
 	//printf("main()\n"),fflush(stdout);
-	return test_main(argc,argv);
+	//return test_main(argc,argv);
 }
 

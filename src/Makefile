@@ -7,8 +7,12 @@ all:
 	${CC} tccffi.i -o tccffi
 	ls -al tccffi*
 	cat 42.c | ./tccffi
+	./tccffi 42.c
+
+#
 tcc:
-	tcc -nostdinc -E tccffi.c -I ../../tinycc/ -o tccffi.i
+	tcc -I ../../tinycc/ -run -nostdlib tccffi.c 
+#	tcc -nostdlib -E tccffi.c -I ../../tinycc/ -o tccffi.i
 pp:
 	${CC} -E tccffi.c -I ../../tinycc/ -o tccffi.i
 run:

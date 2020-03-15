@@ -2,3 +2,4 @@
 tccrun
 tccrun.i
 *.o
+*.i
