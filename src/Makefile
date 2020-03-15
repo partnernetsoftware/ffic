@@ -1,6 +1,7 @@
 #CC=gcc
 CC=cc
 all: 
+	cd .. && git submodule init && git submodule update
 	ls -al tccffi*
 	echo "#define TCC_VERSION \"`head ../tinycc/VERSION`\"" > config.h
 	${CC} -E tccffi.c -I. -I../tinycc/ -o tccffi.i
