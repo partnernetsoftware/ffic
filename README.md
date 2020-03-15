@@ -7,3 +7,11 @@ scripting in c with tinycc and ffi
 
 * scripting in c language
 * ffi to call external shared lib
+
+
+# init
+
+```
+$ git submodule init
+$ git submodule update
+```

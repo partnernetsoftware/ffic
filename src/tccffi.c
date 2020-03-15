@@ -163,6 +163,8 @@ TCCState *s;
 //	return 0;
 //}
 
+#define c(f) ffi("c",#f)
+
 //stub
 any_ptr ffi_void(){
 	//printf("ffi_void()");
@@ -211,19 +213,24 @@ int main(int argc, char **argv){
 	tcc_set_options(s, "-nostdlib");
 	tcc_set_options(s, "-nostdinc");
 
-	//tcc_add_symbol(s, "printf", printf);//manually push symbol
-	//tcc_add_symbol(s, "c", c);
-	//tcc_add_symbol(s, "ffi", 0);
-	tcc_add_symbol(s, "ffi", ffi);
-
+	//tcc_add_file(s,filename);
 	tcc_add_file(s,filename);
 
+	tcc_add_symbol(s, "ffi", ffi);
+
+	tcc_compile_string(s, "typedef void* any_ptr;\n"
+			"typedef any_ptr (*function_ptr)();\n"
+"extern function_ptr ffi(const char * libname, const char* funcname, ...);\n"
+"#define c(f) ffi(\"c\",#f)\n"
+"int main2(){ ffi(\"c\",\"printf\")(\"xxx\"); return 0;}\n"
+			);
+	
 	/* relocate the code */
 	if (tcc_relocate(s, TCC_RELOCATE_AUTO) < 0)
 		return 1;
 
 	/* get entry symbol */
-	function_ptr func = tcc_get_symbol(s, "main");
+	function_ptr func = tcc_get_symbol(s, "main2");
 	if (!func) { return 1; }
 
 	int rt = (int) func(argc,argv);
