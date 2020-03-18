@@ -193,19 +193,14 @@ function_ptr ffi(const char * libname, const char * funcname, ...){
 	return addr;
 }
 
-//function_ptr c(const char * funcname, ...){
-//	return ffi("c",funcname);
-//}
-
 int main(int argc, char **argv){
-
 	char * filename = (argc>1) ? argv[1] : "-";
 
 	s = tcc_new();
-	if (!s) {
-		fprintf(stderr, "Could not create tcc state\n");
-		exit(1);
-	}
+//	if (!s) {
+//		fprintf(stderr, "Could not create tcc state\n");
+//		exit(1);
+//	}
 
 	/* MUST BE CALLED before any compilation */
 	tcc_set_output_type(s, TCC_OUTPUT_MEMORY);
@@ -218,24 +213,31 @@ int main(int argc, char **argv){
 
 	tcc_add_symbol(s, "ffi", ffi);
 
-	tcc_compile_string(s, "typedef void* any_ptr;\n"
-			"typedef any_ptr (*function_ptr)();\n"
-"extern function_ptr ffi(const char * libname, const char* funcname, ...);\n"
-"#define c(f) ffi(\"c\",#f)\n"
-"int main2(){ ffi(\"c\",\"printf\")(\"xxx\"); return 0;}\n"
-			);
+	//FOR QUICK DEBUG ONLY:
+	tcc_add_symbol(s, "printf", printf);
+
+	//tcc_add_symbol(s, "function_ptr", function_ptr);
+
+//	tcc_compile_string(s, "typedef void* any_ptr;\n"
+//			"typedef any_ptr (*function_ptr)();\n"
+//			"extern int main(int argc, char** argv);\n"
+//"extern function_ptr ffi(const char * libname, const char* funcname, ...);\n"
+//"#define c(f) ffi(\"c\",#f)\n"
+//"int main2(int argc, char** argv){ return main(argc,argv);}\n"
+//			);
+	//tcc_add_file(s,filename);
 	
-	/* relocate the code */
 	if (tcc_relocate(s, TCC_RELOCATE_AUTO) < 0)
 		return 1;
 
-	/* get entry symbol */
-	function_ptr func = tcc_get_symbol(s, "main2");
+	function_ptr func = tcc_get_symbol(s, "main");
+	//function_ptr func = tcc_get_symbol(s, "main2");
+	//function_ptr func = (void(*)()) tcc_get_symbol(s, "main2");
 	if (!func) { return 1; }
 
 	int rt = (int) func(argc,argv);
+	//int rt = (int) func();
 
-	/* delete the state */
 	tcc_delete(s);
 
 	return rt;

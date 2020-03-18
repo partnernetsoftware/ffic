@@ -15,3 +15,9 @@ scripting in c with tinycc and ffi
 $ git submodule init
 $ git submodule update
 ```
+
+# notes
+
+```
+https://github.com/libffi/libffi.git
+```
