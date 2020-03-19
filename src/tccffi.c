@@ -170,8 +170,7 @@ any_ptr ffi_void(){
 	//printf("ffi_void()");
 }
 
-function_ptr ffi(const char * libname, const char * funcname, ...){
-
+function_ptr ffi(const char * funcname, const char * libname, ...){
 	//any_ptr addr = ffi_void; //= dlsym(RTLD_DEFAULT, funcname);
 	any_ptr addr = NULL;
 	char libfilename[128] = {0};
@@ -211,10 +210,11 @@ int main(int argc, char **argv){
 	//tcc_add_file(s,filename);
 	tcc_add_file(s,filename);
 
+	//important interface "ffi" for dynamic:
 	tcc_add_symbol(s, "ffi", ffi);
 
 	//FOR QUICK DEBUG ONLY:
-	tcc_add_symbol(s, "printf", printf);
+	//tcc_add_symbol(s, "printf", printf);
 
 	//tcc_add_symbol(s, "function_ptr", function_ptr);
 
