@@ -9,45 +9,18 @@
 # ifndef TCC_TARGET_PE
 #  define TCC_TARGET_PE
 # endif
+#else
+//default ELF
 #endif
 
 //for assert.h
 #define NDEBUG
 
-#define ONE_SOURCE 1
+#include "tccffi.h"
 
 #include "libtcc.c"
 
-typedef void* any_ptr;
-typedef any_ptr (*function_ptr)();
-
 TCCState *s;
-
-//stub
-any_ptr ffi_void(){return 0;};
-
-function_ptr ffi(const char * funcname, const char * libname, ...){
-	//any_ptr addr = ffi_void; //= dlsym(RTLD_DEFAULT, funcname);
-	any_ptr addr = NULL;
-	char libfilename[128] = {0};
-	char * dllname = "lib%s.dylib";
-	sprintf(libfilename, dllname, libname);
-	//printf("TMP libfilename=%s\n",libfilename);
-	any_ptr rt_dlopen = dlopen(libfilename,RTLD_LAZY);
-	if(0==rt_dlopen){
-		if(0==strcmp("c",libname)){
-			addr = dlsym(RTLD_DEFAULT, funcname);
-		}
-	}else{
-		addr = dlsym(rt_dlopen, funcname);
-	}
-	//printf("DEBUG libfilename=%s, addr=%d, rt_dlopen=%d\n", libfilename, (int) addr, (int)rt_dlopen);
-	if(NULL==addr){
-		fprintf(stderr,"ERR: Not found %s.%s\n", libname, funcname);fflush(stderr);
-		return ffi_void;
-	}
-	return addr;
-}
 
 int main(int argc, char **argv){
 	char * filename = (argc>1) ? argv[1] : "-";

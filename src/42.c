@@ -9,7 +9,12 @@ int main(){
 	//out("ffi=%d\n",ffi);
 	//ffi("printf","c")("TEST ffi=%d\n",ffi);
 	//ffi("printf")("TEST ffi=%d\n",ffi);
-	libc(printf)("TEST ffi=%d\n",ffi);
-	ffi("ffi_call","ffi");
+//	libc(printf)("TEST ffi=%d\n",ffi);
+//	ffi("ffi_call","ffi");
+
+	libc(printf)("stderr=%d\n",libc(stderr));
+
+	//libc(fprintf)(libc(stderr),"TEST ffi=%d\n",ffi);
+
 	return 0;
 }
