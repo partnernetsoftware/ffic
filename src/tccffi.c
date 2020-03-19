@@ -214,7 +214,7 @@ int main(int argc, char **argv){
 	tcc_add_symbol(s, "ffi", ffi);
 
 	//FOR QUICK DEBUG ONLY:
-	//tcc_add_symbol(s, "printf", printf);
+	//tcc_add_symbol(s, "out", printf);
 
 	//tcc_add_symbol(s, "function_ptr", function_ptr);
 
