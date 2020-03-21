@@ -7,6 +7,7 @@ extern void*(*ffi(const char* funcname, const char* libname, ...))();//<funcname
 # else
 
 #include <stdio.h>
+#include <string.h>
 //#include <stdarg.h>
 #include <dlfcn.h>
 
@@ -27,15 +28,15 @@ void*(*ffi(const char* funcname, const char* libname, ...))()
 	char * dllname = "lib%s.dylib";
 	sprintf(libfilename, dllname, libname);
 	void* rt_dlopen = dlopen(libfilename,RTLD_LAZY);
-	if(0==strcmp("c",libname)){
+	if(!strcmp("c",libname)){
 		//fprintf(stderr,"TODO1 to find %s.%s\n", libname, funcname);fflush(stderr);
-		if(0==strcmp("stderr",funcname)){
+		if(!strcmp("stderr",funcname)){
 			//fprintf(stderr,"%s.%s\n", libname, funcname);fflush(stderr);
 			addr = stderr;
-		}else if(0==strcmp("stdout",funcname)){
+		}else if(!strcmp("stdout",funcname)){
 			//fprintf(stderr,"%s.%s\n", libname, funcname);fflush(stderr);
 			addr = stdout;
-		}else if(0==strcmp("stdin",funcname)){
+		}else if(!strcmp("stdin",funcname)){
 			//fprintf(stderr,"%s.%s\n", libname, funcname);fflush(stderr);
 			addr = stdin;
 			//		}else if(0==strcmp("va_start",funcname)){
