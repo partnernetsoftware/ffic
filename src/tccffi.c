@@ -5,29 +5,29 @@
 
 #define NDEBUG
 
-#ifdef __APPLE__
-# ifndef TCC_TARGET_MACHO
-#  define TCC_TARGET_MACHO
-# endif
-#elif defined(WIN32)
-# ifndef TCC_TARGET_PE
-#  define TCC_TARGET_PE
-# endif
-#else
-//ELF
-#endif
+//#ifdef __APPLE__
+//# ifndef TCC_TARGET_MACHO
+//#  define TCC_TARGET_MACHO
+//# endif
+//#elif defined(WIN32)
+//# ifndef TCC_TARGET_PE
+//#  define TCC_TARGET_PE
+//# endif
+//#else
+////ELF
+//#endif
+
 #include "libtcc.c"
 
 TCCState *s;
 
 int main(int argc, char **argv){
+
 	char * filename = (argc>1) ? argv[1] : "-";
 
 	s = tcc_new();
-	if (!s) {
-		fprintf(stderr, "Could not create tcc state\n");
-		exit(1);
-	}
+
+	if (!s) { return 1; }
 
 	tcc_set_output_type(s, TCC_OUTPUT_MEMORY);
 
@@ -41,12 +41,12 @@ int main(int argc, char **argv){
 
 	tcc_add_symbol(s, "ffi", ffi);
 
-	if (tcc_relocate(s, TCC_RELOCATE_AUTO) < 0) return 1;
+	if (tcc_relocate(s, TCC_RELOCATE_AUTO) < 0) return 2;
 
 	//function_ptr func = tcc_get_symbol(s, "main");
 	void* (*func)() = tcc_get_symbol(s, "main");
 
-	if (!func) { return 1; }
+	if (!func) { return 3; }
 
 	int rt = (int) func(argc,argv);
 

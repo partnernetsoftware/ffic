@@ -5,10 +5,12 @@ all:
 	git submodule update --init --recursive
 	ls -al tccffi*
 	echo "#define TCC_VERSION \"`head ../tinycc/VERSION`\"" > config.h
-	${CC} -E tccffi.c -I. -I../tinycc/ -o tccffi.i
+	make pp
 	#cc tccffi.c -I ../tinycc/ -o tccffi
 	${CC} tccffi.i -o tccffi
 	ls -al tccffi*
+	make test
+test:
 	cat 42.c | ./tccffi
 	./tccffi 42.c
 #

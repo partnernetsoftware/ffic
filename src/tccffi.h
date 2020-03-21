@@ -7,8 +7,14 @@ extern void*(*ffi(const char* funcname, const char* libname, ...))();//<funcname
 # else
 
 #include <stdio.h>
-#include <stdarg.h>
+//#include <stdarg.h>
 #include <dlfcn.h>
+
+//TODO WIN32
+
+//TODO play typedef?
+
+//TODO design stdarg/va_start/va_end etc
 
 //typedef void* any_ptr;
 //typedef void* (*function_ptr)();
