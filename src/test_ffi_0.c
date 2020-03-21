@@ -22,6 +22,11 @@ void my_symbol_cb(void *ctx, const char *name, const void *val)
 //} ffi_type;
 
 typedef void* any_ptr;
+typedef any_ptr (*function_ptr)();
+typedef int (*get_sizeof)();
+int main2(){
+	return sizeof(function_ptr);
+}
 int main(){
 	//out("ffi=%d\n",ffi);
 	//ffi("printf","c")("TEST ffi=%d\n",ffi);
@@ -40,7 +45,32 @@ int main(){
 //
 //libc(printf)("test=%d\n",add_symbol("test","void* test(){return 0;}\n"));
 //libc(printf)("test=%d\n",add_symbol("test","typedef void* any_ptr;\nany_ptr test(){return 0;}\n"));
-	libc(printf)("test=%d\n",add_symbol("any_ptr","typedef void* any_ptr;\n"));
+
+//	get_sizeof s1 = add_symbol(
+//				"sizeof_any_ptr",
+//				"typedef void* any_ptr;
+//				int sizeof_any_ptr(){return sizeof(any_ptr);}
+//				"
+//				);
+//	libc(printf)("sizeof_any_ptr=%d\n",s1);
+	int (*s2)() = add_symbol(
+			"main3"
+			//"sizeof_function_ptr"
+			,
+			"//typedef void* any_ptr;
+			//typedef any_ptr (*function_ptr)();
+			//int sizeof_function_ptr(){return sizeof(sizeof_function_ptr);}
+			//int sizeof_function_ptr(){return 111;}
+			//int sizeof_function_ptr = sizeof(function_ptr);
+			int main3()
+			{
+			return 0;
+			};
+			"
+			);
+	libc(printf)("sizeof_function_ptr=%d,%d\n",s2,s2());
+	//s2();//seg fault
+
 //	///libc(printf)("test=%d\n",add_symbol("test","any_ptr test(){return 0;}\n"));
 //	//tmp_add_symbol("any_ptr",any_ptr);
 //	libc(printf)("test=%d\n",add_symbol("any_ptr","extern any_ptr;\nany_ptr test(){return 0;}\n"));

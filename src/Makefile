@@ -7,9 +7,13 @@ all:
 	echo "#define TCC_VERSION \"`head ../tinycc/VERSION`\"" > config.h
 	make pp
 	#cc tccffi.c -I ../tinycc/ -o tccffi
-	${CC} tccffi.i -o tccffi
+	${CC} tccffi.i -L. -ltcc -o tccffi
 	ls -al tccffi*
 	make test
+osx:
+	make libtcc.dylib -C ../tinycc/
+	cp ../tinycc/libtcc.dylib ./
+	make all
 test:
 	cat 42.c | ./tccffi
 	./tccffi 42.c

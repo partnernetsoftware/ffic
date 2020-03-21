@@ -17,15 +17,23 @@
 ////ELF
 //#endif
 
-#include "libtcc.c"
+//#include "libtcc.c"
+#include <string.h>
+#include "libtcc.h"
 
 TCCState *s;
 
 //TMP TEST
-void* add_symbol(const char * symbol, const char * str)
+//void* (*func)()
+//void*
+typedef void* any_ptr;
+typedef any_ptr (*function_ptr)();
+function_ptr
+add_symbol(const char * symbol, const char * str)
 {
 	tcc_compile_string(s, str);
-	return tcc_get_symbol(s, symbol);
+	//tcc_relocate(s, 0);//no use
+	return (function_ptr) tcc_get_symbol(s, symbol);
 }
 
 void tmp_add_symbol(const char * symbol, const void * pt)
