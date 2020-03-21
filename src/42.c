@@ -1,9 +1,11 @@
-#ifdef USING_LIBC //TMP...
-# define libc(f) f
-#else
-extern void*(*ffi(const char* funcname, const char* libname, ...))();//<funcname> <libname> [prototype]
-# define libc(f) ffi(#f,"c")
-#endif
+//#ifdef USING_LIBC //TMP...
+//# define libc(f) f
+//#else
+//extern void*(*ffi(const char* funcname, const char* libname, ...))();//<funcname> <libname> [prototype]
+//# define libc(f) ffi(#f,"c")
+//#endif
+
+#include "tccffi.h"
 
 int main(){
 	//out("ffi=%d\n",ffi);
@@ -13,8 +15,8 @@ int main(){
 //	ffi("ffi_call","ffi");
 
 	libc(printf)("stderr=%d\n",libc(stderr));
+	libc(fprintf)(libc(stderr),"fprintf stderr=%d\n",libc(stderr));
 
-	//libc(fprintf)(libc(stderr),"TEST ffi=%d\n",ffi);
 
 	return 0;
 }

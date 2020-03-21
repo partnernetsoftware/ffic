@@ -1,18 +1,26 @@
-//extern void*(*ffi(const char* funcname, const char* libname, ...))();//<funcname> <libname> [prototype]
+#ifndef libc
+
+# ifdef TCC_FFI
+
+extern void*(*ffi(const char* funcname, const char* libname, ...))();//<funcname> <libname> [prototype]
+
+# else
 
 #include <stdio.h>
 #include <stdarg.h>
 #include <dlfcn.h>
 
-typedef void* any_ptr;
-typedef any_ptr (*function_ptr)();
-any_ptr ffi_void(){return 0;}
-function_ptr ffi(const char * funcname, const char * libname, ...){
-	any_ptr addr = 0;
+//typedef void* any_ptr;
+//typedef void* (*function_ptr)();
+void* ffi_void(){return 0;}
+//function_ptr ffi(const char * funcname, const char * libname, ...)
+void*(*ffi(const char* funcname, const char* libname, ...))()
+{
+	void* addr = 0;
 	char libfilename[128] = {0};
 	char * dllname = "lib%s.dylib";
 	sprintf(libfilename, dllname, libname);
-	any_ptr rt_dlopen = dlopen(libfilename,RTLD_LAZY);
+	void* rt_dlopen = dlopen(libfilename,RTLD_LAZY);
 	if(0==strcmp("c",libname)){
 		//fprintf(stderr,"TODO1 to find %s.%s\n", libname, funcname);fflush(stderr);
 		if(0==strcmp("stderr",funcname)){
@@ -42,5 +50,9 @@ function_ptr ffi(const char * funcname, const char * libname, ...){
 	}
 	return addr;
 }
+#endif
 # define libc(f) ffi(#f,"c")
+#else
+# define libc(f) f
+#endif
 

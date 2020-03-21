@@ -1,6 +1,10 @@
 // gcc tccffi.c -I ../../tinycc/ -o tccffi && ./tccffi
 // tcc -run tccffi.c -I ../../tinycc/ 
 
+#include "tccffi.h"
+
+#define NDEBUG
+
 #ifdef __APPLE__
 # ifndef TCC_TARGET_MACHO
 #  define TCC_TARGET_MACHO
@@ -10,14 +14,8 @@
 #  define TCC_TARGET_PE
 # endif
 #else
-//default ELF
+//ELF
 #endif
-
-//for assert.h
-#define NDEBUG
-
-#include "tccffi.h"
-
 #include "libtcc.c"
 
 TCCState *s;
@@ -33,6 +31,8 @@ int main(int argc, char **argv){
 
 	tcc_set_output_type(s, TCC_OUTPUT_MEMORY);
 
+	tcc_define_symbol(s, "TCC_FFI", "1");
+
 	tcc_set_options(s, "-nostdlib");
 	tcc_set_options(s, "-nostdinc");
 	tcc_set_options(s, "-L.");
@@ -41,12 +41,10 @@ int main(int argc, char **argv){
 
 	tcc_add_symbol(s, "ffi", ffi);
 
-	//FOR QUICK DEBUG ONLY:
-	//tcc_add_symbol(s, "out", printf);
-
 	if (tcc_relocate(s, TCC_RELOCATE_AUTO) < 0) return 1;
 
-	function_ptr func = tcc_get_symbol(s, "main");
+	//function_ptr func = tcc_get_symbol(s, "main");
+	void* (*func)() = tcc_get_symbol(s, "main");
 
 	if (!func) { return 1; }
 
