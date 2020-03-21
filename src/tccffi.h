@@ -10,9 +10,9 @@ extern void*(*ffi(const char* funcname, const char* libname, ...))();//<funcname
 //#include <stdarg.h>
 #include <dlfcn.h>
 
-//TODO WIN32
-
 //TODO play typedef?
+
+//TODO WIN32
 
 //TODO design stdarg/va_start/va_end etc
 
