@@ -33,6 +33,12 @@ void tmp_add_symbol(const char * symbol, const void * pt)
 	tcc_add_symbol(s, symbol, pt);
 }
 
+void tmp_list_symbols(void *ctx,
+    void (*symbol_cb)(void *ctx, const char *name, const void *val))
+{
+	tcc_list_symbols(s, ctx, symbol_cb);
+}
+
 int main(int argc, char **argv){
 
 	char * filename = (argc>1) ? argv[1] : "-";
@@ -52,9 +58,11 @@ int main(int argc, char **argv){
 	tcc_add_file(s,filename);
 
 	tcc_add_symbol(s, "ffi", ffi);
-	//TMP TEST
+
+	//TMP TEST:
 	tcc_add_symbol(s, "add_symbol", add_symbol);
 	tcc_add_symbol(s, "tmp_add_symbol", tmp_add_symbol);
+	tcc_add_symbol(s, "tmp_list_symbols", tmp_list_symbols);
 
 	if (tcc_relocate(s, TCC_RELOCATE_AUTO) < 0) return 2;
 
