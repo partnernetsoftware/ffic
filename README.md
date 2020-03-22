@@ -1,13 +1,17 @@
 # tinycc-ffi
 
-scripting in c with tinycc and ffi
+scripting in c in ffi-mode with tinycc
 
 
-# Plan
+# feature 
 
-* scripting in c language
-* ffi to call external shared lib
+* ffi(func,lib) to call share lib
+* free from suffering the libc header files (yup, you don't need them in most cases)
 
+# TODO
+
+* WIN32/WIN64
+* enhance tcc
 
 # init
 
@@ -19,7 +23,6 @@ $ git submodule update
 # notes
 
 ```
-https://github.com/libffi/libffi.git
 ```
 
 # tinycc
