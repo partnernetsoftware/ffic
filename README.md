@@ -28,17 +28,19 @@ $ git submodule update
 # tinycc
 
 ```
-How to contribute patches to our "mob" patchwork (what's mob?):
+How to contribute patches to tcc "mob" patchwork (what's mob?):
 
-If you haven't done before, clone our tinycc repository: "git clone git://repo.or.cz/tinycc.git"
-Fetch the latest changes: "git fetch origin"
-Create a new branch on top of origin/mob: "git checkout -b mypatch origin/mob".
-Commit your patches to this new branch ("git gui") and verify ("gitk --all").
-Push your changes to here: "git push ssh://mob@repo.or.cz/srv/git/tinycc.git mypatch:mob"
-Don't forget to talk about on the TinyCC mailing list. 
+git clone git://repo.or.cz/tinycc.git
 
+cd tinycc
+#Fetch the latest changes: 
+git fetch origin
+git checkout -b mob_$USER origin/mob
 
-git checkout -b mob_wanjochan origin/mob
-git push ssh://mob@repo.or.cz/srv/git/tinycc.git mob_wanjochan:mob
+# Commit your patches to this new branch ("git gui") and verify ("gitk --all").
+
+git push ssh://mob@repo.or.cz/srv/git/tinycc.git mob_$USER:mob
+
+# Don't forget to talk about on the TinyCC mailing list. 
 
 ```

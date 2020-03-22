@@ -2,7 +2,7 @@
 CC=gcc
 all: 
 	#cd .. && git submodule init && git submodule update
-	git submodule update --init --recursive
+	#git submodule update --init --recursive
 	ls -al tccffi*
 	#echo "#define TCC_VERSION \"`head ../tinycc/VERSION`\"" > config.h
 	make pp
