@@ -19,8 +19,8 @@ lnx:
 	cp ../tinycc/libtcc.so ./
 	make all
 test:
-	cat 42.c | ./tccffi
-	./tccffi 42.c
+	cat tests/42.c | ./tccffi
+	./tccffi tests/42.c
 #
 tcc:
 	tcc -I. -I../tinycc/ -run -nostdlib tccffi.c 
