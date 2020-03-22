@@ -7,7 +7,7 @@ all:
 	#echo "#define TCC_VERSION \"`head ../tinycc/VERSION`\"" > config.h
 	make pp
 	#cc tccffi.c -I ../tinycc/ -o tccffi
-	${CC} tccffi.i -L. -ltcc -o tccffi
+	${CC} tccffi.pp.i -L. -ltcc -o tccffi
 	ls -al tccffi*
 	make test
 osx:
@@ -27,3 +27,5 @@ tcc:
 	#tcc -nostdlib -E tccffi.c -I ../tinycc/ -o tccffi.i
 pp:
 	${CC} -E tccffi.c -I. -I../tinycc/ -o tccffi.i
+	#${CC} -E tccffi.c -I. -I../tinycc/ | sed 's/^#.*//g' > tccffi.pp.i
+	${CC} -E tccffi.c -I. -I../tinycc/ | sed 's/^#.*//g' | sed "/^$$/d" > tccffi.pp.i

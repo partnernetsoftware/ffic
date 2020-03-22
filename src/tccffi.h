@@ -1,15 +1,50 @@
-#ifndef libc
+#ifdef TCC_FFI
 
-# ifdef TCC_FFI
+# if TCC_FFI==2
+//extern void*(*ffi(const char* funcname, const char* libname, ...))();//<funcname> <libname> [prototype]
+extern void*(*ffi(const char*, const char*, ...))();//<funcname> <libname> [prototype]
+#  define libc(f) ffi(#f,"c")
+# elif TCC_FFI==1
 
-extern void*(*ffi(const char* funcname, const char* libname, ...))();//<funcname> <libname> [prototype]
+//#include <stdio.h>
+typedef struct __FILE FILE;
+#ifdef __APPLE__
+extern FILE *__stdinp;
+extern FILE *__stdoutp;
+extern FILE *__stderrp;
+#define stdin __stdinp
+#define stdout __stdoutp
+#define stderr __stderrp
 
-# else
+#else//TODO for !__APPLE__
 
-#include <stdio.h>
-#include <string.h>
+/* Very Standard streams.  */
+extern FILE *stdin;		/* Standard input stream.  */
+extern FILE *stdout;		/* Standard output stream.  */
+extern FILE *stderr;		/* Standard error output stream.  */
+
+/* C89/C99 say they're macros.  Make them happy.  */
+#define stdin stdin
+#define stdout stdout
+#define stderr stderr
+
+#endif//__APPLE__
+//typedef struct __FILE FILE;
+//#define EOF (-1)
+//extern FILE *stdin;
+//extern FILE *stdout;
+//extern FILE *stderr;
+int sprintf(char *str, const char *format, ...);
+int fprintf(FILE *stream, const char *format, ...);
+int fflush(FILE *stream);
+
+//#include <string.h>
+extern int strcmp(const char*,const char*);
+
 //#include <stdarg.h>
-#include <dlfcn.h>
+//#include <dlfcn.h>
+extern void *dlopen(const char *, int);
+extern void *dlsym(void *, const char *);
 
 //TODO play typedef?
 
@@ -19,34 +54,37 @@ extern void*(*ffi(const char* funcname, const char* libname, ...))();//<funcname
 
 //typedef void* any_ptr;
 //typedef void* (*function_ptr)();
-void* ffi_void(){return 0;}
 //function_ptr ffi(const char * funcname, const char * libname, ...)
+
+void* ffi_void(){return 0;}
 void*(*ffi(const char* funcname, const char* libname, ...))()
 {
 	void* addr = 0;
 	char libfilename[128] = {0};
+#if defined(__APPLE__)
 	char * dllname = "lib%s.dylib";
+#elif defined(_WIN32)
+	char * dllname = "lib%s.dll";
+#else
+	char * dllname = "lib%s.so";
+#endif
 	sprintf(libfilename, dllname, libname);
-	void* rt_dlopen = dlopen(libfilename,RTLD_LAZY);
+	//void* rt_dlopen = dlopen(libfilename,RTLD_LAZY);
+	void* rt_dlopen = dlopen(libfilename,1);
 	if(!strcmp("c",libname)){
 		//fprintf(stderr,"TODO1 to find %s.%s\n", libname, funcname);fflush(stderr);
 		if(!strcmp("stderr",funcname)){
-			//fprintf(stderr,"%s.%s\n", libname, funcname);fflush(stderr);
 			addr = stderr;
 		}else if(!strcmp("stdout",funcname)){
-			//fprintf(stderr,"%s.%s\n", libname, funcname);fflush(stderr);
 			addr = stdout;
 		}else if(!strcmp("stdin",funcname)){
-			//fprintf(stderr,"%s.%s\n", libname, funcname);fflush(stderr);
 			addr = stdin;
-			//		}else if(0==strcmp("va_start",funcname)){
-			//			addr = va_start;
-			//		}else if(0==strcmp("va_end",funcname)){
-			//			addr = va_end;
-	}else{
-		//fprintf(stderr,"TODO4 to find %s.%s\n", libname, funcname);fflush(stderr);
-		addr = dlsym(RTLD_DEFAULT, funcname);
-	}
+		}else{
+			//fprintf(stderr,"TODO4 to find %s.%s\n", libname, funcname);fflush(stderr);
+			//addr = dlsym(RTLD_DEFAULT, funcname);
+			//fprintf(stderr,"RTLD_DEFAULT=%d\n",RTLD_DEFAULT);
+			addr = dlsym((void*)-2, funcname);
+		}
 	}else{
 		//fprintf(stderr,"TODO2 find %s.%s\n", libname, funcname);fflush(stderr);
 		addr = dlsym(rt_dlopen, funcname);
@@ -57,9 +95,10 @@ void*(*ffi(const char* funcname, const char* libname, ...))()
 	}
 	return addr;
 }
-#endif
-# define libc(f) ffi(#f,"c")
+#  define libc(f) ffi(#f,"c")
+# else
+#  define libc(f) f
+# endif
 #else
 # define libc(f) f
 #endif
-

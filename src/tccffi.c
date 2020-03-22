@@ -1,87 +1,53 @@
 // gcc tccffi.c -I ../../tinycc/ -o tccffi && ./tccffi
 // tcc -run tccffi.c -I ../../tinycc/ 
 
+#ifndef TCC_FFI
+#define TCC_FFI 1
+#endif
+
 #include "tccffi.h"
 
-#define NDEBUG
+struct TCCState;
 
-//#ifdef __APPLE__
-//# ifndef TCC_TARGET_MACHO
-//#  define TCC_TARGET_MACHO
-//# endif
-//#elif defined(WIN32)
-//# ifndef TCC_TARGET_PE
-//#  define TCC_TARGET_PE
-//# endif
-//#else
-////ELF
-//#endif
-
-//#include "libtcc.c"
-#include <string.h>
-#include "libtcc.h"
+typedef struct TCCState TCCState;
 
 TCCState *s;
-
-//TMP TEST
-//void* (*func)()
-//void*
-typedef void* any_ptr;
-typedef any_ptr (*function_ptr)();
-function_ptr
-add_symbol(const char * symbol, const char * str)
-{
-	tcc_compile_string(s, str);
-	//tcc_relocate(s, 0);//no use
-	return (function_ptr) tcc_get_symbol(s, symbol);
-}
-
-void tmp_add_symbol(const char * symbol, const void * pt)
-{
-	tcc_add_symbol(s, symbol, pt);
-}
-
-void tmp_list_symbols(void *ctx,
-    void (*symbol_cb)(void *ctx, const char *name, const void *val))
-{
-	tcc_list_symbols(s, ctx, symbol_cb);
-}
 
 int main(int argc, char **argv){
 
 	char * filename = (argc>1) ? argv[1] : "-";
 
-	s = tcc_new();
+	s = ffi("tcc_new","tcc")();
 
 	if (!s) { return 1; }
 
-	tcc_set_output_type(s, TCC_OUTPUT_MEMORY);
+	//tcc_set_output_type(s, TCC_OUTPUT_MEMORY);
+	//ffi("tcc_set_output_type","tcc")(s, TCC_OUTPUT_MEMORY);
+	ffi("tcc_set_output_type","tcc")(s, 1);
 
-	tcc_define_symbol(s, "TCC_FFI", "1");
+	ffi("tcc_define_symbol","tcc")(s, "TCC_FFI", "2");
 
-	tcc_set_options(s, "-nostdlib");
-	tcc_set_options(s, "-nostdinc");
-	tcc_set_options(s, "-L.");
+	ffi("tcc_set_options","tcc")(s, "-nostdlib");
+	ffi("tcc_set_options","tcc")(s, "-nostdinc");
+	ffi("tcc_set_options","tcc")(s, "-L.");
 
-	tcc_add_file(s,filename);
+	ffi("tcc_add_file","tcc")(s,filename);
 
-	tcc_add_symbol(s, "ffi", ffi);
+	//TODO make my_ffi
+	//tcc_add_symbol(s, "ffi", my_ffi);
+	ffi("tcc_add_symbol","tcc")(s, "ffi", ffi);
 
-	//TMP TEST:
-	tcc_add_symbol(s, "add_symbol", add_symbol);
-	tcc_add_symbol(s, "tmp_add_symbol", tmp_add_symbol);
-	tcc_add_symbol(s, "tmp_list_symbols", tmp_list_symbols);
+	//if (ffi("tcc_relocate","tcc")(s, TCC_RELOCATE_AUTO) < 0) return 2;
+	if (ffi("tcc_relocate","tcc")(s, 1) < 0) return 2;
 
-	if (tcc_relocate(s, TCC_RELOCATE_AUTO) < 0) return 2;
+	//function_ptr entry = tcc_get_symbol(s, "main");
+	void* (*entry)() = ffi("tcc_get_symbol","tcc")(s, "main");
 
-	//function_ptr func = tcc_get_symbol(s, "main");
-	void* (*func)() = tcc_get_symbol(s, "main");
+	if (!entry) { return 3; }
 
-	if (!func) { return 3; }
+	int rt = (int) entry(argc,argv);
 
-	int rt = (int) func(argc,argv);
-
-	tcc_delete(s);
+	ffi("tcc_delete","tcc")(s);
 
 	return rt;
 }
