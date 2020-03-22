@@ -14,10 +14,12 @@ osx:
 	make libtcc.dylib -C ../tinycc/
 	cp ../tinycc/libtcc.dylib ./
 	make all
+	cp tccffi tccffi_osx
 lnx:
 	make libtcc.so -C ../tinycc/
 	cp ../tinycc/libtcc.so ./
 	make all
+	cp tccffi tccffi_lnx
 test:
 	cat tests/42.c | ./tccffi
 	./tccffi tests/42.c
