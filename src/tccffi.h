@@ -7,18 +7,22 @@
 #   define _MSVCRT_
 #   include <stdio.h>
 #  elif defined(__APPLE__)
+     typedef struct __FILE FILE;
 #    define stdin __stdinp
 #    define stdout __stdoutp
 #    define stderr __stderrp
-#   else
-#    define stdin stdin
-#    define stdout stdout
-#    define stderr stderr
-#   endif
-     typedef struct __FILE FILE;
      extern FILE *stdin;	
      extern FILE *stdout;
      extern FILE *stderr;
+#   else
+     typedef struct __FILE FILE;
+#    define stdin stdin
+#    define stdout stdout
+#    define stderr stderr
+     extern FILE *stdin;	
+     extern FILE *stdout;
+     extern FILE *stderr;
+#   endif
     int sprintf(char *str, const char *format, ...);
     int fprintf(FILE *stream, const char *format, ...);
     int fflush(FILE *stream);
