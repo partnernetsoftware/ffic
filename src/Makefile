@@ -27,6 +27,9 @@ test:
 tcc:
 	tcc -I. -I../tinycc/ -run -nostdlib tccffi.c 
 	#tcc -nostdlib -E tccffi.c -I ../tinycc/ -o tccffi.i
+osx_sheme:
+	make osx
+	./tccffi tests/lisp_scheme_ffi.c
 pp:
 	${CC} -E tccffi.c -I. -I../tinycc/ -o tccffi.i
 	#${CC} -E tccffi.c -I. -I../tinycc/ | sed 's/^#.*//g' > tccffi.pp.i
