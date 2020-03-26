@@ -76,7 +76,6 @@ extern void *dlsym(void *, const char *);
 void* ffi_void(){return 0;};
 void*(*ffi_raw(const char* libfilename, const char* funcname, ...))()
 {
-	//fprintf(stderr,"DEBUG ffi() %s.%s\n", libfilename, funcname);fflush(stderr);
 	void* rt_dlopen = (void*) ffi_dlopen(libfilename,1/*RTLD_LAZY*/);
 	void*	addr = ffi_dlsym(rt_dlopen, funcname);
 	if(0==addr){

@@ -17,7 +17,8 @@ int main(int argc, char **argv){
 	tcc(tcc_set_options)(s, "-nostdinc");
 	tcc(tcc_set_options)(s, "-L.");
 	tcc(tcc_add_symbol)(s, "ffi", ffi);
-	tcc(tcc_add_symbol)(s, "ffi_raw", ffi_raw);
+	//tcc(tcc_add_symbol)(s, "ffi_std", ffi_std);
+	//tcc(tcc_add_symbol)(s, "ffi_raw", ffi_raw);
 	tcc(tcc_add_file)(s,filename);
 
 	if (tcc(tcc_relocate)(s, 1/*TCC_RELOCATE_AUTO*/) < 0) return 2;
