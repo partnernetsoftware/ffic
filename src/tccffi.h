@@ -4,11 +4,38 @@ extern void*(*ffi(const char*, const char*, ...))();
 #  define libc(f) ffi("c",#f)
 # elif TCC_FFI==1
 #  if defined(_WIN32) || defined(_WIN64)
-//TODO win headers are conplicated, will remove stdio.h later
-#ifndef _MSVCRT_
-#   define _MSVCRT_
+
+struct _iobuf {
+	char *_ptr;
+	int _cnt;
+	char *_base;
+	int _flag;
+	int _file;
+	int _charbuf;
+	int _bufsiz;
+	char *_tmpfname;
+};
+typedef struct _iobuf FILE;
+
+#ifdef _WIN64
+#define __cdecl
+#define __declspec(x) __attribute__((x))
+__declspec(dllimport) FILE *__cdecl __iob_func(void);
+#else
+#ifdef _MSVCRT_
+extern FILE _iob[];     /* A pointer to an array of FILE */
+#define __iob_func()    (_iob)
+#else
+extern FILE (*_imp___iob)[];    /* A pointer to an array of FILE */
+#define __iob_func()    (*_imp___iob)
+#define _iob __iob_func()
 #endif
-#   include <stdio.h>
+#endif
+
+#define stdin (&__iob_func()[0])
+#define stdout (&__iob_func()[1])
+#define stderr (&__iob_func()[2])
+
 #  elif defined(__APPLE__)
 typedef struct __FILE FILE;
 #    define stdin __stdinp
@@ -46,13 +73,6 @@ extern void *dlsym(void *, const char *);
 #define ffi_dlsym dlsym
 #   endif
 #define ffi_dlopen dlopen 
-//#define RTLD_GLOBAL     0x100
-//#define RTLD_DEFAULT     0x0
-//#define RTLD_LAZY 0x1
-FILE* ffi_std(int i){
-	FILE * std[3]={stdin,stdout,stderr};
-	return std[i];
-}
 void* ffi_void(){return 0;};
 void*(*ffi_raw(const char* libfilename, const char* funcname, ...))()
 {
@@ -68,21 +88,6 @@ void*(*ffi_raw(const char* libfilename, const char* funcname, ...))()
 void*(*ffi(const char* libname, const char* funcname, ...))()
 {
 	void* addr = 0;
-	char libfilename[128] = {0};
-	sprintf(libfilename,
-			"%s%s",
-			libname,
-#if defined(__APPLE__)
-			".dylib"
-//#elif defined(_WIN64)
-//			"64.dll"
-#elif defined(_WIN32) || defined(_WIN64)
-//			"32.dll"
-			".dll"
-#else
-			".so"
-#endif
-			);
 	if(!strcmp("c",libname)){
 		if(!strcmp("stderr",funcname)){
 			addr = stderr;
@@ -104,26 +109,20 @@ void*(*ffi(const char* libname, const char* funcname, ...))()
 					,funcname);
 		}
 	}else{
+		char libfilename[128] = {0};
+		sprintf(libfilename,
+				"%s%s",
+				libname,
+#if defined(__APPLE__)
+				".dylib"
+#elif defined(_WIN32) || defined(_WIN64)
+				".dll"
+#else
+				".so"
+#endif
+				);
 		addr = ffi_raw(libfilename,funcname);
 	}
-	//	void* rt_dlopen = (void*) ffi_dlopen(libfilename,1/*RTLD_LAZY*/);
-	//	if(!strcmp("c",libname)){
-	//		if(!strcmp("stderr",funcname)){
-	//			addr = stderr;
-	//		}else if(!strcmp("stdout",funcname)){
-	//			addr = stdout;
-	//		}else if(!strcmp("stdin",funcname)){
-	//			addr = stdin;
-	//		}else{
-	//			addr = ffi_dlsym(rt_dlopen, funcname);
-	//		}
-	//	}else{
-	//		addr = ffi_dlsym(rt_dlopen, funcname);
-	//	}
-	//	if(0==addr){
-	//		fprintf(stderr,"ERR: Not found %s.%s\n", libfilename, funcname);fflush(stderr);
-	//		return ffi_void;
-	//	}
 	return addr;
 }
 #  define libc(f) ffi("c",#f)
