@@ -16,7 +16,7 @@ int main(int argc, char **argv){
 	if (tcc(tcc_relocate)(tcc_ptr, 1/*TCC_RELOCATE_AUTO*/) < 0) return 2;
 	anyptr (*entry)() = tcc(tcc_get_symbol)(tcc_ptr, "main");
 	if (!entry) { return 3; }
-	int rt = (int) entry(argc,argv);
+	int rt = (int) entry(argc>1?argc-1:argc,argc>1?argv++:argv);
 	tcc(tcc_delete)(tcc_ptr);
 	return rt;
 }

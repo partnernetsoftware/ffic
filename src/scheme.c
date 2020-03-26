@@ -1,18 +1,17 @@
 //https://github.com/lazear/microlisp/blob/master/scheme/src/scheme.c
 //https://en.wikipedia.org/wiki/Scheme_(programming_language)
 /* Single file scheme interpreter
-	 MIT License
-	 Copyright Michael Lazear (c) 2016
-	 FFI version by Wanjo Chan (c) 2020
+* MIT License
+* Copyright Michael Lazear (c) 2016
+* FFI version by Wanjo Chan (c) 2020
 */
-//#ifndef TCC_FFI
-//#define TCC_FFI 1
-//#endif
+//extern ;;
 #include "tccffi.h"
 
-//extern void*(*ffi(const char*, const char*, ...))();
-
 //TODO improve for other os:
+
+typedef signed char i8;
+//typedef struct { i8[2] } i16;
 typedef signed long int int64_t;//SIGNED 8 BYTES
 typedef unsigned long long int uint64_t;
 typedef unsigned char uint8_t;
@@ -33,7 +32,7 @@ typedef unsigned char uint8_t;
 
 typedef enum { INTEGER, SYMBOL, STRING, LIST, PRIMITIVE, VECTOR } type_t;
 typedef struct object *(*primitive_t)(struct object *);
-
+typedef
 struct object {
 	char gc;
 	type_t type;
@@ -50,41 +49,44 @@ struct object {
 		};
 		primitive_t primitive;
 	};
-} __attribute__((packed));
+}
+__attribute__((packed))
+	object
+	;
 
-/* We declare a couple of global variables for keywords */
-static struct object *ENV;
-static struct object *NIL;
-static struct object *EMPTY_LIST;
-static struct object *TRUE;
-static struct object *FALSE;
-static struct object *QUOTE;
-static struct object *DEFINE;
-static struct object *SET;
-static struct object *LET;
-static struct object *IF;
-static struct object *LAMBDA;
-static struct object *BEGIN;
-static struct object *PROCEDURE;
+static object *ENV;
+static object *NIL;
+static object *EMPTY_LIST;
+static object *TRUE;
+static object *FALSE;
+static object *QUOTE;
+static object *DEFINE;
+static object *SET;
+static object *LET;
+static object *IF;
+static object *LAMBDA;
+static object *BEGIN;
+static object *PROCEDURE;
 
-void print_exp(char *, struct object *);
-int is_tagged(struct object *cell, struct object *tag);
-struct object *read_exp(FILE *in);
-struct object *eval(struct object *exp, struct object *env);
-struct object *cons(struct object *x, struct object *y);
-struct object *load_file(struct object *args);
-struct object *cdr(struct object *);
-struct object *car(struct object *);
-struct object *lookup_variable(struct object *var, struct object *env);
+void print_exp(char *, object *);
+int is_tagged(object *cell, object *tag);
+object *read_exp(FILE *in);
+object *eval(object *exp, object *env);
+object *cons(object *x, object *y);
+object *load_file(object *args);
+object *cdr(object *);
+object *car(object *);
+object *lookup_variable(object *var, object *env);
 
 /*==============================================================================
 	Hash table for saving Lisp symbol objects. Conserves memory and faster compares
 	==============================================================================*/
 struct htable {
-	struct object *key;
+	object *key;
 };
 /* One dimensional hash table */
 static struct htable *HTABLE = 0;
+//struct htable *HTABLE = 0;
 static int HTABLE_SIZE;
 
 static uint64_t hash(const char *s) {
@@ -106,12 +108,12 @@ int ht_init(int size) {
 	return size;
 }
 
-void ht_insert(struct object *key) {
+void ht_insert(object *key) {
 	uint64_t h = hash(key->string);
 	HTABLE[h].key = key;
 }
 
-struct object *ht_lookup(char *s) {
+object *ht_lookup(char *s) {
 	uint64_t h = hash(s);
 	return HTABLE[h].key;
 }
@@ -121,8 +123,8 @@ struct object *ht_lookup(char *s) {
 	==============================================================================*/
 int alloc_count = 0;
 
-struct object *alloc() {
-	struct object *ret = libc(malloc)(sizeof(struct object));
+object *alloc() {
+	object *ret = libc(malloc)(sizeof(object));
 	alloc_count++;
 	return ret;
 }
@@ -130,7 +132,7 @@ struct object *alloc() {
 /*============================================================================
 	Constructors and etc
 	==============================================================================*/
-int __type_check(const char *func, struct object *obj, type_t type) {
+int __type_check(const char *func, object *obj, type_t type) {
 	if (null(obj)) {
 		libc(fprintf)(libc(stderr), "Invalid argument to function %s: NIL\n", func);
 		libc(exit)(1);
@@ -144,10 +146,10 @@ int __type_check(const char *func, struct object *obj, type_t type) {
 	return 1;
 }
 
-struct object *make_vector(int size) {
-	struct object *ret = alloc();
+object *make_vector(int size) {
+	object *ret = alloc();
 	ret->type = VECTOR;
-	ret->vector = libc(malloc)(sizeof(struct object *) * size);
+	ret->vector = libc(malloc)(sizeof(object *) * size);
 	ret->vsize = size;
 
 	libc(memset)(ret->vector, 0, size);
@@ -155,8 +157,8 @@ struct object *make_vector(int size) {
 	return ret;
 }
 
-struct object *make_symbol(char *s) {
-	struct object *ret = ht_lookup(s);
+object *make_symbol(char *s) {
+	object *ret = ht_lookup(s);
 	if (null(ret)) {
 		ret = alloc();
 		ret->type = SYMBOL;
@@ -166,63 +168,63 @@ struct object *make_symbol(char *s) {
 	return ret;
 }
 
-struct object *make_integer(int x) {
-	struct object *ret = alloc();
+object *make_integer(int x) {
+	object *ret = alloc();
 	ret->type = INTEGER;
 	ret->integer = x;
 	return ret;
 }
 
-struct object *make_primitive(primitive_t x) {
-	struct object *ret = alloc();
+object *make_primitive(primitive_t x) {
+	object *ret = alloc();
 	ret->type = PRIMITIVE;
 	ret->primitive = x;
 	return ret;
 }
 
-struct object *make_lambda(struct object *params, struct object *body) {
+object *make_lambda(object *params, object *body) {
 	return cons(LAMBDA, cons(params, body));
 }
 
-struct object *make_procedure(struct object *params, struct object *body,
-		struct object *env) {
+object *make_procedure(object *params, object *body,
+		object *env) {
 	return cons(PROCEDURE, cons(params, cons(body, cons(env, EMPTY_LIST))));
 }
 
-struct object *cons(struct object *x, struct object *y) {
-	struct object *ret = alloc();
+object *cons(object *x, object *y) {
+	object *ret = alloc();
 	ret->type = LIST;
 	ret->car = x;
 	ret->cdr = y;
 	return ret;
 }
 
-struct object *car(struct object *cell) {
+object *car(object *cell) {
 	if (null(cell) || cell->type != LIST)
 		return NIL;
 	return cell->car;
 }
 
-struct object *cdr(struct object *cell) {
+object *cdr(object *cell) {
 	if (null(cell) || cell->type != LIST)
 		return NIL;
 	return cell->cdr;
 }
 
-struct object *append(struct object *l1, struct object *l2) {
+object *append(object *l1, object *l2) {
 	if (null(l1))
 		return l2;
 	return cons(car(l1), append(cdr(l1), l2));
 }
 
-struct object *reverse(struct object *list, struct object *first) {
+object *reverse(object *list, object *first) {
 	if (null(list))
 		return first;
 	return reverse(cdr(list), cons(car(list), first));
 }
 
 // Pointer equality
-int is_equal(struct object *x, struct object *y) {
+int is_equal(object *x, object *y) {
 
 	if (x == y)
 		return 1;
@@ -246,7 +248,7 @@ int is_equal(struct object *x, struct object *y) {
 	return 0;
 }
 
-int not_false(struct object *x) {
+int not_false(object *x) {
 	if (null(x) || is_equal(x, FALSE))
 		return 0;
 	if (x->type == INTEGER && x->integer == 0)
@@ -254,13 +256,13 @@ int not_false(struct object *x) {
 	return 1;
 }
 
-int is_tagged(struct object *cell, struct object *tag) {
+int is_tagged(object *cell, object *tag) {
 	if (null(cell) || cell->type != LIST)
 		return 0;
 	return is_equal(car(cell), tag);
 }
 
-int length(struct object *exp) {
+int length(object *exp) {
 	if (null(exp))
 		return 0;
 	return 1 + length(cdr(exp));
@@ -269,65 +271,65 @@ int length(struct object *exp) {
 	Primitive operations
 	==============================================================================*/
 
-struct object *prim_type(struct object *args) {
+object *prim_type(object *args) {
 	char *types[6] = {"integer", "symbol",    "string",
 		"list",    "primitive", "vector"};
 	return make_symbol(types[car(args)->type]);
 }
 
-struct object *prim_get_env(struct object *args) {
+object *prim_get_env(object *args) {
 	//libc(assert)(null(args));
 	return ENV;
 }
-struct object *prim_set_env(struct object *args) {
+object *prim_set_env(object *args) {
 	ENV = car(args);
 	return NIL;
 }
 
-struct object *prim_list(struct object *args) {
+object *prim_list(object *args) {
 	return (args);
 }
-struct object *prim_cons(struct object *args) {
+object *prim_cons(object *args) {
 	return cons(car(args), cadr(args));
 }
 
-struct object *prim_car(struct object *args) {
+object *prim_car(object *args) {
 #ifdef STRICT
 	ASSERT_TYPE(car(args), LIST);
 #endif
 	return caar(args);
 }
 
-struct object *prim_cdr(struct object *args) {
+object *prim_cdr(object *args) {
 #ifdef STRICT
 	ASSERT_TYPE(car(args), LIST);
 #endif
 	return cdar(args);
 }
 
-struct object *prim_setcar(struct object *args) {
+object *prim_setcar(object *args) {
 	ASSERT_TYPE(car(args), LIST);
 	(args->car->car = (cadr(args)));
 	return NIL;
 }
-struct object *prim_setcdr(struct object *args) {
+object *prim_setcdr(object *args) {
 	ASSERT_TYPE(car(args), LIST);
 	(args->car->cdr = (cadr(args)));
 	return NIL;
 }
 
-struct object *prim_nullq(struct object *args) {
+object *prim_nullq(object *args) {
 	return EOL(car(args)) ? TRUE : FALSE;
 }
 
-struct object *prim_pairq(struct object *args) {
+object *prim_pairq(object *args) {
 	if (car(args)->type != LIST)
 		return FALSE;
 	return (atom(caar(args)) && atom(cdar(args))) ? TRUE : FALSE;
 }
 
-struct object *prim_listq(struct object *args) {
-	struct object *list;
+object *prim_listq(object *args) {
+	object *list;
 	if (car(args)->type != LIST)
 		return FALSE;
 	for (list = car(args); !null(list); list = list->cdr)
@@ -336,27 +338,27 @@ struct object *prim_listq(struct object *args) {
 	return (car(args)->type == LIST && prim_pairq(args) != TRUE) ? TRUE : FALSE;
 }
 
-struct object *prim_atomq(struct object *sexp) {
+object *prim_atomq(object *sexp) {
 	return atom(car(sexp)) ? TRUE : FALSE;
 }
 
 /* = primitive, only valid for numbers */
-struct object *prim_neq(struct object *args) {
+object *prim_neq(object *args) {
 	if ((car(args)->type != INTEGER) || (cadr(args)->type != INTEGER))
 		return FALSE;
 	return (car(args)->integer == cadr(args)->integer) ? TRUE : FALSE;
 }
 
 /* eq? primitive, checks memory location, or if equal values for primitives */
-struct object *prim_eq(struct object *args) {
+object *prim_eq(object *args) {
 	return is_equal(car(args), cadr(args)) ? TRUE : FALSE;
 }
 
-struct object *prim_equal(struct object *args) {
+object *prim_equal(object *args) {
 	if (is_equal(car(args), cadr(args)))
 		return TRUE;
 	if ((car(args)->type == LIST) && (cadr(args)->type == LIST)) {
-		struct object *a, *b;
+		object *a, *b;
 		a = car(args);
 		b = cadr(args);
 		while (!null(a) && !null(b)) {
@@ -371,8 +373,8 @@ struct object *prim_equal(struct object *args) {
 		if (car(args)->vsize != cadr(args)->vsize) {
 			return FALSE;
 		}
-		struct object **va = car(args)->vector;
-		struct object **vb = cadr(args)->vector;
+		object **va = car(args)->vector;
+		object **vb = cadr(args)->vector;
 		int i = 0;
 		for (i = 0; i < car(args)->vsize; i++) {
 			if (!is_equal(*(va + i), *(vb + i))) {
@@ -384,7 +386,7 @@ struct object *prim_equal(struct object *args) {
 	return FALSE;
 }
 
-struct object *prim_add(struct object *list) {
+object *prim_add(object *list) {
 	ASSERT_TYPE(car(list), INTEGER);
 	int64_t total = car(list)->integer;
 	list = cdr(list);
@@ -396,7 +398,7 @@ struct object *prim_add(struct object *list) {
 	return make_integer(total);
 }
 
-struct object *prim_sub(struct object *list) {
+object *prim_sub(object *list) {
 	ASSERT_TYPE(car(list), INTEGER);
 	int64_t total = car(list)->integer;
 	list = cdr(list);
@@ -408,7 +410,7 @@ struct object *prim_sub(struct object *list) {
 	return make_integer(total);
 }
 
-struct object *prim_div(struct object *list) {
+object *prim_div(object *list) {
 	ASSERT_TYPE(car(list), INTEGER);
 	int64_t total = car(list)->integer;
 	list = cdr(list);
@@ -420,7 +422,7 @@ struct object *prim_div(struct object *list) {
 	return make_integer(total);
 }
 
-struct object *prim_mul(struct object *list) {
+object *prim_mul(object *list) {
 	ASSERT_TYPE(car(list), INTEGER);
 	int64_t total = car(list)->integer;
 	list = cdr(list);
@@ -431,36 +433,36 @@ struct object *prim_mul(struct object *list) {
 	}
 	return make_integer(total);
 }
-struct object *prim_gt(struct object *sexp) {
+object *prim_gt(object *sexp) {
 	ASSERT_TYPE(car(sexp), INTEGER);
 	ASSERT_TYPE(cadr(sexp), INTEGER);
 	return (car(sexp)->integer > cadr(sexp)->integer) ? TRUE : NIL;
 }
 
-struct object *prim_lt(struct object *sexp) {
+object *prim_lt(object *sexp) {
 	ASSERT_TYPE(car(sexp), INTEGER);
 	ASSERT_TYPE(cadr(sexp), INTEGER);
 	return (car(sexp)->integer < cadr(sexp)->integer) ? TRUE : NIL;
 }
 
-struct object *prim_print(struct object *args) {
+object *prim_print(object *args) {
 	print_exp(0, car(args));
 	libc(printf)("\n");
 	return NIL;
 }
 
-struct object *prim_exit(struct object *args) {
+object *prim_exit(object *args) {
 	//libc(assert)(null(args));
 	libc(exit)(0);
 	return NIL;
 }
 
-struct object *prim_read(struct object *args) {
+object *prim_read(object *args) {
 	libc(assert)(null(args));
 	return read_exp((FILE*)libc(stdin));
 }
 
-struct object *prim_vget(struct object *args) {
+object *prim_vget(object *args) {
 	ASSERT_TYPE(car(args), VECTOR);
 	ASSERT_TYPE(cadr(args), INTEGER);
 	if (cadr(args)->integer >= car(args)->vsize)
@@ -468,7 +470,7 @@ struct object *prim_vget(struct object *args) {
 	return car(args)->vector[cadr(args)->integer];
 }
 
-struct object *prim_vset(struct object *args) {
+object *prim_vset(object *args) {
 	ASSERT_TYPE(car(args), VECTOR);
 	ASSERT_TYPE(cadr(args), INTEGER);
 	if (null(caddr(args)))
@@ -479,7 +481,7 @@ struct object *prim_vset(struct object *args) {
 	return make_symbol("ok");
 }
 
-struct object *prim_vec(struct object *args) {
+object *prim_vec(object *args) {
 	ASSERT_TYPE(car(args), INTEGER);
 	return make_vector(car(args)->integer);
 }
@@ -488,16 +490,16 @@ struct object *prim_vec(struct object *args) {
 	Environment handling
 	==============================================================================*/
 
-struct object *extend_env(struct object *var, struct object *val,
-		struct object *env) {
+object *extend_env(object *var, object *val,
+		object *env) {
 	return cons(cons(var, val), env);
 }
 
-struct object *lookup_variable(struct object *var, struct object *env) {
+object *lookup_variable(object *var, object *env) {
 	while (!null(env)) {
-		struct object *frame = car(env);
-		struct object *vars = car(frame);
-		struct object *vals = cdr(frame);
+		object *frame = car(env);
+		object *vars = car(frame);
+		object *vals = cdr(frame);
 		while (!null(vars)) {
 			if (is_equal(car(vars), var))
 				return car(vals);
@@ -510,11 +512,11 @@ struct object *lookup_variable(struct object *var, struct object *env) {
 }
 
 /* set_variable binds var to val in the first frame in which var occurs */
-void set_variable(struct object *var, struct object *val, struct object *env) {
+void set_variable(object *var, object *val, object *env) {
 	while (!null(env)) {
-		struct object *frame = car(env);
-		struct object *vars = car(frame);
-		struct object *vals = cdr(frame);
+		object *frame = car(env);
+		object *vars = car(frame);
+		object *vals = cdr(frame);
 		while (!null(vars)) {
 			if (is_equal(car(vars), var)) {
 				vals->car = val;
@@ -528,11 +530,11 @@ void set_variable(struct object *var, struct object *val, struct object *env) {
 }
 
 /* define_variable binds var to val in the *current* frame */
-struct object *define_variable(struct object *var, struct object *val,
-		struct object *env) {
-	struct object *frame = car(env);
-	struct object *vars = car(frame);
-	struct object *vals = cdr(frame);
+object *define_variable(object *var, object *val,
+		object *env) {
+	object *frame = car(env);
+	object *vars = car(frame);
+	object *vals = cdr(frame);
 
 	while (!null(vars)) {
 		if (is_equal(var, car(vars))) {
@@ -569,7 +571,7 @@ void skip(FILE *in) {
 	}
 }
 
-struct object *read_string(FILE *in) {
+object *read_string(FILE *in) {
 	char buf[256];
 	int i = 0;
 	long c;
@@ -581,12 +583,12 @@ struct object *read_string(FILE *in) {
 		buf[i++] = (char)c;
 	}
 	buf[i] = '\0';
-	struct object *s = make_symbol(buf);
+	object *s = make_symbol(buf);
 	s->type = STRING;
 	return s;
 }
 
-struct object *read_symbol(FILE *in, char start) {
+object *read_symbol(FILE *in, char start) {
 	char buf[128];
 	buf[0] = start;
 	int i = 1;
@@ -605,9 +607,9 @@ int read_int(FILE *in, int start) {
 	return start;
 }
 
-struct object *read_list(FILE *in) {
-	struct object *obj;
-	struct object *cell = EMPTY_LIST;
+object *read_list(FILE *in) {
+	object *obj;
+	object *cell = EMPTY_LIST;
 	for (;;) {
 		obj = read_exp(in);
 
@@ -618,13 +620,13 @@ struct object *read_list(FILE *in) {
 	return EMPTY_LIST;
 }
 
-struct object *read_quote(FILE *in) {
+object *read_quote(FILE *in) {
 	return cons(QUOTE, cons(read_exp(in), NIL));
 }
 
 int depth = 0;
 
-struct object *read_exp(FILE *in) {
+object *read_exp(FILE *in) {
 	int c;
 
 	for (;;) {
@@ -665,7 +667,7 @@ struct object *read_exp(FILE *in) {
 	return NIL;
 }
 
-void print_exp(char *str, struct object *e) {
+void print_exp(char *str, object *e) {
 	if (str)
 		libc(printf)("%s ", str);
 	if (null(e)) {
@@ -694,7 +696,7 @@ void print_exp(char *str, struct object *e) {
 				return;
 			}
 			libc(printf)("(");
-			struct object **t = &e;
+			object **t = &e;
 			while (!null(*t)) {
 				print_exp(0, (*t)->car);
 				if (!null((*t)->cdr)) {
@@ -716,20 +718,20 @@ void print_exp(char *str, struct object *e) {
 	LISP evaluator
 	==============================================================================*/
 
-struct object *evlis(struct object *exp, struct object *env) {
+object *evlis(object *exp, object *env) {
 	if (null(exp))
 		return NIL;
 	return cons(eval(car(exp), env), evlis(cdr(exp), env));
 }
 
-struct object *eval_sequence(struct object *exps, struct object *env) {
+object *eval_sequence(object *exps, object *env) {
 	if (null(cdr(exps)))
 		return eval(car(exps), env);
 	eval(car(exps), env);
 	return eval_sequence(cdr(exps), env);
 }
 
-struct object *eval(struct object *exp, struct object *env) {
+object *eval(object *exp, object *env) {
 
 tail:
 	if (null(exp) || exp == EMPTY_LIST) {
@@ -737,7 +739,7 @@ tail:
 	} else if (exp->type == INTEGER || exp->type == STRING) {
 		return exp;
 	} else if (exp->type == SYMBOL) {
-		struct object *s = lookup_variable(exp, env);
+		object *s = lookup_variable(exp, env);
 #ifdef STRICT
 		if (null(s)) {
 			print_exp("Unbound symbol:", exp);
@@ -753,27 +755,27 @@ tail:
 		if (atom(cadr(exp)))
 			define_variable(cadr(exp), eval(caddr(exp), env), env);
 		else {
-			struct object *closure =
+			object *closure =
 				eval(make_lambda(cdr(cadr(exp)), cddr(exp)), env);
 			define_variable(car(cadr(exp)), closure, env);
 		}
 		return make_symbol("ok");
 	} else if (is_tagged(exp, BEGIN)) {
-		struct object *args = cdr(exp);
+		object *args = cdr(exp);
 		for (; !null(cdr(args)); args = cdr(args))
 			eval(car(args), env);
 		exp = car(args);
 		goto tail;
 	} else if (is_tagged(exp, IF)) {
-		struct object *predicate = eval(cadr(exp), env);
+		object *predicate = eval(cadr(exp), env);
 		exp = (not_false(predicate)) ? caddr(exp) : cadddr(exp);
 		goto tail;
 	} else if (is_tagged(exp, make_symbol("or"))) {
-		struct object *predicate = eval(cadr(exp), env);
+		object *predicate = eval(cadr(exp), env);
 		exp = (not_false(predicate)) ? caddr(exp) : cadddr(exp);
 		goto tail;
 	} else if (is_tagged(exp, make_symbol("cond"))) {
-		struct object *branch = cdr(exp);
+		object *branch = cdr(exp);
 		for (; !null(branch); branch = cdr(branch)) {
 			if (is_tagged(car(branch), make_symbol("else")) ||
 					not_false(eval(caar(branch), env))) {
@@ -786,16 +788,16 @@ tail:
 		if (atom(cadr(exp)))
 			set_variable(cadr(exp), eval(caddr(exp), env), env);
 		else {
-			struct object *closure =
+			object *closure =
 				eval(make_lambda(cdr(cadr(exp)), cddr(exp)), env);
 			set_variable(car(cadr(exp)), closure, env);
 		}
 		return make_symbol("ok");
 	} else if (is_tagged(exp, LET)) {
 		/* We go with the strategy of transforming let into a lambda function*/
-		struct object **tmp;
-		struct object *vars = NIL;
-		struct object *vals = NIL;
+		object **tmp;
+		object *vars = NIL;
+		object *vals = NIL;
 		if (null(cadr(exp)))
 			return NIL;
 		/* NAMED LET */
@@ -822,8 +824,8 @@ tail:
 	} else {
 		/* procedure structure is as follows:
 			 ('procedure, (parameters), (body), (env)) */
-		struct object *proc = eval(car(exp), env);
-		struct object *args = evlis(cdr(exp), env);
+		object *proc = eval(car(exp), env);
+		object *args = evlis(cdr(exp), env);
 		if (null(proc)) {
 #ifdef STRICT
 			print_exp("Invalid arguments to eval:", exp);
@@ -846,10 +848,10 @@ tail:
 }
 
 //extern char **environ;
-//struct object *prim_exec(struct object *args) {
+//object *prim_exec(object *args) {
 //	ASSERT_TYPE(car(args), STRING);
 //	int l = length(args);
-//	struct object *tmp = args;
+//	object *tmp = args;
 //
 //	char **newarg = libc(malloc)(sizeof(char *) * (l + 1));
 //	char **n = newarg;
@@ -929,9 +931,9 @@ void init_env() {
 }
 
 /* Loads and evaluates a file containing lisp s-expressions */
-struct object *load_file(struct object *args) {
-	struct object *exp;
-	struct object *ret = 0;
+object *load_file(object *args) {
+	object *exp;
+	object *ret = 0;
 	char *filename = car(args)->string;
 	libc(printf)("Evaluating file %s\n", filename);
 	FILE *fp = libc(fopen)(filename, "r");
@@ -952,12 +954,15 @@ struct object *load_file(struct object *args) {
 
 int main(int argc, char **argv) {
 	//quick debug:
-	libc(printf)("DEBUG sizeof int64_t=%d\n",sizeof int64_t);
+	//libc(printf)("DEBUG sizeof int64_t=%d\n",sizeof int64_t);
+	libc(printf)("DEBUG sizeof i8=%d\n",sizeof i8);
+	libc(printf)("DEBUG sizeof object=%d\n",sizeof object);
+	//libc(printf)("DEBUG sizeof i16=%d\n",sizeof i16);
 
 	int NELEM = 8191;
 	ht_init(NELEM);
 	init_env();
-	struct object *exp;
+	object *exp;
 	int i;
 
 	libc(printf)(
