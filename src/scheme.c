@@ -13,7 +13,7 @@
 //extern void*(*ffi(const char*, const char*, ...))();
 
 //TODO improve for other os:
-typedef signed long int int64_t;
+typedef signed long int int64_t;//SIGNED 8 BYTES
 typedef unsigned long long int uint64_t;
 typedef unsigned char uint8_t;
 
@@ -33,11 +33,6 @@ typedef unsigned char uint8_t;
 
 typedef enum { INTEGER, SYMBOL, STRING, LIST, PRIMITIVE, VECTOR } type_t;
 typedef struct object *(*primitive_t)(struct object *);
-
-/* Lisp object. We want to mimic the homoiconicity of LISP, so we will not be
-	 providing separate "types" for procedures, etc. Everything is represented as
-	 atoms (integers, strings, booleans) or a list of atoms, except for the
-	 primitive functions */
 
 struct object {
 	char gc;
@@ -956,6 +951,9 @@ struct object *load_file(struct object *args) {
 }
 
 int main(int argc, char **argv) {
+	//quick debug:
+	libc(printf)("DEBUG sizeof int64_t=%d\n",sizeof int64_t);
+
 	int NELEM = 8191;
 	ht_init(NELEM);
 	init_env();
