@@ -4,16 +4,26 @@
 	 MIT License
 	 Copyright Michael Lazear (c) 2016 */
 
-//#include <assert.h>
-//#include <ctype.h>
-//#include <errno.h>
-//#include <stdbool.h>
-//#include <stdint.h>
-//#include <stdio.h>
-//#include <stdlib.h>
-//#include <string.h>
-//#include <sys/wait.h>
-//#include <unistd.h>
+#  if defined(_WIN32) || defined(_WIN64)
+#   define _MSVCRT_
+#   include <stdio.h>
+#  elif defined(__APPLE__)
+     typedef struct __FILE FILE;
+#    define stdin __stdinp
+#    define stdout __stdoutp
+#    define stderr __stderrp
+     extern FILE *stdin;	
+     extern FILE *stdout;
+     extern FILE *stderr;
+#   else
+     typedef struct __FILE FILE;
+#    define stdin stdin
+#    define stdout stdout
+#    define stderr stderr
+     extern FILE *stdin;	
+     extern FILE *stdout;
+     extern FILE *stderr;
+#   endif
 
 //TODO update for stddef.h
 typedef signed long int int64_t;
@@ -24,16 +34,10 @@ typedef unsigned char uint8_t;
 #define true	1
 #define false	0
 
-   extern void*(*ffi(const char*, const char*, ...))();
+extern void*(*ffi(const char*, const char*, ...))();
 #  define libc(f) ffi("c",#f)
 
-     typedef struct __FILE FILE;
-//#    define stdin __stdinp
-//#    define stdout __stdoutp
-//#    define stderr __stderrp
-//     extern FILE *stdin;	
-//     extern FILE *stdout;
-//     extern FILE *stderr;
+//typedef struct __FILE FILE;
 
 #define NULL 0
 #define EOF (-1)
@@ -302,7 +306,7 @@ struct object *prim_type(struct object *args) {
 }
 
 struct object *prim_get_env(struct object *args) {
-	libc(assert)(null(args));
+	//libc(assert)(null(args));
 	return ENV;
 }
 struct object *prim_set_env(struct object *args) {
@@ -476,7 +480,7 @@ struct object *prim_print(struct object *args) {
 }
 
 struct object *prim_exit(struct object *args) {
-	libc(assert)(null(args));
+	//libc(assert)(null(args));
 	libc(exit)(0);
 	return NIL;
 }
@@ -871,13 +875,13 @@ tail:
 	return NIL;
 }
 
-extern char **environ;
+//extern char **environ;
 //struct object *prim_exec(struct object *args) {
 //	ASSERT_TYPE(car(args), STRING);
 //	int l = length(args);
 //	struct object *tmp = args;
 //
-//	char **newarg = malloc(sizeof(char *) * (l + 1));
+//	char **newarg = libc(malloc)(sizeof(char *) * (l + 1));
 //	char **n = newarg;
 //	for (; l; l--) {
 //		ASSERT_TYPE(car(tmp), STRING);
@@ -885,15 +889,15 @@ extern char **environ;
 //		tmp = cdr(tmp);
 //	}
 //	*n = NULL;
-//	int pid = fork();
+//	int pid = (long) libc(fork)();
 //	if (pid == 0) {
 //		/* if execve returns -1, there was an errorm so we need to kill*/
-//		if (execve(car(args)->string, newarg, environ)) {
-//			perror(car(args)->string);
-//			kill(getpid(), SIGTERM);
+//		if (libc(execve)(car(args)->string, newarg, environ)) {
+//			libc(perror)(car(args)->string);
+//			libc(kill)((long)libc(getpid()), 15/*SIGTERM*/);
 //		}
 //	}
-//	wait(&pid);
+//	libc(wait)(&pid);
 //	return NIL;
 //}
 
@@ -943,8 +947,9 @@ void init_env() {
 	add_prim("type", prim_type);
 	add_prim("load", load_file);
 	add_prim("print", prim_print);
-	add_prim("get-global-environment", prim_get_env);
-	add_prim("set-global-environment", prim_set_env);
+	//add_prim("get-global-environment", prim_get_env);
+	add_prim("env", prim_get_env);
+//	add_prim("set-global-environment", prim_set_env);
 	add_prim("exit", prim_exit);
 	//add_prim("exec", prim_exec);
 	add_prim("read", prim_read);

@@ -1,43 +1,54 @@
 #ifdef TCC_FFI
 # if TCC_FFI==2
-   extern void*(*ffi(const char*, const char*, ...))();
+extern void*(*ffi(const char*, const char*, ...))();
 #  define libc(f) ffi("c",#f)
 # elif TCC_FFI==1
 #  if defined(_WIN32) || defined(_WIN64)
+//TODO win headers are conplicated, will remove stdio.h later
 #   define _MSVCRT_
 #   include <stdio.h>
 #  elif defined(__APPLE__)
-     typedef struct __FILE FILE;
+typedef struct __FILE FILE;
 #    define stdin __stdinp
 #    define stdout __stdoutp
 #    define stderr __stderrp
-     extern FILE *stdin;	
-     extern FILE *stdout;
-     extern FILE *stderr;
+extern FILE *stdin;	
+extern FILE *stdout;
+extern FILE *stderr;
 #   else
-     typedef struct __FILE FILE;
+typedef struct __FILE FILE;
 #    define stdin stdin
 #    define stdout stdout
 #    define stderr stderr
-     extern FILE *stdin;	
-     extern FILE *stdout;
-     extern FILE *stderr;
+extern FILE *stdin;	
+extern FILE *stdout;
+extern FILE *stderr;
 #   endif
-    int sprintf(char *str, const char *format, ...);
-    int fprintf(FILE *stream, const char *format, ...);
-    int fflush(FILE *stream);
-    extern int strcmp(const char*,const char*);
+int sprintf(char *str, const char *format, ...);
+int fprintf(FILE *stream, const char *format, ...);
+int fflush(FILE *stream);
+extern int strcmp(const char*,const char*);
 #   ifdef _WIN32
-     extern void* LoadLibraryA(const char*);
-     extern void* GetProcAddress(void*,const char*);
-		 void *dlopen(const char *name, int i){ return (void*) LoadLibraryA(name); }
-		 void * dlsym(void * handle, const char * name) { return (void*) GetProcAddress(handle,name); }
+extern void* GetProcAddress(void*,const char*);
+#define ffi_dlopen GetProcAddress
+#ifdef UNICODE
+extern void* LoadLibraryW(const char*,...);
+#define ffi_dlopen LoadLibraryW 
+#else
+extern void* LoadLibraryA(const char*,...);
+#define ffi_dlopen LoadLibraryA 
+#endif
 #   else
-		 extern void *dlopen(const char *, int);
-		 extern void *dlsym(void *, const char *);
+extern void *dlopen(const char *,...);
+#define ffi_dlopen dlopen 
+extern void *dlsym(void *, const char *);
+#define ffi_dlsym dlsym
 #   endif
-		 void* ffi_void(){return 0;};
-     void*(*ffi(const char* libname, const char* funcname, ...))()
+//#define RTLD_GLOBAL     0x100
+//#define RTLD_DEFAULT     0x0
+//#define RTLD_LAZY 0x1
+void* ffi_void(){return 0;};
+void*(*ffi(const char* libname, const char* funcname, ...))()
 {
 	void* addr = 0;
 	char libfilename[128] = {0};
@@ -45,16 +56,16 @@
 			"lib%s%s",
 			libname,
 #if defined(__APPLE__)
-".dylib"
+			".dylib"
 #elif defined(_WIN64)
-"64.dll"
+			"64.dll"
 #elif defined(_WIN32) || defined(_WIN64)
-"32.dll"
+			"32.dll"
 #else
-".so"
+			".so"
 #endif
 			);
-	void* rt_dlopen = dlopen(libfilename,1/*RTLD_LAZY*/);
+	void* rt_dlopen = ffi_dlopen(libfilename,1/*RTLD_LAZY*/);
 	if(!strcmp("c",libname)){
 		if(!strcmp("stderr",funcname)){
 			addr = stderr;
@@ -63,10 +74,10 @@
 		}else if(!strcmp("stdin",funcname)){
 			addr = stdin;
 		}else{
-			addr = dlsym(rt_dlopen, funcname);
+			addr = ffi_dlsym(rt_dlopen, funcname);
 		}
 	}else{
-		addr = dlsym(rt_dlopen, funcname);
+		addr = ffi_dlsym(rt_dlopen, funcname);
 	}
 	if(0==addr){
 		fprintf(stderr,"ERR: Not found %s.%s\n", libfilename, funcname);fflush(stderr);
@@ -75,9 +86,8 @@
 	return addr;
 }
 #  define libc(f) ffi("c",#f)
-# else //}{
-#  define libc(f) f
-# endif //}
-#else //}{
+# endif
+#endif
+#ifndef libc
 # define libc(f) f
-#endif //}
+#endif
