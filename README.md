@@ -1,23 +1,25 @@
-# tinycc-ffi
+# tccffi
 
-scripting in c in ffi-mode with tinycc
-
+"scripting c in ffi-mode"
 
 # feature 
 
-* ffi(func,lib) to call share lib
+* ffi(sharelib,func) to call share lib.
 * free from suffering the libc header files (yup, you don't need them in most cases)
 
 # TODO
 
-* WIN32/WIN64
-* enhance tcc
+* "lispffi" which list-scheme+ffi
 
 # init
 
+osx
+
 ```
-$ git submodule init
-$ git submodule update
+git submodule init
+git submodule update
+cd src
+make osx
 ```
 
 # notes
