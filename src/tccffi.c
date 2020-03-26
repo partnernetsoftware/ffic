@@ -2,29 +2,22 @@
 #define TCC_FFI 1
 #endif
 #include "tccffi.h"
-struct TCCState;
-typedef struct TCCState TCCState;
-TCCState *s;
 #define tcc(f) ffi("libtcc",#f)
-
+#define anyptr void*
 int main(int argc, char **argv){
-	char * filename = (argc>1) ? argv[1] : "-";
-	s = tcc(tcc_new)();
-	if (!s) { return 1; }
-	tcc(tcc_set_output_type)(s, 1/*TCC_OUTPUT_MEMORY*/);
-	tcc(tcc_define_symbol)(s, "TCC_FFI", "2");
-	tcc(tcc_set_options)(s, "-nostdlib");
-	tcc(tcc_set_options)(s, "-nostdinc");
-	tcc(tcc_set_options)(s, "-L.");
-	tcc(tcc_add_symbol)(s, "ffi", ffi);
-	//tcc(tcc_add_symbol)(s, "ffi_std", ffi_std);
-	//tcc(tcc_add_symbol)(s, "ffi_raw", ffi_raw);
-	tcc(tcc_add_file)(s,filename);
-
-	if (tcc(tcc_relocate)(s, 1/*TCC_RELOCATE_AUTO*/) < 0) return 2;
-	void* (*entry)() = tcc(tcc_get_symbol)(s, "main");
+	anyptr tcc_ptr = tcc(tcc_new)();
+	if (!tcc_ptr) { return 1; }
+	tcc(tcc_set_output_type)(tcc_ptr, 1/*TCC_OUTPUT_MEMORY*/);
+	tcc(tcc_define_symbol)(tcc_ptr, "TCC_FFI", "2");
+	tcc(tcc_set_options)(tcc_ptr, "-nostdlib");
+	tcc(tcc_set_options)(tcc_ptr, "-nostdinc");
+	//tcc(tcc_set_options)(tcc_ptr, "-L.");
+	tcc(tcc_add_symbol)(tcc_ptr, "ffi", ffi);
+	tcc(tcc_add_file)(tcc_ptr,(argc>1) ? argv[1] : "-");
+	if (tcc(tcc_relocate)(tcc_ptr, 1/*TCC_RELOCATE_AUTO*/) < 0) return 2;
+	anyptr (*entry)() = tcc(tcc_get_symbol)(tcc_ptr, "main");
 	if (!entry) { return 3; }
 	int rt = (int) entry(argc,argv);
-	tcc(tcc_delete)(s);
+	tcc(tcc_delete)(tcc_ptr);
 	return rt;
 }
