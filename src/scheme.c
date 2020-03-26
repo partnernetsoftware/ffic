@@ -3,31 +3,21 @@
 /* Single file scheme interpreter
 	 MIT License
 	 Copyright Michael Lazear (c) 2016
+	 FFI version by Wanjo Chan (c) 2020
 */
-
-#ifndef TCC_FFI
-#define TCC_FFI 1
-#endif
+//#ifndef TCC_FFI
+//#define TCC_FFI 1
+//#endif
 #include "tccffi.h"
 
-//TODO update for stddef.h
+//extern void*(*ffi(const char*, const char*, ...))();
+
+//TODO improve for other os:
 typedef signed long int int64_t;
 typedef unsigned long long int uint64_t;
 typedef unsigned char uint8_t;
 
-#define bool	_Bool
-#define true	1
-#define false	0
-
-extern void*(*ffi(const char*, const char*, ...))();
-#  define libc(f) ffi("c",#f)
-
-//typedef struct __FILE FILE;
-
-#define NULL 0
-#define EOF (-1)
-
-#define null(x) ((x) == NULL || (x) == NIL)
+#define null(x) ((x) == 0 || (x) == NIL)
 #define EOL(x) (null((x)) || (x) == EMPTY_LIST)
 #define error(x) do {libc(fprintf)(libc(stderr), "%s\n", x);libc(exit)(1);}while (0)
 #define caar(x) (car(car((x))))
@@ -83,7 +73,7 @@ static struct object *BEGIN;
 static struct object *PROCEDURE;
 
 void print_exp(char *, struct object *);
-bool is_tagged(struct object *cell, struct object *tag);
+int is_tagged(struct object *cell, struct object *tag);
 struct object *read_exp(FILE *in);
 struct object *eval(struct object *exp, struct object *env);
 struct object *cons(struct object *x, struct object *y);
@@ -99,7 +89,7 @@ struct htable {
 	struct object *key;
 };
 /* One dimensional hash table */
-static struct htable *HTABLE = NULL;
+static struct htable *HTABLE = 0;
 static int HTABLE_SIZE;
 
 static uint64_t hash(const char *s) {
@@ -237,41 +227,41 @@ struct object *reverse(struct object *list, struct object *first) {
 }
 
 // Pointer equality
-bool is_equal(struct object *x, struct object *y) {
+int is_equal(struct object *x, struct object *y) {
 
 	if (x == y)
-		return true;
+		return 1;
 	if (null(x) || null(y))
-		return false;
+		return 0;
 	if (x->type != y->type)
-		return false;
+		return 0;
 	switch (x->type) {
 		case LIST:
-			return false;
+			return 0;
 		case INTEGER:
 			return x->integer == y->integer;
 		case SYMBOL:
 		case STRING:
 			return !libc(strcmp)(x->string, y->string);
 		case PRIMITIVE:
-			return false;
+			return 0;
 		case VECTOR:
-			return false;
+			return 0;
 	}
-	return false;
+	return 0;
 }
 
-bool not_false(struct object *x) {
+int not_false(struct object *x) {
 	if (null(x) || is_equal(x, FALSE))
-		return false;
+		return 0;
 	if (x->type == INTEGER && x->integer == 0)
-		return false;
-	return true;
+		return 0;
+	return 1;
 }
 
-bool is_tagged(struct object *cell, struct object *tag) {
+int is_tagged(struct object *cell, struct object *tag) {
 	if (null(cell) || cell->type != LIST)
-		return false;
+		return 0;
 	return is_equal(car(cell), tag);
 }
 
@@ -459,7 +449,7 @@ struct object *prim_lt(struct object *sexp) {
 }
 
 struct object *prim_print(struct object *args) {
-	print_exp(NULL, car(args));
+	print_exp(0, car(args));
 	libc(printf)("\n");
 	return NIL;
 }
@@ -579,7 +569,7 @@ void skip(FILE *in) {
 	long c;
 	for (;;) {
 		c = (long) libc(getc)(in);
-		if (c == '\n' || c == EOF)
+		if (c == '\n' || c == (-1))
 			return;
 	}
 }
@@ -589,7 +579,7 @@ struct object *read_string(FILE *in) {
 	int i = 0;
 	long c;
 	while ((c = (long) libc(getc)(in)) != '\"') {
-		if (c == EOF)
+		if (c == (-1))
 			return NIL;
 		if (i >= 256)
 			error("String too long - maximum length 256 characters");
@@ -656,8 +646,8 @@ struct object *read_exp(FILE *in) {
 			skip(in);
 			continue;
 		}
-		if (c == EOF)
-			return NULL;
+		if (c == (-1))
+			return 0;
 		if (c == '\"')
 			return read_string(in);
 		if (c == '\'')
@@ -711,7 +701,7 @@ void print_exp(char *str, struct object *e) {
 			libc(printf)("(");
 			struct object **t = &e;
 			while (!null(*t)) {
-				print_exp(NULL, (*t)->car);
+				print_exp(0, (*t)->car);
 				if (!null((*t)->cdr)) {
 					libc(printf)(" ");
 					if ((*t)->cdr->type == LIST) {
@@ -873,7 +863,7 @@ tail:
 //		*n++ = car(tmp)->string;
 //		tmp = cdr(tmp);
 //	}
-//	*n = NULL;
+//	*n = 0;
 //	int pid = (long) libc(fork)();
 //	if (pid == 0) {
 //		/* if execve returns -1, there was an errorm so we need to kill*/
@@ -946,11 +936,11 @@ void init_env() {
 /* Loads and evaluates a file containing lisp s-expressions */
 struct object *load_file(struct object *args) {
 	struct object *exp;
-	struct object *ret = NULL;
+	struct object *ret = 0;
 	char *filename = car(args)->string;
 	libc(printf)("Evaluating file %s\n", filename);
 	FILE *fp = libc(fopen)(filename, "r");
-	if (fp == NULL) {
+	if (fp == 0) {
 		libc(printf)("Error opening file %s\n", filename);
 		return NIL;
 	}
