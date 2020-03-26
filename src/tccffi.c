@@ -11,7 +11,6 @@ int main(int argc, char **argv){
 	tcc(tcc_define_symbol)(tcc_ptr, "TCC_FFI", "2");
 	tcc(tcc_set_options)(tcc_ptr, "-nostdlib");
 	tcc(tcc_set_options)(tcc_ptr, "-nostdinc");
-	//tcc(tcc_set_options)(tcc_ptr, "-L.");
 	tcc(tcc_add_symbol)(tcc_ptr, "ffi", ffi);
 	tcc(tcc_add_file)(tcc_ptr,(argc>1) ? argv[1] : "-");
 	if (tcc(tcc_relocate)(tcc_ptr, 1/*TCC_RELOCATE_AUTO*/) < 0) return 2;

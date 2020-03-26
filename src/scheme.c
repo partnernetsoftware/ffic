@@ -2,28 +2,13 @@
 //https://en.wikipedia.org/wiki/Scheme_(programming_language)
 /* Single file scheme interpreter
 	 MIT License
-	 Copyright Michael Lazear (c) 2016 */
+	 Copyright Michael Lazear (c) 2016
+*/
 
-#  if defined(_WIN32) || defined(_WIN64)
-#   define _MSVCRT_
-#   include <stdio.h>
-#  elif defined(__APPLE__)
-     typedef struct __FILE FILE;
-#    define stdin __stdinp
-#    define stdout __stdoutp
-#    define stderr __stderrp
-     extern FILE *stdin;	
-     extern FILE *stdout;
-     extern FILE *stderr;
-#   else
-     typedef struct __FILE FILE;
-#    define stdin stdin
-#    define stdout stdout
-#    define stderr stderr
-     extern FILE *stdin;	
-     extern FILE *stdout;
-     extern FILE *stderr;
-#   endif
+#ifndef TCC_FFI
+#define TCC_FFI 1
+#endif
+#include "tccffi.h"
 
 //TODO update for stddef.h
 typedef signed long int int64_t;

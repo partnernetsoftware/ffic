@@ -1,8 +1,3 @@
-#ifdef TCC_FFI
-# if TCC_FFI==2
-extern void*(*ffi(const char*, const char*, ...))();
-#  define libc(f) ffi("c",#f)
-# elif TCC_FFI==1
 #  if defined(_WIN32) || defined(_WIN64)
 
 struct _iobuf {
@@ -53,6 +48,16 @@ extern FILE *stdin;
 extern FILE *stdout;
 extern FILE *stderr;
 #   endif
+
+#ifndef TCC_FFI
+#define TCC_FFI 1
+#endif
+
+#ifdef TCC_FFI
+# if TCC_FFI==2
+extern void*(*ffi(const char*, const char*, ...))();
+#  define libc(f) ffi("c",#f)
+# elif TCC_FFI==1
 int sprintf(char *str, const char *format, ...);
 int fprintf(FILE *stream, const char *format, ...);
 int fflush(FILE *stream);
@@ -127,6 +132,6 @@ void*(*ffi(const char* libname, const char* funcname, ...))()
 #  define libc(f) ffi("c",#f)
 # endif
 #endif
-#ifndef libc
-# define libc(f) f
-#endif
+///#ifndef libc
+///# define libc(f) f
+///#endif
