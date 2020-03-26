@@ -28,9 +28,7 @@ int sprintf(char *str, const char *format, ...);
 int fprintf(FILE *stream, const char *format, ...);
 int fflush(FILE *stream);
 extern int strcmp(const char*,const char*);
-#   ifdef _WIN32
-extern void* GetProcAddress(void*,const char*);
-#define ffi_dlopen GetProcAddress
+#  if defined(_WIN32) || defined(_WIN64)
 #ifdef UNICODE
 extern void* LoadLibraryW(const char*,...);
 #define ffi_dlopen LoadLibraryW 
@@ -38,8 +36,10 @@ extern void* LoadLibraryW(const char*,...);
 extern void* LoadLibraryA(const char*,...);
 #define ffi_dlopen LoadLibraryA 
 #endif
+extern void* GetProcAddress(void*,const char*);
+#define ffi_dlsym GetProcAddress
 #   else
-extern void *dlopen(const char *,...);
+extern void* dlopen(const char *,...);
 #define ffi_dlopen dlopen 
 extern void *dlsym(void *, const char *);
 #define ffi_dlsym dlsym
@@ -65,7 +65,7 @@ void*(*ffi(const char* libname, const char* funcname, ...))()
 			".so"
 #endif
 			);
-	void* rt_dlopen = ffi_dlopen(libfilename,1/*RTLD_LAZY*/);
+	void* rt_dlopen = (void*) ffi_dlopen(libfilename,1/*RTLD_LAZY*/);
 	if(!strcmp("c",libname)){
 		if(!strcmp("stderr",funcname)){
 			addr = stderr;
