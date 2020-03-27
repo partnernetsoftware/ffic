@@ -1,14 +1,11 @@
-//https://github.com/lazear/microlisp/blob/master/scheme/src/scheme.c
-//https://en.wikipedia.org/wiki/Scheme_(programming_language)
-/* Single file scheme interpreter
+// https://github.com/lazear/microlisp/blob/master/scheme/src/scheme.c
+// https://en.wikipedia.org/wiki/Scheme_(programming_language)
+/* interpreter for lang(scheme)
  * MIT License
  * Copyright Michael Lazear (c) 2016
  * FFI version by Wanjo Chan (c) 2020
  */
 #include "ffi.h"
-
-//TODO libc(XXXX) => libc_a {{ }}
-
 #define is_null(x) ((x) == 0 || (x) == NIL)
 #define EOL(x) (is_null((x)) || (x) == EMPTY_LIST)
 #define error(x) do {libc(fprintf)(libc(stderr), "%s\n", x);libc(exit)(1);}while (0)
@@ -22,7 +19,6 @@
 #define cdadr(x) (cdr(car(cdr((x)))))
 #define atom(x) (!is_null(x) && (x)->type != type_list)
 #define ASSERT_TYPE(x, t) (type_check(__func__, x, t))
-
 //TODO enum into enum and types
 #define TYPE_LIST integer, symbol, string, list, primitive, vector
 char *types[6] = {"integer","symbol","string","list","primitive","vector"};
@@ -673,7 +669,6 @@ object *read_expression(FILE *in) {
 	}
 	return NIL;
 }
-
 void print_expression(char *str, object *e) {
 	if (str)
 		libc(printf)("%s ", str);
@@ -955,10 +950,8 @@ object *load_file(object *args) {
 #if defined(DEBUG)
 #include "debug_scheme.c"
 #endif
-
 //TMP
 #define PROFILE
-
 static u64 ffi_microtime(void)
 {
 #ifdef _WIN32
@@ -976,7 +969,6 @@ static u64 ffi_microtime(void)
 	return tv.tv_sec*1000 + (tv.tv_usec % 1000000) / 1000;
 #endif
 }
-
 int main(int argc, char **argv)
 {
 #if defined(PROFILE)
@@ -986,6 +978,7 @@ int main(int argc, char **argv)
 	check_env();
 #endif
 	ht_init(8192-1/*NELEM*/);
+	//ht_init(512-1/*NELEM*/);
 #if defined(PROFILE)
 	libc(printf)("%lu: after ht_init()\n",ffi_microtime());
 #endif
@@ -1002,15 +995,25 @@ int main(int argc, char **argv)
 		libc(printf)(">");
 #endif
 		//TODO read_expression into q and the eval in standalone thread?
+		object *obj = read_expression((FILE*)libc(stdin));
+		if (!is_null(obj)) {
 #if defined(PROFILE)
-	libc(printf)("%lu: read_expression() \n",ffi_microtime());
+			libc(printf)("%lu: ",ffi_microtime());
 #endif
-		object *exp = eval(read_expression((FILE*)libc(stdin)), ENV);
-#if defined(DEBUG)
+//#if defined(DEBUG)
+			print_expression("<=", obj);
+			libc(printf)("\n");
+//#endif
+		}
+		object *exp = eval(obj, ENV);
 		if (!is_null(exp)) {
+#if defined(PROFILE)
+			libc(printf)("%lu: ",ffi_microtime());
+#endif
+//#if defined(DEBUG)
 			print_expression("=>", exp);
 			libc(printf)("\n");
+//#endif
 		}
-#endif
 	}
 }
