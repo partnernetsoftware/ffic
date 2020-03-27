@@ -38,8 +38,8 @@ typedef unsigned long long int u64;
 #else //TODO 128
 #endif
 
-#define null(x) ((x) == 0 || (x) == NIL)
-#define EOL(x) (null((x)) || (x) == EMPTY_LIST)
+#define is_null(x) ((x) == 0 || (x) == NIL)
+#define EOL(x) (is_null((x)) || (x) == EMPTY_LIST)
 #define error(x) do {libc(fprintf)(libc(stderr), "%s\n", x);libc(exit)(1);}while (0)
 #define caar(x) (car(car((x))))
 #define cdar(x) (cdr(car((x))))
@@ -49,10 +49,13 @@ typedef unsigned long long int u64;
 #define cadar(x) (car(cdr(car((x)))))
 #define cddr(x) (cdr(cdr((x))))
 #define cdadr(x) (cdr(car(cdr((x)))))
-#define atom(x) (!null(x) && (x)->type != LIST)
+#define atom(x) (!is_null(x) && (x)->type != LIST)
 #define ASSERT_TYPE(x, t) (type_check(__func__, x, t))
 
+//TODO merge as a arr:
+char *types[6] = {"integer","symbol","string","list","primitive","vector"};
 typedef enum { INTEGER, SYMBOL, STRING, LIST, PRIMITIVE, VECTOR } type_t;
+
 typedef struct object object;
 typedef object *(*primitive_t)(object *);
 struct object {
@@ -89,7 +92,7 @@ object *PROCEDURE;
 
 void print_exp(char *, object *);
 int is_tagged(object *cell, object *tag);
-object *read_exp(FILE *in);
+object *read_expression(FILE *in);
 object *eval(object *exp, object *env);
 object *cons(object *x, object *y);
 object *load_file(object *args);
@@ -154,13 +157,11 @@ object *alloc() {
 	Constructors and etc
 	==============================================================================*/
 int type_check(const char *func, object *obj, type_t type) {
-	if (null(obj)) {
+	if (is_null(obj)) {
 		libc(fprintf)(libc(stderr), "Invalid argument to function %s: NIL\n", func);
 		libc(exit)(1);
 	} else if (obj->type != type) {
-		char *types[6] = {"INTEGER", "SYMBOL",    "STRING",
-			"LIST",    "PRIMITIVE", "VECTOR"};
-		libc(fprintf)(libc(stderr), "Invalid argument to function %s. Expected %s got %s\n",
+		libc(fprintf)(libc(stderr), "ERR: function %s. expected %s got %s\n",
 				func, types[type], types[obj->type]);
 		libc(exit)(1);
 	}
@@ -172,15 +173,13 @@ object *make_vector(int size) {
 	ret->type = VECTOR;
 	ret->vector = libc(malloc)(sizeof(object *) * size);
 	ret->vsize = size;
-
 	libc(memset)(ret->vector, 0, size);
-
 	return ret;
 }
 
 object *make_symbol(char *s) {
 	object *ret = ht_lookup(s);
-	if (null(ret)) {
+	if (is_null(ret)) {
 		ret = alloc();
 		ret->type = SYMBOL;
 		ret->string = libc(strdup)(s);
@@ -212,7 +211,7 @@ object *make_procedure(object *params, object *body,
 	return cons(PROCEDURE, cons(params, cons(body, cons(env, EMPTY_LIST))));
 }
 
-object *cons(object *x, object *y) {
+inline object *cons(object *x, object *y) {
 	object *ret = alloc();
 	ret->type = LIST;
 	ret->car = x;
@@ -221,34 +220,31 @@ object *cons(object *x, object *y) {
 }
 
 inline object *car(object *cell) {
-	if (null(cell) || cell->type != LIST) return NIL;
+	if (is_null(cell) || cell->type != LIST) return NIL;
 	return cell->car;
 }
 
 inline object *cdr(object *cell) {
-	if (null(cell) || cell->type != LIST)
+	if (is_null(cell) || cell->type != LIST)
 		return NIL;
 	return cell->cdr;
 }
 
 object *append(object *l1, object *l2) {
-	if (null(l1))
-		return l2;
+	if (is_null(l1)) return l2;
 	return cons(car(l1), append(cdr(l1), l2));
 }
 
 object *reverse(object *list, object *first) {
-	if (null(list))
-		return first;
+	if (is_null(list)) return first;
 	return reverse(cdr(list), cons(car(list), first));
 }
 
 // Pointer equality
 int is_equal(object *x, object *y) {
-
 	if (x == y)
 		return 1;
-	if (null(x) || null(y))
+	if (is_null(x) || is_null(y))
 		return 0;
 	if (x->type != y->type)
 		return 0;
@@ -269,7 +265,7 @@ int is_equal(object *x, object *y) {
 }
 
 int not_false(object *x) {
-	if (null(x) || is_equal(x, FALSE))
+	if (is_null(x) || is_equal(x, FALSE))
 		return 0;
 	if (x->type == INTEGER && x->integer == 0)
 		return 0;
@@ -277,13 +273,13 @@ int not_false(object *x) {
 }
 
 int is_tagged(object *cell, object *tag) {
-	if (null(cell) || cell->type != LIST)
+	if (is_null(cell) || cell->type != LIST)
 		return 0;
 	return is_equal(car(cell), tag);
 }
 
 int length(object *exp) {
-	if (null(exp))
+	if (is_null(exp))
 		return 0;
 	return 1 + length(cdr(exp));
 }
@@ -292,13 +288,11 @@ int length(object *exp) {
 	==============================================================================*/
 
 object *prim_type(object *args) {
-	char *types[6] = {"integer", "symbol",    "string",
-		"list",    "primitive", "vector"};
 	return make_symbol(types[car(args)->type]);
 }
 
 object *prim_get_env(object *args) {
-	//libc(assert)(null(args));
+	//libc(assert)(is_null(args));
 	return ENV;
 }
 object *prim_set_env(object *args) {
@@ -338,7 +332,7 @@ object *prim_setcdr(object *args) {
 	return NIL;
 }
 
-object *prim_nullq(object *args) {
+object *prim_is_nullq(object *args) {
 	return EOL(car(args)) ? TRUE : FALSE;
 }
 
@@ -352,8 +346,8 @@ object *prim_listq(object *args) {
 	object *list;
 	if (car(args)->type != LIST)
 		return FALSE;
-	for (list = car(args); !null(list); list = list->cdr)
-		if (!null(list->cdr) && (list->cdr->type != LIST))
+	for (list = car(args); !is_null(list); list = list->cdr)
+		if (!is_null(list->cdr) && (list->cdr->type != LIST))
 			return FALSE;
 	return (car(args)->type == LIST && prim_pairq(args) != TRUE) ? TRUE : FALSE;
 }
@@ -381,7 +375,7 @@ object *prim_equal(object *args) {
 		object *a, *b;
 		a = car(args);
 		b = cadr(args);
-		while (!null(a) && !null(b)) {
+		while (!is_null(a) && !is_null(b)) {
 			if (!is_equal(car(a), car(b)))
 				return FALSE;
 			a = cdr(a);
@@ -422,7 +416,7 @@ object *prim_sub(object *list) {
 	ASSERT_TYPE(car(list), INTEGER);
 	i64 total = car(list)->integer;
 	list = cdr(list);
-	while (!null(list)) {
+	while (!is_null(list)) {
 		ASSERT_TYPE(car(list), INTEGER);
 		total -= car(list)->integer;
 		list = cdr(list);
@@ -434,7 +428,7 @@ object *prim_div(object *list) {
 	ASSERT_TYPE(car(list), INTEGER);
 	i64 total = car(list)->integer;
 	list = cdr(list);
-	while (!null(list)) {
+	while (!is_null(list)) {
 		ASSERT_TYPE(car(list), INTEGER);
 		total /= car(list)->integer;
 		list = cdr(list);
@@ -446,7 +440,7 @@ object *prim_mul(object *list) {
 	ASSERT_TYPE(car(list), INTEGER);
 	i64 total = car(list)->integer;
 	list = cdr(list);
-	while (!null(list)) {
+	while (!is_null(list)) {
 		ASSERT_TYPE(car(list), INTEGER);
 		total *= car(list)->integer;
 		list = cdr(list);
@@ -472,14 +466,14 @@ object *prim_print(object *args) {
 }
 
 object *prim_exit(object *args) {
-	//libc(assert)(null(args));
+	//libc(assert)(is_null(args));
 	libc(exit)(0);
 	return NIL;
 }
 
 object *prim_read(object *args) {
-	libc(assert)(null(args));
-	return read_exp((FILE*)libc(stdin));
+	libc(assert)(is_null(args));
+	return read_expression((FILE*)libc(stdin));
 }
 
 object *prim_vget(object *args) {
@@ -493,7 +487,7 @@ object *prim_vget(object *args) {
 object *prim_vset(object *args) {
 	ASSERT_TYPE(car(args), VECTOR);
 	ASSERT_TYPE(cadr(args), INTEGER);
-	if (null(caddr(args)))
+	if (is_null(caddr(args)))
 		return NIL;
 	if (cadr(args)->integer >= car(args)->vsize)
 		return NIL;
@@ -510,17 +504,16 @@ object *prim_vec(object *args) {
 	Environment handling
 	==============================================================================*/
 
-object *extend_env(object *var, object *val,
-		object *env) {
+object *extend_env(object *var, object *val, object *env) {
 	return cons(cons(var, val), env);
 }
 
 object *lookup_variable(object *var, object *env) {
-	while (!null(env)) {
+	while (!is_null(env)) {
 		object *frame = car(env);
 		object *vars = car(frame);
 		object *vals = cdr(frame);
-		while (!null(vars)) {
+		while (!is_null(vars)) {
 			if (is_equal(car(vars), var))
 				return car(vals);
 			vars = cdr(vars);
@@ -533,11 +526,11 @@ object *lookup_variable(object *var, object *env) {
 
 /* set_variable binds var to val in the first frame in which var occurs */
 void set_variable(object *var, object *val, object *env) {
-	while (!null(env)) {
+	while (!is_null(env)) {
 		object *frame = car(env);
 		object *vars = car(frame);
 		object *vals = cdr(frame);
-		while (!null(vars)) {
+		while (!is_null(vars)) {
 			if (is_equal(car(vars), var)) {
 				vals->car = val;
 				return;
@@ -556,7 +549,7 @@ object *define_variable(object *var, object *val,
 	object *vars = car(frame);
 	object *vals = cdr(frame);
 
-	while (!null(vars)) {
+	while (!is_null(vars)) {
 		if (is_equal(var, car(vars))) {
 			vals->car = val;
 			return val;
@@ -591,7 +584,7 @@ void skip(FILE *in) {
 	}
 }
 
-object *read_string(FILE *in) {
+object *_read_string(FILE *in) {
 	char buf[256];
 	int i = 0;
 	long c;
@@ -627,11 +620,11 @@ int read_int(FILE *in, int start) {
 	return start;
 }
 
-object *read_list(FILE *in) {
+object *_read_list(FILE *in) {
 	object *obj;
 	object *cell = EMPTY_LIST;
 	for (;;) {
-		obj = read_exp(in);
+		obj = read_expression(in);
 
 		if (obj == EMPTY_LIST)
 			return reverse(cell, EMPTY_LIST);
@@ -640,13 +633,13 @@ object *read_list(FILE *in) {
 	return EMPTY_LIST;
 }
 
-object *read_quote(FILE *in) {
-	return cons(QUOTE, cons(read_exp(in), NIL));
+object *_read_quote(FILE *in) {
+	return cons(QUOTE, cons(read_expression(in), NIL));
 }
 
 int depth = 0;
 
-object *read_exp(FILE *in) {
+object *read_expression(FILE *in) {
 	int is_stdin = (in == (FILE*) libc(stdin));
 	int c;
 
@@ -667,12 +660,12 @@ object *read_exp(FILE *in) {
 		if (c == (-1))
 			return 0;
 		if (c == '\"')
-			return read_string(in);
+			return _read_string(in);
 		if (c == '\'')
-			return read_quote(in);
+			return _read_quote(in);
 		if (c == '(') {
 			depth++;
-			return read_list(in);
+			return _read_list(in);
 		}
 		if (c == ')') {
 			depth--;
@@ -691,7 +684,7 @@ object *read_exp(FILE *in) {
 void print_exp(char *str, object *e) {
 	if (str)
 		libc(printf)("%s ", str);
-	if (null(e)) {
+	if (is_null(e)) {
 		libc(printf)("'()");
 		return;
 	}
@@ -718,9 +711,9 @@ void print_exp(char *str, object *e) {
 			}
 			libc(printf)("(");
 			object **t = &e;
-			while (!null(*t)) {
+			while (!is_null(*t)) {
 				print_exp(0, (*t)->car);
-				if (!null((*t)->cdr)) {
+				if (!is_null((*t)->cdr)) {
 					libc(printf)(" ");
 					if ((*t)->cdr->type == LIST) {
 						t = &(*t)->cdr;
@@ -740,14 +733,12 @@ void print_exp(char *str, object *e) {
 	==============================================================================*/
 
 object *evlis(object *exp, object *env) {
-	if (null(exp))
-		return NIL;
+	if (is_null(exp)) return NIL;
 	return cons(eval(car(exp), env), evlis(cdr(exp), env));
 }
 
 object *eval_sequence(object *exps, object *env) {
-	if (null(cdr(exps)))
-		return eval(car(exps), env);
+	if (is_null(cdr(exps))) return eval(car(exps), env);
 	eval(car(exps), env);
 	return eval_sequence(cdr(exps), env);
 }
@@ -755,14 +746,14 @@ object *eval_sequence(object *exps, object *env) {
 object *eval(object *exp, object *env) {
 
 tail:
-	if (null(exp) || exp == EMPTY_LIST) {
+	if (is_null(exp) || exp == EMPTY_LIST) {
 		return NIL;
 	} else if (exp->type == INTEGER || exp->type == STRING) {
 		return exp;
 	} else if (exp->type == SYMBOL) {
 		object *s = lookup_variable(exp, env);
 #ifdef STRICT
-		if (null(s)) {
+		if (is_null(s)) {
 			print_exp("Unbound symbol:", exp);
 			printf("\n");
 		}
@@ -783,7 +774,7 @@ tail:
 		return make_symbol("ok");
 	} else if (is_tagged(exp, BEGIN)) {
 		object *args = cdr(exp);
-		for (; !null(cdr(args)); args = cdr(args))
+		for (; !is_null(cdr(args)); args = cdr(args))
 			eval(car(args), env);
 		exp = car(args);
 		goto tail;
@@ -797,7 +788,7 @@ tail:
 		goto tail;
 	} else if (is_tagged(exp, make_symbol("cond"))) {
 		object *branch = cdr(exp);
-		for (; !null(branch); branch = cdr(branch)) {
+		for (; !is_null(branch); branch = cdr(branch)) {
 			if (is_tagged(car(branch), make_symbol("else")) ||
 					not_false(eval(caar(branch), env))) {
 				exp = cons(BEGIN, cdar(branch));
@@ -819,11 +810,11 @@ tail:
 		object **tmp;
 		object *vars = NIL;
 		object *vals = NIL;
-		if (null(cadr(exp)))
+		if (is_null(cadr(exp)))
 			return NIL;
 		/* NAMED LET */
 		if (atom(cadr(exp))) {
-			for (tmp = &exp->cdr->cdr->car; !null(*tmp); tmp = &(*tmp)->cdr) {
+			for (tmp = &exp->cdr->cdr->car; !is_null(*tmp); tmp = &(*tmp)->cdr) {
 				vars = cons(caar(*tmp), vars);
 				vals = cons(cadar(*tmp), vals);
 			}
@@ -836,7 +827,7 @@ tail:
 			exp = cons(cadr(exp), vals);
 			goto tail;
 		}
-		for (tmp = &exp->cdr->car; !null(*tmp); tmp = &(*tmp)->cdr) {
+		for (tmp = &exp->cdr->car; !is_null(*tmp); tmp = &(*tmp)->cdr) {
 			vars = cons(caar(*tmp), vars);
 			vals = cons(cadar(*tmp), vals);
 		}
@@ -847,7 +838,7 @@ tail:
 			 ('procedure, (parameters), (body), (env)) */
 		object *proc = eval(car(exp), env);
 		object *args = evlis(cdr(exp), env);
-		if (null(proc)) {
+		if (is_null(proc)) {
 #ifdef STRICT
 			print_exp("Invalid arguments to eval:", exp);
 			printf("\n");
@@ -903,9 +894,12 @@ void init_lang() {
 	add_sym("quote", QUOTE);
 	add_sym("lambda", LAMBDA);
 	add_sym("procedure", PROCEDURE);
+
+	//TODO merge three
 	add_sym("define", DEFINE);
 	add_sym("let", LET);
 	add_sym("set!", SET);
+
 	add_sym("begin", BEGIN);
 	add_sym("if", IF);
 	define_variable(make_symbol("true"), TRUE, ENV);
@@ -918,7 +912,7 @@ void init_lang() {
 	add_prim("set-cdr!", prim_setcdr);
 	add_prim("list", prim_list);
 	add_prim("list?", prim_listq);
-	add_prim("null?", prim_nullq);
+	add_prim("null?", prim_is_nullq);
 	add_prim("pair?", prim_pairq);
 	add_prim("atom?", prim_atomq);
 	add_prim("eq?", prim_eq);
@@ -935,6 +929,7 @@ void init_lang() {
 	add_prim("type", prim_type);
 	add_prim("load", load_file);
 	add_prim("print", prim_print);
+	//add_prim("ffi", prim_ffi);
 	//add_prim("get-global-environment", prim_get_env);
 	add_prim("env", prim_get_env);
 	//	add_prim("set-global-environment", prim_set_env);
@@ -959,17 +954,15 @@ object *load_file(object *args) {
 		libc(printf)("Error opening file %s\n", filename);
 		return NIL;
 	}
-
 	for (;;) {
-		exp = read_exp(fp);
-		if (null(exp))
+		exp = read_expression(fp);
+		if (is_null(exp))
 			break;
 		ret = eval(exp, ENV);
 	}
 	libc(fclose)(fp);
 	return ret;
 }
-
 #if defined(DEBUG)
 #include "debug_scheme.c"
 #endif
@@ -978,26 +971,19 @@ int main(int argc, char **argv)
 #if defined(DEBUG)
 	check_env();
 #endif
-
 	ht_init(8192-1/*NELEM*/);
 	init_lang();
-
-#if defined(DEBUG)
-	libc(printf)(
-			"Microlisp intrepreter - (c) Michael Lazear 2016-2019, MIT License\n");
-#endif
-
 //	for (int i = 1; i < argc; i++)
 //		load_file(cons(make_symbol(argv[i]), NIL));
-
 	//TODO only if "-" for args[1]...
 	for (;;) {
+		//TODO -i
 #if defined(DEBUG)
 		libc(printf)(">");
 #endif
-		object *exp = eval(read_exp((FILE*)libc(stdin)), ENV);
+		object *exp = eval(read_expression((FILE*)libc(stdin)), ENV);
 #if defined(DEBUG)
-		if (!null(exp)) {
+		if (!is_null(exp)) {
 			print_exp("=>", exp);
 			libc(printf)("\n");
 		}

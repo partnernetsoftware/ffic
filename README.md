@@ -11,6 +11,9 @@
 
 ```
 cat fib.scm | ./tccffi scheme.c
+
+lisp to sao
+:%s/\((\)\([^) ]\+\)/\2\1/gc 
 ```
 
 # TODO
