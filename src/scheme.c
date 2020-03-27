@@ -90,7 +90,7 @@ object *LAMBDA;
 object *BEGIN;
 object *PROCEDURE;
 
-void print_exp(char *, object *);
+void print_expression(char *, object *);
 int is_tagged(object *cell, object *tag);
 object *read_expression(FILE *in);
 object *eval(object *exp, object *env);
@@ -460,7 +460,7 @@ object *prim_lt(object *sexp) {
 }
 
 object *prim_print(object *args) {
-	print_exp(0, car(args));
+	print_expression(0, car(args));
 	libc(printf)("\n");
 	return NIL;
 }
@@ -681,7 +681,7 @@ object *read_expression(FILE *in) {
 	return NIL;
 }
 
-void print_exp(char *str, object *e) {
+void print_expression(char *str, object *e) {
 	if (str)
 		libc(printf)("%s ", str);
 	if (is_null(e)) {
@@ -712,13 +712,13 @@ void print_exp(char *str, object *e) {
 			libc(printf)("(");
 			object **t = &e;
 			while (!is_null(*t)) {
-				print_exp(0, (*t)->car);
+				print_expression(0, (*t)->car);
 				if (!is_null((*t)->cdr)) {
 					libc(printf)(" ");
 					if ((*t)->cdr->type == LIST) {
 						t = &(*t)->cdr;
 					} else {
-						print_exp(".", (*t)->cdr);
+						print_expression(".", (*t)->cdr);
 						break;
 					}
 				} else
@@ -754,7 +754,7 @@ tail:
 		object *s = lookup_variable(exp, env);
 #ifdef STRICT
 		if (is_null(s)) {
-			print_exp("Unbound symbol:", exp);
+			print_expression("Unbound symbol:", exp);
 			printf("\n");
 		}
 #endif
@@ -840,7 +840,7 @@ tail:
 		object *args = evlis(cdr(exp), env);
 		if (is_null(proc)) {
 #ifdef STRICT
-			print_exp("Invalid arguments to eval:", exp);
+			print_expression("Invalid arguments to eval:", exp);
 			printf("\n");
 #endif
 
@@ -854,7 +854,7 @@ tail:
 			goto tail;
 		}
 	}
-	print_exp("Invalid arguments to eval:", exp);
+	print_expression("Invalid arguments to eval:", exp);
 	libc(printf)("\n");
 	return NIL;
 }
@@ -984,7 +984,7 @@ int main(int argc, char **argv)
 		object *exp = eval(read_expression((FILE*)libc(stdin)), ENV);
 #if defined(DEBUG)
 		if (!is_null(exp)) {
-			print_exp("=>", exp);
+			print_expression("=>", exp);
 			libc(printf)("\n");
 		}
 #endif
