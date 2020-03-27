@@ -27,14 +27,14 @@ test:
 tcc:
 	tcc -I. -I../tinycc/ -run -nostdlib tccffi.c 
 	#tcc -nostdlib -E tccffi.c -I ../tinycc/ -o tccffi.i
-scheme:
+run_scheme:
 	make all
 	./tccffi scheme.c
-osx_scheme:
+scheme:
 	rm -f scheme_osx
 	${CC} -E scheme.c -o scheme.pp.i
-	#${CC} scheme.c -L. -o scheme_osx
 	${CC} scheme.pp.i -L. -o scheme_osx
+	upx scheme_osx
 	ls -al scheme*
 pp:
 	${CC} -E tccffi.c -I. -I../tinycc/ -o tccffi.i

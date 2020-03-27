@@ -18,7 +18,10 @@ lisp to sao
 
 # TODO
 
-* "lispffi" which list-scheme+ffi
+* (call (ffi $lib $func) ...)
+* argv: -DDEBUG -DPROFILE
+* compile to binary / load from binary
+* JIT?
 
 # init
 
