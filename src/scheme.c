@@ -7,7 +7,6 @@
  */
 #include "tccffi.h"
 
-#define QUOTE(f) #f
 #ifndef PTRSIZE
 # if defined(_WIN64)
 # define PTRSIZE 8 //WIN 64
@@ -18,7 +17,6 @@
 # endif
 #endif
 
-int sizeof_pointer = sizeof(void*);
 #if PTRSIZE==8
 typedef signed char i8;
 typedef signed short int i16;
@@ -73,40 +71,38 @@ struct object {
 		};
 		primitive_t primitive;
 	};
-}
-__attribute__((packed))
-	;
+} __attribute__((packed));
 
-	object *ENV;
-	object *NIL;
-	object *EMPTY_LIST;
-	object *TRUE;
-	object *FALSE;
-	object *QUOTE;
-	object *DEFINE;
-	object *SET;
-	object *LET;
-	object *IF;
-	object *LAMBDA;
-	object *BEGIN;
-	object *PROCEDURE;
+object *ENV;
+object *NIL;
+object *EMPTY_LIST;
+object *TRUE;
+object *FALSE;
+object *QUOTE;
+object *DEFINE;
+object *SET;
+object *LET;
+object *IF;
+object *LAMBDA;
+object *BEGIN;
+object *PROCEDURE;
 
-	void print_exp(char *, object *);
-	int is_tagged(object *cell, object *tag);
-	object *read_exp(FILE *in);
-	object *eval(object *exp, object *env);
-	object *cons(object *x, object *y);
-	object *load_file(object *args);
-	object *cdr(object *);
-	object *car(object *);
-	object *lookup_variable(object *var, object *env);
+void print_exp(char *, object *);
+int is_tagged(object *cell, object *tag);
+object *read_exp(FILE *in);
+object *eval(object *exp, object *env);
+object *cons(object *x, object *y);
+object *load_file(object *args);
+object *cdr(object *);
+object *car(object *);
+object *lookup_variable(object *var, object *env);
 
-	/*==============================================================================
-		Hash table for saving Lisp symbol objects. Conserves memory and faster compares
-		==============================================================================*/
-	struct htable {
-		object *key;
-	};
+/*==============================================================================
+	Hash table for saving Lisp symbol objects. Conserves memory and faster compares
+	==============================================================================*/
+struct htable {
+	object *key;
+};
 /* One dimensional hash table */
 static struct htable *HTABLE = 0;
 //struct htable *HTABLE = 0;
@@ -901,11 +897,7 @@ tail:
 /* Initialize the global environment, add primitive functions and symbols */
 void init_env() {
 #define add_prim(s, c) define_variable(make_symbol(s), make_primitive(c), ENV)
-#define add_sym(s, c)                                                          \
-	do {                                                                       \
-		c = make_symbol(s);                                                    \
-		define_variable(c, c, ENV);                                            \
-	} while (0);
+#define add_sym(s, c) do{c=make_symbol(s);define_variable(c,c,ENV);}while(0);
 	ENV = extend_env(NIL, NIL, NIL);
 	add_sym("#t", TRUE);
 	add_sym("#f", FALSE);
@@ -978,24 +970,7 @@ object *load_file(object *args) {
 }
 
 #if defined(DEBUG)
-void check_env(){
-	libc(printf)("DEBUG PTRSIZE=%d\n i8=%d,i16=%d,i32=%d,i64=%d\n u8=%d,u16=%d,u32=%d,u64=%d\n",
-			PTRSIZE
-			,sizeof(i8)
-			,sizeof(i16)
-			,sizeof(i32)
-			,sizeof(i64)
-			,sizeof(u8)
-			,sizeof(u16)
-			,sizeof(u32)
-			,sizeof(u64)
-			);
-	if(sizeof_pointer!=PTRSIZE){
-		libc(printf)("{STS:'KO',PTRSIZE:%d,sizeof_pointer:%d}\n",PTRSIZE,sizeof_pointer);
-		libc(exit)(0);
-	}
-	//libc(exit)(0);
-}
+#include "debug_scheme.c"
 #endif
 int main(int argc, char **argv)
 {

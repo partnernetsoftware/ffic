@@ -7,6 +7,12 @@
 * ffi(sharelib,func) to call share lib.
 * free from suffering the libc header files (yup, you don't need them in most cases)
 
+# example
+
+```
+cat fib.scm | ./tccffi scheme.c
+```
+
 # TODO
 
 * "lispffi" which list-scheme+ffi
