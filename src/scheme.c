@@ -874,7 +874,7 @@ tail:
 //	return NIL;
 //}
 
-void init_lang() {
+void init_env() {
 #define add_prim(s, c) define_variable(make_symbol(s), make_primitive(c), ENV)
 #define add_sym(s, c) do{c=make_symbol(s);define_variable(c,c,ENV);}while(0);
 	ENV = extend_env(NIL, NIL, NIL);
@@ -965,14 +965,18 @@ static u64 ffi_microtime(void)
 	return libc(GetTickCount)();
 #else
 	struct timeval {
-		long tv_sec;
-		long tv_usec;
+		//long tv_sec;
+		i64 tv_sec;
+		//long tv_usec;
+		i64 tv_usec;
 	} tv;
 	//struct timeval tv;
 	libc(gettimeofday)(&tv, 0);
-	return tv.tv_sec*1000 + (tv.tv_usec+500)/1000;
+	//return tv.tv_sec*1000;// + (tv.tv_usec+500)/1000;
+	return tv.tv_sec*1000 + (tv.tv_usec % 1000000) / 1000;
 #endif
 }
+
 int main(int argc, char **argv)
 {
 #if defined(PROFILE)
@@ -982,7 +986,13 @@ int main(int argc, char **argv)
 	check_env();
 #endif
 	ht_init(8192-1/*NELEM*/);
-	init_lang();
+#if defined(PROFILE)
+	libc(printf)("%lu: after ht_init()\n",ffi_microtime());
+#endif
+	init_env();
+#if defined(PROFILE)
+	libc(printf)("%lu: after init_env() \n",ffi_microtime());
+#endif
 //	for (int i = 1; i < argc; i++)
 //		load_file(cons(make_symbol(argv[i]), NIL));
 	//TODO only if "-" for args[1]...
