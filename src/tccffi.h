@@ -100,6 +100,11 @@ void*(*ffi(const char* libname, const char* funcname, ...))()
 		}else if(!strcmp("stdin",funcname)){
 			addr = stdin;
 		}else{
+#ifdef _WIN32
+			if(!strcmp("strdup",funcname)){
+				funcname = "_strdup";
+			}
+#endif
 			addr = ffi_raw(
 #if defined(__APPLE__)
 					"libc.dylib"

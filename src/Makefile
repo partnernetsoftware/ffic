@@ -30,6 +30,11 @@ tcc:
 scheme:
 	make all
 	./tccffi scheme.c
+osx_scheme:
+	rm -f scheme_osx
+	${CC} -E scheme.c -o scheme.i
+	${CC} scheme.c -L. -o scheme_osx
+	ls -al scheme*
 pp:
 	${CC} -E tccffi.c -I. -I../tinycc/ -o tccffi.i
 	#${CC} -E tccffi.c -I. -I../tinycc/ | sed 's/^#.*//g' > tccffi.pp.i

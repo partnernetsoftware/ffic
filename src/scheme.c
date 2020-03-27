@@ -1,20 +1,44 @@
 //https://github.com/lazear/microlisp/blob/master/scheme/src/scheme.c
 //https://en.wikipedia.org/wiki/Scheme_(programming_language)
 /* Single file scheme interpreter
-* MIT License
-* Copyright Michael Lazear (c) 2016
-* FFI version by Wanjo Chan (c) 2020
-*/
-//extern ;;
+ * MIT License
+ * Copyright Michael Lazear (c) 2016
+ * FFI version by Wanjo Chan (c) 2020
+ */
 #include "tccffi.h"
 
-//TODO improve for other os:
+#define QUOTE(f) #f
+#ifndef PTRSIZE
+# if defined(_WIN64)
+# define PTRSIZE 8 //WIN 64
+# elif defined(_WIN32)
+# define PTRSIZE 4 //32
+# else
+# define PTRSIZE 8 //64
+# endif
+#endif
 
+int sizeof_pointer = sizeof(void*);
+#if PTRSIZE==8
 typedef signed char i8;
-//typedef struct { i8[2] } i16;
-typedef signed long int int64_t;//SIGNED 8 BYTES
-typedef unsigned long long int uint64_t;
-typedef unsigned char uint8_t;
+typedef signed short int i16;
+typedef signed int i32;
+typedef signed long int i64;
+typedef unsigned char u8;
+typedef unsigned short int u16;
+typedef unsigned int u32;
+typedef unsigned long int u64;
+#elif PTRSIZE==4
+typedef signed char i8;
+typedef signed short int i16;
+typedef signed int i32;
+typedef signed long long int i64;
+typedef unsigned char u8;
+typedef unsigned short int u16;
+typedef unsigned int u32;
+typedef unsigned long long int u64;
+#else //TODO 128
+#endif
 
 #define null(x) ((x) == 0 || (x) == NIL)
 #define EOL(x) (null((x)) || (x) == EMPTY_LIST)
@@ -31,67 +55,68 @@ typedef unsigned char uint8_t;
 #define ASSERT_TYPE(x, t) (__type_check(__func__, x, t))
 
 typedef enum { INTEGER, SYMBOL, STRING, LIST, PRIMITIVE, VECTOR } type_t;
-typedef struct object *(*primitive_t)(struct object *);
-typedef
+typedef struct object object;
+typedef object *(*primitive_t)(object *);
 struct object {
 	char gc;
 	type_t type;
 	union {
-		int64_t integer;
+		i64 integer;
 		char *string;
 		struct {
-			struct object **vector;
+			object **vector;
 			int vsize;
 		};
 		struct {
-			struct object *car;
-			struct object *cdr;
+			object *car;
+			object *cdr;
 		};
 		primitive_t primitive;
 	};
 }
 __attribute__((packed))
-	object
 	;
 
-static object *ENV;
-static object *NIL;
-static object *EMPTY_LIST;
-static object *TRUE;
-static object *FALSE;
-static object *QUOTE;
-static object *DEFINE;
-static object *SET;
-static object *LET;
-static object *IF;
-static object *LAMBDA;
-static object *BEGIN;
-static object *PROCEDURE;
+	object *ENV;
+	object *NIL;
+	object *EMPTY_LIST;
+	object *TRUE;
+	object *FALSE;
+	object *QUOTE;
+	object *DEFINE;
+	object *SET;
+	object *LET;
+	object *IF;
+	object *LAMBDA;
+	object *BEGIN;
+	object *PROCEDURE;
 
-void print_exp(char *, object *);
-int is_tagged(object *cell, object *tag);
-object *read_exp(FILE *in);
-object *eval(object *exp, object *env);
-object *cons(object *x, object *y);
-object *load_file(object *args);
-object *cdr(object *);
-object *car(object *);
-object *lookup_variable(object *var, object *env);
+	void print_exp(char *, object *);
+	int is_tagged(object *cell, object *tag);
+	object *read_exp(FILE *in);
+	object *eval(object *exp, object *env);
+	object *cons(object *x, object *y);
+	object *load_file(object *args);
+	object *cdr(object *);
+	object *car(object *);
+	object *lookup_variable(object *var, object *env);
 
-/*==============================================================================
-	Hash table for saving Lisp symbol objects. Conserves memory and faster compares
-	==============================================================================*/
-struct htable {
-	object *key;
-};
+	/*==============================================================================
+		Hash table for saving Lisp symbol objects. Conserves memory and faster compares
+		==============================================================================*/
+	struct htable {
+		object *key;
+	};
 /* One dimensional hash table */
 static struct htable *HTABLE = 0;
 //struct htable *HTABLE = 0;
 static int HTABLE_SIZE;
 
-static uint64_t hash(const char *s) {
-	uint64_t h = 0;
-	uint8_t *u = (uint8_t *)s;
+static i64 hash(const char *s) {
+	i64 h = 0;
+
+	u8 *u = (u8 *)s;
+
 	while (*u) {
 		h = (h * 256 + *u) % HTABLE_SIZE;
 		u++;
@@ -109,12 +134,12 @@ int ht_init(int size) {
 }
 
 void ht_insert(object *key) {
-	uint64_t h = hash(key->string);
+	i64 h = hash(key->string);
 	HTABLE[h].key = key;
 }
 
 object *ht_lookup(char *s) {
-	uint64_t h = hash(s);
+	i64 h = hash(s);
 	return HTABLE[h].key;
 }
 
@@ -388,7 +413,7 @@ object *prim_equal(object *args) {
 
 object *prim_add(object *list) {
 	ASSERT_TYPE(car(list), INTEGER);
-	int64_t total = car(list)->integer;
+	i64 total = car(list)->integer;
 	list = cdr(list);
 	while (!EOL(car(list))) {
 		ASSERT_TYPE(car(list), INTEGER);
@@ -400,7 +425,7 @@ object *prim_add(object *list) {
 
 object *prim_sub(object *list) {
 	ASSERT_TYPE(car(list), INTEGER);
-	int64_t total = car(list)->integer;
+	i64 total = car(list)->integer;
 	list = cdr(list);
 	while (!null(list)) {
 		ASSERT_TYPE(car(list), INTEGER);
@@ -412,7 +437,7 @@ object *prim_sub(object *list) {
 
 object *prim_div(object *list) {
 	ASSERT_TYPE(car(list), INTEGER);
-	int64_t total = car(list)->integer;
+	i64 total = car(list)->integer;
 	list = cdr(list);
 	while (!null(list)) {
 		ASSERT_TYPE(car(list), INTEGER);
@@ -424,7 +449,7 @@ object *prim_div(object *list) {
 
 object *prim_mul(object *list) {
 	ASSERT_TYPE(car(list), INTEGER);
-	int64_t total = car(list)->integer;
+	i64 total = car(list)->integer;
 	list = cdr(list);
 	while (!null(list)) {
 		ASSERT_TYPE(car(list), INTEGER);
@@ -921,7 +946,7 @@ void init_env() {
 	add_prim("print", prim_print);
 	//add_prim("get-global-environment", prim_get_env);
 	add_prim("env", prim_get_env);
-//	add_prim("set-global-environment", prim_set_env);
+	//	add_prim("set-global-environment", prim_set_env);
 	add_prim("exit", prim_exit);
 	//add_prim("exec", prim_exec);
 	add_prim("read", prim_read);
@@ -952,12 +977,31 @@ object *load_file(object *args) {
 	return ret;
 }
 
-int main(int argc, char **argv) {
-	//quick debug:
-	//libc(printf)("DEBUG sizeof int64_t=%d\n",sizeof int64_t);
-	libc(printf)("DEBUG sizeof i8=%d\n",sizeof i8);
-	libc(printf)("DEBUG sizeof object=%d\n",sizeof object);
-	//libc(printf)("DEBUG sizeof i16=%d\n",sizeof i16);
+#if defined(DEBUG)
+void check_env(){
+	libc(printf)("DEBUG PTRSIZE=%d\n i8=%d,i16=%d,i32=%d,i64=%d\n u8=%d,u16=%d,u32=%d,u64=%d\n",
+			PTRSIZE
+			,sizeof(i8)
+			,sizeof(i16)
+			,sizeof(i32)
+			,sizeof(i64)
+			,sizeof(u8)
+			,sizeof(u16)
+			,sizeof(u32)
+			,sizeof(u64)
+			);
+	if(sizeof_pointer!=PTRSIZE){
+		libc(printf)("{STS:'KO',PTRSIZE:%d,sizeof_pointer:%d}\n",PTRSIZE,sizeof_pointer);
+		libc(exit)(0);
+	}
+	//libc(exit)(0);
+}
+#endif
+int main(int argc, char **argv)
+{
+#if defined(DEBUG)
+	check_env();
+#endif
 
 	int NELEM = 8191;
 	ht_init(NELEM);
@@ -971,10 +1015,10 @@ int main(int argc, char **argv) {
 		load_file(cons(make_symbol(argv[i]), NIL));
 
 	for (;;) {
-		libc(printf)("user> ");
+		libc(printf)(">");
 		exp = eval(read_exp((FILE*)libc(stdin)), ENV);
 		if (!null(exp)) {
-			print_exp("====>", exp);
+			print_exp("=>", exp);
 			libc(printf)("\n");
 		}
 	}
