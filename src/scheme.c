@@ -5,38 +5,9 @@
  * Copyright Michael Lazear (c) 2016
  * FFI version by Wanjo Chan (c) 2020
  */
-#include "tccffi.h"
+#include "ffi.h"
 
-#ifndef PTRSIZE
-# if defined(_WIN64)
-# define PTRSIZE 8 //WIN 64
-# elif defined(_WIN32)
-# define PTRSIZE 4 //32
-# else
-# define PTRSIZE 8 //64
-# endif
-#endif
-
-#if PTRSIZE==8
-typedef signed char i8;
-typedef signed short int i16;
-typedef signed int i32;
-typedef signed long int i64;
-typedef unsigned char u8;
-typedef unsigned short int u16;
-typedef unsigned int u32;
-typedef unsigned long int u64;
-#elif PTRSIZE==4
-typedef signed char i8;
-typedef signed short int i16;
-typedef signed int i32;
-typedef signed long long int i64;
-typedef unsigned char u8;
-typedef unsigned short int u16;
-typedef unsigned int u32;
-typedef unsigned long long int u64;
-#else //TODO 128
-#endif
+//TODO libc(XXXX) => libc_a {{ }}
 
 #define is_null(x) ((x) == 0 || (x) == NIL)
 #define EOL(x) (is_null((x)) || (x) == EMPTY_LIST)
@@ -49,12 +20,16 @@ typedef unsigned long long int u64;
 #define cadar(x) (car(cdr(car((x)))))
 #define cddr(x) (cdr(cdr((x))))
 #define cdadr(x) (cdr(car(cdr((x)))))
-#define atom(x) (!is_null(x) && (x)->type != LIST)
+#define atom(x) (!is_null(x) && (x)->type != type_list)
 #define ASSERT_TYPE(x, t) (type_check(__func__, x, t))
 
+//TODO enum into enum and types
+#define TYPE_LIST integer, symbol, string, list, primitive, vector
 //TODO merge as a arr:
-char *types[6] = {"integer","symbol","string","list","primitive","vector"};
-typedef enum { INTEGER, SYMBOL, STRING, LIST, PRIMITIVE, VECTOR } type_t;
+//char *types[6] = {"integer","symbol","string","list","primitive","vector"};
+typedef enum {
+	type_integer, type_symbol, type_string, type_list, type_primitive, type_vector
+} type_t;
 
 typedef struct object object;
 typedef object *(*primitive_t)(object *);
@@ -75,6 +50,24 @@ struct object {
 		primitive_t primitive;
 	};
 } __attribute__((packed));
+
+//TMP FUN:
+typedef int (*tx_func)();
+typedef struct _type_desc type_desc,*p_type_desc;
+struct _type_desc {
+	type_t type;
+	char* name;
+};
+
+type_desc types_map[] = {
+	{type_integer, "integer",
+	},{type_symbol, "symbol",
+	},{type_string, "string",
+	},{type_list, "list",//TODO merge with vector?
+	},{type_primitive, "primitive",
+	},{type_vector, "vector",//change to table
+	}//TODO struct...
+};
 
 object *ENV;
 object *NIL;
@@ -162,7 +155,9 @@ int type_check(const char *func, object *obj, type_t type) {
 		libc(exit)(1);
 	} else if (obj->type != type) {
 		libc(fprintf)(libc(stderr), "ERR: function %s. expected %s got %s\n",
-				func, types[type], types[obj->type]);
+				//func, types[type], types[obj->type]
+				func, types_map[type].name, types_map[obj->type].name
+				);
 		libc(exit)(1);
 	}
 	return 1;
@@ -170,7 +165,7 @@ int type_check(const char *func, object *obj, type_t type) {
 
 object *make_vector(int size) {
 	object *ret = alloc();
-	ret->type = VECTOR;
+	ret->type = type_vector;
 	ret->vector = libc(malloc)(sizeof(object *) * size);
 	ret->vsize = size;
 	libc(memset)(ret->vector, 0, size);
@@ -181,7 +176,7 @@ object *make_symbol(char *s) {
 	object *ret = ht_lookup(s);
 	if (is_null(ret)) {
 		ret = alloc();
-		ret->type = SYMBOL;
+		ret->type = type_symbol;
 		ret->string = libc(strdup)(s);
 		ht_insert(ret);
 	}
@@ -190,14 +185,14 @@ object *make_symbol(char *s) {
 
 object *make_integer(int x) {
 	object *ret = alloc();
-	ret->type = INTEGER;
+	ret->type = type_integer;
 	ret->integer = x;
 	return ret;
 }
 
 object *make_primitive(primitive_t x) {
 	object *ret = alloc();
-	ret->type = PRIMITIVE;
+	ret->type = type_primitive;
 	ret->primitive = x;
 	return ret;
 }
@@ -213,19 +208,19 @@ object *make_procedure(object *params, object *body,
 
 inline object *cons(object *x, object *y) {
 	object *ret = alloc();
-	ret->type = LIST;
+	ret->type = type_list;
 	ret->car = x;
 	ret->cdr = y;
 	return ret;
 }
 
 inline object *car(object *cell) {
-	if (is_null(cell) || cell->type != LIST) return NIL;
+	if (is_null(cell) || cell->type != type_list) return NIL;
 	return cell->car;
 }
 
 inline object *cdr(object *cell) {
-	if (is_null(cell) || cell->type != LIST)
+	if (is_null(cell) || cell->type != type_list)
 		return NIL;
 	return cell->cdr;
 }
@@ -249,16 +244,16 @@ int is_equal(object *x, object *y) {
 	if (x->type != y->type)
 		return 0;
 	switch (x->type) {
-		case LIST:
+		case type_list:
 			return 0;
-		case INTEGER:
+		case type_integer:
 			return x->integer == y->integer;
-		case SYMBOL:
-		case STRING:
+		case type_symbol:
+		case type_string:
 			return !libc(strcmp)(x->string, y->string);
-		case PRIMITIVE:
+		case type_primitive:
 			return 0;
-		case VECTOR:
+		case type_vector:
 			return 0;
 	}
 	return 0;
@@ -267,13 +262,13 @@ int is_equal(object *x, object *y) {
 int not_false(object *x) {
 	if (is_null(x) || is_equal(x, FALSE))
 		return 0;
-	if (x->type == INTEGER && x->integer == 0)
+	if (x->type == type_integer && x->integer == 0)
 		return 0;
 	return 1;
 }
 
 int is_tagged(object *cell, object *tag) {
-	if (is_null(cell) || cell->type != LIST)
+	if (is_null(cell) || cell->type != type_list)
 		return 0;
 	return is_equal(car(cell), tag);
 }
@@ -288,7 +283,8 @@ int length(object *exp) {
 	==============================================================================*/
 
 object *prim_type(object *args) {
-	return make_symbol(types[car(args)->type]);
+	//return make_symbol(types[car(args)->type]);
+	return make_symbol(types_map[car(args)->type].name);
 }
 
 object *prim_get_env(object *args) {
@@ -309,25 +305,25 @@ object *prim_cons(object *args) {
 
 object *prim_car(object *args) {
 #ifdef STRICT
-	ASSERT_TYPE(car(args), LIST);
+	ASSERT_TYPE(car(args), type_list);
 #endif
 	return caar(args);
 }
 
 object *prim_cdr(object *args) {
 #ifdef STRICT
-	ASSERT_TYPE(car(args), LIST);
+	ASSERT_TYPE(car(args), type_list);
 #endif
 	return cdar(args);
 }
 
 object *prim_setcar(object *args) {
-	ASSERT_TYPE(car(args), LIST);
+	ASSERT_TYPE(car(args), type_list);
 	(args->car->car = (cadr(args)));
 	return NIL;
 }
 object *prim_setcdr(object *args) {
-	ASSERT_TYPE(car(args), LIST);
+	ASSERT_TYPE(car(args), type_list);
 	(args->car->cdr = (cadr(args)));
 	return NIL;
 }
@@ -337,19 +333,19 @@ object *prim_is_nullq(object *args) {
 }
 
 object *prim_pairq(object *args) {
-	if (car(args)->type != LIST)
+	if (car(args)->type != type_list)
 		return FALSE;
 	return (atom(caar(args)) && atom(cdar(args))) ? TRUE : FALSE;
 }
 
 object *prim_listq(object *args) {
 	object *list;
-	if (car(args)->type != LIST)
+	if (car(args)->type != type_list)
 		return FALSE;
 	for (list = car(args); !is_null(list); list = list->cdr)
-		if (!is_null(list->cdr) && (list->cdr->type != LIST))
+		if (!is_null(list->cdr) && (list->cdr->type != type_list))
 			return FALSE;
-	return (car(args)->type == LIST && prim_pairq(args) != TRUE) ? TRUE : FALSE;
+	return (car(args)->type == type_list && prim_pairq(args) != TRUE) ? TRUE : FALSE;
 }
 
 object *prim_atomq(object *sexp) {
@@ -358,7 +354,7 @@ object *prim_atomq(object *sexp) {
 
 /* = primitive, only valid for numbers */
 object *prim_neq(object *args) {
-	if ((car(args)->type != INTEGER) || (cadr(args)->type != INTEGER))
+	if ((car(args)->type != type_integer) || (cadr(args)->type != type_integer))
 		return FALSE;
 	return (car(args)->integer == cadr(args)->integer) ? TRUE : FALSE;
 }
@@ -371,7 +367,7 @@ object *prim_eq(object *args) {
 object *prim_equal(object *args) {
 	if (is_equal(car(args), cadr(args)))
 		return TRUE;
-	if ((car(args)->type == LIST) && (cadr(args)->type == LIST)) {
+	if ((car(args)->type == type_list) && (cadr(args)->type == type_list)) {
 		object *a, *b;
 		a = car(args);
 		b = cadr(args);
@@ -383,7 +379,7 @@ object *prim_equal(object *args) {
 		}
 		return TRUE;
 	}
-	if ((car(args)->type == VECTOR) && (cadr(args)->type == VECTOR)) {
+	if ((car(args)->type == type_vector) && (cadr(args)->type == type_vector)) {
 		if (car(args)->vsize != cadr(args)->vsize) {
 			return FALSE;
 		}
@@ -401,11 +397,11 @@ object *prim_equal(object *args) {
 }
 
 object *prim_add(object *list) {
-	ASSERT_TYPE(car(list), INTEGER);
+	ASSERT_TYPE(car(list), type_integer);
 	i64 total = car(list)->integer;
 	list = cdr(list);
 	while (!EOL(car(list))) {
-		ASSERT_TYPE(car(list), INTEGER);
+		ASSERT_TYPE(car(list), type_integer);
 		total += car(list)->integer;
 		list = cdr(list);
 	}
@@ -413,11 +409,11 @@ object *prim_add(object *list) {
 }
 
 object *prim_sub(object *list) {
-	ASSERT_TYPE(car(list), INTEGER);
+	ASSERT_TYPE(car(list), type_integer);
 	i64 total = car(list)->integer;
 	list = cdr(list);
 	while (!is_null(list)) {
-		ASSERT_TYPE(car(list), INTEGER);
+		ASSERT_TYPE(car(list), type_integer);
 		total -= car(list)->integer;
 		list = cdr(list);
 	}
@@ -425,11 +421,11 @@ object *prim_sub(object *list) {
 }
 
 object *prim_div(object *list) {
-	ASSERT_TYPE(car(list), INTEGER);
+	ASSERT_TYPE(car(list), type_integer);
 	i64 total = car(list)->integer;
 	list = cdr(list);
 	while (!is_null(list)) {
-		ASSERT_TYPE(car(list), INTEGER);
+		ASSERT_TYPE(car(list), type_integer);
 		total /= car(list)->integer;
 		list = cdr(list);
 	}
@@ -437,25 +433,25 @@ object *prim_div(object *list) {
 }
 
 object *prim_mul(object *list) {
-	ASSERT_TYPE(car(list), INTEGER);
+	ASSERT_TYPE(car(list), type_integer);
 	i64 total = car(list)->integer;
 	list = cdr(list);
 	while (!is_null(list)) {
-		ASSERT_TYPE(car(list), INTEGER);
+		ASSERT_TYPE(car(list), type_integer);
 		total *= car(list)->integer;
 		list = cdr(list);
 	}
 	return make_integer(total);
 }
 object *prim_gt(object *sexp) {
-	ASSERT_TYPE(car(sexp), INTEGER);
-	ASSERT_TYPE(cadr(sexp), INTEGER);
+	ASSERT_TYPE(car(sexp), type_integer);
+	ASSERT_TYPE(cadr(sexp), type_integer);
 	return (car(sexp)->integer > cadr(sexp)->integer) ? TRUE : NIL;
 }
 
 object *prim_lt(object *sexp) {
-	ASSERT_TYPE(car(sexp), INTEGER);
-	ASSERT_TYPE(cadr(sexp), INTEGER);
+	ASSERT_TYPE(car(sexp), type_integer);
+	ASSERT_TYPE(cadr(sexp), type_integer);
 	return (car(sexp)->integer < cadr(sexp)->integer) ? TRUE : NIL;
 }
 
@@ -477,16 +473,16 @@ object *prim_read(object *args) {
 }
 
 object *prim_vget(object *args) {
-	ASSERT_TYPE(car(args), VECTOR);
-	ASSERT_TYPE(cadr(args), INTEGER);
+	ASSERT_TYPE(car(args), type_vector);
+	ASSERT_TYPE(cadr(args), type_integer);
 	if (cadr(args)->integer >= car(args)->vsize)
 		return NIL;
 	return car(args)->vector[cadr(args)->integer];
 }
 
 object *prim_vset(object *args) {
-	ASSERT_TYPE(car(args), VECTOR);
-	ASSERT_TYPE(cadr(args), INTEGER);
+	ASSERT_TYPE(car(args), type_vector);
+	ASSERT_TYPE(cadr(args), type_integer);
 	if (is_null(caddr(args)))
 		return NIL;
 	if (cadr(args)->integer >= car(args)->vsize)
@@ -496,7 +492,7 @@ object *prim_vset(object *args) {
 }
 
 object *prim_vec(object *args) {
-	ASSERT_TYPE(car(args), INTEGER);
+	ASSERT_TYPE(car(args), type_integer);
 	return make_vector(car(args)->integer);
 }
 
@@ -566,7 +562,7 @@ object *define_variable(object *var, object *val,
 	Recursive descent parser
 	==============================================================================*/
 
-char SYMBOLS[] = "~!@#$%^&*_-+\\:,.<>|{}[]?=/";
+char type_symbolS[] = "~!@#$%^&*_-+\\:,.<>|{}[]?=/";
 
 int peek(FILE *in) {
 	long c = (long) libc(getc)(in);
@@ -597,7 +593,7 @@ object *_read_string(FILE *in) {
 	}
 	buf[i] = '\0';
 	object *s = make_symbol(buf);
-	s->type = STRING;
+	s->type = type_string;
 	return s;
 }
 
@@ -605,7 +601,7 @@ object *read_symbol(FILE *in, char start) {
 	char buf[128];
 	buf[0] = start;
 	int i = 1;
-	while (libc(isalnum)(peek(in)) || libc(strchr)(SYMBOLS, peek(in))) {
+	while (libc(isalnum)(peek(in)) || libc(strchr)(type_symbolS, peek(in))) {
 		if (i >= 128)
 			error("Symbol name too long - maximum length 128 characters");
 		buf[i++] = (long) libc(getc)(in);
@@ -633,24 +629,23 @@ object *_read_list(FILE *in) {
 	return EMPTY_LIST;
 }
 
-object *_read_quote(FILE *in) {
-	return cons(QUOTE, cons(read_expression(in), NIL));
-}
+//object *_read_quote(FILE *in) {
+//	return cons(QUOTE, cons(read_expression(in), NIL));
+//}
 
 int depth = 0;
 
+//TODO eval_read_expression()
 object *read_expression(FILE *in) {
-	int is_stdin = (in == (FILE*) libc(stdin));
+	//int is_stdin = (in == (FILE*) libc(stdin));
 	int c;
 
 	for (;;) {
 		c = (long)libc(getc)(in);
 		if (c == '\n' || c == '\r' || c == ' ' || c == '\t') {
-			if ((c == '\n' || c == '\r') && is_stdin) {
-				int i;
-				for (i = 0; i < depth; i++)
-					libc(printf)("..");
-			}
+			//if ((c == '\n' || c == '\r') && is_stdin) {
+			//	for (int i = 0; i < depth; i++) libc(printf)("..");
+			//}
 			continue;
 		}
 		if (c == ';') {
@@ -662,7 +657,8 @@ object *read_expression(FILE *in) {
 		if (c == '\"')
 			return _read_string(in);
 		if (c == '\'')
-			return _read_quote(in);
+			//return _read_quote(in);
+			return cons(QUOTE, cons(read_expression(in), NIL));
 		if (c == '(') {
 			depth++;
 			return _read_list(in);
@@ -675,7 +671,7 @@ object *read_expression(FILE *in) {
 			return make_integer(read_int(in, c - '0'));
 		if (c == '-' && (long)libc(isdigit)(peek(in)))
 			return make_integer(-1 * read_int(in, (long)libc(getc)(in) - '0'));
-		if (libc(isalpha)(c) || libc(strchr)(SYMBOLS, c))
+		if (libc(isalpha)(c) || libc(strchr)(type_symbolS, c))
 			return read_symbol(in, c);
 	}
 	return NIL;
@@ -689,22 +685,22 @@ void print_expression(char *str, object *e) {
 		return;
 	}
 	switch (e->type) {
-		case STRING:
+		case type_string:
 			libc(printf)("\"%s\"", e->string);
 			break;
-		case SYMBOL:
+		case type_symbol:
 			libc(printf)("%s", e->string);
 			break;
-		case INTEGER:
+		case type_integer:
 			libc(printf)("%ld", e->integer);
 			break;
-		case PRIMITIVE:
+		case type_primitive:
 			libc(printf)("<function>");
 			break;
-		case VECTOR:
+		case type_vector:
 			libc(printf)("<vector %d>", e->vsize);
 			break;
-		case LIST:
+		case type_list:
 			if (is_tagged(e, PROCEDURE)) {
 				libc(printf)("<closure>");
 				return;
@@ -715,7 +711,7 @@ void print_expression(char *str, object *e) {
 				print_expression(0, (*t)->car);
 				if (!is_null((*t)->cdr)) {
 					libc(printf)(" ");
-					if ((*t)->cdr->type == LIST) {
+					if ((*t)->cdr->type == type_list) {
 						t = &(*t)->cdr;
 					} else {
 						print_expression(".", (*t)->cdr);
@@ -728,13 +724,9 @@ void print_expression(char *str, object *e) {
 	}
 }
 
-/*==============================================================================
-	LISP evaluator
-	==============================================================================*/
-
-object *evlis(object *exp, object *env) {
+object *eval_list(object *exp, object *env) {
 	if (is_null(exp)) return NIL;
-	return cons(eval(car(exp), env), evlis(cdr(exp), env));
+	return cons(eval(car(exp), env), eval_list(cdr(exp), env));
 }
 
 object *eval_sequence(object *exps, object *env) {
@@ -748,9 +740,9 @@ object *eval(object *exp, object *env) {
 tail:
 	if (is_null(exp) || exp == EMPTY_LIST) {
 		return NIL;
-	} else if (exp->type == INTEGER || exp->type == STRING) {
+	} else if (exp->type == type_integer || exp->type == type_string) {
 		return exp;
-	} else if (exp->type == SYMBOL) {
+	} else if (exp->type == type_symbol) {
 		object *s = lookup_variable(exp, env);
 #ifdef STRICT
 		if (is_null(s)) {
@@ -837,7 +829,7 @@ tail:
 		/* procedure structure is as follows:
 			 ('procedure, (parameters), (body), (env)) */
 		object *proc = eval(car(exp), env);
-		object *args = evlis(cdr(exp), env);
+		object *args = eval_list(cdr(exp), env);
 		if (is_null(proc)) {
 #ifdef STRICT
 			print_expression("Invalid arguments to eval:", exp);
@@ -846,7 +838,7 @@ tail:
 
 			return NIL;
 		}
-		if (proc->type == PRIMITIVE)
+		if (proc->type == type_primitive)
 			return proc->primitive(args);
 		if (is_tagged(proc, PROCEDURE)) {
 			env = extend_env(cadr(proc), args, cadddr(proc));
@@ -861,14 +853,14 @@ tail:
 
 //extern char **environ;
 //object *prim_exec(object *args) {
-//	ASSERT_TYPE(car(args), STRING);
+//	ASSERT_TYPE(car(args), type_string);
 //	int l = length(args);
 //	object *tmp = args;
 //
 //	char **newarg = libc(malloc)(sizeof(char *) * (l + 1));
 //	char **n = newarg;
 //	for (; l; l--) {
-//		ASSERT_TYPE(car(tmp), STRING);
+//		ASSERT_TYPE(car(tmp), type_string);
 //		*n++ = car(tmp)->string;
 //		tmp = cdr(tmp);
 //	}
@@ -981,6 +973,7 @@ int main(int argc, char **argv)
 #if defined(DEBUG)
 		libc(printf)(">");
 #endif
+		//TODO eval_read_expression() eval when read...
 		object *exp = eval(read_expression((FILE*)libc(stdin)), ENV);
 #if defined(DEBUG)
 		if (!is_null(exp)) {

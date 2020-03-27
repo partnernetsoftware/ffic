@@ -1,3 +1,34 @@
+#ifndef PTRSIZE
+# if defined(_WIN64)
+# define PTRSIZE 8 //WIN 64
+# elif defined(_WIN32)
+# define PTRSIZE 4 //32
+# else
+# define PTRSIZE 8 //64
+# endif
+#endif
+
+#if PTRSIZE==8
+typedef signed char i8;
+typedef signed short int i16;
+typedef signed int i32;
+typedef signed long int i64;
+typedef unsigned char u8;
+typedef unsigned short int u16;
+typedef unsigned int u32;
+typedef unsigned long int u64;
+#elif PTRSIZE==4
+typedef signed char i8;
+typedef signed short int i16;
+typedef signed int i32;
+typedef signed long long int i64;
+typedef unsigned char u8;
+typedef unsigned short int u16;
+typedef unsigned int u32;
+typedef unsigned long long int u64;
+#else //TODO 128
+#endif
+
 #  if defined(_WIN32) || defined(_WIN64)
 
 struct _iobuf {

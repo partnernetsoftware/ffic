@@ -1,7 +1,7 @@
 #ifndef TCC_FFI
 #define TCC_FFI 1
 #endif
-#include "tccffi.h"
+#include "ffi.h"
 #define tcc(f) ffi("libtcc",#f)
 #define anyptr void*
 int main(int argc, char **argv){
