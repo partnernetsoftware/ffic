@@ -25,8 +25,7 @@
 
 //TODO enum into enum and types
 #define TYPE_LIST integer, symbol, string, list, primitive, vector
-//TODO merge as a arr:
-//char *types[6] = {"integer","symbol","string","list","primitive","vector"};
+char *types[6] = {"integer","symbol","string","list","primitive","vector"};
 typedef enum {
 	type_integer, type_symbol, type_string, type_list, type_primitive, type_vector
 } type_t;
@@ -51,23 +50,21 @@ struct object {
 	};
 } __attribute__((packed));
 
-//TMP FUN:
-typedef int (*tx_func)();
-typedef struct _type_desc type_desc,*p_type_desc;
-struct _type_desc {
-	type_t type;
-	char* name;
-};
-
-type_desc types_map[] = {
-	{type_integer, "integer",
-	},{type_symbol, "symbol",
-	},{type_string, "string",
-	},{type_list, "list",//TODO merge with vector?
-	},{type_primitive, "primitive",
-	},{type_vector, "vector",//change to table
-	}//TODO struct...
-};
+//typedef int (*tx_func)();
+//typedef struct _type_desc type_desc,*p_type_desc;
+//struct _type_desc {
+//	type_t type;
+//	char* name;
+//};
+//type_desc types_map[] = {
+//	{type_integer, "integer",
+//	},{type_symbol, "symbol",
+//	},{type_string, "string",
+//	},{type_list, "list",//TODO merge with vector?
+//	},{type_primitive, "primitive",
+//	},{type_vector, "vector",//change to table
+//	}//TODO struct...
+//};
 
 object *ENV;
 object *NIL;
@@ -155,8 +152,8 @@ int type_check(const char *func, object *obj, type_t type) {
 		libc(exit)(1);
 	} else if (obj->type != type) {
 		libc(fprintf)(libc(stderr), "ERR: function %s. expected %s got %s\n",
-				//func, types[type], types[obj->type]
-				func, types_map[type].name, types_map[obj->type].name
+				func, types[type], types[obj->type]
+				//func, types_map[type].name, types_map[obj->type].name
 				);
 		libc(exit)(1);
 	}
@@ -283,8 +280,8 @@ int length(object *exp) {
 	==============================================================================*/
 
 object *prim_type(object *args) {
-	//return make_symbol(types[car(args)->type]);
-	return make_symbol(types_map[car(args)->type].name);
+	return make_symbol(types[car(args)->type]);
+	//return make_symbol(types_map[car(args)->type].name);
 }
 
 object *prim_get_env(object *args) {
