@@ -955,8 +955,29 @@ object *load_file(object *args) {
 #if defined(DEBUG)
 #include "debug_scheme.c"
 #endif
+
+//TMP
+#define PROFILE
+
+static u64 ffi_microtime(void)
+{
+#ifdef _WIN32
+	return libc(GetTickCount)();
+#else
+	struct timeval {
+		long tv_sec;
+		long tv_usec;
+	} tv;
+	//struct timeval tv;
+	libc(gettimeofday)(&tv, 0);
+	return tv.tv_sec*1000 + (tv.tv_usec+500)/1000;
+#endif
+}
 int main(int argc, char **argv)
 {
+#if defined(PROFILE)
+	libc(printf)("%lu: start\n",ffi_microtime());
+#endif
 #if defined(DEBUG)
 	check_env();
 #endif
@@ -970,7 +991,10 @@ int main(int argc, char **argv)
 #if defined(DEBUG)
 		libc(printf)(">");
 #endif
-		//TODO eval_read_expression() eval when read...
+		//TODO read_expression into q and the eval in standalone thread?
+#if defined(PROFILE)
+	libc(printf)("%lu: read_expression() \n",ffi_microtime());
+#endif
 		object *exp = eval(read_expression((FILE*)libc(stdin)), ENV);
 #if defined(DEBUG)
 		if (!is_null(exp)) {
