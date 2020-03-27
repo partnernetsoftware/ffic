@@ -50,7 +50,7 @@ typedef unsigned long long int u64;
 #define cddr(x) (cdr(cdr((x))))
 #define cdadr(x) (cdr(car(cdr((x)))))
 #define atom(x) (!null(x) && (x)->type != LIST)
-#define ASSERT_TYPE(x, t) (__type_check(__func__, x, t))
+#define ASSERT_TYPE(x, t) (type_check(__func__, x, t))
 
 typedef enum { INTEGER, SYMBOL, STRING, LIST, PRIMITIVE, VECTOR } type_t;
 typedef struct object object;
@@ -153,7 +153,7 @@ object *alloc() {
 /*============================================================================
 	Constructors and etc
 	==============================================================================*/
-int __type_check(const char *func, object *obj, type_t type) {
+int type_check(const char *func, object *obj, type_t type) {
 	if (null(obj)) {
 		libc(fprintf)(libc(stderr), "Invalid argument to function %s: NIL\n", func);
 		libc(exit)(1);
@@ -220,13 +220,12 @@ object *cons(object *x, object *y) {
 	return ret;
 }
 
-object *car(object *cell) {
-	if (null(cell) || cell->type != LIST)
-		return NIL;
+inline object *car(object *cell) {
+	if (null(cell) || cell->type != LIST) return NIL;
 	return cell->car;
 }
 
-object *cdr(object *cell) {
+inline object *cdr(object *cell) {
 	if (null(cell) || cell->type != LIST)
 		return NIL;
 	return cell->cdr;
@@ -648,12 +647,13 @@ object *read_quote(FILE *in) {
 int depth = 0;
 
 object *read_exp(FILE *in) {
+	int is_stdin = (in == (FILE*) libc(stdin));
 	int c;
 
 	for (;;) {
 		c = (long)libc(getc)(in);
 		if (c == '\n' || c == '\r' || c == ' ' || c == '\t') {
-			if ((c == '\n' || c == '\r') && in == (FILE*)libc(stdin)) {
+			if ((c == '\n' || c == '\r') && is_stdin) {
 				int i;
 				for (i = 0; i < depth; i++)
 					libc(printf)("..");
@@ -894,8 +894,7 @@ tail:
 //	return NIL;
 //}
 
-/* Initialize the global environment, add primitive functions and symbols */
-void init_env() {
+void init_lang() {
 #define add_prim(s, c) define_variable(make_symbol(s), make_primitive(c), ENV)
 #define add_sym(s, c) do{c=make_symbol(s);define_variable(c,c,ENV);}while(0);
 	ENV = extend_env(NIL, NIL, NIL);
@@ -952,7 +951,9 @@ object *load_file(object *args) {
 	object *exp;
 	object *ret = 0;
 	char *filename = car(args)->string;
+#if defined(DEBUG)
 	libc(printf)("Evaluating file %s\n", filename);
+#endif
 	FILE *fp = libc(fopen)(filename, "r");
 	if (fp == 0) {
 		libc(printf)("Error opening file %s\n", filename);
@@ -978,23 +979,28 @@ int main(int argc, char **argv)
 	check_env();
 #endif
 
-	int NELEM = 8191;
-	ht_init(NELEM);
-	init_env();
-	object *exp;
-	int i;
+	ht_init(8192-1/*NELEM*/);
+	init_lang();
 
+#if defined(DEBUG)
 	libc(printf)(
 			"Microlisp intrepreter - (c) Michael Lazear 2016-2019, MIT License\n");
-	for (i = 1; i < argc; i++)
-		load_file(cons(make_symbol(argv[i]), NIL));
+#endif
 
+//	for (int i = 1; i < argc; i++)
+//		load_file(cons(make_symbol(argv[i]), NIL));
+
+	//TODO only if "-" for args[1]...
 	for (;;) {
+#if defined(DEBUG)
 		libc(printf)(">");
-		exp = eval(read_exp((FILE*)libc(stdin)), ENV);
+#endif
+		object *exp = eval(read_exp((FILE*)libc(stdin)), ENV);
+#if defined(DEBUG)
 		if (!null(exp)) {
 			print_exp("=>", exp);
 			libc(printf)("\n");
 		}
+#endif
 	}
 }

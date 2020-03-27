@@ -32,8 +32,9 @@ scheme:
 	./tccffi scheme.c
 osx_scheme:
 	rm -f scheme_osx
-	${CC} -E scheme.c -o scheme.i
-	${CC} scheme.c -L. -o scheme_osx
+	${CC} -E scheme.c -o scheme.pp.i
+	#${CC} scheme.c -L. -o scheme_osx
+	${CC} scheme.pp.i -L. -o scheme_osx
 	ls -al scheme*
 pp:
 	${CC} -E tccffi.c -I. -I../tinycc/ -o tccffi.i
