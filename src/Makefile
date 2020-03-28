@@ -45,3 +45,6 @@ pp:
 	${CC} -E tccffi.c -I. -I../tinycc/ -o tccffi.i
 	#${CC} -E tccffi.c -I. -I../tinycc/ | sed 's/^#.*//g' > tccffi.pp.i
 	${CC} -E tccffi.c -I. -I../tinycc/ | sed 's/^#.*//g' | sed "/^$$/d" > tccffi.pp.i
+clean:
+	rm -f *.o
+	rm -f scheme_osx

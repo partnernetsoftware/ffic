@@ -6,40 +6,7 @@
  * Copyright Michael Lazear (c) 2016
  * FFI version by Wanjo Chan (c) 2020
  */
-#define CAT(a, ...) PRIMITIVE_CAT(a, __VA_ARGS__)
-#define PRIMITIVE_CAT(a, ...) a ## __VA_ARGS__
-#define IIF(c) PRIMITIVE_CAT(IIF_, c)
-#define IIF_0(t, ...) __VA_ARGS__
-#define IIF_1(t, ...) t
-#define CHECK_N(x, n, ...) n
-#define CHECK(...) CHECK_N(__VA_ARGS__, 0,)
-#define PROBE(x) x, 1,
-#define IS_PAREN(x) CHECK(IS_PAREN_PROBE x)
-#define IS_PAREN_PROBE(...) PROBE(~)
-#define NOT(x) CHECK(PRIMITIVE_CAT(NOT_, x))
-#define NOT_0 PROBE(~)
-#define COMPL(b) PRIMITIVE_CAT(COMPL_, b)
-#define COMPL_0 1
-#define COMPL_1 0
-#define BOOL(x) COMPL(NOT(x))
-#define IF(c) IIF(BOOL(c))
-#define EAT(...)
-#define EXPAND(...) __VA_ARGS__
-#define WHEN(c) IF(c)(EXPAND, EAT)
-#define EMPTY()
-#define DEFER(id) id EMPTY()
-#define OBSTRUCT(...) __VA_ARGS__ DEFER(EMPTY)()
-#define EVAL(...)  EVAL1(EVAL1(EVAL1(__VA_ARGS__)))
-#define EVAL1(...) EVAL2(EVAL2(EVAL2(__VA_ARGS__)))
-#define EVAL2(...) EVAL3(EVAL3(EVAL3(__VA_ARGS__)))
-#define EVAL3(...) EVAL4(EVAL4(EVAL4(__VA_ARGS__)))
-#define EVAL4(...) EVAL5(EVAL5(EVAL5(__VA_ARGS__)))
-#define EVAL5(...) __VA_ARGS__
-#define WHILE(macro, value, ...) WHEN(NOT(IS_PAREN(value ()))) ( \
-  OBSTRUCT(macro) (value) OBSTRUCT(WHILE_INDIRECT) () (macro, __VA_ARGS__) )
-#define WHILE_INDIRECT() WHILE 
-#define ITR(mmm,qqq,...) EVAL( WHILE( mmm,qqq,__VA_ARGS__ ) )
-
+#include "macros.h"
 #define DEFINE_ENUM(n) libc_##n,
 #define LIBC_FUNC_LIST fprintf,stderr,exit,malloc,memset,strdup,strcmp,printf,\
 assert,stdin,getc,ungetc,isalnum,strchr,isdigit,isalpha,fopen,fclose,\
@@ -57,8 +24,8 @@ inline ffi_func libcf(int fi,const char* fn){
 }
 //////////////////////////////////////////////////////////////////////////////
 #define is_null(x) ((x) == 0 || (x) == NIL)
-#define EOL(x) (is_null((x)) || (x) == EMPTY_LIST)
-#define error(x) do {libc(fprintf)(libc(stderr),"%s\n",x);libc(exit)(1);}while (0)
+#define is_EOL(x) (is_null((x)) || (x) == EMPTY_LIST)
+#define error(x) do{libc(fprintf)(libc(stderr),"%s\n",x);libc(exit)(1);}while(0)
 #define caar(x) (car(car((x))))
 #define cdar(x) (cdr(car((x))))
 #define cadr(x) (car(cdr((x))))
@@ -68,7 +35,7 @@ inline ffi_func libcf(int fi,const char* fn){
 #define cddr(x) (cdr(cdr((x))))
 #define cdadr(x) (cdr(car(cdr((x)))))
 #define atom(x) (!is_null(x) && (x)->type != type_list)
-#define ASSERT_TYPE(x, t) (type_check(__func__, x, t))
+#define type_check(x, t) (type_check_func(__func__, x, t))
 char *types[6] = {"integer","symbol","string","list","primitive","vector"};
 typedef enum {
 	type_integer, type_symbol, type_string, type_list, type_primitive, type_vector
@@ -117,6 +84,8 @@ object *load_file(object *args);
 object *cdr(object *);
 object *car(object *);
 object *lookup_variable(object *var, object *env);
+
+int type_check_func(const char *func, object *obj, type_t type);
 
 /*==============================================================================
 	Hash table for saving Lisp symbol objects. Conserves memory and faster compares
@@ -171,10 +140,8 @@ object *alloc() {
 	return ret;
 }
 
-/*============================================================================
-	Constructors and etc
-	==============================================================================*/
-int type_check(const char *func, object *obj, type_t type) {
+int type_check_func(const char *func, object *obj, type_t type)
+{
 	if (is_null(obj)) {
 		libc(fprintf)(libc(stderr), "Invalid argument to function %s: NIL\n", func);
 		libc(exit)(1);
@@ -330,31 +297,31 @@ object *prim_cons(object *args) {
 
 object *prim_car(object *args) {
 #ifdef STRICT
-	ASSERT_TYPE(car(args), type_list);
+	type_check(car(args), type_list);
 #endif
 	return caar(args);
 }
 
 object *prim_cdr(object *args) {
 #ifdef STRICT
-	ASSERT_TYPE(car(args), type_list);
+	type_check(car(args), type_list);
 #endif
 	return cdar(args);
 }
 
 object *prim_setcar(object *args) {
-	ASSERT_TYPE(car(args), type_list);
+	type_check(car(args), type_list);
 	(args->car->car = (cadr(args)));
 	return NIL;
 }
 object *prim_setcdr(object *args) {
-	ASSERT_TYPE(car(args), type_list);
+	type_check(car(args), type_list);
 	(args->car->cdr = (cadr(args)));
 	return NIL;
 }
 
 object *prim_is_nullq(object *args) {
-	return EOL(car(args)) ? TRUE : FALSE;
+	return is_EOL(car(args)) ? TRUE : FALSE;
 }
 
 object *prim_pairq(object *args) {
@@ -422,11 +389,11 @@ object *prim_equal(object *args) {
 }
 
 object *prim_add(object *list) {
-	ASSERT_TYPE(car(list), type_integer);
+	type_check(car(list), type_integer);
 	i64 total = car(list)->integer;
 	list = cdr(list);
-	while (!EOL(car(list))) {
-		ASSERT_TYPE(car(list), type_integer);
+	while (!is_EOL(car(list))) {
+		type_check(car(list), type_integer);
 		total += car(list)->integer;
 		list = cdr(list);
 	}
@@ -434,11 +401,11 @@ object *prim_add(object *list) {
 }
 
 object *prim_sub(object *list) {
-	ASSERT_TYPE(car(list), type_integer);
+	type_check(car(list), type_integer);
 	i64 total = car(list)->integer;
 	list = cdr(list);
 	while (!is_null(list)) {
-		ASSERT_TYPE(car(list), type_integer);
+		type_check(car(list), type_integer);
 		total -= car(list)->integer;
 		list = cdr(list);
 	}
@@ -446,11 +413,11 @@ object *prim_sub(object *list) {
 }
 
 object *prim_div(object *list) {
-	ASSERT_TYPE(car(list), type_integer);
+	type_check(car(list), type_integer);
 	i64 total = car(list)->integer;
 	list = cdr(list);
 	while (!is_null(list)) {
-		ASSERT_TYPE(car(list), type_integer);
+		type_check(car(list), type_integer);
 		total /= car(list)->integer;
 		list = cdr(list);
 	}
@@ -458,25 +425,25 @@ object *prim_div(object *list) {
 }
 
 object *prim_mul(object *list) {
-	ASSERT_TYPE(car(list), type_integer);
+	type_check(car(list), type_integer);
 	i64 total = car(list)->integer;
 	list = cdr(list);
 	while (!is_null(list)) {
-		ASSERT_TYPE(car(list), type_integer);
+		type_check(car(list), type_integer);
 		total *= car(list)->integer;
 		list = cdr(list);
 	}
 	return make_integer(total);
 }
 object *prim_gt(object *sexp) {
-	ASSERT_TYPE(car(sexp), type_integer);
-	ASSERT_TYPE(cadr(sexp), type_integer);
+	type_check(car(sexp), type_integer);
+	type_check(cadr(sexp), type_integer);
 	return (car(sexp)->integer > cadr(sexp)->integer) ? TRUE : NIL;
 }
 
 object *prim_lt(object *sexp) {
-	ASSERT_TYPE(car(sexp), type_integer);
-	ASSERT_TYPE(cadr(sexp), type_integer);
+	type_check(car(sexp), type_integer);
+	type_check(cadr(sexp), type_integer);
 	return (car(sexp)->integer < cadr(sexp)->integer) ? TRUE : NIL;
 }
 
@@ -498,16 +465,16 @@ object *prim_read(object *args) {
 }
 
 object *prim_vget(object *args) {
-	ASSERT_TYPE(car(args), type_vector);
-	ASSERT_TYPE(cadr(args), type_integer);
+	type_check(car(args), type_vector);
+	type_check(cadr(args), type_integer);
 	if (cadr(args)->integer >= car(args)->vsize)
 		return NIL;
 	return car(args)->vector[cadr(args)->integer];
 }
 
 object *prim_vset(object *args) {
-	ASSERT_TYPE(car(args), type_vector);
-	ASSERT_TYPE(cadr(args), type_integer);
+	type_check(car(args), type_vector);
+	type_check(cadr(args), type_integer);
 	if (is_null(caddr(args)))
 		return NIL;
 	if (cadr(args)->integer >= car(args)->vsize)
@@ -517,7 +484,7 @@ object *prim_vset(object *args) {
 }
 
 object *prim_vec(object *args) {
-	ASSERT_TYPE(car(args), type_integer);
+	type_check(car(args), type_integer);
 	return make_vector(car(args)->integer);
 }
 
@@ -622,7 +589,7 @@ object *_read_string(FILE *in) {
 	return s;
 }
 
-object *read_symbol(FILE *in, char start) {
+object *_read_symbol(FILE *in, char start) {
 	char buf[128];
 	buf[0] = start;
 	int i = 1;
@@ -697,7 +664,7 @@ object *read_expression(FILE *in) {
 		if (c == '-' && (u64)libc(isdigit)(peek(in)))
 			return make_integer(-1 * read_int(in, (u64)libc(getc)(in) - '0'));
 		if (libc(isalpha)(c) || libc(strchr)(type_symbolS, c))
-			return read_symbol(in, c);
+			return _read_symbol(in, c);
 	}
 	return NIL;
 }
@@ -877,14 +844,14 @@ tail:
 
 //extern char **environ;
 //object *prim_exec(object *args) {
-//	ASSERT_TYPE(car(args), type_string);
+//	type_check(car(args), type_string);
 //	int l = length(args);
 //	object *tmp = args;
 //
 //	char **newarg = libc(malloc)(sizeof(char *) * (l + 1));
 //	char **n = newarg;
 //	for (; l; l--) {
-//		ASSERT_TYPE(car(tmp), type_string);
+//		type_check(car(tmp), type_string);
 //		*n++ = car(tmp)->string;
 //		tmp = cdr(tmp);
 //	}
