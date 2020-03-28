@@ -5,3 +5,4 @@ tccrun.i
 *.i
 config.h
 libtcc.dylib
+scheme
