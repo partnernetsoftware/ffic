@@ -6,36 +6,52 @@
  * Copyright Michael Lazear (c) 2016
  * FFI version by Wanjo Chan (c) 2020
  */
+#define CAT(a, ...) PRIMITIVE_CAT(a, __VA_ARGS__)
+#define PRIMITIVE_CAT(a, ...) a ## __VA_ARGS__
+#define IIF(c) PRIMITIVE_CAT(IIF_, c)
+#define IIF_0(t, ...) __VA_ARGS__
+#define IIF_1(t, ...) t
+#define CHECK_N(x, n, ...) n
+#define CHECK(...) CHECK_N(__VA_ARGS__, 0,)
+#define PROBE(x) x, 1,
+#define IS_PAREN(x) CHECK(IS_PAREN_PROBE x)
+#define IS_PAREN_PROBE(...) PROBE(~)
+#define NOT(x) CHECK(PRIMITIVE_CAT(NOT_, x))
+#define NOT_0 PROBE(~)
+#define COMPL(b) PRIMITIVE_CAT(COMPL_, b)
+#define COMPL_0 1
+#define COMPL_1 0
+#define BOOL(x) COMPL(NOT(x))
+#define IF(c) IIF(BOOL(c))
+#define EAT(...)
+#define EXPAND(...) __VA_ARGS__
+#define WHEN(c) IF(c)(EXPAND, EAT)
+#define EMPTY()
+#define DEFER(id) id EMPTY()
+#define OBSTRUCT(...) __VA_ARGS__ DEFER(EMPTY)()
+#define EVAL(...)  EVAL1(EVAL1(EVAL1(__VA_ARGS__)))
+#define EVAL1(...) EVAL2(EVAL2(EVAL2(__VA_ARGS__)))
+#define EVAL2(...) EVAL3(EVAL3(EVAL3(__VA_ARGS__)))
+#define EVAL3(...) EVAL4(EVAL4(EVAL4(__VA_ARGS__)))
+#define EVAL4(...) EVAL5(EVAL5(EVAL5(__VA_ARGS__)))
+#define EVAL5(...) __VA_ARGS__
+#define WHILE(macro, value, ...) WHEN(NOT(IS_PAREN(value ()))) ( \
+  OBSTRUCT(macro) (value) OBSTRUCT(WHILE_INDIRECT) () (macro, __VA_ARGS__) )
+#define WHILE_INDIRECT() WHILE 
+#define ITR(mmm,qqq,...) EVAL( WHILE( mmm,qqq,__VA_ARGS__ ) )
+
+#define DEFINE_ENUM(n) libc_##n,
+#define LIBC_FUNC_LIST fprintf,stderr,exit,malloc,memset,strdup,strcmp,printf,assert,stdin,getc,ungetc,isalnum,strchr,isdigit,isalpha,fopen,fclose,gettimeofday,calloc,stdout,GetTickCount,NULL
 typedef enum {
-	libc_fprintf,
-	libc_stderr,
-	libc_exit,
-	libc_malloc,
-	libc_memset,
-	libc_strdup,
-	libc_strcmp,
-	libc_printf,
-	libc_assert,
-	libc_stdin,
-	libc_getc,
-	libc_ungetc,
-	libc_isalnum,
-	libc_strchr,
-	libc_isdigit,
-	libc_isalpha,
-	libc_fopen,
-	libc_fclose,
-	libc_gettimeofday,
-	libc_calloc,
-	libc_enum,
+	ITR(DEFINE_ENUM,EXPAND(LIBC_FUNC_LIST))
 } enum_libc_a;
-void* (*libc_a[libc_enum])();
+void* (*libc_a[libc_NULL])();
 #define libc(f) (libc_a[libc_##f]?libc_a[libc_##f]:(libc_a[libc_##f]=ffi("c",#f)))
 #include "ffi.h"
 //////////////////////////////////////////////////////////////////////////////
 #define is_null(x) ((x) == 0 || (x) == NIL)
 #define EOL(x) (is_null((x)) || (x) == EMPTY_LIST)
-#define error(x) do {libc(fprintf)(libc(stderr), "%s\n", x);libc(exit)(1);}while (0)
+#define error(x) do {libc(fprintf)(libc(stderr),"%s\n",x);libc(exit)(1);}while (0)
 #define caar(x) (car(car((x))))
 #define cdar(x) (cdr(car((x))))
 #define cadr(x) (car(cdr((x))))
@@ -567,16 +583,16 @@ object *define_variable(object *var, object *val,
 char type_symbolS[] = "~!@#$%^&*_-+\\:,.<>|{}[]?=/";
 
 int peek(FILE *in) {
-	long c = (long) libc(getc)(in);
+	u64 c = (u64) libc(getc)(in);
 	libc(ungetc)(c, in);
 	return c;
 }
 
 /* skip characters until end of line */
 void skip(FILE *in) {
-	long c;
+	u64 c;
 	for (;;) {
-		c = (long) libc(getc)(in);
+		c = (u64) libc(getc)(in);
 		if (c == '\n' || c == (-1))
 			return;
 	}
@@ -585,8 +601,8 @@ void skip(FILE *in) {
 object *_read_string(FILE *in) {
 	char buf[256];
 	int i = 0;
-	long c;
-	while ((c = (long) libc(getc)(in)) != '\"') {
+	u64 c;
+	while ((c = (u64) libc(getc)(in)) != '\"') {
 		if (c == (-1))
 			return NIL;
 		if (i >= 256)
@@ -606,7 +622,7 @@ object *read_symbol(FILE *in, char start) {
 	while (libc(isalnum)(peek(in)) || libc(strchr)(type_symbolS, peek(in))) {
 		if (i >= 128)
 			error("Symbol name too long - maximum length 128 characters");
-		buf[i++] = (long) libc(getc)(in);
+		buf[i++] = (u64) libc(getc)(in);
 	}
 	buf[i] = '\0';
 	return make_symbol(buf);
@@ -614,7 +630,7 @@ object *read_symbol(FILE *in, char start) {
 
 int read_int(FILE *in, int start) {
 	while (libc(isdigit)(peek(in)))
-		start = start * 10 + ((long)libc(getc)(in) - '0');
+		start = start * 10 + ((u64)libc(getc)(in) - '0');
 	return start;
 }
 
@@ -643,7 +659,7 @@ object *read_expression(FILE *in) {
 	int c;
 
 	for (;;) {
-		c = (long)libc(getc)(in);
+		c = (u64)libc(getc)(in);
 		if (c == '\n' || c == '\r' || c == ' ' || c == '\t') {
 			//if ((c == '\n' || c == '\r') && is_stdin) {
 			//	for (int i = 0; i < depth; i++) libc(printf)("..");
@@ -669,10 +685,10 @@ object *read_expression(FILE *in) {
 			depth--;
 			return EMPTY_LIST;
 		}
-		if ((long)libc(isdigit)(c))
+		if ((u64)libc(isdigit)(c))
 			return make_integer(read_int(in, c - '0'));
-		if (c == '-' && (long)libc(isdigit)(peek(in)))
-			return make_integer(-1 * read_int(in, (long)libc(getc)(in) - '0'));
+		if (c == '-' && (u64)libc(isdigit)(peek(in)))
+			return make_integer(-1 * read_int(in, (u64)libc(getc)(in) - '0'));
 		if (libc(isalpha)(c) || libc(strchr)(type_symbolS, c))
 			return read_symbol(in, c);
 	}
@@ -866,12 +882,12 @@ tail:
 //		tmp = cdr(tmp);
 //	}
 //	*n = 0;
-//	int pid = (long) libc(fork)();
+//	int pid = (u64) libc(fork)();
 //	if (pid == 0) {
 //		/* if execve returns -1, there was an errorm so we need to kill*/
 //		if (libc(execve)(car(args)->string, newarg, environ)) {
 //			libc(perror)(car(args)->string);
-//			libc(kill)((long)libc(getpid()), 15/*SIGTERM*/);
+//			libc(kill)((u64)libc(getpid()), 15/*SIGTERM*/);
 //		}
 //	}
 //	libc(wait)(&pid);
@@ -965,11 +981,13 @@ object *load_file(object *args) {
 static u64 ffi_microtime(void)
 {
 #ifdef _WIN32
-	return libc(GetTickCount)();
+	//GetTickCount() 返回开机以来经过的毫秒数... 10ms不准，而且也不是我们要的.
+	//return (u64)(libc(GetTickCount)());
+	return (u64)(ffi("kernel32","GetTickCount")());
 #else
 	struct timeval {
-		long tv_sec;
-		long tv_usec;
+		u64 tv_sec;
+		u64 tv_usec;
 	};
 	struct timeval * tv = libc(calloc)(sizeof(struct timeval),sizeof(char));
 	libc(gettimeofday)(tv, 0);
@@ -979,7 +997,7 @@ static u64 ffi_microtime(void)
 int main(int argc, char **argv)
 {
 #if defined(PROFILE)
-	libc(printf)("%lu: start\n",ffi_microtime());
+	libc(printf)("%ld: start\n",ffi_microtime());
 #endif
 #if defined(DEBUG)
 	check_env();
