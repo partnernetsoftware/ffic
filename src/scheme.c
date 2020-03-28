@@ -272,10 +272,10 @@ object *prim_type(object *args) {
 	//return make_symbol(types_map[car(args)->type].name);
 }
 
-object *prim_get_env(object *args) {
-	//libc(assert)(is_null(args));
-	return ENV;
-}
+//object *prim_get_env(object *args) {
+//	//libc(assert)(is_null(args));
+//	return ENV;
+//}
 object *prim_set_env(object *args) {
 	ENV = car(args);
 	return NIL;
@@ -909,10 +909,10 @@ void init_env() {
 	add_prim("print", prim_print);
 	//add_prim("ffi", prim_ffi);
 	//add_prim("get-global-environment", prim_get_env);
-	add_prim("env", prim_get_env);
+	//add_prim("env", prim_get_env);//remove this feature
 	//	add_prim("set-global-environment", prim_set_env);
-	add_prim("exit", prim_exit);
-	//add_prim("exec", prim_exec);
+	add_prim("exit", prim_exit);//TODO change to ffi
+	//add_prim("exec", prim_exec);//change to ffi
 	add_prim("read", prim_read);
 	add_prim("vector", prim_vec);
 	add_prim("vector-get", prim_vget);
@@ -949,7 +949,6 @@ object *load_file(object *args) {
 static u64 ffi_microtime(void)
 {
 #ifdef _WIN32
-	//GetTickCount() 返回开机以来经过的毫秒数... 10ms不准，而且也不是我们要的.
 	//return (u64)(libc(GetTickCount)());
 	return (u64)(ffi("kernel32","GetTickCount")());
 #else

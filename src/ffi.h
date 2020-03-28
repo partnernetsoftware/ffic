@@ -91,7 +91,20 @@ extern void*(*ffi(const char*, const char*, ...))();
 #  define libc(f) ffi("c",#f)
 #  endif
 # elif TCC_FFI==1
-int sprintf(char *str, const char *format, ...);
+//int sprintf(char *str, const char *format, ...);
+char* ffi_strcat(char** dest, const char* src)
+{
+	int i = 0;
+	char cur;
+	while(1) {
+		cur = src[i];
+		(*dest)[i] = cur;
+		if(cur == 0) break;
+		i++;
+	}
+	*dest += i;
+	return *dest;
+}
 int fprintf(FILE *stream, const char *format, ...);
 int fflush(FILE *stream);
 extern int strcmp(const char*,const char*);
@@ -153,9 +166,8 @@ void*(*ffi(const char* libname, const char* funcname, ...))()
 		}
 	}else{
 		char libfilename[128] = {0};
-		sprintf(libfilename,
-				"%s%s",
-				libname,
+		ffi_strcat((char**)libfilename,libname);
+		ffi_strcat((char**)libfilename,
 #if defined(__APPLE__)
 				".dylib"
 #elif defined(_WIN32) || defined(_WIN64)
@@ -164,6 +176,17 @@ void*(*ffi(const char* libname, const char* funcname, ...))()
 				".so"
 #endif
 				);
+//		sprintf(libfilename,
+//				"%s%s",
+//				libname,
+//#if defined(__APPLE__)
+//				".dylib"
+//#elif defined(_WIN32) || defined(_WIN64)
+//				".dll"
+//#else
+//				".so"
+//#endif
+//				);
 		addr = ffi_raw(libfilename,funcname);
 	}
 	return addr;

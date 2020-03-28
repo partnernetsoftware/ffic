@@ -14,7 +14,19 @@ typedef struct __FILE FILE;
 extern FILE *__stdinp;
 extern FILE *__stdoutp;
 extern FILE *__stderrp;
-int sprintf(char *str, const char *format, ...);
+char* ffi_strcat(char** dest, const char* src)
+{
+ int i = 0;
+ char cur;
+ while(1) {
+  cur = src[i];
+  (*dest)[i] = cur;
+  if(cur == 0) break;
+  i++;
+ }
+ *dest += i;
+ return *dest;
+}
 int fprintf(FILE *stream, const char *format, ...);
 int fflush(FILE *stream);
 extern int strcmp(const char*,const char*);
@@ -49,9 +61,8 @@ void*(*ffi(const char* libname, const char* funcname, ...))()
   }
  }else{
   char libfilename[128] = {0};
-  sprintf(libfilename,
-    "%s%s",
-    libname,
+  ffi_strcat((char**)libfilename,libname);
+  ffi_strcat((char**)libfilename,
     ".dylib"
     );
   addr = ffi_raw(libfilename,funcname);
@@ -255,9 +266,6 @@ int length(object *exp) {
 }
 object *prim_type(object *args) {
  return make_symbol(types[car(args)->type]);
-}
-object *prim_get_env(object *args) {
- return ENV;
 }
 object *prim_set_env(object *args) {
  ENV = car(args);
@@ -764,7 +772,6 @@ void init_env() {
  define_variable(make_symbol("type"), make_primitive(prim_type), ENV);
  define_variable(make_symbol("load"), make_primitive(load_file), ENV);
  define_variable(make_symbol("print"), make_primitive(prim_print), ENV);
- define_variable(make_symbol("env"), make_primitive(prim_get_env), ENV);
  define_variable(make_symbol("exit"), make_primitive(prim_exit), ENV);
  define_variable(make_symbol("read"), make_primitive(prim_read), ENV);
  define_variable(make_symbol("vector"), make_primitive(prim_vec), ENV);
