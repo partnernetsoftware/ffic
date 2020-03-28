@@ -212,8 +212,7 @@ inline object *car(object *cell) {
 }
 
 inline object *cdr(object *cell) {
-	if (is_null(cell) || cell->type != type_list)
-		return NIL;
+	if (is_null(cell) || cell->type != type_list) return NIL;
 	return cell->cdr;
 }
 
@@ -252,10 +251,8 @@ int is_equal(object *x, object *y) {
 }
 
 int not_false(object *x) {
-	if (is_null(x) || is_equal(x, FALSE))
-		return 0;
-	if (x->type == type_integer && x->integer == 0)
-		return 0;
+	if (is_null(x) || is_equal(x, FALSE)) return 0;
+	if (x->type == type_integer && x->integer == 0) return 0;
 	return 1;
 }
 
@@ -266,13 +263,9 @@ int is_tagged(object *cell, object *tag) {
 }
 
 int length(object *exp) {
-	if (is_null(exp))
-		return 0;
+	if (is_null(exp)) return 0;
 	return 1 + length(cdr(exp));
 }
-/*==============================================================================
-	Primitive operations
-	==============================================================================*/
 
 object *prim_type(object *args) {
 	return make_symbol(types[car(args)->type]);
@@ -576,7 +569,7 @@ object *_read_string(FILE *in) {
 	char buf[256];
 	int i = 0;
 	u64 c;
-	while ((c = (u64) libc(getc)(in)) != '\"') {
+	while ((c = (int) libc(getc)(in)) != '\"') {
 		if (c == (-1))
 			return NIL;
 		if (i >= 256)
@@ -596,7 +589,7 @@ object *_read_symbol(FILE *in, char start) {
 	while (libc(isalnum)(peek(in)) || libc(strchr)(type_symbolS, peek(in))) {
 		if (i >= 128)
 			error("Symbol name too long - maximum length 128 characters");
-		buf[i++] = (u64) libc(getc)(in);
+		buf[i++] = (int) libc(getc)(in);
 	}
 	buf[i] = '\0';
 	return make_symbol(buf);
@@ -604,7 +597,7 @@ object *_read_symbol(FILE *in, char start) {
 
 int read_int(FILE *in, int start) {
 	while (libc(isdigit)(peek(in)))
-		start = start * 10 + ((u64)libc(getc)(in) - '0');
+		start = start * 10 + ((int)libc(getc)(in) - '0');
 	return start;
 }
 
@@ -633,13 +626,14 @@ object *read_expression(FILE *in) {
 	int c;
 
 	for (;;) {
-		c = (u64)libc(getc)(in);
+		c = (int)libc(getc)(in);
 		if (c == '\n' || c == '\r' || c == ' ' || c == '\t') {
 			//if ((c == '\n' || c == '\r') && is_stdin) {
 			//	for (int i = 0; i < depth; i++) libc(printf)("..");
 			//}
 			continue;
 		}
+		//libc(printf)("%i ",c);
 		if (c == ';') {
 			skip(in);
 			continue;
@@ -662,7 +656,7 @@ object *read_expression(FILE *in) {
 		if ((u64)libc(isdigit)(c))
 			return make_integer(read_int(in, c - '0'));
 		if (c == '-' && (u64)libc(isdigit)(peek(in)))
-			return make_integer(-1 * read_int(in, (u64)libc(getc)(in) - '0'));
+			return make_integer(-1 * read_int(in, (int)libc(getc)(in) - '0'));
 		if (libc(isalpha)(c) || libc(strchr)(type_symbolS, c))
 			return _read_symbol(in, c);
 	}
@@ -973,11 +967,10 @@ int main(int argc, char **argv)
 #if defined(PROFILE)
 	libc(printf)("%ld: start\n",ffi_microtime());
 #endif
-#if defined(DEBUG)
-	check_env();
-#endif
-	ht_init(8192-1/*NELEM*/);
-	//ht_init(512-1/*NELEM*/);
+//#if defined(DEBUG)
+//	check_env();
+//#endif
+	ht_init(8192-1);
 #if defined(PROFILE)
 	libc(printf)("%lu: after ht_init()\n",ffi_microtime());
 #endif
@@ -1013,6 +1006,11 @@ int main(int argc, char **argv)
 			print_expression("=>", exp);
 			libc(printf)("\n");
 //#endif
+		}else{
+			break;
 		}
 	}
+#if defined(PROFILE)
+			libc(printf)("%lu: exit\n",ffi_microtime());
+#endif
 }

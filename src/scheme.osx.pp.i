@@ -206,8 +206,7 @@ inline object *car(object *cell) {
  return cell->car;
 }
 inline object *cdr(object *cell) {
- if (((cell) == 0 || (cell) == NIL) || cell->type != type_list)
-  return NIL;
+ if (((cell) == 0 || (cell) == NIL) || cell->type != type_list) return NIL;
  return cell->cdr;
 }
 object *append(object *l1, object *l2) {
@@ -241,10 +240,8 @@ int is_equal(object *x, object *y) {
  return 0;
 }
 int not_false(object *x) {
- if (((x) == 0 || (x) == NIL) || is_equal(x, FALSE))
-  return 0;
- if (x->type == type_integer && x->integer == 0)
-  return 0;
+ if (((x) == 0 || (x) == NIL) || is_equal(x, FALSE)) return 0;
+ if (x->type == type_integer && x->integer == 0) return 0;
  return 1;
 }
 int is_tagged(object *cell, object *tag) {
@@ -253,8 +250,7 @@ int is_tagged(object *cell, object *tag) {
  return is_equal(car(cell), tag);
 }
 int length(object *exp) {
- if (((exp) == 0 || (exp) == NIL))
-  return 0;
+ if (((exp) == 0 || (exp) == NIL)) return 0;
  return 1 + length(cdr(exp));
 }
 object *prim_type(object *args) {
@@ -505,7 +501,7 @@ object *_read_string(FILE *in) {
  char buf[256];
  int i = 0;
  u64 c;
- while ((c = (u64) libcf(libc_getc,"getc")(in)) != '\"') {
+ while ((c = (int) libcf(libc_getc,"getc")(in)) != '\"') {
   if (c == (-1))
    return NIL;
   if (i >= 256)
@@ -524,14 +520,14 @@ object *_read_symbol(FILE *in, char start) {
  while (libcf(libc_isalnum,"isalnum")(peek(in)) || libcf(libc_strchr,"strchr")(type_symbolS, peek(in))) {
   if (i >= 128)
    do{libcf(libc_fprintf,"fprintf")(libcf(libc_stderr,"stderr"),"%s\n","Symbol name too long - maximum length 128 characters");libcf(libc_exit,"exit")(1);}while(0);
-  buf[i++] = (u64) libcf(libc_getc,"getc")(in);
+  buf[i++] = (int) libcf(libc_getc,"getc")(in);
  }
  buf[i] = '\0';
  return make_symbol(buf);
 }
 int read_int(FILE *in, int start) {
  while (libcf(libc_isdigit,"isdigit")(peek(in)))
-  start = start * 10 + ((u64)libcf(libc_getc,"getc")(in) - '0');
+  start = start * 10 + ((int)libcf(libc_getc,"getc")(in) - '0');
  return start;
 }
 object *_read_list(FILE *in) {
@@ -549,7 +545,7 @@ int depth = 0;
 object *read_expression(FILE *in) {
  int c;
  for (;;) {
-  c = (u64)libcf(libc_getc,"getc")(in);
+  c = (int)libcf(libc_getc,"getc")(in);
   if (c == '\n' || c == '\r' || c == ' ' || c == '\t') {
    continue;
   }
@@ -574,7 +570,7 @@ object *read_expression(FILE *in) {
   if ((u64)libcf(libc_isdigit,"isdigit")(c))
    return make_integer(read_int(in, c - '0'));
   if (c == '-' && (u64)libcf(libc_isdigit,"isdigit")(peek(in)))
-   return make_integer(-1 * read_int(in, (u64)libcf(libc_getc,"getc")(in) - '0'));
+   return make_integer(-1 * read_int(in, (int)libcf(libc_getc,"getc")(in) - '0'));
   if (libcf(libc_isalpha,"isalpha")(c) || libcf(libc_strchr,"strchr")(type_symbolS, c))
    return _read_symbol(in, c);
  }
@@ -806,7 +802,7 @@ static u64 ffi_microtime(void)
 int main(int argc, char **argv)
 {
  libcf(libc_printf,"printf")("%ld: start\n",ffi_microtime());
- ht_init(8192-1 );
+ ht_init(8192-1);
  libcf(libc_printf,"printf")("%lu: after ht_init()\n",ffi_microtime());
  init_env();
  libcf(libc_printf,"printf")("%lu: after init_env() \n",ffi_microtime());
@@ -822,6 +818,9 @@ int main(int argc, char **argv)
    libcf(libc_printf,"printf")("%lu: ",ffi_microtime());
    print_expression("=>", exp);
    libcf(libc_printf,"printf")("\n");
+  }else{
+   break;
   }
  }
+   libcf(libc_printf,"printf")("%lu: exit\n",ffi_microtime());
 }

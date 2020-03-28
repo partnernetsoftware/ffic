@@ -2,6 +2,10 @@
 
 "scripting c in ffi-mode"
 
+# scheme.c
+
+example that using ffi to build a lisp-scheme tiny engin to prove it works
+
 # feature 
 
 * ffi(sharelib,func) to call share lib.

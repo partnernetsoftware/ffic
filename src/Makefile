@@ -34,8 +34,8 @@ test_scheme_osx:
 	echo $$(($$(gdate +'%s * 1000 + %-N / 1000000'))) && cat fib.scm | ./scheme_osx
 osx_scheme:
 	rm -f scheme_osx
-	${CC} -E scheme.c | sed 's/^#.*//g' | sed "/^$$/d" > scheme.pp.i
-	${CC} scheme.pp.i -L. -o scheme_osx
+	${CC} -E scheme.c | sed 's/^#.*//g' | sed "/^$$/d" > scheme.osx.pp.i
+	${CC} scheme.osx.pp.i -L. -o scheme_osx
 	#upx scheme_osx
 	./upx_osx ./scheme_osx
 	ls -al scheme*
