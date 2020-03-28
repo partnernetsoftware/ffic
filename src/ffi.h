@@ -87,7 +87,9 @@ extern FILE *stderr;
 #ifdef TCC_FFI
 # if TCC_FFI==2
 extern void*(*ffi(const char*, const char*, ...))();
+#  ifndef libc
 #  define libc(f) ffi("c",#f)
+#  endif
 # elif TCC_FFI==1
 int sprintf(char *str, const char *format, ...);
 int fprintf(FILE *stream, const char *format, ...);
@@ -165,9 +167,11 @@ void*(*ffi(const char* libname, const char* funcname, ...))()
 	}
 	return addr;
 }
+#  ifndef libc
 #  define libc(f) ffi("c",#f)
+#  endif
 # endif
 #endif
-///#ifndef libc
-///# define libc(f) f
-///#endif
+#ifndef libc
+# define libc(f) f
+#endif

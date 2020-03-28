@@ -34,8 +34,9 @@ scheme:
 	rm -f scheme_osx
 	${CC} -E scheme.c -o scheme.pp.i
 	${CC} scheme.pp.i -L. -o scheme_osx
-	upx scheme_osx
+	#upx scheme_osx
 	ls -al scheme*
+	cat fib.scm | ./scheme_osx
 pp:
 	${CC} -E tccffi.c -I. -I../tinycc/ -o tccffi.i
 	#${CC} -E tccffi.c -I. -I../tinycc/ | sed 's/^#.*//g' > tccffi.pp.i

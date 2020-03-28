@@ -6,7 +6,33 @@
  * Copyright Michael Lazear (c) 2016
  * FFI version by Wanjo Chan (c) 2020
  */
+typedef enum {
+	libc_fprintf,
+	libc_stderr,
+	libc_exit,
+	libc_malloc,
+	libc_memset,
+	libc_strdup,
+	libc_strcmp,
+	libc_printf,
+	libc_assert,
+	libc_stdin,
+	libc_getc,
+	libc_ungetc,
+	libc_isalnum,
+	libc_strchr,
+	libc_isdigit,
+	libc_isalpha,
+	libc_fopen,
+	libc_fclose,
+	libc_gettimeofday,
+	libc_calloc,
+	libc_enum,
+} enum_libc_a;
+void* (*libc_a[libc_enum])();
+#define libc(f) (libc_a[libc_##f]?libc_a[libc_##f]:(libc_a[libc_##f]=ffi("c",#f)))
 #include "ffi.h"
+//////////////////////////////////////////////////////////////////////////////
 #define is_null(x) ((x) == 0 || (x) == NIL)
 #define EOL(x) (is_null((x)) || (x) == EMPTY_LIST)
 #define error(x) do {libc(fprintf)(libc(stderr), "%s\n", x);libc(exit)(1);}while (0)
@@ -942,15 +968,12 @@ static u64 ffi_microtime(void)
 	return libc(GetTickCount)();
 #else
 	struct timeval {
-		//long tv_sec;
-		i64 tv_sec;
-		//long tv_usec;
-		i64 tv_usec;
-	} tv;
-	//struct timeval tv;
-	libc(gettimeofday)(&tv, 0);
-	//return tv.tv_sec*1000;// + (tv.tv_usec+500)/1000;
-	return tv.tv_sec*1000 + (tv.tv_usec % 1000000) / 1000;
+		long tv_sec;
+		long tv_usec;
+	};
+	struct timeval * tv = libc(calloc)(sizeof(struct timeval),sizeof(char));
+	libc(gettimeofday)(tv, 0);
+	return tv->tv_sec*1000 + (tv->tv_usec+500)/1000;
 #endif
 }
 int main(int argc, char **argv)
