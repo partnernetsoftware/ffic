@@ -30,6 +30,10 @@ tcc:
 run_scheme:
 	make all
 	./tccffi scheme.c
+test_scheme:
+	echo $$(($$(gdate +'%s * 1000 + %-N / 1000000'))) && ./scheme_osx fib.scm
+	#gdate +%s.%N && ./scheme_osx fib.scm
+	#cat fib.scm | ./scheme_osx
 scheme:
 	rm -f scheme_osx
 	${CC} -E scheme.c -o scheme.pp.i
@@ -37,6 +41,7 @@ scheme:
 	#upx scheme_osx
 	ls -al scheme*
 	cat fib.scm | ./scheme_osx
+	make test_scheme
 pp:
 	${CC} -E tccffi.c -I. -I../tinycc/ -o tccffi.i
 	#${CC} -E tccffi.c -I. -I../tinycc/ | sed 's/^#.*//g' > tccffi.pp.i
