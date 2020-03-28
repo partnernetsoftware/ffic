@@ -1,5 +1,6 @@
 // https://github.com/lazear/microlisp/blob/master/scheme/src/scheme.c
 // https://en.wikipedia.org/wiki/Scheme_(programming_language)
+// https://schemers.org/
 /* interpreter for lang(scheme)
  * MIT License
  * Copyright Michael Lazear (c) 2016
@@ -19,8 +20,6 @@
 #define cdadr(x) (cdr(car(cdr((x)))))
 #define atom(x) (!is_null(x) && (x)->type != type_list)
 #define ASSERT_TYPE(x, t) (type_check(__func__, x, t))
-//TODO enum into enum and types
-#define TYPE_LIST integer, symbol, string, list, primitive, vector
 char *types[6] = {"integer","symbol","string","list","primitive","vector"};
 typedef enum {
 	type_integer, type_symbol, type_string, type_list, type_primitive, type_vector
@@ -45,22 +44,6 @@ struct object {
 		primitive_t primitive;
 	};
 } __attribute__((packed));
-
-//typedef int (*tx_func)();
-//typedef struct _type_desc type_desc,*p_type_desc;
-//struct _type_desc {
-//	type_t type;
-//	char* name;
-//};
-//type_desc types_map[] = {
-//	{type_integer, "integer",
-//	},{type_symbol, "symbol",
-//	},{type_string, "string",
-//	},{type_list, "list",//TODO merge with vector?
-//	},{type_primitive, "primitive",
-//	},{type_vector, "vector",//change to table
-//	}//TODO struct...
-//};
 
 object *ENV;
 object *NIL;
@@ -869,6 +852,7 @@ tail:
 //	return NIL;
 //}
 
+//TODO to improve init speed by  better definition instead of add_*
 void init_env() {
 #define add_prim(s, c) define_variable(make_symbol(s), make_primitive(c), ENV)
 #define add_sym(s, c) do{c=make_symbol(s);define_variable(c,c,ENV);}while(0);
