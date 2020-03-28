@@ -41,17 +41,20 @@
 #define ITR(mmm,qqq,...) EVAL( WHILE( mmm,qqq,__VA_ARGS__ ) )
 
 #define DEFINE_ENUM(n) libc_##n,
-#define LIBC_FUNC_LIST fprintf,stderr,exit,malloc,memset,strdup,strcmp,printf,assert,stdin,getc,ungetc,isalnum,strchr,isdigit,isalpha,fopen,fclose,gettimeofday,calloc,stdout,GetTickCount,NULL
+#define LIBC_FUNC_LIST fprintf,stderr,exit,malloc,memset,strdup,strcmp,printf,\
+assert,stdin,getc,ungetc,isalnum,strchr,isdigit,isalpha,fopen,fclose,\
+gettimeofday,calloc,stdout,NULL
 //TODO make ffi buffer then after the ffi()
 enum {
 	ITR(DEFINE_ENUM,EXPAND(LIBC_FUNC_LIST))
 };
 void* (*libc_a[libc_NULL])();//function buffer
-#define aorb(a,b) (a?(a):(a=b))
-#define libc(f) aorb(libc_a[libc_##f],ffi("c",#f))
-//(libc_a[libc_##f]?libc_a[libc_##f]:(libc_a[libc_##f]=ffi("c",#f)))
-
+#define libc(f) libcf(libc_##f,#f)
 #include "ffi.h"
+ffi_func libcf(int fi,const char* fn);
+inline ffi_func libcf(int fi,const char* fn){
+	return libc_a[fi]?libc_a[fi]:(libc_a[fi]=ffi("c",fn));
+}
 //////////////////////////////////////////////////////////////////////////////
 #define is_null(x) ((x) == 0 || (x) == NIL)
 #define EOL(x) (is_null((x)) || (x) == EMPTY_LIST)

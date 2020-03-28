@@ -111,6 +111,7 @@ extern void *dlsym(void *, const char *);
 #define ffi_dlsym dlsym
 #   endif
 #define ffi_dlopen dlopen 
+typedef void*(*ffi_func)();
 void* ffi_void(){return 0;};
 void*(*ffi_raw(const char* libfilename, const char* funcname, ...))()
 {
