@@ -1,5 +1,5 @@
 enum {
- libc_fprintf, libc_stderr, libc_exit, libc_malloc, libc_memset, libc_strdup, libc_strcmp, libc_printf, libc_stdin, libc_putc, libc_getc, libc_ungetc, libc_isalnum, libc_strchr, libc_isdigit, libc_isalpha, libc_fopen, libc_fread, libc_fclose, libc_feof, libc_usleep, libc_msleep, libc_sleep, libc__setmode, libc__fileno, libc_setmode, libc_fileno, libc_gettimeofday, libc_calloc, libc_stdout, libc_NULL,
+ libc_fprintf, libc_stderr, libc_exit, libc_malloc, libc_memset, libc_strdup, libc_strcmp, libc_printf, libc_stdin, libc_putc, libc_getc, libc_ungetc, libc_isalnum, libc_strchr, libc_isdigit, libc_isalpha, libc_fopen, libc_fread, libc_fclose, libc_feof, libc_usleep, libc_msleep, libc_sleep, libc_fputc, libc__setmode, libc__fileno, libc_setmode, libc_fileno, libc_gettimeofday, libc_calloc, libc_stdout, libc_NULL,
 };
 void* (*libc_a[libc_NULL])();
 typedef signed char i8;
@@ -140,27 +140,63 @@ object *IF;
 object *LAMBDA;
 object *BEGIN;
 object *PROCEDURE;
-void print_expression(char *, object *);
 int is_tagged(object *cell, object *tag);
-object *read_expression(FILE *in);
-object *eval(object *exp, object *env);
 object *cons(object *x, object *y);
 object *load_file(object *args);
 object *cdr(object *);
 object *car(object *);
 object *lookup_variable(object *var, object *env);
-object *read_string(FILE *in);
 int type_check_func(const char *func, object *obj, type_t type);
+typedef struct _FileChar FileChar, *pFileChar;
+struct _FileChar {
+ int c;
+ FileChar * prev;
+ FileChar * next;
+};
+typedef struct {
+ FILE* fp;
+ FileChar * first;
+ FileChar * last;
+ FileChar * current;
+ long count;
+} FILEWrapper;
+FILEWrapper * FileWrapper_new(FILE* fp);
+u64 sao_is_digit(int c);
+u64 sao_is_alpha(int c);
+u64 sao_is_alphanumber(int c);
+object *sao_eval(object *exp, object *env);
+object *sao_load_expr(FILEWrapper * fw);
+void sao_comment(FILEWrapper * fw);
+object *sao_load_str(FILEWrapper * fw);
+object *sao_read_list(FILEWrapper * fw);
+int sao_read_int(FILEWrapper * fw, int start);
+int sao_peek(FILEWrapper * fw);
+void sao_ungetc(int c, FILEWrapper * fw);
+object *sao_make_integer(int x);
+object *sao_read_symbol(FILEWrapper * fw, char start);
+void sao_out_expr(char *str, object *e);
+inline u64 sao_is_digit(int c)
+{
+ return (u64) libcf(libc_isdigit,"isdigit")(c);
+}
+inline u64 sao_is_alpha(int c)
+{
+ return (u64) libcf(libc_isalpha,"isalpha")(c);
+}
+inline u64 sao_is_alphanumber(int c)
+{
+ return (u64) libcf(libc_isalnum,"isalnum")(c);
+}
 struct htable {
  object *key;
 };
 static struct htable *HTABLE = 0;
-static int HTABLE_SIZE;
+static int HTABLE_SIZE = 0;
 static i64 hash(const char *s) {
  i64 h = 0;
- u8 *u = (u8 *)s;
+ u8 *u = (u8 *) s;
  while (*u) {
-  h = (h * 256 + *u) % HTABLE_SIZE;
+  h = (h * 256 + (*u)) % HTABLE_SIZE;
   u++;
  }
  return h;
@@ -171,6 +207,8 @@ int ht_init(int size) {
  HTABLE = libcf(libc_malloc,"malloc")(sizeof(struct htable) * size);
  libcf(libc_memset,"memset")(HTABLE, 0, sizeof(struct htable) * size);
  HTABLE_SIZE = size;
+ if(HTABLE_SIZE==0)
+  do{libcf(libc_fprintf,"fprintf")(libcf(libc_stderr,"stderr"),"%s\n","HTABLE_SIZE=0???");libcf(libc_exit,"exit")(1);}while(0);
  return size;
 }
 void ht_insert(object *key) {
@@ -208,7 +246,7 @@ object *make_vector(int size) {
  libcf(libc_memset,"memset")(ret->vector, 0, size);
  return ret;
 }
-object *make_symbol(char *s) {
+object *sao_make_symbol(char *s) {
  object *ret = ht_lookup(s);
  if (((ret) == 0 || (ret) == NIL)) {
   ret = alloc();
@@ -297,7 +335,7 @@ int length(object *exp) {
  return 1 + length(cdr(exp));
 }
 object *prim_type(object *args) {
- return make_symbol(types[car(args)->type]);
+ return sao_make_symbol(types[car(args)->type]);
 }
 object *prim_set_env(object *args) {
  ENV = car(args);
@@ -438,17 +476,13 @@ object *prim_lt(object *sexp) {
  (type_check_func(__func__, (car(cdr((sexp)))), type_integer));
  return (car(sexp)->integer < (car(cdr((sexp))))->integer) ? TRUE : NIL;
 }
-object *prim_print(object *args) {
- print_expression(0, car(args));
- libcf(libc_printf,"printf")("\n");
- return NIL;
-}
 object *prim_exit(object *args) {
  libcf(libc_exit,"exit")(0);
  return NIL;
 }
 object *prim_read(object *args) {
- return read_expression((FILE*)libcf(libc_stdin,"stdin"));
+ FILEWrapper * fw = FileWrapper_new((FILE*)libcf(libc_stdin,"stdin"));
+ return sao_load_expr(fw);
 }
 object *prim_vget(object *args) {
  (type_check_func(__func__, car(args), type_vector));
@@ -465,7 +499,7 @@ object *prim_vset(object *args) {
  if ((car(cdr((args))))->integer >= car(args)->vsize)
   return NIL;
  car(args)->vector[(car(cdr((args))))->integer] = (car(cdr(cdr((args)))));
- return make_symbol("ok");
+ return sao_make_symbol("ok");
 }
 object *prim_vec(object *args) {
  (type_check_func(__func__, car(args), type_integer));
@@ -523,99 +557,223 @@ object *define_variable(object *var, object *val,
  return val;
 }
 char type_symbolS[] = "~!@#$%^&*_-+\\:,.<>|{}[]?=/";
-int peek(FILE *in) {
- u64 c = (u64) libcf(libc_getc,"getc")(in);
- libcf(libc_ungetc,"ungetc")(c, in);
+int depth = 0;
+object *eval_list(object *exp, object *env) {
+ if (((exp) == 0 || (exp) == NIL)) return NIL;
+ return cons(sao_eval(car(exp), env), eval_list(cdr(exp), env));
+}
+object *eval_sequence(object *exps, object *env) {
+ if (((cdr(exps)) == 0 || (cdr(exps)) == NIL)) return sao_eval(car(exps), env);
+ sao_eval(car(exps), env);
+ return eval_sequence(cdr(exps), env);
+}
+object *load_file(object *args) {
+ object *exp;
+ object *ret = 0;
+ char *filename = car(args)->string;
+ FILE *fp = libcf(libc_fopen,"fopen")(filename, "r");
+ if (fp == 0) {
+  libcf(libc_printf,"printf")("Error opening file %s\n", filename);
+  return NIL;
+ }
+ FILEWrapper * fw = FileWrapper_new(fp);
+ for (;;) {
+  exp = sao_load_expr(fw);
+  if (((exp) == 0 || (exp) == NIL))
+   break;
+  ret = sao_eval(exp, ENV);
+ }
+ libcf(libc_fclose,"fclose")(fp);
+ return ret;
+}
+static u64 ffi_microtime(void)
+{
+ struct timeval {
+  u64 tv_sec;
+  u64 tv_usec;
+ };
+ struct timeval * tv = libcf(libc_calloc,"calloc")(sizeof(struct timeval),sizeof(char));
+ libcf(libc_gettimeofday,"gettimeofday")(tv, 0);
+ return tv->tv_sec*1000 + (tv->tv_usec+500)/1000;
+}
+FILEWrapper * FileWrapper_new(FILE* fp)
+{
+ FILEWrapper*fw=libcf(libc_calloc,"calloc")(sizeof(FILEWrapper),sizeof(char));;
+ fw->fp = fp;
+ fw->current = fw->last = fw->first = (void*)0;
+ fw->count = 0;
+ return fw;
+}
+void FileWrapper_feed(FILEWrapper* fw)
+{
+ ffi_func exit = libcf(libc_exit,"exit");
+ ffi_func fopen = libcf(libc_fopen,"fopen");
+ ffi_func fread = libcf(libc_fread,"fread");
+ ffi_func fclose = libcf(libc_fclose,"fclose");
+ ffi_func feof = libcf(libc_feof,"feof");
+ ffi_func usleep = libcf(libc_usleep,"usleep");
+ ffi_func msleep = libcf(libc_msleep,"msleep");
+ ffi_func sleep = libcf(libc_sleep,"sleep");
+ ffi_func fputc = libcf(libc_fputc,"fputc");
+ int ok=0,ko=0;
+ int k=0;
+ int ct = 0;
+ for(;;)
+ {
+  if(1==(long)fread(&k,sizeof(char),1,fw->fp))
+  {
+   FileChar*fc=libcf(libc_calloc,"calloc")(sizeof(FileChar),sizeof(char));;
+   fc->c = k;
+   fc->next = (void*) 0;
+   fc->prev = (void*) 0;
+   if(0==fw->first){
+    fw->first = fc;
+    fw->current = fc;
+   }
+   if(0==fw->last){
+    fw->last = fc;
+   }else{
+    fc->prev = fw->last;
+    fw->last->next = fc;
+    fw->last = fc;
+   }
+   fw->count+=1;
+   ok++;
+  }else{
+   return;
+  }
+  ct++;
+ }
+}
+int sao_getc(FILEWrapper *fw)
+{
+ int c;
+ FileChar * current = fw->current;
+ if(current!=0){
+  c = current->c;
+  fw->current=current->next;
+ }else{
+  c = -1;
+ }
  return c;
 }
-void skip(FILE *in) {
- u64 c;
- for (;;) {
-  c = (u64) libcf(libc_getc,"getc")(in);
-  if (c == '\n' || c == (-1))
-   return;
- }
+object *sao_prim_print(object *args) {
+ sao_out_expr(0, car(args));
+ libcf(libc_printf,"printf")("\n");
+ return NIL;
 }
-inline object *read_string(FILE *in)
+object *sao_read_symbol(FILEWrapper * fw, char start)
 {
- char buf[256];
- int i = 0;
- u64 c;
- while ((c = (u64) libcf(libc_getc,"getc")(in)) != '\"') {
-  if (c == (-1))
-   return NIL;
-  if (i >= 256)
-   do{libcf(libc_fprintf,"fprintf")(libcf(libc_stderr,"stderr"),"%s\n","String too long - maximum length 256 characters");libcf(libc_exit,"exit")(1);}while(0);
-  buf[i++] = (char)c;
- }
- buf[i] = '\0';
- object *s = make_symbol(buf);
- s->type = type_string;
- return s;
-}
-object *_read_symbol(FILE *in, char start) {
  char buf[128];
  buf[0] = start;
  int i = 1;
- while (libcf(libc_isalnum,"isalnum")(peek(in)) || libcf(libc_strchr,"strchr")(type_symbolS, peek(in))) {
+ while (sao_is_alphanumber(sao_peek(fw))
+   || libcf(libc_strchr,"strchr")(type_symbolS, sao_peek(fw)))
+ {
   if (i >= 128)
    do{libcf(libc_fprintf,"fprintf")(libcf(libc_stderr,"stderr"),"%s\n","Symbol name too long - maximum length 128 characters");libcf(libc_exit,"exit")(1);}while(0);
-  buf[i++] = (u64) libcf(libc_getc,"getc")(in);
+  buf[i++] = sao_getc(fw);
  }
  buf[i] = '\0';
- return make_symbol(buf);
+ return sao_make_symbol(buf);
 }
-int read_int(FILE *in, int start) {
- while (libcf(libc_isdigit,"isdigit")(peek(in)))
-  start = start * 10 + ((u64)libcf(libc_getc,"getc")(in) - '0');
+object *sao_make_integer(int x)
+{
+ object *ret = alloc();
+ ret->type = type_integer;
+ ret->integer = x;
+ return ret;
+}
+void sao_ungetc(int c, FILEWrapper * fw)
+{
+ FileChar * current = fw->current;
+ if(current!=0){
+  c = current->c;
+  fw->current=current->prev;
+ }else{
+ }
+}
+int sao_peek(FILEWrapper * fw)
+{
+ int c = sao_getc(fw);
+ sao_ungetc(c, fw);
+ return c;
+}
+int sao_read_int(FILEWrapper * fw, int start)
+{
+ while ( sao_is_digit(sao_peek(fw)) )
+  start = start * 10 + (sao_getc(fw) - '0');
  return start;
 }
-object *_read_list(FILE *in) {
+object *sao_read_list(FILEWrapper * fw)
+{
  object *obj;
  object *cell = EMPTY_LIST;
  for (;;) {
-  obj = read_expression(in);
+  obj = sao_load_expr(fw);
   if (obj == EMPTY_LIST)
    return reverse(cell, EMPTY_LIST);
   cell = cons(obj, cell);
  }
  return EMPTY_LIST;
 }
-int depth = 0;
-object *read_expression(FILE *in) {
+inline object *sao_load_str(FILEWrapper * fw)
+{
+ char buf[256];
+ int i = 0;
+ int c;
+ while ((c = sao_getc(fw)) != '\"') {
+  if (c == (-1))
+   return NIL;
+  if (i >= 256) do{libcf(libc_fprintf,"fprintf")(libcf(libc_stderr,"stderr"),"%s\n","String too long - maximum length 256 characters");libcf(libc_exit,"exit")(1);}while(0);
+  buf[i++] = (char) c;
+ }
+ buf[i] = '\0';
+ object *s = sao_make_symbol(buf);
+ s->type = type_string;
+ return s;
+}
+void sao_comment(FILEWrapper * fw)
+{
  int c;
  for (;;) {
-  c = (u64)libcf(libc_getc,"getc")(in);
+  c = sao_getc(fw);
+  if (c == '\n' || c == (-1)) return;
+ }
+}
+object *sao_load_expr(FILEWrapper * fw)
+{
+ int c;
+ for (;;) {
+  c = sao_getc(fw);
+  if (c == (-1)) return 0;
   if (c == '\n' || c == '\r' || c == ' ' || c == '\t') {
    continue;
   }
+  if (c == '\"') return sao_load_str(fw);
   if (c == ';') {
-   skip(in);
+   sao_comment(fw);
    continue;
   }
-  if (c == (-1))
-   return 0;
-  if (c == '\"')
-   return read_string(in);
-  if (c == '\'')
-   return cons(QUOTE, cons(read_expression(in), NIL));
+  if (c == '\'') return cons(QUOTE, cons(sao_load_expr(fw), NIL));
   if (c == '(') {
    depth++;
-   return _read_list(in);
+   return sao_read_list(fw);
   }
   if (c == ')') {
    depth--;
    return EMPTY_LIST;
   }
-  if ((u64)libcf(libc_isdigit,"isdigit")(c)) return make_integer(read_int(in, c - '0'));
-  if (c == '-' && (u64)libcf(libc_isdigit,"isdigit")(peek(in)))
-   return make_integer(-1 * read_int(in, (u64)libcf(libc_getc,"getc")(in) - '0'));
+  if (sao_is_digit(c)) return sao_make_integer(sao_read_int(fw, c - '0'));
+  if (c == '-' && sao_is_digit(sao_peek(fw)))
+   return sao_make_integer(-1 * sao_read_int(fw, sao_getc(fw) - '0'));
   if (libcf(libc_isalpha,"isalpha")(c) || libcf(libc_strchr,"strchr")(type_symbolS, c))
-   return _read_symbol(in, c);
+   return sao_read_symbol(fw, c);
  }
  return NIL;
 }
-void print_expression(char *str, object *e) {
+void sao_out_expr(char *str, object *e)
+{
  if (str)
   libcf(libc_printf,"printf")("%s ", str);
  if (((e) == 0 || (e) == NIL)) {
@@ -646,13 +804,13 @@ void print_expression(char *str, object *e) {
    libcf(libc_printf,"printf")("(");
    object **t = &e;
    while (!((*t) == 0 || (*t) == NIL)) {
-    print_expression(0, (*t)->car);
+    sao_out_expr(0, (*t)->car);
     if (!(((*t)->cdr) == 0 || ((*t)->cdr) == NIL)) {
      libcf(libc_printf,"printf")(" ");
      if ((*t)->cdr->type == type_list) {
       t = &(*t)->cdr;
      } else {
-      print_expression(".", (*t)->cdr);
+      sao_out_expr(".", (*t)->cdr);
       break;
      }
     } else
@@ -661,16 +819,8 @@ void print_expression(char *str, object *e) {
    libcf(libc_printf,"printf")(")");
  }
 }
-object *eval_list(object *exp, object *env) {
- if (((exp) == 0 || (exp) == NIL)) return NIL;
- return cons(eval(car(exp), env), eval_list(cdr(exp), env));
-}
-object *eval_sequence(object *exps, object *env) {
- if (((cdr(exps)) == 0 || (cdr(exps)) == NIL)) return eval(car(exps), env);
- eval(car(exps), env);
- return eval_sequence(cdr(exps), env);
-}
-object *eval(object *exp, object *env) {
+object *sao_eval(object *exp, object *env)
+{
 tail:
  if (((exp) == 0 || (exp) == NIL) || exp == EMPTY_LIST) {
   return NIL;
@@ -685,32 +835,32 @@ tail:
   return make_procedure((car(cdr((exp)))), (cdr(cdr((exp)))), env);
  } else if (is_tagged(exp, DEFINE)) {
   if ((!(((car(cdr((exp))))) == 0 || ((car(cdr((exp))))) == NIL) && ((car(cdr((exp)))))->type != type_list))
-   define_variable((car(cdr((exp)))), eval((car(cdr(cdr((exp))))), env), env);
+   define_variable((car(cdr((exp)))), sao_eval((car(cdr(cdr((exp))))), env), env);
   else {
    object *closure =
-    eval(make_lambda(cdr((car(cdr((exp))))), (cdr(cdr((exp))))), env);
+    sao_eval(make_lambda(cdr((car(cdr((exp))))), (cdr(cdr((exp))))), env);
    define_variable(car((car(cdr((exp))))), closure, env);
   }
-  return make_symbol("ok");
+  return sao_make_symbol("ok");
  } else if (is_tagged(exp, BEGIN)) {
   object *args = cdr(exp);
   for (; !((cdr(args)) == 0 || (cdr(args)) == NIL); args = cdr(args))
-   eval(car(args), env);
+   sao_eval(car(args), env);
   exp = car(args);
   goto tail;
  } else if (is_tagged(exp, IF)) {
-  object *predicate = eval((car(cdr((exp)))), env);
+  object *predicate = sao_eval((car(cdr((exp)))), env);
   exp = (not_false(predicate)) ? (car(cdr(cdr((exp))))) : (car(cdr(cdr(cdr((exp))))));
   goto tail;
- } else if (is_tagged(exp, make_symbol("or"))) {
-  object *predicate = eval((car(cdr((exp)))), env);
+ } else if (is_tagged(exp, sao_make_symbol("or"))) {
+  object *predicate = sao_eval((car(cdr((exp)))), env);
   exp = (not_false(predicate)) ? (car(cdr(cdr((exp))))) : (car(cdr(cdr(cdr((exp))))));
   goto tail;
- } else if (is_tagged(exp, make_symbol("cond"))) {
+ } else if (is_tagged(exp, sao_make_symbol("cond"))) {
   object *branch = cdr(exp);
   for (; !((branch) == 0 || (branch) == NIL); branch = cdr(branch)) {
-   if (is_tagged(car(branch), make_symbol("else")) ||
-     not_false(eval((car(car((branch)))), env))) {
+   if (is_tagged(car(branch), sao_make_symbol("else")) ||
+     not_false(sao_eval((car(car((branch)))), env))) {
     exp = cons(BEGIN, (cdr(car((branch)))));
     goto tail;
    }
@@ -718,13 +868,13 @@ tail:
   return NIL;
  } else if (is_tagged(exp, SET)) {
   if ((!(((car(cdr((exp))))) == 0 || ((car(cdr((exp))))) == NIL) && ((car(cdr((exp)))))->type != type_list))
-   set_variable((car(cdr((exp)))), eval((car(cdr(cdr((exp))))), env), env);
+   set_variable((car(cdr((exp)))), sao_eval((car(cdr(cdr((exp))))), env), env);
   else {
    object *closure =
-    eval(make_lambda(cdr((car(cdr((exp))))), (cdr(cdr((exp))))), env);
+    sao_eval(make_lambda(cdr((car(cdr((exp))))), (cdr(cdr((exp))))), env);
    set_variable(car((car(cdr((exp))))), closure, env);
   }
-  return make_symbol("ok");
+  return sao_make_symbol("ok");
  } else if (is_tagged(exp, LET)) {
   object **tmp;
   object *vars = NIL;
@@ -737,7 +887,7 @@ tail:
     vals = cons((car(cdr(car((*tmp))))), vals);
    }
    define_variable((car(cdr((exp)))),
-     eval(make_lambda(vars, cdr((cdr(cdr((exp)))))),
+     sao_eval(make_lambda(vars, cdr((cdr(cdr((exp)))))),
       extend_env(vars, vals, env)),
      env);
    exp = cons((car(cdr((exp)))), vals);
@@ -750,7 +900,7 @@ tail:
   exp = cons(make_lambda(vars, (cdr(cdr((exp))))), vals);
   goto tail;
  } else {
-  object *proc = eval(car(exp), env);
+  object *proc = sao_eval(car(exp), env);
   object *args = eval_list(cdr(exp), env);
   if (((proc) == 0 || (proc) == NIL)) {
    return NIL;
@@ -763,111 +913,77 @@ tail:
    goto tail;
   }
  }
- print_expression("Invalid arguments to eval:", exp);
+ sao_out_expr("Invalid arguments to sao_eval:", exp);
  libcf(libc_printf,"printf")("\n");
  return NIL;
 }
 void init_env() {
  ENV = extend_env(NIL, NIL, NIL);
- do{TRUE=make_symbol("#t");define_variable(TRUE,TRUE,ENV);}while(0);;
- do{FALSE=make_symbol("#f");define_variable(FALSE,FALSE,ENV);}while(0);;
- do{QUOTE=make_symbol("quote");define_variable(QUOTE,QUOTE,ENV);}while(0);;
- do{LAMBDA=make_symbol("lambda");define_variable(LAMBDA,LAMBDA,ENV);}while(0);;
- do{PROCEDURE=make_symbol("procedure");define_variable(PROCEDURE,PROCEDURE,ENV);}while(0);;
- do{DEFINE=make_symbol("define");define_variable(DEFINE,DEFINE,ENV);}while(0);;
- do{LET=make_symbol("let");define_variable(LET,LET,ENV);}while(0);;
- do{SET=make_symbol("set!");define_variable(SET,SET,ENV);}while(0);;
- do{BEGIN=make_symbol("begin");define_variable(BEGIN,BEGIN,ENV);}while(0);;
- do{IF=make_symbol("if");define_variable(IF,IF,ENV);}while(0);;
- define_variable(make_symbol("true"), TRUE, ENV);
- define_variable(make_symbol("false"), FALSE, ENV);
- define_variable(make_symbol("cons"), make_primitive(prim_cons), ENV);
- define_variable(make_symbol("car"), make_primitive(prim_car), ENV);
- define_variable(make_symbol("cdr"), make_primitive(prim_cdr), ENV);
- define_variable(make_symbol("set-car!"), make_primitive(prim_setcar), ENV);
- define_variable(make_symbol("set-cdr!"), make_primitive(prim_setcdr), ENV);
- define_variable(make_symbol("list"), make_primitive(prim_list), ENV);
- define_variable(make_symbol("list?"), make_primitive(prim_listq), ENV);
- define_variable(make_symbol("null?"), make_primitive(prim_is_nullq), ENV);
- define_variable(make_symbol("pair?"), make_primitive(prim_pairq), ENV);
- define_variable(make_symbol("atom?"), make_primitive(prim_atomq), ENV);
- define_variable(make_symbol("eq?"), make_primitive(prim_eq), ENV);
- define_variable(make_symbol("equal?"), make_primitive(prim_equal), ENV);
- define_variable(make_symbol("+"), make_primitive(prim_add), ENV);
- define_variable(make_symbol("-"), make_primitive(prim_sub), ENV);
- define_variable(make_symbol("*"), make_primitive(prim_mul), ENV);
- define_variable(make_symbol("/"), make_primitive(prim_div), ENV);
- define_variable(make_symbol("="), make_primitive(prim_neq), ENV);
- define_variable(make_symbol("<"), make_primitive(prim_lt), ENV);
- define_variable(make_symbol(">"), make_primitive(prim_gt), ENV);
- define_variable(make_symbol("type"), make_primitive(prim_type), ENV);
- define_variable(make_symbol("load"), make_primitive(load_file), ENV);
- define_variable(make_symbol("print"), make_primitive(prim_print), ENV);
- define_variable(make_symbol("exit"), make_primitive(prim_exit), ENV);
- define_variable(make_symbol("read"), make_primitive(prim_read), ENV);
- define_variable(make_symbol("vector"), make_primitive(prim_vec), ENV);
- define_variable(make_symbol("vector-get"), make_primitive(prim_vget), ENV);
- define_variable(make_symbol("vector-set"), make_primitive(prim_vset), ENV);
-}
-object *load_file(object *args) {
- object *exp;
- object *ret = 0;
- char *filename = car(args)->string;
- FILE *fp = libcf(libc_fopen,"fopen")(filename, "r");
- if (fp == 0) {
-  libcf(libc_printf,"printf")("Error opening file %s\n", filename);
-  return NIL;
- }
- for (;;) {
-  exp = read_expression(fp);
-  if (((exp) == 0 || (exp) == NIL))
-   break;
-  ret = eval(exp, ENV);
- }
- libcf(libc_fclose,"fclose")(fp);
- return ret;
-}
-static u64 ffi_microtime(void)
-{
- struct timeval {
-  u64 tv_sec;
-  u64 tv_usec;
- };
- struct timeval * tv = libcf(libc_calloc,"calloc")(sizeof(struct timeval),sizeof(char));
- libcf(libc_gettimeofday,"gettimeofday")(tv, 0);
- return tv->tv_sec*1000 + (tv->tv_usec+500)/1000;
+ do{TRUE=sao_make_symbol("#t");define_variable(TRUE,TRUE,ENV);}while(0);;
+ do{FALSE=sao_make_symbol("#f");define_variable(FALSE,FALSE,ENV);}while(0);;
+ do{QUOTE=sao_make_symbol("quote");define_variable(QUOTE,QUOTE,ENV);}while(0);;
+ do{LAMBDA=sao_make_symbol("lambda");define_variable(LAMBDA,LAMBDA,ENV);}while(0);;
+ do{PROCEDURE=sao_make_symbol("procedure");define_variable(PROCEDURE,PROCEDURE,ENV);}while(0);;
+ do{DEFINE=sao_make_symbol("define");define_variable(DEFINE,DEFINE,ENV);}while(0);;
+ do{LET=sao_make_symbol("let");define_variable(LET,LET,ENV);}while(0);;
+ do{SET=sao_make_symbol("set!");define_variable(SET,SET,ENV);}while(0);;
+ do{BEGIN=sao_make_symbol("begin");define_variable(BEGIN,BEGIN,ENV);}while(0);;
+ do{IF=sao_make_symbol("if");define_variable(IF,IF,ENV);}while(0);;
+ define_variable(sao_make_symbol("true"), TRUE, ENV);
+ define_variable(sao_make_symbol("false"), FALSE, ENV);
+ define_variable(sao_make_symbol("cons"), make_primitive(prim_cons), ENV);
+ define_variable(sao_make_symbol("car"), make_primitive(prim_car), ENV);
+ define_variable(sao_make_symbol("cdr"), make_primitive(prim_cdr), ENV);
+ define_variable(sao_make_symbol("set-car!"), make_primitive(prim_setcar), ENV);
+ define_variable(sao_make_symbol("set-cdr!"), make_primitive(prim_setcdr), ENV);
+ define_variable(sao_make_symbol("list"), make_primitive(prim_list), ENV);
+ define_variable(sao_make_symbol("list?"), make_primitive(prim_listq), ENV);
+ define_variable(sao_make_symbol("null?"), make_primitive(prim_is_nullq), ENV);
+ define_variable(sao_make_symbol("pair?"), make_primitive(prim_pairq), ENV);
+ define_variable(sao_make_symbol("atom?"), make_primitive(prim_atomq), ENV);
+ define_variable(sao_make_symbol("eq?"), make_primitive(prim_eq), ENV);
+ define_variable(sao_make_symbol("equal?"), make_primitive(prim_equal), ENV);
+ define_variable(sao_make_symbol("+"), make_primitive(prim_add), ENV);
+ define_variable(sao_make_symbol("-"), make_primitive(prim_sub), ENV);
+ define_variable(sao_make_symbol("*"), make_primitive(prim_mul), ENV);
+ define_variable(sao_make_symbol("/"), make_primitive(prim_div), ENV);
+ define_variable(sao_make_symbol("="), make_primitive(prim_neq), ENV);
+ define_variable(sao_make_symbol("<"), make_primitive(prim_lt), ENV);
+ define_variable(sao_make_symbol(">"), make_primitive(prim_gt), ENV);
+ define_variable(sao_make_symbol("type"), make_primitive(prim_type), ENV);
+ define_variable(sao_make_symbol("load"), make_primitive(load_file), ENV);
+ define_variable(sao_make_symbol("print"), make_primitive(sao_prim_print), ENV);
+ define_variable(sao_make_symbol("exit"), make_primitive(prim_exit), ENV);
+ define_variable(sao_make_symbol("read"), make_primitive(prim_read), ENV);
+ define_variable(sao_make_symbol("vector"), make_primitive(prim_vec), ENV);
+ define_variable(sao_make_symbol("vector-get"), make_primitive(prim_vget), ENV);
+ define_variable(sao_make_symbol("vector-set"), make_primitive(prim_vset), ENV);
 }
 int main(int argc, char **argv)
 {
  ffi_func printf = libcf(libc_printf,"printf");
- ffi_func exit = libcf(libc_exit,"exit");
- ffi_func fopen = libcf(libc_fopen,"fopen");
- ffi_func fread = libcf(libc_fread,"fread");
- ffi_func fclose = libcf(libc_fclose,"fclose");
- ffi_func feof = libcf(libc_feof,"feof");
- ffi_func usleep = libcf(libc_usleep,"usleep");
- ffi_func msleep = libcf(libc_msleep,"msleep");
- ffi_func sleep = libcf(libc_sleep,"sleep");
- libcf(libc_printf,"printf")("%ld: start\n",ffi_microtime());
  ht_init(8192-1);
- libcf(libc_printf,"printf")("%lu: after ht_init()\n",ffi_microtime());
  init_env();
- libcf(libc_printf,"printf")("%lu: after init_env() \n",ffi_microtime());
- for (;;) {
-  object *obj = read_expression((FILE*)libcf(libc_stdin,"stdin"));
+ libcf(libc_setmode,"setmode")(libcf(libc_fileno,"fileno")(libcf(libc_stdin,"stdin")),0x8000 );
+ FILEWrapper * fw = FileWrapper_new((FILE*)libcf(libc_stdin,"stdin"));
+ for(;;){
+  FileWrapper_feed(fw);
+  object *obj = sao_load_expr(fw);
   if (!((obj) == 0 || (obj) == NIL)) {
-   libcf(libc_printf,"printf")("%lu: ",ffi_microtime());
-   print_expression("<=", obj);
-   libcf(libc_printf,"printf")("\n");
-  }
-  object *exp = eval(obj, ENV);
-  if (!((exp) == 0 || (exp) == NIL)) {
-   libcf(libc_printf,"printf")("%lu: ",ffi_microtime());
-   print_expression("=>", exp);
-   libcf(libc_printf,"printf")("\n");
+   printf("%lu: ",ffi_microtime());
+   sao_out_expr("<=", obj);
+   printf("\n");
+   object *exp = sao_eval(obj, ENV);
+   if (!((exp) == 0 || (exp) == NIL)) {
+    printf("%lu: ",ffi_microtime());
+    sao_out_expr("=>", exp);
+    printf("\n");
+   }else{
+   }
   }else{
+   printf(" end ");
    break;
   }
  }
-   libcf(libc_printf,"printf")("%lu: exit\n",ffi_microtime());
+ return 0;
 }
