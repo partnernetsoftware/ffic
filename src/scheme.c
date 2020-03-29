@@ -111,29 +111,17 @@ void sao_ungetc(int c, FILEWrapper * fw);
 object *sao_make_integer(int x);
 object *sao_read_symbol(FILEWrapper * fw, char start);
 void sao_out_expr(char *str, object *e);
-inline u64 sao_is_digit(int c)
-{
-	return (u64) libc(isdigit)(c);
-}
-inline u64 sao_is_alpha(int c)
-{
-	return (u64) libc(isalpha)(c);
-}
-inline u64 sao_is_alphanumber(int c)
-{
-	return (u64) libc(isalnum)(c);
-}
+inline u64 sao_is_digit(int c) { return (u64) libc(isdigit)(c); }
+inline u64 sao_is_alpha(int c) { return (u64) libc(isalpha)(c); }
+inline u64 sao_is_alphanumber(int c) { return (u64) libc(isalnum)(c); }
 ////////////////////////////////////////////////////////////////////////
 struct htable { object *key; };
 static struct htable *HTABLE = 0;
 static int HTABLE_SIZE = 0;
-static i64 hash(const char *s) {
+static i64 ht_hash(const char *s) {
 	i64 h = 0;
 	u8 *u = (u8 *) s;
-	while (*u) {
-		h = (h * 256 + (*u)) % HTABLE_SIZE;
-		u++;
-	}
+	while (*u) { h = (h * 256 + (*u)) % HTABLE_SIZE; u++; }
 	return h;
 }
 int ht_init(int size) {
@@ -148,17 +136,16 @@ int ht_init(int size) {
 	return size;
 }
 void ht_insert(object *key) {
-	i64 h = hash(key->string);
+	i64 h = ht_hash(key->string);
 	HTABLE[h].key = key;
 }
 object *ht_lookup(char *s) {
-	i64 h = hash(s);
+	i64 h = ht_hash(s);
 	return HTABLE[h].key;
 }
 ////////////////////////////////////////////////////////////////////////
 object *alloc() {
-	object *ret = libc(malloc)(sizeof(object));
-	//TODO gc()
+	object *ret = libc(malloc)(sizeof(object)); //TODO gc()
 	return ret;
 }
 int sao_type_check(const char *func, object *obj, type_t type)
@@ -168,9 +155,7 @@ int sao_type_check(const char *func, object *obj, type_t type)
 		libc(exit)(1);
 	} else if (obj->type != type) {
 		libc(fprintf)(libc(stderr), "ERR: function %s. expected %s got %s\n",
-				func, types[type], types[obj->type]
-				//func, types_map[type].name, types_map[obj->type].name
-				);
+				func, types[type], types[obj->type]);
 		libc(exit)(1);
 	}
 	return 1;
@@ -278,10 +263,10 @@ object *prim_type(object *args) {
 //	//libc(assert)(is_null(args));
 //	return ENV;
 //}
-object *prim_set_env(object *args) {
-	ENV = car(args);
-	return NIL;
-}
+//object *prim_set_env(object *args) {
+//	ENV = car(args);
+//	return NIL;
+//}
 object *prim_list(object *args) {
 	return (args);
 }

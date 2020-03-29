@@ -175,28 +175,16 @@ void sao_ungetc(int c, FILEWrapper * fw);
 object *sao_make_integer(int x);
 object *sao_read_symbol(FILEWrapper * fw, char start);
 void sao_out_expr(char *str, object *e);
-inline u64 sao_is_digit(int c)
-{
- return (u64) libcf(libc_isdigit,"isdigit")(c);
-}
-inline u64 sao_is_alpha(int c)
-{
- return (u64) libcf(libc_isalpha,"isalpha")(c);
-}
-inline u64 sao_is_alphanumber(int c)
-{
- return (u64) libcf(libc_isalnum,"isalnum")(c);
-}
+inline u64 sao_is_digit(int c) { return (u64) libcf(libc_isdigit,"isdigit")(c); }
+inline u64 sao_is_alpha(int c) { return (u64) libcf(libc_isalpha,"isalpha")(c); }
+inline u64 sao_is_alphanumber(int c) { return (u64) libcf(libc_isalnum,"isalnum")(c); }
 struct htable { object *key; };
 static struct htable *HTABLE = 0;
 static int HTABLE_SIZE = 0;
-static i64 hash(const char *s) {
+static i64 ht_hash(const char *s) {
  i64 h = 0;
  u8 *u = (u8 *) s;
- while (*u) {
-  h = (h * 256 + (*u)) % HTABLE_SIZE;
-  u++;
- }
+ while (*u) { h = (h * 256 + (*u)) % HTABLE_SIZE; u++; }
  return h;
 }
 int ht_init(int size) {
@@ -210,11 +198,11 @@ int ht_init(int size) {
  return size;
 }
 void ht_insert(object *key) {
- i64 h = hash(key->string);
+ i64 h = ht_hash(key->string);
  HTABLE[h].key = key;
 }
 object *ht_lookup(char *s) {
- i64 h = hash(s);
+ i64 h = ht_hash(s);
  return HTABLE[h].key;
 }
 object *alloc() {
@@ -228,8 +216,7 @@ int sao_type_check(const char *func, object *obj, type_t type)
   libcf(libc_exit,"exit")(1);
  } else if (obj->type != type) {
   libcf(libc_fprintf,"fprintf")(libcf(libc_stderr,"stderr"), "ERR: function %s. expected %s got %s\n",
-    func, types[type], types[obj->type]
-    );
+    func, types[type], types[obj->type]);
   libcf(libc_exit,"exit")(1);
  }
  return 1;
@@ -332,10 +319,6 @@ int length(object *exp) {
 }
 object *prim_type(object *args) {
  return sao_make_symbol(types[car(args)->type]);
-}
-object *prim_set_env(object *args) {
- ENV = car(args);
- return NIL;
 }
 object *prim_list(object *args) {
  return (args);
