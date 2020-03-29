@@ -1,3 +1,6 @@
+/*
+ * ffi() to unify libc
+ */
 #ifndef PTRSIZE
 # if defined(_WIN64)
 # define PTRSIZE 8 //WIN 64
@@ -98,10 +101,10 @@ extern int strcmp(const char*,const char*);
 #  if defined(_WIN32) || defined(_WIN64)
 #ifdef UNICODE
 extern void* LoadLibraryW(const char*);
-void *dlopen(const char *name, int i){ return (void*) LoadLibraryW(name); }
+#define dlopen LoadLibraryW
 #else
 extern void* LoadLibraryA(const char*);
-void *dlopen(const char *name, int i){ return (void*) LoadLibraryA(name); }
+#define dlopen(l,c) LoadLibraryA(l)
 #endif
 extern void* GetProcAddress(void*,const char*);
 #define ffi_dlsym GetProcAddress
@@ -125,8 +128,20 @@ void ffi_strcat(char *target, const char *source, const char* append) {
 	*target = '\0';
 }
 void* ffi_void(){return 0;};
-void*(*ffi_raw(const char* libfilename, const char* funcname, ...))()
+void*(*ffi_raw(const char* part1, const char* funcname, const char* part2))()
 {
+	char libfilename[256] = {0};
+	ffi_strcat(libfilename,part1,
+			(part2==0)?
+#if defined(__APPLE__)
+			".dylib"
+#elif defined(_WIN32) || defined(_WIN64)
+			".dll"
+#else
+			".so"
+#endif
+			:part2
+			);
 	void* rt_dlopen = (void*) ffi_dlopen(libfilename,1/*RTLD_LAZY*/);
 	void*	addr = ffi_dlsym(rt_dlopen, funcname);
 	if(0==addr){
@@ -135,6 +150,8 @@ void*(*ffi_raw(const char* libfilename, const char* funcname, ...))()
 	}
 	return addr;
 }
+void* ffi_usleep(int nano_second);//nano
+void* ffi_sleep(int second);//in second
 void*(*ffi(const char* libname, const char* funcname, ...))()
 {
 	void* addr = 0;
@@ -157,33 +174,52 @@ void*(*ffi(const char* libname, const char* funcname, ...))()
 				"libc"
 #endif
 				;				
-		}
-	}else{
+			if(!strcmp("fileno",funcname)){
 #ifdef _WIN32
-		if(!strcmp("strdup",funcname)){
-			funcname = "_strdup";
-		}else
-			if(!strcmp("usleep",funcname)){
-				funcname = "Sleep";
-				libname = "kernel32";
-			}
+				funcname = "_fileno";
+#else
+				//TODO for non win...
+				addr = ffi_void;
 #endif
+			}else if(!strcmp("setmode",funcname)){
+#ifdef _WIN32
+				funcname = "_setmode";
+#else
+				addr = ffi_void;
+#endif
+			}else if(!strcmp("strdup",funcname)){
+				funcname = "_strdup";
+			}else if(!strcmp("usleep",funcname)){
+				return ffi_usleep;
+			}else if(!strcmp("sleep",funcname)){
+				return ffi_sleep;
+			}
+		}
 	}
 	if(addr==0){
-		char libfilename[128] = {0};
-		ffi_strcat(libfilename,libname,
-#if defined(__APPLE__)
-				".dylib"
-#elif defined(_WIN32) || defined(_WIN64)
-				".dll"
-#else
-				".so"
-#endif
-				);
-		addr = ffi_raw(libfilename,funcname);
+		addr = ffi_raw(libname,funcname,0);
 	}
 	return addr;
 }
+void* ffi_sleep(int second)//in second
+{
+#ifdef _WIN32
+	ffi_raw("kernel32","Sleep",0)(second*1000);
+#else
+	ffi_raw("libc","usleep",0)(second*1000000);
+#endif
+	return 0;
+}
+void* ffi_usleep(int nano_second)
+{
+#ifdef _WIN32
+	ffi_raw("kernel32","Sleep",0)(nano_second/1000);
+#else
+	ffi_raw("libc","usleep",0)(nano_second);
+#endif
+	return 0;
+};
+
 //TODO
 //ffi_fopen <stdin>..."-"... auto binary.... etc
 #  ifndef libc
