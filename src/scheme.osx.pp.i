@@ -1,5 +1,5 @@
 enum {
- libc_fprintf, libc_stderr, libc_exit, libc_malloc, libc_memset, libc_strdup, libc_strcmp, libc_printf, libc_assert, libc_stdin, libc_getc, libc_ungetc, libc_isalnum, libc_strchr, libc_isdigit, libc_isalpha, libc_fopen, libc_fclose, libc_gettimeofday, libc_calloc, libc_stdout, libc_NULL,
+ libc_fprintf, libc_stderr, libc_exit, libc_malloc, libc_memset, libc_strdup, libc_strcmp, libc_printf, libc_stdin, libc_putc, libc_getc, libc_ungetc, libc_isalnum, libc_strchr, libc_isdigit, libc_isalpha, libc_fopen, libc_fread, libc_fclose, libc_feof, libc_usleep, libc_msleep, libc_sleep, libc__setmode, libc__fileno, libc_setmode, libc_fileno, libc_gettimeofday, libc_calloc, libc_stdout, libc_NULL,
 };
 void* (*libc_a[libc_NULL])();
 typedef signed char i8;
@@ -14,24 +14,45 @@ typedef struct __FILE FILE;
 extern FILE *__stdinp;
 extern FILE *__stdoutp;
 extern FILE *__stderrp;
-int sprintf(char *str, const char *format, ...);
 int fprintf(FILE *stream, const char *format, ...);
 int fflush(FILE *stream);
 extern int strcmp(const char*,const char*);
 extern void* dlopen(const char *,int);
 extern void *dlsym(void *, const char *);
-void* ffi_void(){return 0;};
-void*(*ffi_raw(const char* libfilename, const char* funcname, ...))()
+void ffic_strcat(char *target, const char *source, const char* append) {
+ while (*source) {
+  *target = *source;
+  source++;
+  target++;
+ }
+ while (*append) {
+  *target = *append;
+  append++;
+  target++;
+ }
+ *target = '\0';
+}
+void* ffic_void(){return 0;};
+void*(*ffic_raw(const char* part1, const char* funcname, const char* part2))()
 {
+ char libfilename[256] = {0};
+ ffic_strcat(libfilename,part1,
+   (part2==0)?
+   ".dylib"
+   :part2
+   );
  void* rt_dlopen = (void*) dlopen(libfilename,1 );
  void* addr = dlsym(rt_dlopen, funcname);
  if(0==addr){
   fprintf(__stderrp,"ERR: Not found %s.%s\n", libfilename, funcname);fflush(__stderrp);
-  return ffi_void;
+  return ffic_void;
  }
  return addr;
 }
-void*(*ffi(const char* libname, const char* funcname, ...))()
+void* ffic_usleep(int nano_seconds);
+void* ffic_msleep(int microseconds);
+void* ffic_sleep(int seconds);
+void*(*ffic(const char* libname, const char* funcname, ...))()
 {
  void* addr = 0;
  if(!strcmp("c",libname)){
@@ -42,24 +63,46 @@ void*(*ffi(const char* libname, const char* funcname, ...))()
   }else if(!strcmp("stdin",funcname)){
    addr = __stdinp;
   }else{
-   addr = ffi_raw(
-     "libc.dylib"
-     ,funcname);
+   libname =
+    "libc"
+    ;
+   if(!strcmp("fileno",funcname)){
+    addr = ffic_void;
+   }else if(!strcmp("setmode",funcname)){
+    addr = ffic_void;
+   }else if(!strcmp("strdup",funcname)){
+   }else if(!strcmp("usleep",funcname)){
+    return ffic_usleep;
+   }else if(!strcmp("sleep",funcname)){
+    return ffic_sleep;
+   }else if(!strcmp("msleep",funcname)){
+    return ffic_msleep;
+   }
   }
- }else{
-  char libfilename[128] = {0};
-  sprintf(libfilename,
-    "%s%s",
-    libname,
-    ".dylib"
-    );
-  addr = ffi_raw(libfilename,funcname);
+ }
+ if(addr==0){
+  addr = ffic_raw(libname,funcname,0);
  }
  return addr;
 }
+void* ffic_sleep(int seconds)
+{
+ ffic_raw("libc","usleep",0)(seconds*1000000);
+ return 0;
+}
+void* ffic_msleep(int microseconds)
+{
+ ffic_raw("libc","usleep",0)(microseconds*1000);
+ return 0;
+};
+void* ffic_usleep(int nano_seconds)
+{
+ ffic_raw("libc","usleep",0)(nano_seconds);
+ return 0;
+};
 typedef void*(*ffi_func)();
 ffi_func libcf(int fi,const char* fn){
- return libc_a[fi]?libc_a[fi]:(libc_a[fi]=ffi("c",fn));
+ return libc_a[fi]?libc_a[fi]:(libc_a[fi]=ffic("c",fn));
 }
 char *types[6] = {"integer","symbol","string","list","primitive","vector"};
 typedef enum {
@@ -106,6 +149,7 @@ object *load_file(object *args);
 object *cdr(object *);
 object *car(object *);
 object *lookup_variable(object *var, object *env);
+object *read_string(FILE *in);
 int type_check_func(const char *func, object *obj, type_t type);
 struct htable {
  object *key;
@@ -492,7 +536,8 @@ void skip(FILE *in) {
    return;
  }
 }
-object *_read_string(FILE *in) {
+inline object *read_string(FILE *in)
+{
  char buf[256];
  int i = 0;
  u64 c;
@@ -551,7 +596,7 @@ object *read_expression(FILE *in) {
   if (c == (-1))
    return 0;
   if (c == '\"')
-   return _read_string(in);
+   return read_string(in);
   if (c == '\'')
    return cons(QUOTE, cons(read_expression(in), NIL));
   if (c == '(') {
@@ -562,8 +607,7 @@ object *read_expression(FILE *in) {
    depth--;
    return EMPTY_LIST;
   }
-  if ((u64)libcf(libc_isdigit,"isdigit")(c))
-   return make_integer(read_int(in, c - '0'));
+  if ((u64)libcf(libc_isdigit,"isdigit")(c)) return make_integer(read_int(in, c - '0'));
   if (c == '-' && (u64)libcf(libc_isdigit,"isdigit")(peek(in)))
    return make_integer(-1 * read_int(in, (u64)libcf(libc_getc,"getc")(in) - '0'));
   if (libcf(libc_isalpha,"isalpha")(c) || libcf(libc_strchr,"strchr")(type_symbolS, c))
@@ -795,6 +839,15 @@ static u64 ffi_microtime(void)
 }
 int main(int argc, char **argv)
 {
+ ffi_func printf = libcf(libc_printf,"printf");
+ ffi_func exit = libcf(libc_exit,"exit");
+ ffi_func fopen = libcf(libc_fopen,"fopen");
+ ffi_func fread = libcf(libc_fread,"fread");
+ ffi_func fclose = libcf(libc_fclose,"fclose");
+ ffi_func feof = libcf(libc_feof,"feof");
+ ffi_func usleep = libcf(libc_usleep,"usleep");
+ ffi_func msleep = libcf(libc_msleep,"msleep");
+ ffi_func sleep = libcf(libc_sleep,"sleep");
  libcf(libc_printf,"printf")("%ld: start\n",ffi_microtime());
  ht_init(8192-1);
  libcf(libc_printf,"printf")("%lu: after ht_init()\n",ffi_microtime());

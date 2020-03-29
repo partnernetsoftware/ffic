@@ -3,33 +3,33 @@ CC=gcc
 all: 
 	#cd .. && git submodule init && git submodule update
 	#git submodule update --init --recursive
-	ls -al tccffi*
+	ls -al ffic*
 	#echo "#define TCC_VERSION \"`head ../tinycc/VERSION`\"" > config.h
 	make pp
-	#cc tccffi.c -I ../tinycc/ -o tccffi
-	${CC} tccffi.pp.i -L. -ltcc -o tccffi
-	ls -al tccffi*
+	#cc ffic.c -I ../tinycc/ -o ffic
+	${CC} ffic.pp.i -L. -ltcc -o ffic
+	ls -al ffic*
 	make test
 osx:
 	make libtcc.dylib -C ../tinycc/
 	cp ../tinycc/libtcc.dylib ./
 	make all
-	cp tccffi tccffi_osx
+	cp ffic ffic_osx
 lnx:
 	make libtcc.so -C ../tinycc/
 	cp ../tinycc/libtcc.so ./
 	make all
-	cp tccffi tccffi_lnx
+	cp ffic ffic_lnx
 test:
-	cat tests/42.c | ./tccffi
-	./tccffi tests/42.c
+	cat tests/42.c | ./ffic
+	./ffic tests/42.c
 #
 tcc:
-	tcc -I. -I../tinycc/ -run -nostdlib tccffi.c 
-	#tcc -nostdlib -E tccffi.c -I ../tinycc/ -o tccffi.i
+	tcc -I. -I../tinycc/ -run -nostdlib ffic.c 
+	#tcc -nostdlib -E ffic.c -I ../tinycc/ -o ffic.i
 run_scheme:
 	make all
-	./tccffi scheme.c
+	./ffic scheme.c
 test_scheme_osx:
 	echo $$(($$(gdate +'%s * 1000 + %-N / 1000000'))) && cat fib.scm | ./scheme_osx
 osx_scheme:
@@ -42,9 +42,9 @@ osx_scheme:
 	cat fib.scm | ./scheme_osx
 	make test_scheme_osx
 pp:
-	${CC} -E tccffi.c -I. -I../tinycc/ -o tccffi.i
-	#${CC} -E tccffi.c -I. -I../tinycc/ | sed 's/^#.*//g' > tccffi.pp.i
-	${CC} -E tccffi.c -I. -I../tinycc/ | sed 's/^#.*//g' | sed "/^$$/d" > tccffi.pp.i
+	${CC} -E ffic.c -I. -I../tinycc/ -o ffic.i
+	#${CC} -E ffic.c -I. -I../tinycc/ | sed 's/^#.*//g' > ffic.pp.i
+	${CC} -E ffic.c -I. -I../tinycc/ | sed 's/^#.*//g' | sed "/^$$/d" > ffic.pp.i
 clean:
 	rm -f *.o
 	rm -f scheme_osx

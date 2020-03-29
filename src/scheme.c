@@ -9,21 +9,21 @@
 #include "macros.h"
 #define DEFINE_ENUM(n) libc_##n,
 #define LIBC_FUNC_LIST fprintf,stderr,exit,malloc,memset,strdup,strcmp,printf,\
-stdin,putc,getc,ungetc,isalnum,strchr,isdigit,isalpha,fopen,fread,fclose,feof,usleep,\
-_setmode,_fileno,\
+stdin,putc,getc,ungetc,isalnum,strchr,isdigit,isalpha,fopen,fread,fclose,feof,\
+usleep,msleep,sleep,_setmode,_fileno,setmode,fileno,\
 gettimeofday,calloc,stdout,NULL
-//TODO make ffi buffer then after the ffi()
+//TODO make ffi buffer then after the ffic()
 enum {
 	ITR(DEFINE_ENUM,EXPAND(LIBC_FUNC_LIST))
 };
 void* (*libc_a[libc_NULL])();//function buffer
 #define libc(f) libcf(libc_##f,#f)
-#include "ffi.h"
+#include "ffic.h"
 typedef void*(*ffi_func)();
 //ffi_func libcf(int fi,const char* fn);
 //TODO change to int=>char* map to get name
 ffi_func libcf(int fi,const char* fn){
-	return libc_a[fi]?libc_a[fi]:(libc_a[fi]=ffi("c",fn));
+	return libc_a[fi]?libc_a[fi]:(libc_a[fi]=ffic("c",fn));
 }
 //////////////////////////////////////////////////////////////////////////////
 #define is_null(x) ((x) == 0 || (x) == NIL)
@@ -956,7 +956,7 @@ static u64 ffi_microtime(void)
 {
 #ifdef _WIN32
 	//return (u64)(libc(GetTickCount)());
-	return (u64)(ffi("kernel32","GetTickCount")());
+	return (u64)(ffic("kernel32","GetTickCount")());
 #else
 	struct timeval {
 		u64 tv_sec;
@@ -977,38 +977,41 @@ int main(int argc, char **argv)
 	ffi_func fclose = libc(fclose);
 	ffi_func feof = libc(feof);
 	ffi_func usleep = libc(usleep);
+	ffi_func msleep = libc(msleep);
+	ffi_func sleep = libc(sleep);
 
-#if defined(_WIN32)
-	//libc(_setmode)(libc(_fileno)(stdout), 0x8000 /*_O_BINARY*/);
-	libc(_setmode)(libc(_fileno)(libc(stdin)), 0x8000 /*_O_BINARY*/);
-#endif
-	
-	int ok=0,ko=0,k=0;
-	int ct = 0;
-	//FILE * fp = libc(fopen)("<stdin>","rb");//TODO
-	FILE * fp = (FILE*) libc(stdin);
-	//while(!feof(fp))
-	for(;;)
-	{
-		//k=0;
-		if(1==(int)fread(&k,sizeof(char),1,fp)){
-			ok++;
-		}else{
-			ko++;
-			usleep(1000);
-			if(ko>3){
-				break;
-			}
-			//if(0==feof(fp)){
-			//	sleep(1);
-			//}
-			printf("ct=%d,ok=%d,ko=%d,k=%d,EOF=%s\n",ct,ok,ko,k,feof(fp)?"Y":"N");
-		}
-		ct++;
-	}
-	printf("\nEND ok=%d,ko=%d,k=%d,ct=%d\n",ok,ko,k,ct);
-	libc(fclose)(fp);
-	return 0;
+	//TODO load file into file buffer (linker struct) (producer)
+	//TODO read_expression as consumer
+//	libc(setmode)(libc(fileno)(libc(stdin)),0x8000/*O_BINARY*/);
+//
+//	int ok=0,ko=0,k=0;
+//	int ct = 0;
+//	//FILE * fp = libc(fopen)("<stdin>","rb");//TODO
+//	FILE * fp = (FILE*) libc(stdin);
+//	//while(!feof(fp))
+//	for(;;)
+//	{
+//		//k=0;
+//		if(1==(int)fread(&k,sizeof(char),1,fp)){
+//			ok++;
+//		}else{
+//			ko++;
+//			//usleep(1000000);
+//			//sleep(1);
+//			msleep(1000);
+//			if(ko>3){
+//				break;
+//			}
+//			//if(0==feof(fp)){
+//			//	sleep(1);
+//			//}
+//			printf("ct=%d,ok=%d,ko=%d,k=%d,EOF=%s\n",ct,ok,ko,k,feof(fp)?"Y":"N");
+//		}
+//		ct++;
+//	}
+//	printf("\nEND ok=%d,ko=%d,k=%d,ct=%d\n",ok,ko,k,ct);
+//	libc(fclose)(fp);
+//	return 0;
 
 #if defined(PROFILE)
 	libc(printf)("%ld: start\n",ffi_microtime());

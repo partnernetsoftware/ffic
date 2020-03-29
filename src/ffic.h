@@ -1,5 +1,5 @@
 /*
- * ffi() to unify libc
+ * ffic() to unify libc
  */
 #ifndef PTRSIZE
 # if defined(_WIN64)
@@ -83,17 +83,17 @@ extern FILE *stdout;
 extern FILE *stderr;
 #   endif
 
-#ifndef TCC_FFI
-#define TCC_FFI 1
+#ifndef FFIC
+#define FFIC 1
 #endif
 
-#ifdef TCC_FFI
-# if TCC_FFI==2
-extern void*(*ffi(const char*, const char*, ...))();
+#ifdef FFIC
+# if FFIC==2
+extern void*(*ffic(const char*, const char*, ...))();
 #  ifndef libc
-#  define libc(f) ffi("c",#f)
+#  define libc(f) ffic("c",#f)
 #  endif
-# elif TCC_FFI==1
+# elif FFIC==1
 //int sprintf(char *str, const char *format, ...);
 int fprintf(FILE *stream, const char *format, ...);
 int fflush(FILE *stream);
@@ -107,14 +107,14 @@ extern void* LoadLibraryA(const char*);
 #define dlopen(l,c) LoadLibraryA(l)
 #endif
 extern void* GetProcAddress(void*,const char*);
-#define ffi_dlsym GetProcAddress
+#define ffic_dlsym GetProcAddress
 #   else
 extern void* dlopen(const char *,int);
 extern void *dlsym(void *, const char *);
-#define ffi_dlsym dlsym
+#define ffic_dlsym dlsym
 #   endif
-#define ffi_dlopen dlopen 
-void ffi_strcat(char *target, const char *source, const char* append) {
+#define ffic_dlopen dlopen 
+void ffic_strcat(char *target, const char *source, const char* append) {
 	while (*source) {
 		*target = *source;
 		source++;
@@ -127,11 +127,11 @@ void ffi_strcat(char *target, const char *source, const char* append) {
 	}
 	*target = '\0';
 }
-void* ffi_void(){return 0;};
-void*(*ffi_raw(const char* part1, const char* funcname, const char* part2))()
+void* ffic_void(){return 0;};
+void*(*ffic_raw(const char* part1, const char* funcname, const char* part2))()
 {
 	char libfilename[256] = {0};
-	ffi_strcat(libfilename,part1,
+	ffic_strcat(libfilename,part1,
 			(part2==0)?
 #if defined(__APPLE__)
 			".dylib"
@@ -142,17 +142,18 @@ void*(*ffi_raw(const char* part1, const char* funcname, const char* part2))()
 #endif
 			:part2
 			);
-	void* rt_dlopen = (void*) ffi_dlopen(libfilename,1/*RTLD_LAZY*/);
-	void*	addr = ffi_dlsym(rt_dlopen, funcname);
+	void* rt_dlopen = (void*) ffic_dlopen(libfilename,1/*RTLD_LAZY*/);
+	void*	addr = ffic_dlsym(rt_dlopen, funcname);
 	if(0==addr){
 		fprintf(stderr,"ERR: Not found %s.%s\n", libfilename, funcname);fflush(stderr);
-		return ffi_void;
+		return ffic_void;
 	}
 	return addr;
 }
-void* ffi_usleep(int nano_second);//nano
-void* ffi_sleep(int second);//in second
-void*(*ffi(const char* libname, const char* funcname, ...))()
+void* ffic_usleep(int nano_seconds);
+void* ffic_msleep(int microseconds);
+void* ffic_sleep(int seconds);
+void*(*ffic(const char* libname, const char* funcname, ...))()
 {
 	void* addr = 0;
 	if(!strcmp("c",libname)){
@@ -179,51 +180,64 @@ void*(*ffi(const char* libname, const char* funcname, ...))()
 				funcname = "_fileno";
 #else
 				//TODO for non win...
-				addr = ffi_void;
+				addr = ffic_void;
 #endif
 			}else if(!strcmp("setmode",funcname)){
 #ifdef _WIN32
 				funcname = "_setmode";
 #else
-				addr = ffi_void;
+				addr = ffic_void;
 #endif
 			}else if(!strcmp("strdup",funcname)){
+#if defined(_WIN32)
 				funcname = "_strdup";
+#endif
 			}else if(!strcmp("usleep",funcname)){
-				return ffi_usleep;
+				return ffic_usleep;
 			}else if(!strcmp("sleep",funcname)){
-				return ffi_sleep;
+				return ffic_sleep;
+			}else if(!strcmp("msleep",funcname)){
+				return ffic_msleep;
 			}
 		}
 	}
 	if(addr==0){
-		addr = ffi_raw(libname,funcname,0);
+		addr = ffic_raw(libname,funcname,0);
 	}
 	return addr;
 }
-void* ffi_sleep(int second)//in second
+void* ffic_sleep(int seconds)
 {
 #ifdef _WIN32
-	ffi_raw("kernel32","Sleep",0)(second*1000);
+	ffic_raw("kernel32","Sleep",0)(seconds*1000);
 #else
-	ffi_raw("libc","usleep",0)(second*1000000);
+	ffic_raw("libc","usleep",0)(seconds*1000000);
 #endif
 	return 0;
 }
-void* ffi_usleep(int nano_second)
+void* ffic_msleep(int microseconds)
 {
 #ifdef _WIN32
-	ffi_raw("kernel32","Sleep",0)(nano_second/1000);
+	ffic_raw("kernel32","Sleep",0)(microseconds);
 #else
-	ffi_raw("libc","usleep",0)(nano_second);
+	ffic_raw("libc","usleep",0)(microseconds*1000);
+#endif
+	return 0;
+};
+void* ffic_usleep(int nano_seconds)
+{
+#ifdef _WIN32
+	ffic_raw("kernel32","Sleep",0)(nano_seconds/1000);
+#else
+	ffic_raw("libc","usleep",0)(nano_seconds);
 #endif
 	return 0;
 };
 
 //TODO
-//ffi_fopen <stdin>..."-"... auto binary.... etc
+//ffic_fopen <stdin>..."-"... auto binary.... etc
 #  ifndef libc
-#  define libc(f) ffi("c",#f)
+#  define libc(f) ffic("c",#f)
 #  endif
 # endif
 #endif
