@@ -6,8 +6,14 @@
 # example
 
 ```
-cat tests/42.c | ./ffic_osx
+./ffic_osx tests/42.c
+./ffic_osx tests/fib.c 5
 ```
+
+# TODO
+
+* release for LNX
+* release for WIN64
 
 # why?
 

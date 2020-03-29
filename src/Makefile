@@ -15,6 +15,7 @@ osx:
 	cp ../tinycc/libtcc.dylib ./
 	make default
 	cp ffic ffic_osx
+	./ffic_osx tests/fib.c 5
 lnx:
 	make libtcc.so -C ../tinycc/
 	cp ../tinycc/libtcc.so ./
