@@ -1,20 +1,21 @@
-# tccffi
+# ffic
 
-"scripting c in ffi-mode"
+* "scripting c in ffi-mode" with extern ffic()
+* survived from the painful libc header files.
+
+# why?
+
+* love c but don't wanna handle the libc headers
+* want to build a smallest scripting tool to easy our life (others are damn to big)
 
 # scheme.c
 
-example that using ffi to build a lisp-scheme tiny engin to prove it works
+* example that using ffi to build a lisp-scheme tiny engin to prove it works
 
-# feature 
-
-* ffi(sharelib,func) to call share lib.
-* free from suffering the libc header files (yup, you don't need them in most cases)
-
-# example
+## example
 
 ```
-cat fib.scm | ./tccffi scheme.c
+cat fib.scm | ./ffic scheme.c
 
 lisp to sao
 :%s/\((\)\([^) ]\+\)/\2\1/gc 
@@ -43,7 +44,7 @@ make osx
 ```
 ```
 
-# tinycc
+# contribute to tinycc
 
 ```
 How to contribute patches to tcc "mob" patchwork (what's mob?):
