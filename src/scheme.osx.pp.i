@@ -146,7 +146,7 @@ object *load_file(object *args);
 object *cdr(object *);
 object *car(object *);
 object *lookup_variable(object *var, object *env);
-int type_check_func(const char *func, object *obj, type_t type);
+int sao_type_check(const char *func, object *obj, type_t type);
 typedef struct _FileChar FileChar, *pFileChar;
 struct _FileChar {
  int c;
@@ -187,9 +187,7 @@ inline u64 sao_is_alphanumber(int c)
 {
  return (u64) libcf(libc_isalnum,"isalnum")(c);
 }
-struct htable {
- object *key;
-};
+struct htable { object *key; };
 static struct htable *HTABLE = 0;
 static int HTABLE_SIZE = 0;
 static i64 hash(const char *s) {
@@ -219,13 +217,11 @@ object *ht_lookup(char *s) {
  i64 h = hash(s);
  return HTABLE[h].key;
 }
-int alloc_count = 0;
 object *alloc() {
  object *ret = libcf(libc_malloc,"malloc")(sizeof(object));
- alloc_count++;
  return ret;
 }
-int type_check_func(const char *func, object *obj, type_t type)
+int sao_type_check(const char *func, object *obj, type_t type)
 {
  if (((obj) == 0 || (obj) == NIL)) {
   libcf(libc_fprintf,"fprintf")(libcf(libc_stderr,"stderr"), "Invalid argument to function %s: NIL\n", func);
@@ -354,12 +350,12 @@ object *prim_cdr(object *args) {
  return (cdr(car((args))));
 }
 object *prim_setcar(object *args) {
- (type_check_func(__func__, car(args), type_list));
+ (sao_type_check(__func__, car(args), type_list));
  (args->car->car = ((car(cdr((args))))));
  return NIL;
 }
 object *prim_setcdr(object *args) {
- (type_check_func(__func__, car(args), type_list));
+ (sao_type_check(__func__, car(args), type_list));
  (args->car->cdr = ((car(cdr((args))))));
  return NIL;
 }
@@ -423,57 +419,57 @@ object *prim_equal(object *args) {
  return FALSE;
 }
 object *prim_add(object *list) {
- (type_check_func(__func__, car(list), type_integer));
+ (sao_type_check(__func__, car(list), type_integer));
  i64 total = car(list)->integer;
  list = cdr(list);
  while (!((((car(list))) == 0 || ((car(list))) == NIL) || (car(list)) == EMPTY_LIST)) {
-  (type_check_func(__func__, car(list), type_integer));
+  (sao_type_check(__func__, car(list), type_integer));
   total += car(list)->integer;
   list = cdr(list);
  }
  return make_integer(total);
 }
 object *prim_sub(object *list) {
- (type_check_func(__func__, car(list), type_integer));
+ (sao_type_check(__func__, car(list), type_integer));
  i64 total = car(list)->integer;
  list = cdr(list);
  while (!((list) == 0 || (list) == NIL)) {
-  (type_check_func(__func__, car(list), type_integer));
+  (sao_type_check(__func__, car(list), type_integer));
   total -= car(list)->integer;
   list = cdr(list);
  }
  return make_integer(total);
 }
 object *prim_div(object *list) {
- (type_check_func(__func__, car(list), type_integer));
+ (sao_type_check(__func__, car(list), type_integer));
  i64 total = car(list)->integer;
  list = cdr(list);
  while (!((list) == 0 || (list) == NIL)) {
-  (type_check_func(__func__, car(list), type_integer));
+  (sao_type_check(__func__, car(list), type_integer));
   total /= car(list)->integer;
   list = cdr(list);
  }
  return make_integer(total);
 }
 object *prim_mul(object *list) {
- (type_check_func(__func__, car(list), type_integer));
+ (sao_type_check(__func__, car(list), type_integer));
  i64 total = car(list)->integer;
  list = cdr(list);
  while (!((list) == 0 || (list) == NIL)) {
-  (type_check_func(__func__, car(list), type_integer));
+  (sao_type_check(__func__, car(list), type_integer));
   total *= car(list)->integer;
   list = cdr(list);
  }
  return make_integer(total);
 }
 object *prim_gt(object *sexp) {
- (type_check_func(__func__, car(sexp), type_integer));
- (type_check_func(__func__, (car(cdr((sexp)))), type_integer));
+ (sao_type_check(__func__, car(sexp), type_integer));
+ (sao_type_check(__func__, (car(cdr((sexp)))), type_integer));
  return (car(sexp)->integer > (car(cdr((sexp))))->integer) ? TRUE : NIL;
 }
 object *prim_lt(object *sexp) {
- (type_check_func(__func__, car(sexp), type_integer));
- (type_check_func(__func__, (car(cdr((sexp)))), type_integer));
+ (sao_type_check(__func__, car(sexp), type_integer));
+ (sao_type_check(__func__, (car(cdr((sexp)))), type_integer));
  return (car(sexp)->integer < (car(cdr((sexp))))->integer) ? TRUE : NIL;
 }
 object *prim_exit(object *args) {
@@ -485,15 +481,15 @@ object *prim_read(object *args) {
  return sao_load_expr(fw);
 }
 object *prim_vget(object *args) {
- (type_check_func(__func__, car(args), type_vector));
- (type_check_func(__func__, (car(cdr((args)))), type_integer));
+ (sao_type_check(__func__, car(args), type_vector));
+ (sao_type_check(__func__, (car(cdr((args)))), type_integer));
  if ((car(cdr((args))))->integer >= car(args)->vsize)
   return NIL;
  return car(args)->vector[(car(cdr((args))))->integer];
 }
 object *prim_vset(object *args) {
- (type_check_func(__func__, car(args), type_vector));
- (type_check_func(__func__, (car(cdr((args)))), type_integer));
+ (sao_type_check(__func__, car(args), type_vector));
+ (sao_type_check(__func__, (car(cdr((args)))), type_integer));
  if ((((car(cdr(cdr((args)))))) == 0 || ((car(cdr(cdr((args)))))) == NIL))
   return NIL;
  if ((car(cdr((args))))->integer >= car(args)->vsize)
@@ -502,7 +498,7 @@ object *prim_vset(object *args) {
  return sao_make_symbol("ok");
 }
 object *prim_vec(object *args) {
- (type_check_func(__func__, car(args), type_integer));
+ (sao_type_check(__func__, car(args), type_integer));
  return make_vector(car(args)->integer);
 }
 object *extend_env(object *var, object *val, object *env) {
@@ -606,15 +602,7 @@ FILEWrapper * FileWrapper_new(FILE* fp)
 }
 void FileWrapper_feed(FILEWrapper* fw)
 {
- ffi_func exit = libcf(libc_exit,"exit");
- ffi_func fopen = libcf(libc_fopen,"fopen");
  ffi_func fread = libcf(libc_fread,"fread");
- ffi_func fclose = libcf(libc_fclose,"fclose");
- ffi_func feof = libcf(libc_feof,"feof");
- ffi_func usleep = libcf(libc_usleep,"usleep");
- ffi_func msleep = libcf(libc_msleep,"msleep");
- ffi_func sleep = libcf(libc_sleep,"sleep");
- ffi_func fputc = libcf(libc_fputc,"fputc");
  int ok=0,ko=0;
  int k=0;
  int ct = 0;

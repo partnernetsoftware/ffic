@@ -23,9 +23,7 @@ typedef void*(*ffi_func)();
 ffi_func libcf(int fi,const char* fn){
 	return libc_a[fi]?libc_a[fi]:(libc_a[fi]=ffic("c",fn));
 }
-//TMP
-//ffi_func libcf(int fi,const char* fn);
-//TODO change to int=>char* map to get name
+//TODO change to int=>char* map
 #define NULL ((void*)0)
 //////////////////////////////////////////////////////////////////////////////
 #define is_null(x) ((x) == 0 || (x) == NIL)
@@ -40,12 +38,11 @@ ffi_func libcf(int fi,const char* fn){
 #define cddr(x) (cdr(cdr((x))))
 #define cdadr(x) (cdr(car(cdr((x)))))
 #define atom(x) (!is_null(x) && (x)->type != type_list)
-#define type_check(x, t) (type_check_func(__func__, x, t))
+#define type_check(x, t) (sao_type_check(__func__, x, t))
 char *types[6] = {"integer","symbol","string","list","primitive","vector"};
 typedef enum {
 	type_integer, type_symbol, type_string, type_list, type_primitive, type_vector
 } type_t;
-
 typedef struct object object;
 typedef object *(*primitive_t)(object *);
 struct object {
@@ -65,7 +62,6 @@ struct object {
 		primitive_t primitive;
 	};
 } __attribute__((packed));
-
 object *ENV;
 object *NIL;
 object *EMPTY_LIST;
@@ -79,17 +75,13 @@ object *IF;
 object *LAMBDA;
 object *BEGIN;
 object *PROCEDURE;
-
 int is_tagged(object *cell, object *tag);
 object *cons(object *x, object *y);
 object *load_file(object *args);
 object *cdr(object *);
 object *car(object *);
 object *lookup_variable(object *var, object *env);
-
-//object *read_string(FILE *in);
-int type_check_func(const char *func, object *obj, type_t type);
-
+int sao_type_check(const char *func, object *obj, type_t type);
 typedef struct _FileChar FileChar, *pFileChar;
 struct _FileChar {
 	int c;
@@ -104,13 +96,10 @@ typedef struct {
 	FileChar * current;
 	long count;
 } FILEWrapper;
-
 FILEWrapper * FileWrapper_new(FILE* fp);
-
 u64 sao_is_digit(int c);
 u64 sao_is_alpha(int c);
 u64 sao_is_alphanumber(int c);
-
 object *sao_eval(object *exp, object *env);
 object *sao_load_expr(FILEWrapper * fw);
 void sao_comment(FILEWrapper * fw);
@@ -122,7 +111,6 @@ void sao_ungetc(int c, FILEWrapper * fw);
 object *sao_make_integer(int x);
 object *sao_read_symbol(FILEWrapper * fw, char start);
 void sao_out_expr(char *str, object *e);
-
 inline u64 sao_is_digit(int c)
 {
 	return (u64) libc(isdigit)(c);
@@ -135,16 +123,10 @@ inline u64 sao_is_alphanumber(int c)
 {
 	return (u64) libc(isalnum)(c);
 }
-
-/*==============================================================================
-	Hash table for saving Lisp symbol objects. Conserves memory and faster compares
-	==============================================================================*/
-struct htable {
-	object *key;
-};
+////////////////////////////////////////////////////////////////////////
+struct htable { object *key; };
 static struct htable *HTABLE = 0;
 static int HTABLE_SIZE = 0;
-
 static i64 hash(const char *s) {
 	i64 h = 0;
 	u8 *u = (u8 *) s;
@@ -154,7 +136,6 @@ static i64 hash(const char *s) {
 	}
 	return h;
 }
-
 int ht_init(int size) {
 	if (HTABLE || !(size % 2))
 		error("Hash table already initialized or even # of entries");
@@ -166,29 +147,21 @@ int ht_init(int size) {
 		error("HTABLE_SIZE=0???");
 	return size;
 }
-
 void ht_insert(object *key) {
 	i64 h = hash(key->string);
 	HTABLE[h].key = key;
 }
-
 object *ht_lookup(char *s) {
 	i64 h = hash(s);
 	return HTABLE[h].key;
 }
-
-/*==============================================================================
-	Memory management - Currently no GC
-	==============================================================================*/
-int alloc_count = 0;
-
+////////////////////////////////////////////////////////////////////////
 object *alloc() {
 	object *ret = libc(malloc)(sizeof(object));
-	alloc_count++;
+	//TODO gc()
 	return ret;
 }
-
-int type_check_func(const char *func, object *obj, type_t type)
+int sao_type_check(const char *func, object *obj, type_t type)
 {
 	if (is_null(obj)) {
 		libc(fprintf)(libc(stderr), "Invalid argument to function %s: NIL\n", func);
@@ -202,7 +175,6 @@ int type_check_func(const char *func, object *obj, type_t type)
 	}
 	return 1;
 }
-
 object *make_vector(int size) {
 	object *ret = alloc();
 	ret->type = type_vector;
@@ -211,7 +183,6 @@ object *make_vector(int size) {
 	libc(memset)(ret->vector, 0, size);
 	return ret;
 }
-
 object *sao_make_symbol(char *s) {
 	object *ret = ht_lookup(s);
 	if (is_null(ret)) {
@@ -222,30 +193,25 @@ object *sao_make_symbol(char *s) {
 	}
 	return ret;
 }
-
 object *make_integer(int x) {
 	object *ret = alloc();
 	ret->type = type_integer;
 	ret->integer = x;
 	return ret;
 }
-
 object *make_primitive(primitive_t x) {
 	object *ret = alloc();
 	ret->type = type_primitive;
 	ret->primitive = x;
 	return ret;
 }
-
 object *make_lambda(object *params, object *body) {
 	return cons(LAMBDA, cons(params, body));
 }
-
 object *make_procedure(object *params, object *body,
 		object *env) {
 	return cons(PROCEDURE, cons(params, cons(body, cons(env, EMPTY_LIST))));
 }
-
 inline object *cons(object *x, object *y) {
 	object *ret = alloc();
 	ret->type = type_list;
@@ -253,28 +219,22 @@ inline object *cons(object *x, object *y) {
 	ret->cdr = y;
 	return ret;
 }
-
 inline object *car(object *cell) {
 	if (is_null(cell) || cell->type != type_list) return NIL;
 	return cell->car;
 }
-
 inline object *cdr(object *cell) {
 	if (is_null(cell) || cell->type != type_list) return NIL;
 	return cell->cdr;
 }
-
 object *append(object *l1, object *l2) {
 	if (is_null(l1)) return l2;
 	return cons(car(l1), append(cdr(l1), l2));
 }
-
 object *reverse(object *list, object *first) {
 	if (is_null(list)) return first;
 	return reverse(cdr(list), cons(car(list), first));
 }
-
-// Pointer equality
 int is_equal(object *x, object *y) {
 	if (x == y)
 		return 1;
@@ -297,29 +257,23 @@ int is_equal(object *x, object *y) {
 	}
 	return 0;
 }
-
 int not_false(object *x) {
 	if (is_null(x) || is_equal(x, FALSE)) return 0;
 	if (x->type == type_integer && x->integer == 0) return 0;
 	return 1;
 }
-
 int is_tagged(object *cell, object *tag) {
 	if (is_null(cell) || cell->type != type_list)
 		return 0;
 	return is_equal(car(cell), tag);
 }
-
 int length(object *exp) {
 	if (is_null(exp)) return 0;
 	return 1 + length(cdr(exp));
 }
-
 object *prim_type(object *args) {
 	return sao_make_symbol(types[car(args)->type]);
-	//return sao_make_symbol(types_map[car(args)->type].name);
 }
-
 //object *prim_get_env(object *args) {
 //	//libc(assert)(is_null(args));
 //	return ENV;
@@ -328,28 +282,24 @@ object *prim_set_env(object *args) {
 	ENV = car(args);
 	return NIL;
 }
-
 object *prim_list(object *args) {
 	return (args);
 }
 object *prim_cons(object *args) {
 	return cons(car(args), cadr(args));
 }
-
 object *prim_car(object *args) {
 #ifdef STRICT
 	type_check(car(args), type_list);
 #endif
 	return caar(args);
 }
-
 object *prim_cdr(object *args) {
 #ifdef STRICT
 	type_check(car(args), type_list);
 #endif
 	return cdar(args);
 }
-
 object *prim_setcar(object *args) {
 	type_check(car(args), type_list);
 	(args->car->car = (cadr(args)));
@@ -360,17 +310,14 @@ object *prim_setcdr(object *args) {
 	(args->car->cdr = (cadr(args)));
 	return NIL;
 }
-
 object *prim_is_nullq(object *args) {
 	return is_EOL(car(args)) ? TRUE : FALSE;
 }
-
 object *prim_pairq(object *args) {
 	if (car(args)->type != type_list)
 		return FALSE;
 	return (atom(caar(args)) && atom(cdar(args))) ? TRUE : FALSE;
 }
-
 object *prim_listq(object *args) {
 	object *list;
 	if (car(args)->type != type_list)
@@ -380,23 +327,19 @@ object *prim_listq(object *args) {
 			return FALSE;
 	return (car(args)->type == type_list && prim_pairq(args) != TRUE) ? TRUE : FALSE;
 }
-
 object *prim_atomq(object *sexp) {
 	return atom(car(sexp)) ? TRUE : FALSE;
 }
-
 /* = primitive, only valid for numbers */
 object *prim_neq(object *args) {
 	if ((car(args)->type != type_integer) || (cadr(args)->type != type_integer))
 		return FALSE;
 	return (car(args)->integer == cadr(args)->integer) ? TRUE : FALSE;
 }
-
 /* eq? primitive, checks memory location, or if equal values for primitives */
 object *prim_eq(object *args) {
 	return is_equal(car(args), cadr(args)) ? TRUE : FALSE;
 }
-
 object *prim_equal(object *args) {
 	if (is_equal(car(args), cadr(args)))
 		return TRUE;
@@ -428,7 +371,6 @@ object *prim_equal(object *args) {
 	}
 	return FALSE;
 }
-
 object *prim_add(object *list) {
 	type_check(car(list), type_integer);
 	i64 total = car(list)->integer;
@@ -440,7 +382,6 @@ object *prim_add(object *list) {
 	}
 	return make_integer(total);
 }
-
 object *prim_sub(object *list) {
 	type_check(car(list), type_integer);
 	i64 total = car(list)->integer;
@@ -452,7 +393,6 @@ object *prim_sub(object *list) {
 	}
 	return make_integer(total);
 }
-
 object *prim_div(object *list) {
 	type_check(car(list), type_integer);
 	i64 total = car(list)->integer;
@@ -464,7 +404,6 @@ object *prim_div(object *list) {
 	}
 	return make_integer(total);
 }
-
 object *prim_mul(object *list) {
 	type_check(car(list), type_integer);
 	i64 total = car(list)->integer;
@@ -481,25 +420,21 @@ object *prim_gt(object *sexp) {
 	type_check(cadr(sexp), type_integer);
 	return (car(sexp)->integer > cadr(sexp)->integer) ? TRUE : NIL;
 }
-
 object *prim_lt(object *sexp) {
 	type_check(car(sexp), type_integer);
 	type_check(cadr(sexp), type_integer);
 	return (car(sexp)->integer < cadr(sexp)->integer) ? TRUE : NIL;
 }
-
 object *prim_exit(object *args) {
 	//libc(assert)(is_null(args));
 	libc(exit)(0);
 	return NIL;
 }
-
 object *prim_read(object *args) {
 	//libc(assert)(is_null(args));
 	FILEWrapper * fw = FileWrapper_new((FILE*)libc(stdin));
 	return sao_load_expr(fw);
 }
-
 object *prim_vget(object *args) {
 	type_check(car(args), type_vector);
 	type_check(cadr(args), type_integer);
@@ -507,7 +442,6 @@ object *prim_vget(object *args) {
 		return NIL;
 	return car(args)->vector[cadr(args)->integer];
 }
-
 object *prim_vset(object *args) {
 	type_check(car(args), type_vector);
 	type_check(cadr(args), type_integer);
@@ -518,16 +452,13 @@ object *prim_vset(object *args) {
 	car(args)->vector[cadr(args)->integer] = caddr(args);
 	return sao_make_symbol("ok");
 }
-
 object *prim_vec(object *args) {
 	type_check(car(args), type_integer);
 	return make_vector(car(args)->integer);
 }
-
 object *extend_env(object *var, object *val, object *env) {
 	return cons(cons(var, val), env);
 }
-
 object *lookup_variable(object *var, object *env) {
 	while (!is_null(env)) {
 		object *frame = car(env);
@@ -543,8 +474,6 @@ object *lookup_variable(object *var, object *env) {
 	}
 	return NIL;
 }
-
-/* set_variable binds var to val in the first frame in which var occurs */
 void set_variable(object *var, object *val, object *env) {
 	while (!is_null(env)) {
 		object *frame = car(env);
@@ -561,14 +490,11 @@ void set_variable(object *var, object *val, object *env) {
 		env = cdr(env);
 	}
 }
-
-/* define_variable binds var to val in the *current* frame */
 object *define_variable(object *var, object *val,
 		object *env) {
 	object *frame = car(env);
 	object *vars = car(frame);
 	object *vals = cdr(frame);
-
 	while (!is_null(vars)) {
 		if (is_equal(var, car(vars))) {
 			vals->car = val;
@@ -581,23 +507,17 @@ object *define_variable(object *var, object *val,
 	frame->cdr = cons(val, cdr(frame));
 	return val;
 }
-
 char type_symbolS[] = "~!@#$%^&*_-+\\:,.<>|{}[]?=/";
-
 int depth = 0;
-
 object *eval_list(object *exp, object *env) {
 	if (is_null(exp)) return NIL;
 	return cons(sao_eval(car(exp), env), eval_list(cdr(exp), env));
 }
-
 object *eval_sequence(object *exps, object *env) {
 	if (is_null(cdr(exps))) return sao_eval(car(exps), env);
 	sao_eval(car(exps), env);
 	return eval_sequence(cdr(exps), env);
 }
-
-/* Loads and evaluates a file containing lisp s-expressions */
 object *load_file(object *args) {
 	object *exp;
 	object *ret = 0;
@@ -623,12 +543,10 @@ object *load_file(object *args) {
 #if defined(DEBUG)
 #include "debug_scheme.c"
 #endif
-//TMP
 #define PROFILE
 static u64 ffi_microtime(void)
 {
 #ifdef _WIN32
-	//return (u64)(libc(GetTickCount)());
 	return (u64)(ffic("kernel32","GetTickCount")());
 #else
 	struct timeval {
@@ -640,7 +558,6 @@ static u64 ffi_microtime(void)
 	return tv->tv_sec*1000 + (tv->tv_usec+500)/1000;
 #endif
 }
-
 #define NEW_OBJECT(t,name) t*name=libc(calloc)(sizeof(t),sizeof(char));
 FILEWrapper * FileWrapper_new(FILE* fp)
 {
@@ -653,20 +570,10 @@ FILEWrapper * FileWrapper_new(FILE* fp)
 }
 void FileWrapper_feed(FILEWrapper* fw)
 {
-	ffi_func exit = libc(exit);
-	ffi_func fopen = libc(fopen);
 	ffi_func fread = libc(fread);
-	ffi_func fclose = libc(fclose);
-	ffi_func feof = libc(feof);
-	ffi_func usleep = libc(usleep);
-	ffi_func msleep = libc(msleep);
-	ffi_func sleep = libc(sleep);
-	ffi_func fputc = libc(fputc);
-
 	int ok=0,ko=0;
 	int k=0;
 	int ct = 0;
-
 	for(;;)
 	{
 		if(1==(long)fread(&k,sizeof(char),1,fw->fp))
@@ -689,14 +596,12 @@ void FileWrapper_feed(FILEWrapper* fw)
 			}
 			fw->count+=1;
 			ok++;
-		}else{
-			//printf("ct=%d,ok=%d,ko=%d,k=%d,EOF=%s\n",ct,ok,ko,k,feof(fw->fp)?"Y":"N");
+		}else{ //printf("ct=%d,ok=%d,ko=%d,k=%d,EOF=%s\n",ct,ok,ko,k,feof(fw->fp)?"Y":"N");
 			return;
 		}
 		ct++;
 	}
 }
-
 int sao_getc(FILEWrapper *fw)
 {
 	int c;
@@ -709,14 +614,11 @@ int sao_getc(FILEWrapper *fw)
 	}
 	return c;
 }
-
-/////////////////////////////////////////////////
 object *sao_prim_print(object *args) {
 	sao_out_expr(0, car(args));
 	libc(printf)("\n");
 	return NIL;
 }
-
 object *sao_read_symbol(FILEWrapper * fw, char start)
 {
 	char buf[128];
@@ -739,7 +641,6 @@ object *sao_make_integer(int x)
 	ret->integer = x;
 	return ret;
 }
-
 void sao_ungetc(int c, FILEWrapper * fw)
 {
 	FileChar * current = fw->current;
@@ -756,7 +657,6 @@ int sao_peek(FILEWrapper * fw)
 	sao_ungetc(c, fw);
 	return c;
 }
-
 int sao_read_int(FILEWrapper * fw, int start)
 {
 	while ( sao_is_digit(sao_peek(fw)) )
@@ -791,7 +691,6 @@ inline object *sao_load_str(FILEWrapper * fw)
 	s->type = type_string;
 	return s;
 }
-
 void sao_comment(FILEWrapper * fw)
 {
 	int c;
@@ -800,7 +699,6 @@ void sao_comment(FILEWrapper * fw)
 		if (c == '\n' || c == (-1)) return;
 	}
 }
-
 object *sao_load_expr(FILEWrapper * fw)
 {
 	int c;
@@ -820,7 +718,6 @@ object *sao_load_expr(FILEWrapper * fw)
 			continue;
 		}
 		if (c == '\'') return cons(QUOTE, cons(sao_load_expr(fw), NIL));
-
 		if (c == '(') {
 			depth++;
 			return sao_read_list(fw);
@@ -832,13 +729,11 @@ object *sao_load_expr(FILEWrapper * fw)
 		if (sao_is_digit(c)) return sao_make_integer(sao_read_int(fw, c - '0'));
 		if (c == '-' && sao_is_digit(sao_peek(fw)))
 			return sao_make_integer(-1 * sao_read_int(fw, sao_getc(fw) - '0'));
-
 		if (libc(isalpha)(c) || libc(strchr)(type_symbolS, c))
 			return sao_read_symbol(fw, c);
 	}
 	return NIL;
 }
-
 void sao_out_expr(char *str, object *e)
 {
 	if (str)
@@ -886,7 +781,6 @@ void sao_out_expr(char *str, object *e)
 			libc(printf)(")");
 	}
 }
-
 object *sao_eval(object *exp, object *env)
 {
 tail:
@@ -987,7 +881,6 @@ tail:
 			sao_out_expr("Invalid arguments to sao_eval:", exp);
 			printf("\n");
 #endif
-
 			return NIL;
 		}
 		if (proc->type == type_primitive)
@@ -1015,12 +908,10 @@ void init_env() {
 	add_sym("define", DEFINE);
 	add_sym("let", LET);
 	add_sym("set!", SET);
-
 	add_sym("begin", BEGIN);//TODO remove or add END
 	add_sym("if", IF);
 	define_variable(sao_make_symbol("true"), TRUE, ENV);
 	define_variable(sao_make_symbol("false"), FALSE, ENV);
-
 	add_prim("cons", prim_cons);
 	add_prim("car", prim_car);
 	add_prim("cdr", prim_cdr);
@@ -1033,7 +924,6 @@ void init_env() {
 	add_prim("atom?", prim_atomq);
 	add_prim("eq?", prim_eq);
 	add_prim("equal?", prim_equal);
-
 	add_prim("+", prim_add);
 	add_prim("-", prim_sub);
 	add_prim("*", prim_mul);
@@ -1041,7 +931,6 @@ void init_env() {
 	add_prim("=", prim_neq);
 	add_prim("<", prim_lt);
 	add_prim(">", prim_gt);
-
 	add_prim("type", prim_type);
 	add_prim("load", load_file);
 	add_prim("print", sao_prim_print);
@@ -1056,9 +945,9 @@ void init_env() {
 	add_prim("vector-get", prim_vget);
 	add_prim("vector-set", prim_vset);
 }
-
 int main(int argc, char **argv)
 {
+	//TODO fprintf(stderr,)
 	ffi_func printf = libc(printf);
 	ht_init(8192-1);
 	init_env();
@@ -1067,16 +956,13 @@ int main(int argc, char **argv)
 	for(;;){
 		//producer:
 		FileWrapper_feed(fw);
-
 		object *obj = sao_load_expr(fw);
-
 		if (!is_null(obj)) {
 #if defined(PROFILE)
 			printf("%lu: ",ffi_microtime());
 #endif
 			sao_out_expr("<=", obj);
 			printf("\n");
-
 			object *exp = sao_eval(obj, ENV);
 			if (!is_null(exp)) {
 #if defined(PROFILE)
@@ -1094,7 +980,5 @@ int main(int argc, char **argv)
 			break;
 		}
 	}
-
 	return 0;
-
 }
