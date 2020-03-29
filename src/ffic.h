@@ -234,8 +234,6 @@ void* ffic_usleep(int nano_seconds)
 	return 0;
 };
 
-//TODO
-//ffic_fopen <stdin>..."-"... auto binary.... etc
 #  ifndef libc
 #  define libc(f) ffic("c",#f)
 #  endif
