@@ -10,6 +10,8 @@ int main(int argc, char **argv){
 
 	tcc(tcc_set_output_type)(tcc_ptr, 1/*TCC_OUTPUT_MEMORY*/);
 
+	tcc(tcc_define_symbol)(tcc_ptr, "FFIC", "2");
+
 	tcc(tcc_set_options)(tcc_ptr, "-nostdinc");
 #ifdef _WIN32
 	//tcc(tcc_set_options)(tcc_ptr, "-nostdlib");
@@ -31,8 +33,6 @@ int main(int argc, char **argv){
 	tcc(tcc_add_symbol)(tcc_ptr, "ffic_raw", ffic_raw);
 
 	tcc(tcc_add_file)(tcc_ptr,(argc>1) ? argv[1] : "-");
-
-	tcc(tcc_define_symbol)(tcc_ptr, "FFIC", "2");
 
 	if (tcc(tcc_relocate)(tcc_ptr, 1/*TCC_RELOCATE_AUTO*/) < 0) return 2;
 	anyptr (*entry)() = tcc(tcc_get_symbol)(tcc_ptr, "main");
