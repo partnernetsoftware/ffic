@@ -10,7 +10,7 @@
 #define DEFINE_ENUM(n) libc_##n,
 #define LIBC_FUNC_LIST fprintf,stderr,exit,malloc,memset,strdup,strcmp,printf,\
 stdin,putc,getc,ungetc,isalnum,strchr,isdigit,isalpha,fopen,fread,fclose,feof,\
-usleep,msleep,sleep,_setmode,_fileno,setmode,fileno,\
+usleep,msleep,sleep,fputc,_setmode,_fileno,setmode,fileno,\
 gettimeofday,calloc,stdout,NULL
 //TODO make ffi buffer then after the ffic()
 enum {
@@ -24,6 +24,26 @@ typedef void*(*ffi_func)();
 //TODO change to int=>char* map to get name
 ffi_func libcf(int fi,const char* fn){
 	return libc_a[fi]?libc_a[fi]:(libc_a[fi]=ffic("c",fn));
+}
+typedef struct _FileChar FileChar, *pFileChar;
+struct _FileChar {
+	char * c;
+	FileChar * next;
+	//pFileChar next;
+};
+typedef struct {
+	FILE* fp;
+	FileChar * current;
+	//pFileChar current;
+} FILEWrapper;
+#define NEW_OBJECT(t,name) t*name=libc(calloc)(sizeof(t),sizeof(char));
+FILEWrapper * new_FileWrapper(FILE* fp)
+{
+	//FILEWrapper * fw = libc(calloc)(sizeof(FILEWrapper),sizeof(char));
+	NEW_OBJECT(FILEWrapper,fw);
+	fw->fp = fp;
+	fw->current = (void*) 0;
+	return fw;
 }
 //////////////////////////////////////////////////////////////////////////////
 #define is_null(x) ((x) == 0 || (x) == NIL)
@@ -979,39 +999,47 @@ int main(int argc, char **argv)
 	ffi_func usleep = libc(usleep);
 	ffi_func msleep = libc(msleep);
 	ffi_func sleep = libc(sleep);
+	ffi_func fputc = libc(fputc);
 
+	libc(setmode)(libc(fileno)(libc(stdin)),0x8000/*O_BINARY*/);
+	
 	//TODO load file into file buffer (linker struct) (producer)
 	//TODO read_expression as consumer
-//	libc(setmode)(libc(fileno)(libc(stdin)),0x8000/*O_BINARY*/);
-//
-//	int ok=0,ko=0,k=0;
-//	int ct = 0;
-//	//FILE * fp = libc(fopen)("<stdin>","rb");//TODO
-//	FILE * fp = (FILE*) libc(stdin);
-//	//while(!feof(fp))
-//	for(;;)
-//	{
-//		//k=0;
-//		if(1==(int)fread(&k,sizeof(char),1,fp)){
-//			ok++;
-//		}else{
-//			ko++;
-//			//usleep(1000000);
-//			//sleep(1);
-//			msleep(1000);
-//			if(ko>3){
-//				break;
-//			}
-//			//if(0==feof(fp)){
-//			//	sleep(1);
-//			//}
-//			printf("ct=%d,ok=%d,ko=%d,k=%d,EOF=%s\n",ct,ok,ko,k,feof(fp)?"Y":"N");
-//		}
-//		ct++;
-//	}
-//	printf("\nEND ok=%d,ko=%d,k=%d,ct=%d\n",ok,ko,k,ct);
-//	libc(fclose)(fp);
-//	return 0;
+
+	int ok=0,ko=0;
+	char k;
+	int ct = 0;
+	//FILE * fp = libc(fopen)("<stdin>","rb");//TODO
+	FILE * fp = (FILE*) libc(stdin);
+	FILE * out = (FILE*) libc(stdout);
+	FILEWrapper * fw = new_FileWrapper((FILE*)libc(stdin));
+	//producer:
+	for(;;)
+	{
+		//k=0;
+		if(1==(long)fread(&k,sizeof(char),1,fp))
+		{
+			ok++;
+			//fputc(out,k);
+			printf(" %d ",k);
+		}else{
+			ko++;
+			//usleep(1000000);
+			//sleep(1);
+			msleep(1000);
+			if(ko>3){
+				break;
+			}
+			//if(0==feof(fp)){
+			//	sleep(1);
+			//}
+			printf("ct=%d,ok=%d,ko=%d,k=%d,EOF=%s\n",ct,ok,ko,k,feof(fp)?"Y":"N");
+		}
+		ct++;
+	}
+	printf("\nEND ok=%d,ko=%d,k=%d,ct=%d\n",ok,ko,k,ct);
+	libc(fclose)(fp);
+	return 0;
 
 #if defined(PROFILE)
 	libc(printf)("%ld: start\n",ffi_microtime());
