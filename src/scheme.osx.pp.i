@@ -14,25 +14,12 @@ typedef struct __FILE FILE;
 extern FILE *__stdinp;
 extern FILE *__stdoutp;
 extern FILE *__stderrp;
-char* ffi_strcat(char** dest, const char* src)
-{
- int i = 0;
- char cur;
- while(1) {
-  cur = src[i];
-  (*dest)[i] = cur;
-  if(cur == 0) break;
-  i++;
- }
- *dest += i;
- return *dest;
-}
+int sprintf(char *str, const char *format, ...);
 int fprintf(FILE *stream, const char *format, ...);
 int fflush(FILE *stream);
 extern int strcmp(const char*,const char*);
 extern void* dlopen(const char *,int);
 extern void *dlsym(void *, const char *);
-typedef void*(*ffi_func)();
 void* ffi_void(){return 0;};
 void*(*ffi_raw(const char* libfilename, const char* funcname, ...))()
 {
@@ -61,16 +48,17 @@ void*(*ffi(const char* libname, const char* funcname, ...))()
   }
  }else{
   char libfilename[128] = {0};
-  ffi_strcat((char**)libfilename,libname);
-  ffi_strcat((char**)libfilename,
+  sprintf(libfilename,
+    "%s%s",
+    libname,
     ".dylib"
     );
   addr = ffi_raw(libfilename,funcname);
  }
  return addr;
 }
-ffi_func libcf(int fi,const char* fn);
-inline ffi_func libcf(int fi,const char* fn){
+typedef void*(*ffi_func)();
+ffi_func libcf(int fi,const char* fn){
  return libc_a[fi]?libc_a[fi]:(libc_a[fi]=ffi("c",fn));
 }
 char *types[6] = {"integer","symbol","string","list","primitive","vector"};
@@ -416,7 +404,6 @@ object *prim_exit(object *args) {
  return NIL;
 }
 object *prim_read(object *args) {
- libcf(libc_assert,"assert")(((args) == 0 || (args) == NIL));
  return read_expression((FILE*)libcf(libc_stdin,"stdin"));
 }
 object *prim_vget(object *args) {
@@ -509,7 +496,7 @@ object *_read_string(FILE *in) {
  char buf[256];
  int i = 0;
  u64 c;
- while ((c = (int) libcf(libc_getc,"getc")(in)) != '\"') {
+ while ((c = (u64) libcf(libc_getc,"getc")(in)) != '\"') {
   if (c == (-1))
    return NIL;
   if (i >= 256)
@@ -528,14 +515,14 @@ object *_read_symbol(FILE *in, char start) {
  while (libcf(libc_isalnum,"isalnum")(peek(in)) || libcf(libc_strchr,"strchr")(type_symbolS, peek(in))) {
   if (i >= 128)
    do{libcf(libc_fprintf,"fprintf")(libcf(libc_stderr,"stderr"),"%s\n","Symbol name too long - maximum length 128 characters");libcf(libc_exit,"exit")(1);}while(0);
-  buf[i++] = (int) libcf(libc_getc,"getc")(in);
+  buf[i++] = (u64) libcf(libc_getc,"getc")(in);
  }
  buf[i] = '\0';
  return make_symbol(buf);
 }
 int read_int(FILE *in, int start) {
  while (libcf(libc_isdigit,"isdigit")(peek(in)))
-  start = start * 10 + ((int)libcf(libc_getc,"getc")(in) - '0');
+  start = start * 10 + ((u64)libcf(libc_getc,"getc")(in) - '0');
  return start;
 }
 object *_read_list(FILE *in) {
@@ -553,7 +540,7 @@ int depth = 0;
 object *read_expression(FILE *in) {
  int c;
  for (;;) {
-  c = (int)libcf(libc_getc,"getc")(in);
+  c = (u64)libcf(libc_getc,"getc")(in);
   if (c == '\n' || c == '\r' || c == ' ' || c == '\t') {
    continue;
   }
@@ -578,7 +565,7 @@ object *read_expression(FILE *in) {
   if ((u64)libcf(libc_isdigit,"isdigit")(c))
    return make_integer(read_int(in, c - '0'));
   if (c == '-' && (u64)libcf(libc_isdigit,"isdigit")(peek(in)))
-   return make_integer(-1 * read_int(in, (int)libcf(libc_getc,"getc")(in) - '0'));
+   return make_integer(-1 * read_int(in, (u64)libcf(libc_getc,"getc")(in) - '0'));
   if (libcf(libc_isalpha,"isalpha")(c) || libcf(libc_strchr,"strchr")(type_symbolS, c))
    return _read_symbol(in, c);
  }

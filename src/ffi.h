@@ -92,19 +92,6 @@ extern void*(*ffi(const char*, const char*, ...))();
 #  endif
 # elif TCC_FFI==1
 //int sprintf(char *str, const char *format, ...);
-char* ffi_strcat(char** dest, const char* src)
-{
-	int i = 0;
-	char cur;
-	while(1) {
-		cur = src[i];
-		(*dest)[i] = cur;
-		if(cur == 0) break;
-		i++;
-	}
-	*dest += i;
-	return *dest;
-}
 int fprintf(FILE *stream, const char *format, ...);
 int fflush(FILE *stream);
 extern int strcmp(const char*,const char*);
@@ -124,7 +111,19 @@ extern void *dlsym(void *, const char *);
 #define ffi_dlsym dlsym
 #   endif
 #define ffi_dlopen dlopen 
-typedef void*(*ffi_func)();
+void ffi_strcat(char *target, const char *source, const char* append) {
+	while (*source) {
+		*target = *source;
+		source++;
+		target++;
+	}
+	while (*append) {
+		*target = *append;
+		append++;
+		target++;
+	}
+	*target = '\0';
+}
 void* ffi_void(){return 0;};
 void*(*ffi_raw(const char* libfilename, const char* funcname, ...))()
 {
@@ -147,27 +146,32 @@ void*(*ffi(const char* libname, const char* funcname, ...))()
 		}else if(!strcmp("stdin",funcname)){
 			addr = stdin;
 		}else{
-#ifdef _WIN32
-			if(!strcmp("strdup",funcname)){
-				funcname = "_strdup";
-			}
-#endif
-			addr = ffi_raw(
+			libname = 
 #if defined(__APPLE__)
-					"libc.dylib"
+				"libc"
 #elif defined(_WIN64)
-					"msvcrt.dll"
+				"msvcrt"
 #elif defined(_WIN32) || defined(_WIN64)
-					"msvcrt.dll"
+				"msvcrt"
 #else
-					"libc.so"
+				"libc"
 #endif
-					,funcname);
+				;				
 		}
 	}else{
+#ifdef _WIN32
+		if(!strcmp("strdup",funcname)){
+			funcname = "_strdup";
+		}else
+			if(!strcmp("usleep",funcname)){
+				funcname = "Sleep";
+				libname = "kernel32";
+			}
+#endif
+	}
+	if(addr==0){
 		char libfilename[128] = {0};
-		ffi_strcat((char**)libfilename,libname);
-		ffi_strcat((char**)libfilename,
+		ffi_strcat(libfilename,libname,
 #if defined(__APPLE__)
 				".dylib"
 #elif defined(_WIN32) || defined(_WIN64)
@@ -176,21 +180,12 @@ void*(*ffi(const char* libname, const char* funcname, ...))()
 				".so"
 #endif
 				);
-//		sprintf(libfilename,
-//				"%s%s",
-//				libname,
-//#if defined(__APPLE__)
-//				".dylib"
-//#elif defined(_WIN32) || defined(_WIN64)
-//				".dll"
-//#else
-//				".so"
-//#endif
-//				);
 		addr = ffi_raw(libfilename,funcname);
 	}
 	return addr;
 }
+//TODO
+//ffi_fopen <stdin>..."-"... auto binary.... etc
 #  ifndef libc
 #  define libc(f) ffi("c",#f)
 #  endif

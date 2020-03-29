@@ -1,0 +1,2 @@
+(load "lib.scm")
+x

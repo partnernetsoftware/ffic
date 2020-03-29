@@ -9,7 +9,8 @@
 #include "macros.h"
 #define DEFINE_ENUM(n) libc_##n,
 #define LIBC_FUNC_LIST fprintf,stderr,exit,malloc,memset,strdup,strcmp,printf,\
-assert,stdin,getc,ungetc,isalnum,strchr,isdigit,isalpha,fopen,fclose,\
+stdin,putc,getc,ungetc,isalnum,strchr,isdigit,isalpha,fopen,fread,fclose,feof,usleep,\
+_setmode,_fileno,\
 gettimeofday,calloc,stdout,NULL
 //TODO make ffi buffer then after the ffi()
 enum {
@@ -18,8 +19,10 @@ enum {
 void* (*libc_a[libc_NULL])();//function buffer
 #define libc(f) libcf(libc_##f,#f)
 #include "ffi.h"
-ffi_func libcf(int fi,const char* fn);
-inline ffi_func libcf(int fi,const char* fn){
+typedef void*(*ffi_func)();
+//ffi_func libcf(int fi,const char* fn);
+//TODO change to int=>char* map to get name
+ffi_func libcf(int fi,const char* fn){
 	return libc_a[fi]?libc_a[fi]:(libc_a[fi]=ffi("c",fn));
 }
 //////////////////////////////////////////////////////////////////////////////
@@ -85,6 +88,7 @@ object *cdr(object *);
 object *car(object *);
 object *lookup_variable(object *var, object *env);
 
+object *read_string(FILE *in);
 int type_check_func(const char *func, object *obj, type_t type);
 
 /*==============================================================================
@@ -453,7 +457,7 @@ object *prim_exit(object *args) {
 }
 
 object *prim_read(object *args) {
-	libc(assert)(is_null(args));
+	//libc(assert)(is_null(args));
 	return read_expression((FILE*)libc(stdin));
 }
 
@@ -565,11 +569,12 @@ void skip(FILE *in) {
 	}
 }
 
-object *_read_string(FILE *in) {
+inline object *read_string(FILE *in)
+{
 	char buf[256];
 	int i = 0;
 	u64 c;
-	while ((c = (int) libc(getc)(in)) != '\"') {
+	while ((c = (u64) libc(getc)(in)) != '\"') {
 		if (c == (-1))
 			return NIL;
 		if (i >= 256)
@@ -589,7 +594,7 @@ object *_read_symbol(FILE *in, char start) {
 	while (libc(isalnum)(peek(in)) || libc(strchr)(type_symbolS, peek(in))) {
 		if (i >= 128)
 			error("Symbol name too long - maximum length 128 characters");
-		buf[i++] = (int) libc(getc)(in);
+		buf[i++] = (u64) libc(getc)(in);
 	}
 	buf[i] = '\0';
 	return make_symbol(buf);
@@ -597,7 +602,7 @@ object *_read_symbol(FILE *in, char start) {
 
 int read_int(FILE *in, int start) {
 	while (libc(isdigit)(peek(in)))
-		start = start * 10 + ((int)libc(getc)(in) - '0');
+		start = start * 10 + ((u64)libc(getc)(in) - '0');
 	return start;
 }
 
@@ -620,13 +625,12 @@ object *_read_list(FILE *in) {
 
 int depth = 0;
 
-//TODO eval_read_expression()
 object *read_expression(FILE *in) {
 	//int is_stdin = (in == (FILE*) libc(stdin));
 	int c;
 
 	for (;;) {
-		c = (int)libc(getc)(in);
+		c = (u64)libc(getc)(in);
 		if (c == '\n' || c == '\r' || c == ' ' || c == '\t') {
 			//if ((c == '\n' || c == '\r') && is_stdin) {
 			//	for (int i = 0; i < depth; i++) libc(printf)("..");
@@ -641,7 +645,7 @@ object *read_expression(FILE *in) {
 		if (c == (-1))
 			return 0;
 		if (c == '\"')
-			return _read_string(in);
+			return read_string(in);
 		if (c == '\'')
 			//return _read_quote(in);
 			return cons(QUOTE, cons(read_expression(in), NIL));
@@ -653,10 +657,12 @@ object *read_expression(FILE *in) {
 			depth--;
 			return EMPTY_LIST;
 		}
-		if ((u64)libc(isdigit)(c))
-			return make_integer(read_int(in, c - '0'));
+
+		if ((u64)libc(isdigit)(c)) return make_integer(read_int(in, c - '0'));
+
 		if (c == '-' && (u64)libc(isdigit)(peek(in)))
-			return make_integer(-1 * read_int(in, (int)libc(getc)(in) - '0'));
+			return make_integer(-1 * read_int(in, (u64)libc(getc)(in) - '0'));
+
 		if (libc(isalpha)(c) || libc(strchr)(type_symbolS, c))
 			return _read_symbol(in, c);
 	}
@@ -913,7 +919,7 @@ void init_env() {
 	//	add_prim("set-global-environment", prim_set_env);
 	add_prim("exit", prim_exit);//TODO change to ffi
 	//add_prim("exec", prim_exec);//change to ffi
-	add_prim("read", prim_read);
+	add_prim("read", prim_read);//read from stdin (like scan)
 	add_prim("vector", prim_vec);
 	add_prim("vector-get", prim_vget);
 	add_prim("vector-set", prim_vset);
@@ -963,6 +969,47 @@ static u64 ffi_microtime(void)
 }
 int main(int argc, char **argv)
 {
+	//FILE * fp = (FILE*) libc(stdin);
+	ffi_func printf = libc(printf);
+	ffi_func exit = libc(exit);
+	ffi_func fopen = libc(fopen);
+	ffi_func fread = libc(fread);
+	ffi_func fclose = libc(fclose);
+	ffi_func feof = libc(feof);
+	ffi_func usleep = libc(usleep);
+
+#if defined(_WIN32)
+	//libc(_setmode)(libc(_fileno)(stdout), 0x8000 /*_O_BINARY*/);
+	libc(_setmode)(libc(_fileno)(libc(stdin)), 0x8000 /*_O_BINARY*/);
+#endif
+	
+	int ok=0,ko=0,k=0;
+	int ct = 0;
+	//FILE * fp = libc(fopen)("<stdin>","rb");//TODO
+	FILE * fp = (FILE*) libc(stdin);
+	//while(!feof(fp))
+	for(;;)
+	{
+		//k=0;
+		if(1==(int)fread(&k,sizeof(char),1,fp)){
+			ok++;
+		}else{
+			ko++;
+			usleep(1000);
+			if(ko>3){
+				break;
+			}
+			//if(0==feof(fp)){
+			//	sleep(1);
+			//}
+			printf("ct=%d,ok=%d,ko=%d,k=%d,EOF=%s\n",ct,ok,ko,k,feof(fp)?"Y":"N");
+		}
+		ct++;
+	}
+	printf("\nEND ok=%d,ko=%d,k=%d,ct=%d\n",ok,ko,k,ct);
+	libc(fclose)(fp);
+	return 0;
+
 #if defined(PROFILE)
 	libc(printf)("%ld: start\n",ffi_microtime());
 #endif
