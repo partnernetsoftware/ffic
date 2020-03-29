@@ -20,31 +20,14 @@ void* (*libc_a[libc_NULL])();//function buffer
 #define libc(f) libcf(libc_##f,#f)
 #include "ffic.h"
 typedef void*(*ffi_func)();
-//ffi_func libcf(int fi,const char* fn);
-//TODO change to int=>char* map to get name
 ffi_func libcf(int fi,const char* fn){
 	return libc_a[fi]?libc_a[fi]:(libc_a[fi]=ffic("c",fn));
 }
-typedef struct _FileChar FileChar, *pFileChar;
-struct _FileChar {
-	char * c;
-	FileChar * next;
-	//pFileChar next;
-};
-typedef struct {
-	FILE* fp;
-	FileChar * current;
-	//pFileChar current;
-} FILEWrapper;
-#define NEW_OBJECT(t,name) t*name=libc(calloc)(sizeof(t),sizeof(char));
-FILEWrapper * new_FileWrapper(FILE* fp)
-{
-	//FILEWrapper * fw = libc(calloc)(sizeof(FILEWrapper),sizeof(char));
-	NEW_OBJECT(FILEWrapper,fw);
-	fw->fp = fp;
-	fw->current = (void*) 0;
-	return fw;
-}
+//TMP
+ffi_func printf;//= libc(printf);
+//ffi_func libcf(int fi,const char* fn);
+//TODO change to int=>char* map to get name
+#define NULL ((void*)0)
 //////////////////////////////////////////////////////////////////////////////
 #define is_null(x) ((x) == 0 || (x) == NIL)
 #define is_EOL(x) (is_null((x)) || (x) == EMPTY_LIST)
@@ -117,18 +100,14 @@ int type_check_func(const char *func, object *obj, type_t type);
 struct htable {
 	object *key;
 };
-/* One dimensional hash table */
 static struct htable *HTABLE = 0;
-//struct htable *HTABLE = 0;
-static int HTABLE_SIZE;
+static int HTABLE_SIZE = 0;
 
 static i64 hash(const char *s) {
 	i64 h = 0;
-
-	u8 *u = (u8 *)s;
-
+	u8 *u = (u8 *) s;
 	while (*u) {
-		h = (h * 256 + *u) % HTABLE_SIZE;
+		h = (h * 256 + (*u)) % HTABLE_SIZE;
 		u++;
 	}
 	return h;
@@ -137,9 +116,12 @@ static i64 hash(const char *s) {
 int ht_init(int size) {
 	if (HTABLE || !(size % 2))
 		error("Hash table already initialized or even # of entries");
+	printf("ht_init %d\n",size);
 	HTABLE = libc(malloc)(sizeof(struct htable) * size);
 	libc(memset)(HTABLE, 0, sizeof(struct htable) * size);
 	HTABLE_SIZE = size;
+	if(HTABLE_SIZE==0)
+		error("HTABLE_SIZE=0???");
 	return size;
 }
 
@@ -579,8 +561,8 @@ int peek(FILE *in) {
 	return c;
 }
 
-/* skip characters until end of line */
-void skip(FILE *in) {
+void skip(FILE *in)
+{
 	u64 c;
 	for (;;) {
 		c = (u64) libc(getc)(in);
@@ -645,47 +627,48 @@ object *_read_list(FILE *in) {
 
 int depth = 0;
 
-object *read_expression(FILE *in) {
-	//int is_stdin = (in == (FILE*) libc(stdin));
-	int c;
-
-	for (;;) {
-		c = (u64)libc(getc)(in);
-		if (c == '\n' || c == '\r' || c == ' ' || c == '\t') {
-			//if ((c == '\n' || c == '\r') && is_stdin) {
-			//	for (int i = 0; i < depth; i++) libc(printf)("..");
-			//}
-			continue;
-		}
-		//libc(printf)("%i ",c);
-		if (c == ';') {
-			skip(in);
-			continue;
-		}
-		if (c == (-1))
-			return 0;
-		if (c == '\"')
-			return read_string(in);
-		if (c == '\'')
-			//return _read_quote(in);
-			return cons(QUOTE, cons(read_expression(in), NIL));
-		if (c == '(') {
-			depth++;
-			return _read_list(in);
-		}
-		if (c == ')') {
-			depth--;
-			return EMPTY_LIST;
-		}
-
-		if ((u64)libc(isdigit)(c)) return make_integer(read_int(in, c - '0'));
-
-		if (c == '-' && (u64)libc(isdigit)(peek(in)))
-			return make_integer(-1 * read_int(in, (u64)libc(getc)(in) - '0'));
-
-		if (libc(isalpha)(c) || libc(strchr)(type_symbolS, c))
-			return _read_symbol(in, c);
-	}
+object *read_expression(FILE *in)
+{
+//	//int is_stdin = (in == (FILE*) libc(stdin));
+//	int c;
+//
+//	for (;;) {
+//		c = (u64)libc(getc)(in);
+//		if (c == '\n' || c == '\r' || c == ' ' || c == '\t') {
+//			//if ((c == '\n' || c == '\r') && is_stdin) {
+//			//	for (int i = 0; i < depth; i++) libc(printf)("..");
+//			//}
+//			continue;
+//		}
+//		//libc(printf)("%i ",c);
+//		if (c == ';') {
+//			skip(in);
+//			continue;
+//		}
+//		if (c == (-1))
+//			return 0;
+//		if (c == '\"')
+//			return read_string(in);
+//		if (c == '\'')
+//			//return _read_quote(in);
+//			return cons(QUOTE, cons(read_expression(in), NIL));
+//		if (c == '(') {
+//			depth++;
+//			return _read_list(in);
+//		}
+//		if (c == ')') {
+//			depth--;
+//			return EMPTY_LIST;
+//		}
+//
+//		if ((u64)libc(isdigit)(c)) return make_integer(read_int(in, c - '0'));
+//
+//		if (c == '-' && (u64)libc(isdigit)(peek(in)))
+//			return make_integer(-1 * read_int(in, (u64)libc(getc)(in) - '0'));
+//
+//		if (libc(isalpha)(c) || libc(strchr)(type_symbolS, c))
+//			return _read_symbol(in, c);
+//	}
 	return NIL;
 }
 void print_expression(char *str, object *e) {
@@ -987,10 +970,32 @@ static u64 ffi_microtime(void)
 	return tv->tv_sec*1000 + (tv->tv_usec+500)/1000;
 #endif
 }
-int main(int argc, char **argv)
+
+typedef struct _FileChar FileChar, *pFileChar;
+struct _FileChar {
+	int c;
+	FileChar * next;
+	//pFileChar next;
+};
+typedef struct {
+	FILE* fp;
+	FileChar * first;
+	FileChar * last;
+	FileChar * current;
+	long count;
+} FILEWrapper;
+#define NEW_OBJECT(t,name) t*name=libc(calloc)(sizeof(t),sizeof(char));
+FILEWrapper * FileWrapper_new(FILE* fp)
 {
-	//FILE * fp = (FILE*) libc(stdin);
-	ffi_func printf = libc(printf);
+	//FILEWrapper * fw = libc(calloc)(sizeof(FILEWrapper),sizeof(char));
+	NEW_OBJECT(FILEWrapper,fw);
+	fw->fp = fp;
+	fw->current = fw->last = fw->first = (void*)0;
+	fw->count = 0;
+	return fw;
+}
+void FileWrapper_feed(FILEWrapper* fw)
+{
 	ffi_func exit = libc(exit);
 	ffi_func fopen = libc(fopen);
 	ffi_func fread = libc(fread);
@@ -1001,44 +1006,197 @@ int main(int argc, char **argv)
 	ffi_func sleep = libc(sleep);
 	ffi_func fputc = libc(fputc);
 
-	libc(setmode)(libc(fileno)(libc(stdin)),0x8000/*O_BINARY*/);
-	
-	//TODO load file into file buffer (linker struct) (producer)
-	//TODO read_expression as consumer
-
 	int ok=0,ko=0;
-	char k;
+	int k=0;
 	int ct = 0;
-	//FILE * fp = libc(fopen)("<stdin>","rb");//TODO
-	FILE * fp = (FILE*) libc(stdin);
-	FILE * out = (FILE*) libc(stdout);
-	FILEWrapper * fw = new_FileWrapper((FILE*)libc(stdin));
-	//producer:
+
 	for(;;)
 	{
-		//k=0;
-		if(1==(long)fread(&k,sizeof(char),1,fp))
+		if(1==(long)fread(&k,sizeof(char),1,fw->fp))
 		{
-			ok++;
-			//fputc(out,k);
-			printf(" %d ",k);
-		}else{
-			ko++;
-			//usleep(1000000);
-			//sleep(1);
-			msleep(1000);
-			if(ko>3){
-				break;
+			NEW_OBJECT(FileChar,fc);
+			fc->c = k; 
+			fc->next = (void*) 0;
+			//printf("%d-%c ",k,k);
+			if(0==fw->first){
+				fw->first = fc;
+				fw->current = fc;
+				//printf("!!!");
 			}
-			//if(0==feof(fp)){
-			//	sleep(1);
-			//}
-			printf("ct=%d,ok=%d,ko=%d,k=%d,EOF=%s\n",ct,ok,ko,k,feof(fp)?"Y":"N");
+			if(0==fw->last){
+				fw->last = fc;
+			}else{
+				fw->last->next = fc;
+				fw->last = fc;
+			}
+			fw->count+=1;
+			ok++;
+		}else{
+			printf("ct=%d,ok=%d,ko=%d,k=%d,EOF=%s\n",ct,ok,ko,k,feof(fw->fp)?"Y":"N");
+			return;
 		}
 		ct++;
 	}
-	printf("\nEND ok=%d,ko=%d,k=%d,ct=%d\n",ok,ko,k,ct);
-	libc(fclose)(fp);
+}
+
+int sao_getc(FILEWrapper *fw)
+{
+	int c;
+	FileChar * current = fw->current;
+	if(current!=0){
+		c = current->c;
+		fw->current=current->next;
+		//printf("%c",c);
+	}else{
+		c = -1;
+	}
+	return c;
+}
+
+object *sao_load_expr(FILEWrapper * fw);
+void sao_comment(FILEWrapper * fw);
+inline object *sao_load_str(FILEWrapper * fw);
+inline object *sao_load_str(FILEWrapper * fw)
+{
+	char buf[256];
+	int i = 0;
+	int c;
+	while ((c = sao_getc(fw)) != '\"') {
+		if (c == (-1))
+			return NIL;
+		if (i >= 256) error("String too long - maximum length 256 characters");
+		buf[i++] = (char) c;
+	}
+	buf[i] = '\0';
+	object *s = make_symbol(buf);
+	s->type = type_string;
+	return s;
+}
+
+void sao_comment(FILEWrapper * fw)
+{
+	int c;
+	for (;;) {
+		//c = (u64) libc(getc)(in);
+		c = sao_getc(fw);
+		if (c == '\n' || c == (-1)) return;
+	}
+}
+
+object *sao_load_expr(FILEWrapper * fw)
+{
+	//ffi_func printf = libc(printf);
+	//FileChar * current = fw->current;
+	int c;
+	for (;;) {
+		//c = (u64)libc(getc)(in);
+		//FileChar * current = fw->current;
+		//if(current!=0){
+		//	c = current->c;
+		//	fw->current=current->next;
+		//}else{
+		//	c = -1;
+		//}
+		c = sao_getc(fw);
+		//TODO switch(){}
+		if (c == (-1)) return 0;
+		//printf("%c",c);
+		if (c == '\n' || c == '\r' || c == ' ' || c == '\t') {
+			//if ((c == '\n' || c == '\r') && is_stdin) {
+			//	for (int i = 0; i < depth; i++) libc(printf)("..");
+			//}
+			continue;
+		}
+		if (c == '\"') return sao_load_str(fw);
+		if (c == ';') {
+			//skip(in);
+			sao_comment(fw);
+			continue;
+		}
+		continue;
+		//if (c == '\'')
+		//	//return _read_quote(in);
+		//	return cons(QUOTE, cons(read_expression(in), NIL));
+		//if (c == '(') {
+		//	depth++;
+		//	return _read_list(in);
+		//}
+		//if (c == ')') {
+		//	depth--;
+		//	return EMPTY_LIST;
+		//}
+
+		//if ((u64)libc(isdigit)(c)) return make_integer(read_int(in, c - '0'));
+
+		//if (c == '-' && (u64)libc(isdigit)(peek(in)))
+		//	return make_integer(-1 * read_int(in, (u64)libc(getc)(in) - '0'));
+
+		//if (libc(isalpha)(c) || libc(strchr)(type_symbolS, c))
+		//	return _read_symbol(in, c);
+	}
+	return NIL;
+}
+
+int main(int argc, char **argv)
+{
+	printf = libc(printf);
+	ht_init(8192-1);
+
+	libc(setmode)(libc(fileno)(libc(stdin)),0x8000/*O_BINARY*/);
+	FILEWrapper * fw = FileWrapper_new((FILE*)libc(stdin));
+	for(;;){
+		FileWrapper_feed(fw);//east as much as can
+
+		//if(fw->current != fw->last) fw->current = fw->first;
+		object *obj = sao_load_expr(fw);
+
+		if (!is_null(obj)) {
+#if defined(PROFILE)
+			libc(printf)("%lu: ",ffi_microtime());
+#endif
+			print_expression("<=", obj);
+			libc(printf)("\n");
+		}else{
+			printf(" end ");
+			break;
+		}
+	}
+	//TODO load file into file buffer (linker struct) (producer)
+	//TODO read_expression as consumer
+
+//	int ok=0,ko=0;
+//	char k;
+//	int ct = 0;
+//	//FILE * fp = libc(fopen)("<stdin>","rb");//TODO
+//	FILE * fp = (FILE*) libc(stdin);
+//	FILE * out = (FILE*) libc(stdout);
+//	FILEWrapper * fw = FileWrapper_new((FILE*)libc(stdin));
+//	//producer:
+//	for(;;)
+//	{
+//		//k=0;
+//		if(1==(long)fread(&k,sizeof(char),1,fp))
+//		{
+//			ok++;
+//			//fputc(out,k);
+//			printf(" %d ",k);
+//		}else{
+//			ko++;
+//			//usleep(1000000);
+//			//sleep(1);
+//			msleep(1000);
+//			if(ko>3){
+//				break;
+//			}
+//			//if(0==feof(fp)){
+//			//	sleep(1);
+//			//}
+//			printf("ct=%d,ok=%d,ko=%d,k=%d,EOF=%s\n",ct,ok,ko,k,feof(fp)?"Y":"N");
+//		}
+//		ct++;
+//	}
+//	printf("\nEND ok=%d,ko=%d,k=%d,ct=%d\n",ok,ko,k,ct);
+//	libc(fclose)(fp);
 	return 0;
 
 #if defined(PROFILE)
@@ -1047,7 +1205,6 @@ int main(int argc, char **argv)
 //#if defined(DEBUG)
 //	check_env();
 //#endif
-	ht_init(8192-1);
 #if defined(PROFILE)
 	libc(printf)("%lu: after ht_init()\n",ffi_microtime());
 #endif
