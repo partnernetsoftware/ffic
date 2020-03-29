@@ -1,6 +1,6 @@
 #CC=cc
 CC=gcc
-all: 
+default: 
 	#cd .. && git submodule init && git submodule update
 	#git submodule update --init --recursive
 	ls -al ffic*
@@ -13,12 +13,12 @@ all:
 osx:
 	make libtcc.dylib -C ../tinycc/
 	cp ../tinycc/libtcc.dylib ./
-	make all
+	make default
 	cp ffic ffic_osx
 lnx:
 	make libtcc.so -C ../tinycc/
 	cp ../tinycc/libtcc.so ./
-	make all
+	make default
 	cp ffic ffic_lnx
 test:
 	cat tests/42.c | ./ffic
@@ -28,7 +28,7 @@ tcc:
 	tcc -I. -I../tinycc/ -run -nostdlib ffic.c 
 	#tcc -nostdlib -E ffic.c -I ../tinycc/ -o ffic.i
 run_scheme:
-	make all
+	make default
 	./ffic scheme.c
 test_scheme_osx:
 	echo $$(($$(gdate +'%s * 1000 + %-N / 1000000'))) && cat fib.scm | ./scheme_osx
