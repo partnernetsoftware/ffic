@@ -28,6 +28,14 @@ test:
 tcc:
 	tcc -I. -I../tinycc/ -run -nostdlib ffic.c 
 	#tcc -nostdlib -E ffic.c -I ../tinycc/ -o ffic.i
+pp:
+	${CC} -E ffic.c -I. -I../tinycc/ -o ffic.i
+	#${CC} -E ffic.c -I. -I../tinycc/ | sed 's/^#.*//g' > ffic.pp.i
+	${CC} -E ffic.c -I. -I../tinycc/ | sed 's/^#.*//g' | sed "/^$$/d" > ffic.pp.i
+clean:
+	rm -f *.o
+	rm -f scheme_osx
+
 run_scheme:
 	make default
 	./ffic scheme.c
@@ -42,10 +50,18 @@ osx_scheme:
 	ls -al scheme*
 	cat fib.scm | ./scheme_osx
 	make test_scheme_osx
-pp:
-	${CC} -E ffic.c -I. -I../tinycc/ -o ffic.i
-	#${CC} -E ffic.c -I. -I../tinycc/ | sed 's/^#.*//g' > ffic.pp.i
-	${CC} -E ffic.c -I. -I../tinycc/ | sed 's/^#.*//g' | sed "/^$$/d" > ffic.pp.i
-clean:
-	rm -f *.o
-	rm -f scheme_osx
+
+run_sao:
+	make default
+	./ffic sao.c
+test_sao_osx:
+	echo $$(($$(gdate +'%s * 1000 + %-N / 1000000'))) && cat fib.scm | ./sao_osx
+osx_sao:
+	rm -f sao_osx
+	${CC} -E sao.c | sed 's/^#.*//g' | sed "/^$$/d" > sao.osx.pp.i
+	${CC} sao.osx.pp.i -L. -o sao_osx
+	./upx_osx ./sao_osx
+	ls -al sao*
+	cat fib.scm | ./sao_osx
+	make test_sao_osx
+
