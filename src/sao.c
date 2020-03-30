@@ -698,7 +698,7 @@ object *sao_load_expr(FILEWrapper * fw, object* caller)
 			continue;
 		}
 		if (c == '\"') return sao_load_str(fw);
-		if (c == ';') { sao_comment(fw); continue; }
+		if (c == ';' || c=='#') { sao_comment(fw); continue; }
 		if (c == '\'') return cons(QUOTE, cons(sao_load_expr(fw, caller), NIL));
 		if (libc(isalpha)(c) || libc(strchr)(type_symbolS, c)){
 			return sao_read_symbol(fw, c);
@@ -918,13 +918,15 @@ void init_env() {
 	add_prim("eq?", prim_eq);
 	add_prim("equal?", prim_equal);
 
-	//add_prim("+", prim_add);
-	//add_prim("-", prim_sub);
-	//add_prim("*", prim_mul);
-	//add_prim("/", prim_div);
-	//add_prim("=", prim_cmp);
-	//add_prim("<", prim_lt);
-	//add_prim(">", prim_gt);
+	//TODO remove at "sao"
+	add_prim("+", prim_add);
+	add_prim("-", prim_sub);
+	add_prim("*", prim_mul);
+	add_prim("/", prim_div);
+	add_prim("=", prim_cmp);
+	add_prim("<", prim_lt);
+	add_prim(">", prim_gt);
+	//TODO "!", prim_not
 
 	add_prim("add", prim_add);
 	add_prim("sub", prim_sub);
