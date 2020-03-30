@@ -62,7 +62,7 @@ struct object {
 		primitive_t primitive;
 	};
 } __attribute__((packed));
-object *ENV;
+object *GLOBAL;
 object *NIL;
 object *EMPTY_LIST;
 object *TRUE;
@@ -76,7 +76,7 @@ object *LAMBDA;
 object *BEGIN;
 object *PROCEDURE;
 int is_tagged(object *cell, object *tag);
-object *cons(object *x, object *y);
+object *cons(object *car, object *cdr);
 object *load_file(object *args);
 object *cdr(object *);
 object *car(object *);
@@ -101,13 +101,13 @@ u64 sao_is_digit(int c);
 u64 sao_is_alpha(int c);
 u64 sao_is_alphanumber(int c);
 object *sao_eval(object *exp, object *env);
-object *sao_load_expr(FILEWrapper * fw);
+object *sao_load_expr(FILEWrapper * fw, object *caller);
 void sao_comment(FILEWrapper * fw);
 object *sao_load_str(FILEWrapper * fw);
-object *sao_read_list(FILEWrapper * fw);
+object *sao_read_list(FILEWrapper * fw,object * caller);
 int sao_read_int(FILEWrapper * fw, int start);
 int sao_peek(FILEWrapper * fw);
-void sao_ungetc(int c, FILEWrapper * fw);
+void sao_ungetc(FILEWrapper * fw,int c);//TODO remove it
 object *sao_make_integer(int x);
 object *sao_read_symbol(FILEWrapper * fw, char start);
 void sao_out_expr(char *str, object *e);
@@ -197,11 +197,11 @@ object *make_procedure(object *params, object *body,
 		object *env) {
 	return cons(PROCEDURE, cons(params, cons(body, cons(env, EMPTY_LIST))));
 }
-inline object *cons(object *x, object *y) {
+inline object *cons(object *car, object *cdr) {
 	object *ret = alloc();
 	ret->type = type_list;
-	ret->car = x;
-	ret->cdr = y;
+	ret->car = car;
+	ret->cdr = cdr;
 	return ret;
 }
 inline object *car(object *cell) {
@@ -259,12 +259,12 @@ int length(object *exp) {
 object *prim_type(object *args) {
 	return sao_make_symbol(types[car(args)->type]);
 }
-//object *prim_get_env(object *args) {
-//	//libc(assert)(is_null(args));
-//	return ENV;
-//}
+object *prim_get_global(object *args) {
+	//libc(assert)(is_null(args));
+	return GLOBAL;
+}
 //object *prim_set_env(object *args) {
-//	ENV = car(args);
+//	GLOBAL = car(args);
 //	return NIL;
 //}
 object *prim_list(object *args) {
@@ -315,8 +315,8 @@ object *prim_listq(object *args) {
 object *prim_atomq(object *sexp) {
 	return atom(car(sexp)) ? TRUE : FALSE;
 }
-/* = primitive, only valid for numbers */
-object *prim_neq(object *args) {
+
+object *prim_cmp(object *args) {
 	if ((car(args)->type != type_integer) || (cadr(args)->type != type_integer))
 		return FALSE;
 	return (car(args)->integer == cadr(args)->integer) ? TRUE : FALSE;
@@ -418,7 +418,7 @@ object *prim_exit(object *args) {
 object *prim_read(object *args) {
 	//libc(assert)(is_null(args));
 	FILEWrapper * fw = FileWrapper_new((FILE*)libc(stdin));
-	return sao_load_expr(fw);
+	return sao_load_expr(fw, args);
 }
 object *prim_vget(object *args) {
 	type_check(car(args), type_vector);
@@ -493,7 +493,7 @@ object *define_variable(object *var, object *val,
 	return val;
 }
 char type_symbolS[] = "~!@#$%^&*_-+\\:,.<>|{}[]?=/";
-int depth = 0;
+//int depth = 0;
 object *eval_list(object *exp, object *env) {
 	if (is_null(exp)) return NIL;
 	return cons(sao_eval(car(exp), env), eval_list(cdr(exp), env));
@@ -517,10 +517,10 @@ object *load_file(object *args) {
 	}
 	FILEWrapper * fw = FileWrapper_new(fp);
 	for (;;) {
-		exp = sao_load_expr(fw);
+		exp = sao_load_expr(fw,GLOBAL);
 		if (is_null(exp))
 			break;
-		ret = sao_eval(exp, ENV);
+		ret = sao_eval(exp, GLOBAL);
 	}
 	libc(fclose)(fp);
 	return ret;
@@ -626,20 +626,19 @@ object *sao_make_integer(int x)
 	ret->integer = x;
 	return ret;
 }
-void sao_ungetc(int c, FILEWrapper * fw)
+void sao_ungetc(FILEWrapper * fw,int c)
 {
 	FileChar * current = fw->current;
 	if(current!=0){
 		c = current->c;
 		fw->current=current->prev;
-	}else{
-		//printf("sao_ungetc() TODO\n");
 	}
 }
+//TODO just return next... no need tune pointer...
 int sao_peek(FILEWrapper * fw)
 {
 	int c = sao_getc(fw);
-	sao_ungetc(c, fw);
+	sao_ungetc(fw,c);
 	return c;
 }
 int sao_read_int(FILEWrapper * fw, int start)
@@ -648,12 +647,12 @@ int sao_read_int(FILEWrapper * fw, int start)
 		start = start * 10 + (sao_getc(fw) - '0');
 	return start;
 }
-object *sao_read_list(FILEWrapper * fw)
+object *sao_read_list(FILEWrapper * fw, object* caller)
 {
 	object *obj;
 	object *cell = EMPTY_LIST;
 	for (;;) {
-		obj = sao_load_expr(fw);
+		obj = sao_load_expr(fw,caller);
 		if (obj == EMPTY_LIST)
 			return reverse(cell, EMPTY_LIST);
 		cell = cons(obj, cell);
@@ -684,9 +683,10 @@ void sao_comment(FILEWrapper * fw)
 		if (c == '\n' || c == (-1)) return;
 	}
 }
-object *sao_load_expr(FILEWrapper * fw)
+object *sao_load_expr(FILEWrapper * fw, object* caller)
 {
 	int c;
+	object *prev_symbol = NIL;
 	for (;;) { //TODO switch(){}
 		c = sao_getc(fw);
 		if (c == (-1)) return 0;
@@ -698,24 +698,24 @@ object *sao_load_expr(FILEWrapper * fw)
 			continue;
 		}
 		if (c == '\"') return sao_load_str(fw);
-		if (c == ';') {
-			sao_comment(fw);
-			continue;
+		if (c == ';') { sao_comment(fw); continue; }
+		if (c == '\'') return cons(QUOTE, cons(sao_load_expr(fw, caller), NIL));
+		if (libc(isalpha)(c) || libc(strchr)(type_symbolS, c)){
+			return sao_read_symbol(fw, c);
 		}
-		if (c == '\'') return cons(QUOTE, cons(sao_load_expr(fw), NIL));
 		if (c == '(') {
-			depth++;
-			return sao_read_list(fw);
+			//TODO !! make prev symbol higher level...
+			//depth++;
+			return sao_read_list(fw,caller);
 		}
 		if (c == ')') {
-			depth--;
+			//depth--;
 			return EMPTY_LIST;
 		}
 		if (sao_is_digit(c)) return sao_make_integer(sao_read_int(fw, c - '0'));
 		if (c == '-' && sao_is_digit(sao_peek(fw)))
 			return sao_make_integer(-1 * sao_read_int(fw, sao_getc(fw) - '0'));
-		if (libc(isalpha)(c) || libc(strchr)(type_symbolS, c))
-			return sao_read_symbol(fw, c);
+		//if (libc(isalpha)(c) || libc(strchr)(type_symbolS, c)) return sao_read_symbol(fw, c);
 	}
 	return NIL;
 }
@@ -748,11 +748,18 @@ void sao_out_expr(char *str, object *e)
 				libc(printf)("<closure>");
 				return;
 			}
+			int first=0;
+			sao_out_expr(0, e->car);
 			libc(printf)("(");
 			object **t = &e;
 			while (!is_null(*t)) {
-				sao_out_expr(0, (*t)->car);
+				if(first==0){
+					first=1;
+				}else{
+					sao_out_expr(0, (*t)->car);
+				}
 				if (!is_null((*t)->cdr)) {
+					//if(first==1)
 					libc(printf)(" ");
 					if ((*t)->cdr->type == type_list) {
 						t = &(*t)->cdr;
@@ -881,9 +888,9 @@ tail:
 	return NIL;
 }
 void init_env() {
-#define add_prim(s, c) define_variable(sao_make_symbol(s), make_primitive(c), ENV)
-#define add_sym(s, c) do{c=sao_make_symbol(s);define_variable(c,c,ENV);}while(0);
-	ENV = extend_env(NIL, NIL, NIL);
+#define add_prim(s, c) define_variable(sao_make_symbol(s), make_primitive(c), GLOBAL)
+#define add_sym(s, c) do{c=sao_make_symbol(s);define_variable(c,c,GLOBAL);}while(0);
+	GLOBAL = extend_env(NIL, NIL, NIL);
 	add_sym("#t", TRUE);
 	add_sym("#f", FALSE);
 	add_sym("quote", QUOTE);
@@ -895,8 +902,8 @@ void init_env() {
 	add_sym("set!", SET);
 	add_sym("begin", BEGIN);//TODO remove or add END
 	add_sym("if", IF);
-	define_variable(sao_make_symbol("true"), TRUE, ENV);
-	define_variable(sao_make_symbol("false"), FALSE, ENV);
+	define_variable(sao_make_symbol("true"), TRUE, GLOBAL);
+	define_variable(sao_make_symbol("false"), FALSE, GLOBAL);
 	add_prim("cons", prim_cons);
 	add_prim("car", prim_car);
 	add_prim("cdr", prim_cdr);
@@ -907,21 +914,32 @@ void init_env() {
 	add_prim("null?", prim_is_nullq);
 	add_prim("pair?", prim_pairq);
 	add_prim("atom?", prim_atomq);
+
 	add_prim("eq?", prim_eq);
 	add_prim("equal?", prim_equal);
-	add_prim("+", prim_add);
-	add_prim("-", prim_sub);
-	add_prim("*", prim_mul);
-	add_prim("/", prim_div);
-	add_prim("=", prim_neq);
-	add_prim("<", prim_lt);
-	add_prim(">", prim_gt);
+
+	//add_prim("+", prim_add);
+	//add_prim("-", prim_sub);
+	//add_prim("*", prim_mul);
+	//add_prim("/", prim_div);
+	//add_prim("=", prim_cmp);
+	//add_prim("<", prim_lt);
+	//add_prim(">", prim_gt);
+
+	add_prim("add", prim_add);
+	add_prim("sub", prim_sub);
+	add_prim("mul", prim_mul);
+	add_prim("div", prim_div);
+	add_prim("cmp", prim_cmp);
+	add_prim("lt", prim_lt);
+	add_prim("gt", prim_gt);
+	
 	add_prim("type", prim_type);
 	add_prim("load", load_file);
 	add_prim("print", sao_prim_print);
 	//add_prim("ffi", prim_ffi);
 	//add_prim("get-global-environment", prim_get_env);
-	//add_prim("env", prim_get_env);//remove this feature
+	add_prim("global", prim_get_global);//remove this feature
 	//	add_prim("set-global-environment", prim_set_env);
 	add_prim("exit", prim_exit);//TODO change to ffi
 	//add_prim("exec", prim_exec);//TODO change to ffi
@@ -941,14 +959,14 @@ int main(int argc, char **argv)
 	for(;;){
 		//producer:
 		FileWrapper_feed(fw);
-		object *obj = sao_load_expr(fw);
+		object *obj = sao_load_expr(fw,GLOBAL);
 		if (!is_null(obj)) {
 #if defined(PROFILE)
 			printf("%lu: ",ffi_microtime());
 #endif
 			sao_out_expr("<=", obj);
 			printf("\n");
-			object *exp = sao_eval(obj, ENV);
+			object *exp = sao_eval(obj, GLOBAL);
 			if (!is_null(exp)) {
 #if defined(PROFILE)
 				printf("%lu: ",ffi_microtime());
