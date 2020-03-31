@@ -50,7 +50,7 @@ ffi_func libcf(int fi,const char* fn){
 //#define NULL ((void*)0)
 #define NULL 0
 //////////////////////////////////////////////////////////////////////////////
-#define is_null(x) ((x) == 0 || (x) == NIL)
+#define is_null(x) ((x)==NULL||(x)==NIL)
 #define is_EOL(x) (is_null((x)) || (x) == END_LIST)
 #define error(x) do{libc(fprintf)(libc(stderr),"%s\n",x);libc(exit)(1);}while(0)
 #define caar(x) (car(car((x))))
@@ -162,6 +162,7 @@ void ht_insert(object *key) {
 	i64 h = ht_hash(key->string);
 	HTABLE[h].key = key;
 }
+//TODO expand when every hit (ref to tcc later)
 object *ht_lookup(char *s) {
 	i64 h = ht_hash(s);
 	return HTABLE[h].key;
@@ -647,28 +648,13 @@ object *sao_make_integer(int x)
 	ret->integer = x;
 	return ret;
 }
-//void sao_ungetc(FILEWrapper * fw,int c)
-//{
-//	FileChar * current = fw->current;
-//	if(current!=0){
-//		c = current->c;
-//		fw->current=current->prev;
-//	}
-//}
 int sao_peek(FILEWrapper * fw)
 {
 	int c = -1;
 	FileChar * current = fw->current;
 	if(current!=0){
 		c = current->c;
-		//FileChar * next = current->next;
-		//if(next!=0){
-		//	c = next->c;
-		//}
 	}
-	return c;
-//	int c = sao_getc(fw);
-//	sao_ungetc(fw,c);
 	return c;
 }
 int sao_read_int(FILEWrapper * fw, int start)
@@ -729,7 +715,7 @@ object *sao_load_expr(FILEWrapper * fw, object* caller)
 	object *prev_symbol = NIL;
 	for (;;) { //TODO switch(){}
 		c = sao_getc(fw);
-		if (c == (-1)) return 0;
+		if (c == (-1)) return NULL;
 		if (c == '\n' || c == '\r' || c == ' ' || c == '\t') {
 			//if ((c == '\n' || c == '\r') && is_stdin) {
 			//if "-i"
