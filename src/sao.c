@@ -518,7 +518,8 @@ object *define_variable(object *var, object *val,
 	frame->cdr = cons(val, cdr(frame));
 	return val;
 }
-char type_symbolS[] = "~!@#$%^&*_-+\\:,.<>|{}[]?=/";
+//char type_symbolS[] = "~!@#$%^&*_-+\\:,.<>|{}[]?=/";
+char type_symbolS[] = "~!@#$%^&*_-+\\:.<>|{}[]?=/";
 //int depth = 0;
 object *eval_list(object *exp, object *env) {
 	if (is_null(exp)) return NIL;
@@ -665,7 +666,6 @@ int sao_read_int(FILEWrapper * fw, int start)
 		start = start * 10 + (sao_getc(fw) - '0');
 	return start;
 }
-//object * tmpLast;
 object *sao_read_list(FILEWrapper * fw)
 {
 	object *obj;
@@ -706,12 +706,14 @@ object *sao_load_expr(FILEWrapper * fw)
 {
 	ffi_func printf = libc(printf);
 	int c;
-	for (;;) { //TODO switch(){}
-		object * tmpLast = NIL;
+	//TODO switch(){}
+	for (;;) {
+		object * theSymbol = NIL;
 		c = sao_getc(fw);
 		if (c == (-1)) return NULL;
 		if (c == '\n' || c == '\r' || c == ' ' || c == '\t'
-				|| c == ',') {
+				|| c == ',' || (c=='/'&&'/'==sao_peek(fw)))
+		{
 			//if ((c == '\n' || c == '\r') && is_stdin) {
 			//if("-i") for (int i = 0; i < depth; i++) libc(printf)("..");
 			//}
@@ -722,15 +724,15 @@ object *sao_load_expr(FILEWrapper * fw)
 		if (c == '\'') return cons(QUOTE, cons(sao_load_expr(fw), NIL));
 
 		if (libc(isalpha)(c) || libc(strchr)(type_symbolS, c)){
-			tmpLast = sao_read_symbol(fw,c);
+			theSymbol = sao_read_symbol(fw,c);
 
 			if('('==sao_peek(fw)){
 				c = sao_getc(fw);
-				sao_out_expr("\n tmpLast.0=",tmpLast );
+				//sao_out_expr("\n theSymbol.0=",theSymbol );
 			}else{
-				printf(" [c=%c] ",c);
-				sao_out_expr("\n return=",tmpLast );
-				return tmpLast;
+				//printf(" [c=%c] ",c);
+				//sao_out_expr("\n return=",theSymbol );
+				return theSymbol;
 			}
 			//return sao_read_symbol(fw,c);
 		}
@@ -739,11 +741,11 @@ object *sao_load_expr(FILEWrapper * fw)
 			//depth++;
 			//return sao_read_list(fw);
 			object * list = sao_read_list(fw);
-			sao_out_expr("\n tmpLast.1=",tmpLast);
-			sao_out_expr("\n list.1=",list);
-			if(tmpLast!=NIL){
-				list = cons(tmpLast,list);
-				sao_out_expr("\n list.2=",list);
+			//sao_out_expr("\n theSymbol.1=",theSymbol);
+			//sao_out_expr("\n list.1=",list);
+			if(theSymbol!=NIL){
+				list = cons(theSymbol,list);
+				//sao_out_expr("\n list.2=",list);
 			}
 			return list;
 		}
@@ -930,8 +932,10 @@ void init_env() {
 #define add_native(s, c) define_variable(sao_make_symbol(s), make_native(c), GLOBAL)
 #define add_sym(s, c) do{c=sao_make_symbol(s);define_variable(c,c,GLOBAL);}while(0);
 	GLOBAL = extend_env(NIL, NIL, NIL);
+
 	add_sym("#t", TRUE);
 	add_sym("#f", FALSE);
+
 	add_sym("quote", QUOTE);
 	add_sym("lambda", LAMBDA);
 	add_sym("procedure", PROCEDURE);
