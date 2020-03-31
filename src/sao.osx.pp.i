@@ -101,9 +101,9 @@ typedef void*(*ffi_func)();
 ffi_func libcf(int fi,const char* fn){
  return libc_a[fi]?libc_a[fi]:(libc_a[fi]=ffic("c",fn));
 }
-char *types[6] = {"integer","symbol","string","list","native","vector"};
+char *types[6] = {"integer","symbol","string","list","native","table"};
 typedef enum {
- type_integer, type_symbol, type_string, type_list, type_native, type_vector
+ type_integer, type_symbol, type_string, type_list, type_native, type_table
 } type_t;
 typedef struct object object;
 typedef object *(*native_t)(object *);
@@ -113,7 +113,7 @@ struct object {
   i64 integer;
   char *string;
   struct {
-   object **vector;
+   object **table;
    int vsize;
   };
   struct {
@@ -216,12 +216,12 @@ int sao_type_check(const char *func, object *obj, type_t type)
  }
  return 1;
 }
-object *make_vector(int size) {
+object *make_table(int size) {
  object *ret = alloc();
- ret->type = type_vector;
- ret->vector = libcf(libc_malloc,"malloc")(sizeof(object *) * size);
+ ret->type = type_table;
+ ret->table = libcf(libc_malloc,"malloc")(sizeof(object *) * size);
  ret->vsize = size;
- libcf(libc_memset,"memset")(ret->vector, 0, size);
+ libcf(libc_memset,"memset")(ret->table, 0, size);
  return ret;
 }
 object *sao_make_symbol(char *s) {
@@ -293,7 +293,7 @@ int is_equal(object *x, object *y) {
    return !libcf(libc_strcmp,"strcmp")(x->string, y->string);
   case type_native:
    return 0;
-  case type_vector:
+  case type_table:
    return 0;
  }
  return 0;
@@ -312,63 +312,63 @@ int length(object *exp) {
  if (((exp)==0||(exp)==NIL)) return 0;
  return 1 + length(cdr(exp));
 }
-object *prim_type(object *args) {
+object *native_type(object *args) {
  return sao_make_symbol(types[car(args)->type]);
 }
-object *prim_get_global(object *args) {
+object *native_get_global(object *args) {
  return GLOBAL;
 }
-object *prim_list(object *args) {
+object *native_list(object *args) {
  return (args);
 }
-object *prim_cons(object *args) {
+object *native_cons(object *args) {
  return cons(car(args), (car(cdr((args)))));
 }
-object *prim_car(object *args) {
+object *native_car(object *args) {
  return (car(car((args))));
 }
-object *prim_cdr(object *args) {
+object *native_cdr(object *args) {
  return (cdr(car((args))));
 }
-object *prim_setcar(object *args) {
+object *native_setcar(object *args) {
  (sao_type_check(__func__, car(args), type_list));
  (args->car->car = ((car(cdr((args))))));
  return NIL;
 }
-object *prim_setcdr(object *args) {
+object *native_setcdr(object *args) {
  (sao_type_check(__func__, car(args), type_list));
  (args->car->cdr = ((car(cdr((args))))));
  return NIL;
 }
-object *prim_is_nullq(object *args) {
+object *native_is_nullq(object *args) {
  return ((((car(args)))==0||((car(args)))==NIL) || (car(args)) == END_LIST) ? TRUE : FALSE;
 }
-object *prim_pairq(object *args) {
+object *native_pairq(object *args) {
  if (car(args)->type != type_list)
   return FALSE;
  return ((!(((car(car((args)))))==0||((car(car((args)))))==NIL) && ((car(car((args)))))->type != type_list) && (!(((cdr(car((args)))))==0||((cdr(car((args)))))==NIL) && ((cdr(car((args)))))->type != type_list)) ? TRUE : FALSE;
 }
-object *prim_listq(object *args) {
+object *native_listq(object *args) {
  object *list;
  if (car(args)->type != type_list)
   return FALSE;
  for (list = car(args); !((list)==0||(list)==NIL); list = list->cdr)
   if (!((list->cdr)==0||(list->cdr)==NIL) && (list->cdr->type != type_list))
    return FALSE;
- return (car(args)->type == type_list && prim_pairq(args) != TRUE) ? TRUE : FALSE;
+ return (car(args)->type == type_list && native_pairq(args) != TRUE) ? TRUE : FALSE;
 }
-object *prim_atomq(object *sexp) {
+object *native_atomq(object *sexp) {
  return (!((car(sexp))==0||(car(sexp))==NIL) && (car(sexp))->type != type_list) ? TRUE : FALSE;
 }
-object *prim_cmp(object *args) {
+object *native_cmp(object *args) {
  if ((car(args)->type != type_integer) || ((car(cdr((args))))->type != type_integer))
   return FALSE;
  return (car(args)->integer == (car(cdr((args))))->integer) ? TRUE : FALSE;
 }
-object *prim_eq(object *args) {
+object *native_eq(object *args) {
  return is_equal(car(args), (car(cdr((args))))) ? TRUE : FALSE;
 }
-object *prim_equal(object *args) {
+object *native_equal(object *args) {
  if (is_equal(car(args), (car(cdr((args))))))
   return TRUE;
  if ((car(args)->type == type_list) && ((car(cdr((args))))->type == type_list)) {
@@ -383,12 +383,12 @@ object *prim_equal(object *args) {
   }
   return TRUE;
  }
- if ((car(args)->type == type_vector) && ((car(cdr((args))))->type == type_vector)) {
+ if ((car(args)->type == type_table) && ((car(cdr((args))))->type == type_table)) {
   if (car(args)->vsize != (car(cdr((args))))->vsize) {
    return FALSE;
   }
-  object **va = car(args)->vector;
-  object **vb = (car(cdr((args))))->vector;
+  object **va = car(args)->table;
+  object **vb = (car(cdr((args))))->table;
   int i = 0;
   for (i = 0; i < car(args)->vsize; i++) {
    if (!is_equal(*(va + i), *(vb + i))) {
@@ -399,7 +399,7 @@ object *prim_equal(object *args) {
  }
  return FALSE;
 }
-object *prim_add(object *list) {
+object *native_add(object *list) {
  (sao_type_check(__func__, car(list), type_integer));
  i64 total = car(list)->integer;
  list = cdr(list);
@@ -410,7 +410,7 @@ object *prim_add(object *list) {
  }
  return make_integer(total);
 }
-object *prim_sub(object *list) {
+object *native_sub(object *list) {
  (sao_type_check(__func__, car(list), type_integer));
  i64 total = car(list)->integer;
  list = cdr(list);
@@ -421,7 +421,7 @@ object *prim_sub(object *list) {
  }
  return make_integer(total);
 }
-object *prim_div(object *list) {
+object *native_div(object *list) {
  (sao_type_check(__func__, car(list), type_integer));
  i64 total = car(list)->integer;
  list = cdr(list);
@@ -432,7 +432,7 @@ object *prim_div(object *list) {
  }
  return make_integer(total);
 }
-object *prim_mul(object *list) {
+object *native_mul(object *list) {
  (sao_type_check(__func__, car(list), type_integer));
  i64 total = car(list)->integer;
  list = cdr(list);
@@ -443,44 +443,44 @@ object *prim_mul(object *list) {
  }
  return make_integer(total);
 }
-object *prim_gt(object *sexp) {
+object *native_gt(object *sexp) {
  (sao_type_check(__func__, car(sexp), type_integer));
  (sao_type_check(__func__, (car(cdr((sexp)))), type_integer));
  return (car(sexp)->integer > (car(cdr((sexp))))->integer) ? TRUE : NIL;
 }
-object *prim_lt(object *sexp) {
+object *native_lt(object *sexp) {
  (sao_type_check(__func__, car(sexp), type_integer));
  (sao_type_check(__func__, (car(cdr((sexp)))), type_integer));
  return (car(sexp)->integer < (car(cdr((sexp))))->integer) ? TRUE : NIL;
 }
-object *prim_exit(object *args) {
+object *native_exit(object *args) {
  libcf(libc_exit,"exit")(0);
  return NIL;
 }
-object *prim_read(object *args) {
+object *native_read(object *args) {
  FILEWrapper * fw = FileWrapper_new((FILE*)libcf(libc_stdin,"stdin"));
  return sao_load_expr(fw, args);
 }
-object *prim_vget(object *args) {
- (sao_type_check(__func__, car(args), type_vector));
+object *native_vget(object *args) {
+ (sao_type_check(__func__, car(args), type_table));
  (sao_type_check(__func__, (car(cdr((args)))), type_integer));
  if ((car(cdr((args))))->integer >= car(args)->vsize)
   return NIL;
- return car(args)->vector[(car(cdr((args))))->integer];
+ return car(args)->table[(car(cdr((args))))->integer];
 }
-object *prim_vset(object *args) {
- (sao_type_check(__func__, car(args), type_vector));
+object *native_vset(object *args) {
+ (sao_type_check(__func__, car(args), type_table));
  (sao_type_check(__func__, (car(cdr((args)))), type_integer));
  if ((((car(cdr(cdr((args))))))==0||((car(cdr(cdr((args))))))==NIL))
   return NIL;
  if ((car(cdr((args))))->integer >= car(args)->vsize)
   return NIL;
- car(args)->vector[(car(cdr((args))))->integer] = (car(cdr(cdr((args)))));
+ car(args)->table[(car(cdr((args))))->integer] = (car(cdr(cdr((args)))));
  return sao_make_symbol("ok");
 }
-object *prim_vec(object *args) {
+object *native_vec(object *args) {
  (sao_type_check(__func__, car(args), type_integer));
- return make_vector(car(args)->integer);
+ return make_table(car(args)->integer);
 }
 object *extend_env(object *var, object *val, object *env) {
  return cons(cons(var, val), env);
@@ -753,8 +753,8 @@ void sao_out_expr(char *str, object *e)
   case type_native:
    libcf(libc_printf,"printf")("<function>");
    break;
-  case type_vector:
-   libcf(libc_printf,"printf")("<vector %d>", e->vsize);
+  case type_table:
+   libcf(libc_printf,"printf")("<table %d>", e->vsize);
    break;
   case type_list:
    if (is_tagged(e, PROCEDURE)) {
@@ -897,41 +897,41 @@ void init_env() {
  do{IF=sao_make_symbol("if");define_variable(IF,IF,GLOBAL);}while(0);;
  define_variable(sao_make_symbol("true"), TRUE, GLOBAL);
  define_variable(sao_make_symbol("false"), FALSE, GLOBAL);
- define_variable(sao_make_symbol("cons"), make_native(prim_cons), GLOBAL);
- define_variable(sao_make_symbol("car"), make_native(prim_car), GLOBAL);
- define_variable(sao_make_symbol("cdr"), make_native(prim_cdr), GLOBAL);
- define_variable(sao_make_symbol("set-car!"), make_native(prim_setcar), GLOBAL);
- define_variable(sao_make_symbol("set-cdr!"), make_native(prim_setcdr), GLOBAL);
- define_variable(sao_make_symbol("list"), make_native(prim_list), GLOBAL);
- define_variable(sao_make_symbol("list?"), make_native(prim_listq), GLOBAL);
- define_variable(sao_make_symbol("null?"), make_native(prim_is_nullq), GLOBAL);
- define_variable(sao_make_symbol("pair?"), make_native(prim_pairq), GLOBAL);
- define_variable(sao_make_symbol("atom?"), make_native(prim_atomq), GLOBAL);
- define_variable(sao_make_symbol("eq?"), make_native(prim_eq), GLOBAL);
- define_variable(sao_make_symbol("equal?"), make_native(prim_equal), GLOBAL);
- define_variable(sao_make_symbol("+"), make_native(prim_add), GLOBAL);
- define_variable(sao_make_symbol("-"), make_native(prim_sub), GLOBAL);
- define_variable(sao_make_symbol("*"), make_native(prim_mul), GLOBAL);
- define_variable(sao_make_symbol("/"), make_native(prim_div), GLOBAL);
- define_variable(sao_make_symbol("="), make_native(prim_cmp), GLOBAL);
- define_variable(sao_make_symbol("<"), make_native(prim_lt), GLOBAL);
- define_variable(sao_make_symbol(">"), make_native(prim_gt), GLOBAL);
- define_variable(sao_make_symbol("add"), make_native(prim_add), GLOBAL);
- define_variable(sao_make_symbol("sub"), make_native(prim_sub), GLOBAL);
- define_variable(sao_make_symbol("mul"), make_native(prim_mul), GLOBAL);
- define_variable(sao_make_symbol("div"), make_native(prim_div), GLOBAL);
- define_variable(sao_make_symbol("cmp"), make_native(prim_cmp), GLOBAL);
- define_variable(sao_make_symbol("lt"), make_native(prim_lt), GLOBAL);
- define_variable(sao_make_symbol("gt"), make_native(prim_gt), GLOBAL);
- define_variable(sao_make_symbol("type"), make_native(prim_type), GLOBAL);
+ define_variable(sao_make_symbol("cons"), make_native(native_cons), GLOBAL);
+ define_variable(sao_make_symbol("car"), make_native(native_car), GLOBAL);
+ define_variable(sao_make_symbol("cdr"), make_native(native_cdr), GLOBAL);
+ define_variable(sao_make_symbol("set-car!"), make_native(native_setcar), GLOBAL);
+ define_variable(sao_make_symbol("set-cdr!"), make_native(native_setcdr), GLOBAL);
+ define_variable(sao_make_symbol("list"), make_native(native_list), GLOBAL);
+ define_variable(sao_make_symbol("list?"), make_native(native_listq), GLOBAL);
+ define_variable(sao_make_symbol("null?"), make_native(native_is_nullq), GLOBAL);
+ define_variable(sao_make_symbol("pair?"), make_native(native_pairq), GLOBAL);
+ define_variable(sao_make_symbol("atom?"), make_native(native_atomq), GLOBAL);
+ define_variable(sao_make_symbol("eq?"), make_native(native_eq), GLOBAL);
+ define_variable(sao_make_symbol("equal?"), make_native(native_equal), GLOBAL);
+ define_variable(sao_make_symbol("+"), make_native(native_add), GLOBAL);
+ define_variable(sao_make_symbol("-"), make_native(native_sub), GLOBAL);
+ define_variable(sao_make_symbol("*"), make_native(native_mul), GLOBAL);
+ define_variable(sao_make_symbol("/"), make_native(native_div), GLOBAL);
+ define_variable(sao_make_symbol("="), make_native(native_cmp), GLOBAL);
+ define_variable(sao_make_symbol("<"), make_native(native_lt), GLOBAL);
+ define_variable(sao_make_symbol(">"), make_native(native_gt), GLOBAL);
+ define_variable(sao_make_symbol("add"), make_native(native_add), GLOBAL);
+ define_variable(sao_make_symbol("sub"), make_native(native_sub), GLOBAL);
+ define_variable(sao_make_symbol("mul"), make_native(native_mul), GLOBAL);
+ define_variable(sao_make_symbol("div"), make_native(native_div), GLOBAL);
+ define_variable(sao_make_symbol("cmp"), make_native(native_cmp), GLOBAL);
+ define_variable(sao_make_symbol("lt"), make_native(native_lt), GLOBAL);
+ define_variable(sao_make_symbol("gt"), make_native(native_gt), GLOBAL);
+ define_variable(sao_make_symbol("type"), make_native(native_type), GLOBAL);
  define_variable(sao_make_symbol("load"), make_native(load_file), GLOBAL);
  define_variable(sao_make_symbol("print"), make_native(sao_print), GLOBAL);
- define_variable(sao_make_symbol("global"), make_native(prim_get_global), GLOBAL);
- define_variable(sao_make_symbol("exit"), make_native(prim_exit), GLOBAL);
- define_variable(sao_make_symbol("read"), make_native(prim_read), GLOBAL);
- define_variable(sao_make_symbol("vector"), make_native(prim_vec), GLOBAL);
- define_variable(sao_make_symbol("vector-get"), make_native(prim_vget), GLOBAL);
- define_variable(sao_make_symbol("vector-set"), make_native(prim_vset), GLOBAL);
+ define_variable(sao_make_symbol("global"), make_native(native_get_global), GLOBAL);
+ define_variable(sao_make_symbol("exit"), make_native(native_exit), GLOBAL);
+ define_variable(sao_make_symbol("read"), make_native(native_read), GLOBAL);
+ define_variable(sao_make_symbol("table"), make_native(native_vec), GLOBAL);
+ define_variable(sao_make_symbol("table-get"), make_native(native_vget), GLOBAL);
+ define_variable(sao_make_symbol("table-set"), make_native(native_vset), GLOBAL);
 }
 int main(int argc, char **argv)
 {
