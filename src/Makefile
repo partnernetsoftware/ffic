@@ -53,7 +53,7 @@ osx_scheme:
 
 run_sao:
 	make osx_sao
-	cat cat fibsao.scm | ./ffic sao.c
+	cat fibsao.scm | ./ffic sao.c
 	#cat cat fib.sao | ./ffic sao.c
 test_sao_osx:
 	#echo $$(($$(gdate +'%s * 1000 + %-N / 1000000'))) && cat fib.scm | ./sao_osx
@@ -63,7 +63,7 @@ osx_sao:
 	rm -f sao_osx
 	${CC} -E sao.c | sed 's/^#.*//g' | sed "/^$$/d" > sao.osx.pp.i
 	${CC} sao.osx.pp.i -L. -o sao_osx
-	./upx_osx ./sao_osx
+	#./upx_osx ./sao_osx
 	ls -al sao*
 	make test_sao_osx
 

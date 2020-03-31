@@ -587,15 +587,13 @@ void FileWrapper_feed(FILEWrapper* fw)
 		ct++;
 	}
 }
-int sao_getc(FILEWrapper *fw)
+int sao_getc(FILEWrapper *fw) //like atok
 {
-	int c;
+	int c = -1;
 	FileChar * current = fw->current;
 	if(current!=0){
 		c = current->c;
 		fw->current=current->next;
-	}else{
-		c = -1;
 	}
 	return c;
 }

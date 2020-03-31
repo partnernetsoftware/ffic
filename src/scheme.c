@@ -316,7 +316,7 @@ object *prim_atomq(object *sexp) {
 	return atom(car(sexp)) ? TRUE : FALSE;
 }
 /* = primitive, only valid for numbers */
-object *prim_neq(object *args) {
+object *prim_cmp(object *args) {
 	if ((car(args)->type != type_integer) || (cadr(args)->type != type_integer))
 		return FALSE;
 	return (car(args)->integer == cadr(args)->integer) ? TRUE : FALSE;
@@ -913,7 +913,7 @@ void init_env() {
 	add_prim("-", prim_sub);
 	add_prim("*", prim_mul);
 	add_prim("/", prim_div);
-	add_prim("=", prim_neq);
+	add_prim("=", prim_cmp);
 	add_prim("<", prim_lt);
 	add_prim(">", prim_gt);
 	add_prim("type", prim_type);
@@ -929,6 +929,14 @@ void init_env() {
 	add_prim("vector", prim_vec);
 	add_prim("vector-get", prim_vget);
 	add_prim("vector-set", prim_vset);
+
+	add_prim("add", prim_add);
+	add_prim("sub", prim_sub);
+	add_prim("mul", prim_mul);
+	add_prim("div", prim_div);
+	add_prim("cmp", prim_cmp);
+	add_prim("lt", prim_lt);
+	add_prim("gt", prim_gt);
 }
 int main(int argc, char **argv)
 {
