@@ -103,14 +103,13 @@ object *cons(object *car, object *cdr);
 object *load_file(object *args);
 object *cdr(object *);
 object *car(object *);
-object *lookup_variable(object *var, object *env);
+object *sao_lookup_var(object *var, object *ctx);
 int sao_type_check(const char *func, object *obj, type_t type);
-typedef struct _FileChar FileChar, *pFileChar;
+typedef struct _FileChar FileChar;
 struct _FileChar {
 	int c;
 	FileChar * prev;
 	FileChar * next;
-	//pFileChar next;
 };
 typedef struct {
 	FILE* fp;
@@ -123,7 +122,7 @@ FILEWrapper * FileWrapper_new(FILE* fp);
 u64 sao_is_digit(int c);
 u64 sao_is_alpha(int c);
 u64 sao_is_alphanumber(int c);
-object *sao_eval(object *exp, object *env);
+object *sao_eval(object *exp, object *ctx);
 object *sao_load_expr(FILEWrapper * fw);
 void sao_comment(FILEWrapper * fw);
 object *sao_load_str(FILEWrapper * fw);
@@ -217,8 +216,8 @@ object *make_lambda(object *params, object *body) {
 	return cons(LAMBDA, cons(params, body));
 }
 object *make_procedure(object *params, object *body,
-		object *env) {
-	return cons(PROCEDURE, cons(params, cons(body, cons(env, END_LIST))));
+		object *ctx) {
+	return cons(PROCEDURE, cons(params, cons(body, cons(ctx, END_LIST))));
 }
 inline object *cons(object *car, object *cdr) {
 	object *ret = alloc();
@@ -289,7 +288,7 @@ object *native_get_global(object *args) {
 	//libc(assert)(is_null(args));
 	return GLOBAL;
 }
-//object *native_set_env(object *args) {
+//object *native_set_global(object *args) {
 //	GLOBAL = car(args);
 //	return NIL;
 //}
@@ -467,12 +466,12 @@ object *native_vec(object *args) {
 	type_check(car(args), type_integer);
 	return make_table(car(args)->integer);
 }
-object *extend_env(object *var, object *val, object *env) {
-	return cons(cons(var, val), env);
+object *sao_expand(object *var, object *val, object *ctx) {
+	return cons(cons(var, val), ctx);
 }
-object *lookup_variable(object *var, object *env) {
-	while (!is_null(env)) {
-		object *frame = car(env);
+object *sao_lookup_var(object *var, object *ctx) {
+	while (!is_null(ctx)) {
+		object *frame = car(ctx);
 		object *vars = car(frame);
 		object *vals = cdr(frame);
 		while (!is_null(vars)) {
@@ -481,13 +480,13 @@ object *lookup_variable(object *var, object *env) {
 			vars = cdr(vars);
 			vals = cdr(vals);
 		}
-		env = cdr(env);
+		ctx = cdr(ctx);
 	}
 	return NIL;
 }
-void set_variable(object *var, object *val, object *env) {
-	while (!is_null(env)) {
-		object *frame = car(env);
+void set_variable(object *var, object *val, object *ctx) {
+	while (!is_null(ctx)) {
+		object *frame = car(ctx);
 		object *vars = car(frame);
 		object *vals = cdr(frame);
 		while (!is_null(vars)) {
@@ -498,12 +497,12 @@ void set_variable(object *var, object *val, object *env) {
 			vars = cdr(vars);
 			vals = cdr(vals);
 		}
-		env = cdr(env);
+		ctx = cdr(ctx);
 	}
 }
 object *define_variable(object *var, object *val,
-		object *env) {
-	object *frame = car(env);
+		object *ctx) {
+	object *frame = car(ctx);
 	object *vars = car(frame);
 	object *vals = cdr(frame);
 	while (!is_null(vars)) {
@@ -521,14 +520,14 @@ object *define_variable(object *var, object *val,
 //char type_symbolS[] = "~!@#$%^&*_-+\\:,.<>|{}[]?=/";
 char type_symbolS[] = "~!@#$%^&*_-+\\:.<>|{}[]?=/";
 //int depth = 0;
-object *eval_list(object *exp, object *env) {
+object *eval_list(object *exp, object *ctx) {
 	if (is_null(exp)) return NIL;
-	return cons(sao_eval(car(exp), env), eval_list(cdr(exp), env));
+	return cons(sao_eval(car(exp), ctx), eval_list(cdr(exp), ctx));
 }
-object *eval_sequence(object *exps, object *env) {
-	if (is_null(cdr(exps))) return sao_eval(car(exps), env);
-	sao_eval(car(exps), env);
-	return eval_sequence(cdr(exps), env);
+object *eval_sequence(object *exps, object *ctx) {
+	if (is_null(cdr(exps))) return sao_eval(car(exps), ctx);
+	sao_eval(car(exps), ctx);
+	return eval_sequence(cdr(exps), ctx);
 }
 object *load_file(object *args) {
 	object *exp;
@@ -814,7 +813,7 @@ void sao_out_expr(char *str, object *e)
 			libc(printf)(")");
 	}
 }
-object *sao_eval(object *exp, object *env)
+object *sao_eval(object *exp, object *ctx)
 {
 tail:
 	if (is_null(exp) || exp == END_LIST) {
@@ -822,7 +821,7 @@ tail:
 	} else if (exp->type == type_integer || exp->type == type_string) {
 		return exp;
 	} else if (exp->type == type_symbol) {
-		object *s = lookup_variable(exp, env);
+		object *s = sao_lookup_var(exp, ctx);
 #ifdef STRICT
 		if (is_null(s)) {
 			sao_out_expr("Unbound symbol:", exp);
@@ -833,35 +832,35 @@ tail:
 	} else if (is_tagged(exp, QUOTE)) {
 		return cadr(exp);
 	} else if (is_tagged(exp, LAMBDA)) {
-		return make_procedure(cadr(exp), cddr(exp), env);
+		return make_procedure(cadr(exp), cddr(exp), ctx);
 	} else if (is_tagged(exp, DEFINE)) {
 		if (atom(cadr(exp)))
-			define_variable(cadr(exp), sao_eval(caddr(exp), env), env);
+			define_variable(cadr(exp), sao_eval(caddr(exp), ctx), ctx);
 		else {
 			object *closure =
-				sao_eval(make_lambda(cdr(cadr(exp)), cddr(exp)), env);
-			define_variable(car(cadr(exp)), closure, env);
+				sao_eval(make_lambda(cdr(cadr(exp)), cddr(exp)), ctx);
+			define_variable(car(cadr(exp)), closure, ctx);
 		}
 		return sao_make_symbol("ok");
 	} else if (is_tagged(exp, BEGIN)) {
 		object *args = cdr(exp);
 		for (; !is_null(cdr(args)); args = cdr(args))
-			sao_eval(car(args), env);
+			sao_eval(car(args), ctx);
 		exp = car(args);
 		goto tail;
 	} else if (is_tagged(exp, IF)) {
-		object *predicate = sao_eval(cadr(exp), env);
+		object *predicate = sao_eval(cadr(exp), ctx);
 		exp = (not_false(predicate)) ? caddr(exp) : cadddr(exp);
 		goto tail;
 	} else if (is_tagged(exp, sao_make_symbol("or"))) {
-		object *predicate = sao_eval(cadr(exp), env);
+		object *predicate = sao_eval(cadr(exp), ctx);
 		exp = (not_false(predicate)) ? caddr(exp) : cadddr(exp);
 		goto tail;
 	} else if (is_tagged(exp, sao_make_symbol("cond"))) {
 		object *branch = cdr(exp);
 		for (; !is_null(branch); branch = cdr(branch)) {
 			if (is_tagged(car(branch), sao_make_symbol("else")) ||
-					not_false(sao_eval(caar(branch), env))) {
+					not_false(sao_eval(caar(branch), ctx))) {
 				exp = cons(BEGIN, cdar(branch));
 				goto tail;
 			}
@@ -869,11 +868,11 @@ tail:
 		return NIL;
 	} else if (is_tagged(exp, SET)) {
 		if (atom(cadr(exp)))
-			set_variable(cadr(exp), sao_eval(caddr(exp), env), env);
+			set_variable(cadr(exp), sao_eval(caddr(exp), ctx), ctx);
 		else {
 			object *closure =
-				sao_eval(make_lambda(cdr(cadr(exp)), cddr(exp)), env);
-			set_variable(car(cadr(exp)), closure, env);
+				sao_eval(make_lambda(cdr(cadr(exp)), cddr(exp)), ctx);
+			set_variable(car(cadr(exp)), closure, ctx);
 		}
 		return sao_make_symbol("ok");
 	} else if (is_tagged(exp, LET)) {
@@ -892,8 +891,8 @@ tail:
 			/* Define the named let as a lambda function */
 			define_variable(cadr(exp),
 					sao_eval(make_lambda(vars, cdr(cddr(exp))),
-						extend_env(vars, vals, env)),
-					env);
+						sao_expand(vars, vals, ctx)),
+					ctx);
 			/* Then evaluate the lambda function with the starting values */
 			exp = cons(cadr(exp), vals);
 			goto tail;
@@ -906,9 +905,9 @@ tail:
 		goto tail;
 	} else {
 		/* procedure structure is as follows:
-			 ('procedure, (parameters), (body), (env)) */
-		object *proc = sao_eval(car(exp), env);
-		object *args = eval_list(cdr(exp), env);
+			 ('procedure, (parameters), (body), (ctx)) */
+		object *proc = sao_eval(car(exp), ctx);
+		object *args = eval_list(cdr(exp), ctx);
 		if (is_null(proc)) {
 #ifdef STRICT
 			sao_out_expr("Invalid arguments to sao_eval:", exp);
@@ -919,7 +918,7 @@ tail:
 		if (proc->type == type_native)
 			return proc->native(args);
 		if (is_tagged(proc, PROCEDURE)) {
-			env = extend_env(cadr(proc), args, cadddr(proc));
+			ctx = sao_expand(cadr(proc), args, cadddr(proc));
 			exp = cons(BEGIN, caddr(proc)); /* procedure body */
 			goto tail;
 		}
@@ -928,10 +927,10 @@ tail:
 	libc(printf)("\n");
 	return NIL;
 }
-void init_env() {
+void init_global() {
 #define add_native(s, c) define_variable(sao_make_symbol(s), make_native(c), GLOBAL)
 #define add_sym(s, c) do{c=sao_make_symbol(s);define_variable(c,c,GLOBAL);}while(0);
-	GLOBAL = extend_env(NIL, NIL, NIL);
+	GLOBAL = sao_expand(NIL, NIL, NIL);
 
 	add_sym("#t", TRUE);
 	add_sym("#f", FALSE);
@@ -984,10 +983,8 @@ void init_env() {
 	add_native("type", native_type);
 	add_native("load", load_file);
 	add_native("print", sao_print);
-	//add_native("ffi", native_ffi);
-	//add_native("get-global-environment", native_get_env);
-	add_native("global", native_get_global);//remove this feature
-	//	add_native("set-global-environment", native_set_env);
+	//add_native("ffi", native_ffi);//TODO
+	add_native("global", native_get_global);
 	add_native("exit", native_exit);//TODO change to ffi
 	//add_native("exec", native_exec);//TODO change to ffi
 	add_native("read", native_read);//read from stdin (like scan)
@@ -1001,7 +998,7 @@ int main(int argc, char **argv)
 	//TODO fprintf(stderr,)
 	ffi_func printf = libc(printf);
 	ht_init(8192-1);
-	init_env();//TODO make libsaodefault for the natives
+	init_global();//TODO make libsaodefault for the natives
 	libc(setmode)(libc(fileno)(libc(stdin)),0x8000/*O_BINARY*/);
 	FILEWrapper * fw = FileWrapper_new((FILE*)libc(stdin));
 	for(;;){

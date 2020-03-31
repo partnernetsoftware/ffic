@@ -141,9 +141,9 @@ object *cons(object *car, object *cdr);
 object *load_file(object *args);
 object *cdr(object *);
 object *car(object *);
-object *lookup_variable(object *var, object *env);
+object *sao_lookup_var(object *var, object *ctx);
 int sao_type_check(const char *func, object *obj, type_t type);
-typedef struct _FileChar FileChar, *pFileChar;
+typedef struct _FileChar FileChar;
 struct _FileChar {
  int c;
  FileChar * prev;
@@ -160,7 +160,7 @@ FILEWrapper * FileWrapper_new(FILE* fp);
 u64 sao_is_digit(int c);
 u64 sao_is_alpha(int c);
 u64 sao_is_alphanumber(int c);
-object *sao_eval(object *exp, object *env);
+object *sao_eval(object *exp, object *ctx);
 object *sao_load_expr(FILEWrapper * fw);
 void sao_comment(FILEWrapper * fw);
 object *sao_load_str(FILEWrapper * fw);
@@ -250,8 +250,8 @@ object *make_lambda(object *params, object *body) {
  return cons(LAMBDA, cons(params, body));
 }
 object *make_procedure(object *params, object *body,
-  object *env) {
- return cons(PROCEDURE, cons(params, cons(body, cons(env, END_LIST))));
+  object *ctx) {
+ return cons(PROCEDURE, cons(params, cons(body, cons(ctx, END_LIST))));
 }
 inline object *cons(object *car, object *cdr) {
  object *ret = alloc();
@@ -483,12 +483,12 @@ object *native_vec(object *args) {
  (sao_type_check(__func__, car(args), type_integer));
  return make_table(car(args)->integer);
 }
-object *extend_env(object *var, object *val, object *env) {
- return cons(cons(var, val), env);
+object *sao_expand(object *var, object *val, object *ctx) {
+ return cons(cons(var, val), ctx);
 }
-object *lookup_variable(object *var, object *env) {
- while (!((env)==0||(env)==NIL)) {
-  object *frame = car(env);
+object *sao_lookup_var(object *var, object *ctx) {
+ while (!((ctx)==0||(ctx)==NIL)) {
+  object *frame = car(ctx);
   object *vars = car(frame);
   object *vals = cdr(frame);
   while (!((vars)==0||(vars)==NIL)) {
@@ -497,13 +497,13 @@ object *lookup_variable(object *var, object *env) {
    vars = cdr(vars);
    vals = cdr(vals);
   }
-  env = cdr(env);
+  ctx = cdr(ctx);
  }
  return NIL;
 }
-void set_variable(object *var, object *val, object *env) {
- while (!((env)==0||(env)==NIL)) {
-  object *frame = car(env);
+void set_variable(object *var, object *val, object *ctx) {
+ while (!((ctx)==0||(ctx)==NIL)) {
+  object *frame = car(ctx);
   object *vars = car(frame);
   object *vals = cdr(frame);
   while (!((vars)==0||(vars)==NIL)) {
@@ -514,12 +514,12 @@ void set_variable(object *var, object *val, object *env) {
    vars = cdr(vars);
    vals = cdr(vals);
   }
-  env = cdr(env);
+  ctx = cdr(ctx);
  }
 }
 object *define_variable(object *var, object *val,
-  object *env) {
- object *frame = car(env);
+  object *ctx) {
+ object *frame = car(ctx);
  object *vars = car(frame);
  object *vals = cdr(frame);
  while (!((vars)==0||(vars)==NIL)) {
@@ -535,14 +535,14 @@ object *define_variable(object *var, object *val,
  return val;
 }
 char type_symbolS[] = "~!@#$%^&*_-+\\:.<>|{}[]?=/";
-object *eval_list(object *exp, object *env) {
+object *eval_list(object *exp, object *ctx) {
  if (((exp)==0||(exp)==NIL)) return NIL;
- return cons(sao_eval(car(exp), env), eval_list(cdr(exp), env));
+ return cons(sao_eval(car(exp), ctx), eval_list(cdr(exp), ctx));
 }
-object *eval_sequence(object *exps, object *env) {
- if (((cdr(exps))==0||(cdr(exps))==NIL)) return sao_eval(car(exps), env);
- sao_eval(car(exps), env);
- return eval_sequence(cdr(exps), env);
+object *eval_sequence(object *exps, object *ctx) {
+ if (((cdr(exps))==0||(cdr(exps))==NIL)) return sao_eval(car(exps), ctx);
+ sao_eval(car(exps), ctx);
+ return eval_sequence(cdr(exps), ctx);
 }
 object *load_file(object *args) {
  object *exp;
@@ -795,7 +795,7 @@ void sao_out_expr(char *str, object *e)
    libcf(libc_printf,"printf")(")");
  }
 }
-object *sao_eval(object *exp, object *env)
+object *sao_eval(object *exp, object *ctx)
 {
 tail:
  if (((exp)==0||(exp)==NIL) || exp == END_LIST) {
@@ -803,40 +803,40 @@ tail:
  } else if (exp->type == type_integer || exp->type == type_string) {
   return exp;
  } else if (exp->type == type_symbol) {
-  object *s = lookup_variable(exp, env);
+  object *s = sao_lookup_var(exp, ctx);
   return s;
  } else if (is_tagged(exp, QUOTE)) {
   return (car(cdr((exp))));
  } else if (is_tagged(exp, LAMBDA)) {
-  return make_procedure((car(cdr((exp)))), (cdr(cdr((exp)))), env);
+  return make_procedure((car(cdr((exp)))), (cdr(cdr((exp)))), ctx);
  } else if (is_tagged(exp, DEFINE)) {
   if ((!(((car(cdr((exp)))))==0||((car(cdr((exp)))))==NIL) && ((car(cdr((exp)))))->type != type_list))
-   define_variable((car(cdr((exp)))), sao_eval((car(cdr(cdr((exp))))), env), env);
+   define_variable((car(cdr((exp)))), sao_eval((car(cdr(cdr((exp))))), ctx), ctx);
   else {
    object *closure =
-    sao_eval(make_lambda(cdr((car(cdr((exp))))), (cdr(cdr((exp))))), env);
-   define_variable(car((car(cdr((exp))))), closure, env);
+    sao_eval(make_lambda(cdr((car(cdr((exp))))), (cdr(cdr((exp))))), ctx);
+   define_variable(car((car(cdr((exp))))), closure, ctx);
   }
   return sao_make_symbol("ok");
  } else if (is_tagged(exp, BEGIN)) {
   object *args = cdr(exp);
   for (; !((cdr(args))==0||(cdr(args))==NIL); args = cdr(args))
-   sao_eval(car(args), env);
+   sao_eval(car(args), ctx);
   exp = car(args);
   goto tail;
  } else if (is_tagged(exp, IF)) {
-  object *predicate = sao_eval((car(cdr((exp)))), env);
+  object *predicate = sao_eval((car(cdr((exp)))), ctx);
   exp = (not_false(predicate)) ? (car(cdr(cdr((exp))))) : (car(cdr(cdr(cdr((exp))))));
   goto tail;
  } else if (is_tagged(exp, sao_make_symbol("or"))) {
-  object *predicate = sao_eval((car(cdr((exp)))), env);
+  object *predicate = sao_eval((car(cdr((exp)))), ctx);
   exp = (not_false(predicate)) ? (car(cdr(cdr((exp))))) : (car(cdr(cdr(cdr((exp))))));
   goto tail;
  } else if (is_tagged(exp, sao_make_symbol("cond"))) {
   object *branch = cdr(exp);
   for (; !((branch)==0||(branch)==NIL); branch = cdr(branch)) {
    if (is_tagged(car(branch), sao_make_symbol("else")) ||
-     not_false(sao_eval((car(car((branch)))), env))) {
+     not_false(sao_eval((car(car((branch)))), ctx))) {
     exp = cons(BEGIN, (cdr(car((branch)))));
     goto tail;
    }
@@ -844,11 +844,11 @@ tail:
   return NIL;
  } else if (is_tagged(exp, SET)) {
   if ((!(((car(cdr((exp)))))==0||((car(cdr((exp)))))==NIL) && ((car(cdr((exp)))))->type != type_list))
-   set_variable((car(cdr((exp)))), sao_eval((car(cdr(cdr((exp))))), env), env);
+   set_variable((car(cdr((exp)))), sao_eval((car(cdr(cdr((exp))))), ctx), ctx);
   else {
    object *closure =
-    sao_eval(make_lambda(cdr((car(cdr((exp))))), (cdr(cdr((exp))))), env);
-   set_variable(car((car(cdr((exp))))), closure, env);
+    sao_eval(make_lambda(cdr((car(cdr((exp))))), (cdr(cdr((exp))))), ctx);
+   set_variable(car((car(cdr((exp))))), closure, ctx);
   }
   return sao_make_symbol("ok");
  } else if (is_tagged(exp, LET)) {
@@ -864,8 +864,8 @@ tail:
    }
    define_variable((car(cdr((exp)))),
      sao_eval(make_lambda(vars, cdr((cdr(cdr((exp)))))),
-      extend_env(vars, vals, env)),
-     env);
+      sao_expand(vars, vals, ctx)),
+     ctx);
    exp = cons((car(cdr((exp)))), vals);
    goto tail;
   }
@@ -876,15 +876,15 @@ tail:
   exp = cons(make_lambda(vars, (cdr(cdr((exp))))), vals);
   goto tail;
  } else {
-  object *proc = sao_eval(car(exp), env);
-  object *args = eval_list(cdr(exp), env);
+  object *proc = sao_eval(car(exp), ctx);
+  object *args = eval_list(cdr(exp), ctx);
   if (((proc)==0||(proc)==NIL)) {
    return NIL;
   }
   if (proc->type == type_native)
    return proc->native(args);
   if (is_tagged(proc, PROCEDURE)) {
-   env = extend_env((car(cdr((proc)))), args, (car(cdr(cdr(cdr((proc)))))));
+   ctx = sao_expand((car(cdr((proc)))), args, (car(cdr(cdr(cdr((proc)))))));
    exp = cons(BEGIN, (car(cdr(cdr((proc))))));
    goto tail;
   }
@@ -893,8 +893,8 @@ tail:
  libcf(libc_printf,"printf")("\n");
  return NIL;
 }
-void init_env() {
- GLOBAL = extend_env(NIL, NIL, NIL);
+void init_global() {
+ GLOBAL = sao_expand(NIL, NIL, NIL);
  do{TRUE=sao_make_symbol("#t");define_variable(TRUE,TRUE,GLOBAL);}while(0);;
  do{FALSE=sao_make_symbol("#f");define_variable(FALSE,FALSE,GLOBAL);}while(0);;
  do{QUOTE=sao_make_symbol("quote");define_variable(QUOTE,QUOTE,GLOBAL);}while(0);;
@@ -940,7 +940,7 @@ int main(int argc, char **argv)
 {
  ffi_func printf = libcf(libc_printf,"printf");
  ht_init(8192-1);
- init_env();
+ init_global();
  libcf(libc_setmode,"setmode")(libcf(libc_fileno,"fileno")(libcf(libc_stdin,"stdin")),0x8000 );
  FILEWrapper * fw = FileWrapper_new((FILE*)libcf(libc_stdin,"stdin"));
  for(;;){
