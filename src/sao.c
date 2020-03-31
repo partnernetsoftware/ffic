@@ -346,7 +346,6 @@ object *native_cmp(object *args) {
 		return FALSE;
 	return (car(args)->integer == cadr(args)->integer) ? TRUE : FALSE;
 }
-/* eq? native, checks memory location, or if equal values for natives */
 object *native_eq(object *args) {
 	return is_equal(car(args), cadr(args)) ? TRUE : FALSE;
 }
@@ -519,7 +518,6 @@ object *define_variable(object *var, object *val,
 }
 //char type_symbolS[] = "~!@#$%^&*_-+\\:,.<>|{}[]?=/";
 char type_symbolS[] = "~!@#$%^&*_-+\\:.<>|{}[]?=/";
-//int depth = 0;
 object *eval_list(object *exp, object *ctx) {
 	if (is_null(exp)) return NIL;
 	return cons(sao_eval(car(exp), ctx), eval_list(cdr(exp), ctx));
@@ -701,6 +699,7 @@ void sao_comment(FILEWrapper * fw)
 		if (c == '\n' || c == (-1)) return;
 	}
 }
+int depth = 0;
 object *sao_load_expr(FILEWrapper * fw)
 {
 	ffi_func printf = libc(printf);
@@ -727,29 +726,20 @@ object *sao_load_expr(FILEWrapper * fw)
 
 			if('('==sao_peek(fw)){
 				c = sao_getc(fw);
-				//sao_out_expr("\n theSymbol.0=",theSymbol );
 			}else{
-				//printf(" [c=%c] ",c);
-				//sao_out_expr("\n return=",theSymbol );
 				return theSymbol;
 			}
-			//return sao_read_symbol(fw,c);
 		}
 		if (c == '(') {
-			//TODO !! make prev symbol higher level...
-			//depth++;
-			//return sao_read_list(fw);
+			depth++;
 			object * list = sao_read_list(fw);
-			//sao_out_expr("\n theSymbol.1=",theSymbol);
-			//sao_out_expr("\n list.1=",list);
 			if(theSymbol!=NIL){
 				list = cons(theSymbol,list);
-				//sao_out_expr("\n list.2=",list);
 			}
 			return list;
 		}
 		if (c == ')') {
-			//depth--;
+			depth--;
 			return END_LIST;
 		}
 		if (sao_is_digit(c)) return sao_make_integer(sao_read_int(fw, c - '0'));
@@ -798,8 +788,6 @@ void sao_out_expr(char *str, object *e)
 					libc(printf)(" ");
 					sao_out_expr(0, (*t)->car);
 				}
-				//if(first==0)
-				//	libc(printf)(" ");
 				if (!is_null((*t)->cdr)) {
 					if ((*t)->cdr->type == type_list) {
 						t = &(*t)->cdr;
@@ -927,7 +915,8 @@ tail:
 	libc(printf)("\n");
 	return NIL;
 }
-void init_global() {
+void init_global()
+{
 #define add_native(s, c) define_variable(sao_make_symbol(s), make_native(c), GLOBAL)
 #define add_sym(s, c) do{c=sao_make_symbol(s);define_variable(c,c,GLOBAL);}while(0);
 	GLOBAL = sao_expand(NIL, NIL, NIL);
@@ -962,14 +951,6 @@ void init_global() {
 	add_native("eq?", native_eq);
 	add_native("equal?", native_equal);
 
-	//TODO remove at "sao"
-	//add_native("+", native_add);
-	//add_native("-", native_sub);
-	//add_native("*", native_mul);
-	//add_native("/", native_div);
-	//add_native("=", native_cmp);
-	//add_native("<", native_lt);
-	//add_native(">", native_gt);
 	//TODO "!", native_not
 
 	add_native("add", native_add);
@@ -995,8 +976,15 @@ void init_global() {
 }
 int main(int argc, char **argv)
 {
-	//TODO fprintf(stderr,)
 	ffi_func printf = libc(printf);
+	for(int i=1;i<argc;i++){
+		//printf("%s",argv[i]);
+		//object *obj = sao_load_expr(fw);//TODO wrap string to FILEWrapper !
+		printf("%s\n",argv[i]);
+	}
+	//return 0;
+
+	//TODO fprintf(stderr,)
 	ht_init(8192-1);
 	init_global();//TODO make libsaodefault for the natives
 	libc(setmode)(libc(fileno)(libc(stdin)),0x8000/*O_BINARY*/);

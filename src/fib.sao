@@ -1,12 +1,4 @@
-define(
-		fib(n) 
-		if(lt(n,3),
-			1,
-			add(fib(sub(n,1)),fib(sub(n,2)))
-			)
-		)
-
-fib(4)
+define(fib(n),if(lt(n,3),1,add(fib(sub(n,1)),fib(sub(n,2)))))
 
 fib(12)
 

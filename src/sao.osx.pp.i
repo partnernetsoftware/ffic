@@ -702,6 +702,7 @@ void sao_comment(FILEWrapper * fw)
   if (c == '\n' || c == (-1)) return;
  }
 }
+int depth = 0;
 object *sao_load_expr(FILEWrapper * fw)
 {
  ffi_func printf = libcf(libc_printf,"printf");
@@ -727,6 +728,7 @@ object *sao_load_expr(FILEWrapper * fw)
    }
   }
   if (c == '(') {
+   depth++;
    object * list = sao_read_list(fw);
    if(theSymbol!=NIL){
     list = cons(theSymbol,list);
@@ -734,6 +736,7 @@ object *sao_load_expr(FILEWrapper * fw)
    return list;
   }
   if (c == ')') {
+   depth--;
    return END_LIST;
   }
   if (sao_is_digit(c)) return sao_make_integer(sao_read_int(fw, c - '0'));
@@ -893,7 +896,8 @@ tail:
  libcf(libc_printf,"printf")("\n");
  return NIL;
 }
-void init_global() {
+void init_global()
+{
  GLOBAL = sao_expand(NIL, NIL, NIL);
  do{TRUE=sao_make_symbol("#t");define_variable(TRUE,TRUE,GLOBAL);}while(0);;
  do{FALSE=sao_make_symbol("#f");define_variable(FALSE,FALSE,GLOBAL);}while(0);;
@@ -939,6 +943,9 @@ void init_global() {
 int main(int argc, char **argv)
 {
  ffi_func printf = libcf(libc_printf,"printf");
+ for(int i=1;i<argc;i++){
+  printf("%s\n",argv[i]);
+ }
  ht_init(8192-1);
  init_global();
  libcf(libc_setmode,"setmode")(libcf(libc_fileno,"fileno")(libcf(libc_stdin,"stdin")),0x8000 );
