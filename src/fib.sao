@@ -8,8 +8,10 @@ define(
 				)
 			)
 		)
-;"1111"()
-;print("2222")
+
+	;"1111"()
+	;print("2222")
 print(fib(10))
-;print(fib(30))
+	;print(fib(30))
+
 exit()

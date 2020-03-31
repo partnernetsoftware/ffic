@@ -662,10 +662,9 @@ int sao_read_int(FILEWrapper * fw, int start)
 		start = start * 10 + (sao_getc(fw) - '0');
 	return start;
 }
-//object * tmpLast;
 object *sao_read_list(FILEWrapper * fw, object* caller)
 {
-	sao_out_expr("\n caller=",caller );
+	//sao_out_expr("\n caller=",caller );
 	object *obj;
 	object *cell = END_LIST;
 	//object *cell = (caller==NIL)?caller:END_LIST;
@@ -724,9 +723,9 @@ object *sao_load_expr(FILEWrapper * fw, object* caller)
 		if (libc(isalpha)(c) || libc(strchr)(type_symbolS, c)){
 			tmpLast = sao_read_symbol(fw,c);
 
-			if('('==sao_peek(fw)){
-				//
-			}else
+			//if('('==sao_peek(fw)){
+			//	//
+			//}else
 			return tmpLast;
 			//return sao_read_symbol(fw,c);
 		}
