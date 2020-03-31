@@ -1,20 +1,45 @@
-// https://github.com/lazear/microlisp/blob/master/scheme/src/scheme.c
-// https://en.wikipedia.org/wiki/Scheme_(programming_language)
-// https://schemers.org/
-/* interpreter for lang(scheme)
- * MIT License
- * Copyright Michael Lazear (c) 2016
- * FFI version by Wanjo Chan (c) 2020
- */
-#include "macros.h"
-#define DEFINE_ENUM(n) libc_##n,
+#define SAO_CAT(a, ...) SAO_PRIMITIVE_CAT(a, __VA_ARGS__)
+#define SAO_PRIMITIVE_CAT(a, ...) a ## __VA_ARGS__
+#define SAO_IIF(c) SAO_PRIMITIVE_CAT(SAO_IIF_, c)
+#define SAO_IIF_0(t, ...) __VA_ARGS__
+#define SAO_IIF_1(t, ...) t
+#define SAO_CHECK_N(x, n, ...) n
+#define SAO_CHECK(...) SAO_CHECK_N(__VA_ARGS__, 0,)
+#define SAO_PROBE(x) x, 1,
+#define SAO_IS_PAREN(x) SAO_CHECK(SAO_IS_PAREN_PROBE x)
+#define SAO_IS_PAREN_PROBE(...) SAO_PROBE(~)
+#define SAO_NOT(x) SAO_CHECK(SAO_PRIMITIVE_CAT(SAO_NOT_, x))
+#define SAO_NOT_0 SAO_PROBE(~)
+#define SAO_COMPL(b) SAO_PRIMITIVE_CAT(SAO_COMPL_, b)
+#define SAO_COMPL_0 1
+#define SAO_COMPL_1 0
+#define SAO_BOOL(x) SAO_COMPL(SAO_NOT(x))
+#define SAO_IF(c) SAO_IIF(SAO_BOOL(c))
+#define SAO_EAT(...)
+#define SAO_EXPAND(...) __VA_ARGS__
+#define SAO_WHEN(c) SAO_IF(c)(SAO_EXPAND, SAO_EAT)
+#define SAO_EMPTY()
+#define SAO_DEFER(id) id SAO_EMPTY()
+#define SAO_OBSTRUCT(...) __VA_ARGS__ SAO_DEFER(SAO_EMPTY)()
+#define SAO_EVAL(...)  SAO_EVAL1(SAO_EVAL1(SAO_EVAL1(__VA_ARGS__)))
+#define SAO_EVAL1(...) SAO_EVAL2(SAO_EVAL2(SAO_EVAL2(__VA_ARGS__)))
+#define SAO_EVAL2(...) SAO_EVAL3(SAO_EVAL3(SAO_EVAL3(__VA_ARGS__)))
+#define SAO_EVAL3(...) SAO_EVAL4(SAO_EVAL4(SAO_EVAL4(__VA_ARGS__)))
+#define SAO_EVAL4(...) SAO_EVAL5(SAO_EVAL5(SAO_EVAL5(__VA_ARGS__)))
+#define SAO_EVAL5(...) __VA_ARGS__
+#define SAO_WHILE(macro, value, ...) SAO_WHEN(SAO_NOT(SAO_IS_PAREN(value ())))\
+( SAO_OBSTRUCT(macro) (value) SAO_OBSTRUCT(SAO_WHILE_INDIRECT) () (macro, __VA_ARGS__) )
+#define SAO_WHILE_INDIRECT() SAO_WHILE 
+#define SAO_ITR(mmm,qqq,...) SAO_EVAL( SAO_WHILE( mmm,qqq,__VA_ARGS__ ) )
+//////////////////////////////////////////////////////////////////////////////
+#define DEFINE_ENUM_LIBC(n) libc_##n,
 #define LIBC_FUNC_LIST fprintf,stderr,exit,malloc,memset,strdup,strcmp,printf,\
 	stdin,putc,getc,ungetc,isalnum,strchr,isdigit,isalpha,fopen,fread,fclose,feof,\
 	usleep,msleep,sleep,fputc,_setmode,_fileno,setmode,fileno,\
 	gettimeofday,calloc,stdout,NULL
 //TODO make ffi buffer then after the ffic()
 enum {
-	ITR(DEFINE_ENUM,EXPAND(LIBC_FUNC_LIST))
+	SAO_ITR(DEFINE_ENUM_LIBC,SAO_EXPAND(LIBC_FUNC_LIST))
 };
 void* (*libc_a[libc_NULL])();//function buffer
 #define libc(f) libcf(libc_##f,#f)
