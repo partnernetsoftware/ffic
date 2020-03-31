@@ -34,8 +34,22 @@ pp:
 	${CC} -E ffic.c -I. -I../tinycc/ | sed 's/^#.*//g' | sed "/^$$/d" > ffic.pp.i
 clean:
 	rm -f *.o
+	rm -f scheme_osx
 
-##################################################### lab for sao
+run_scheme:
+	make default
+	./ffic scheme.c
+test_scheme_osx:
+	echo $$(($$(gdate +'%s * 1000 + %-N / 1000000'))) && cat fib.scm | ./scheme_osx
+osx_scheme:
+	rm -f scheme_osx
+	${CC} -E scheme.c | sed 's/^#.*//g' | sed "/^$$/d" > scheme.osx.pp.i
+	${CC} scheme.osx.pp.i -L. -o scheme_osx
+	#upx scheme_osx
+	./upx_osx ./scheme_osx
+	ls -al scheme*
+	cat fib.scm | ./scheme_osx
+	make test_scheme_osx
 
 run_sao:
 	make osx_sao
