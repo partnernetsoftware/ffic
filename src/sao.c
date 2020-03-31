@@ -124,10 +124,10 @@ u64 sao_is_digit(int c);
 u64 sao_is_alpha(int c);
 u64 sao_is_alphanumber(int c);
 object *sao_eval(object *exp, object *env);
-object *sao_load_expr(FILEWrapper * fw, object *caller);
+object *sao_load_expr(FILEWrapper * fw);
 void sao_comment(FILEWrapper * fw);
 object *sao_load_str(FILEWrapper * fw);
-object *sao_read_list(FILEWrapper * fw,object * caller);
+object *sao_read_list(FILEWrapper * fw);
 int sao_read_int(FILEWrapper * fw, int start);
 int sao_peek(FILEWrapper * fw);
 object *sao_make_integer(int x);
@@ -239,10 +239,13 @@ object *append(object *l1, object *l2) {
 	if (is_null(l1)) return l2;
 	return cons(car(l1), append(cdr(l1), l2));
 }
-object *reverse(object *list, object *first) {
-	if (is_null(list)) return first;
-	return reverse(cdr(list), cons(car(list), first));
+
+object * sao_reverse(object *list, object *first) {
+	object * rt = (is_null(list)) ? first :
+		sao_reverse(cdr(list), cons(car(list), first));
+	return rt;
 }
+
 int is_equal(object *x, object *y) {
 	if (x == y)
 		return 1;
@@ -441,7 +444,7 @@ object *native_exit(object *args) {
 object *native_read(object *args) {
 	//libc(assert)(is_null(args));
 	FILEWrapper * fw = FileWrapper_new((FILE*)libc(stdin));
-	return sao_load_expr(fw, args);
+	return sao_load_expr(fw);
 }
 object *native_vget(object *args) {
 	type_check(car(args), type_table);
@@ -540,7 +543,7 @@ object *load_file(object *args) {
 	}
 	FILEWrapper * fw = FileWrapper_new(fp);
 	for (;;) {
-		exp = sao_load_expr(fw,GLOBAL);
+		exp = sao_load_expr(fw);
 		if (is_null(exp))
 			break;
 		ret = sao_eval(exp, GLOBAL);
@@ -663,16 +666,14 @@ int sao_read_int(FILEWrapper * fw, int start)
 	return start;
 }
 //object * tmpLast;
-object *sao_read_list(FILEWrapper * fw, object* caller)
+object *sao_read_list(FILEWrapper * fw)
 {
-	sao_out_expr("\n caller=",caller );
 	object *obj;
 	object *cell = END_LIST;
-	//object *cell = (caller==NIL)?caller:END_LIST;
 	for (;;) {
-		obj = sao_load_expr(fw,caller);
-		if (obj == END_LIST) //end of list
-			return reverse(cell, END_LIST);//pop and then return the list
+		obj = sao_load_expr(fw);
+		if (obj == END_LIST)
+			return sao_reverse(cell, END_LIST);
 		cell = cons(obj, cell);
 	}
 	return END_LIST;
@@ -701,40 +702,50 @@ void sao_comment(FILEWrapper * fw)
 		if (c == '\n' || c == (-1)) return;
 	}
 }
-object *sao_load_expr(FILEWrapper * fw, object* caller)
+object *sao_load_expr(FILEWrapper * fw)
 {
+	ffi_func printf = libc(printf);
 	int c;
-	object * tmpLast = NIL;
 	for (;;) { //TODO switch(){}
+		object * tmpLast = NIL;
 		c = sao_getc(fw);
 		if (c == (-1)) return NULL;
 		if (c == '\n' || c == '\r' || c == ' ' || c == '\t'
-				|| c == ','
-				) {
+				|| c == ',') {
 			//if ((c == '\n' || c == '\r') && is_stdin) {
-			//if "-i"
-			//	for (int i = 0; i < depth; i++) libc(printf)("..");
+			//if("-i") for (int i = 0; i < depth; i++) libc(printf)("..");
 			//}
 			continue;
 		}
 		if (c == '\"') return sao_load_str(fw);
 		if (c == ';' || c=='#') { sao_comment(fw); continue; }
-		if (c == '\'') return cons(QUOTE, cons(sao_load_expr(fw, caller), NIL));
+		if (c == '\'') return cons(QUOTE, cons(sao_load_expr(fw), NIL));
 
 		if (libc(isalpha)(c) || libc(strchr)(type_symbolS, c)){
 			tmpLast = sao_read_symbol(fw,c);
 
 			if('('==sao_peek(fw)){
-				//
-			}else
-			return tmpLast;
+				c = sao_getc(fw);
+				sao_out_expr("\n tmpLast.0=",tmpLast );
+			}else{
+				printf(" [c=%c] ",c);
+				sao_out_expr("\n return=",tmpLast );
+				return tmpLast;
+			}
 			//return sao_read_symbol(fw,c);
 		}
 		if (c == '(') {
 			//TODO !! make prev symbol higher level...
 			//depth++;
-			//return sao_read_list(fw,caller);
-			return sao_read_list(fw,tmpLast);
+			//return sao_read_list(fw);
+			object * list = sao_read_list(fw);
+			sao_out_expr("\n tmpLast.1=",tmpLast);
+			sao_out_expr("\n list.1=",list);
+			if(tmpLast!=NIL){
+				list = cons(tmpLast,list);
+				sao_out_expr("\n list.2=",list);
+			}
+			return list;
 		}
 		if (c == ')') {
 			//depth--;
@@ -949,13 +960,13 @@ void init_env() {
 	add_native("equal?", native_equal);
 
 	//TODO remove at "sao"
-	add_native("+", native_add);
-	add_native("-", native_sub);
-	add_native("*", native_mul);
-	add_native("/", native_div);
-	add_native("=", native_cmp);
-	add_native("<", native_lt);
-	add_native(">", native_gt);
+	//add_native("+", native_add);
+	//add_native("-", native_sub);
+	//add_native("*", native_mul);
+	//add_native("/", native_div);
+	//add_native("=", native_cmp);
+	//add_native("<", native_lt);
+	//add_native(">", native_gt);
 	//TODO "!", native_not
 
 	add_native("add", native_add);
@@ -992,7 +1003,7 @@ int main(int argc, char **argv)
 	for(;;){
 		//producer:
 		FileWrapper_feed(fw);
-		object *obj = sao_load_expr(fw,GLOBAL);
+		object *obj = sao_load_expr(fw);
 		if (!is_null(obj)) {
 #if defined(PROFILE)
 			printf("%lu: ",ffi_microtime());
