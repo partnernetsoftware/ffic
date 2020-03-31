@@ -28,28 +28,27 @@
 #define SAO_EVAL4(...) SAO_EVAL5(SAO_EVAL5(SAO_EVAL5(__VA_ARGS__)))
 #define SAO_EVAL5(...) __VA_ARGS__
 #define SAO_WHILE(macro, value, ...) SAO_WHEN(SAO_NOT(SAO_IS_PAREN(value ())))\
-( SAO_OBSTRUCT(macro) (value) SAO_OBSTRUCT(SAO_WHILE_INDIRECT) () (macro, __VA_ARGS__) )
+	( SAO_OBSTRUCT(macro) (value) SAO_OBSTRUCT(SAO_WHILE_INDIRECT) () (macro, __VA_ARGS__) )
 #define SAO_WHILE_INDIRECT() SAO_WHILE 
 #define SAO_ITR(mmm,qqq,...) SAO_EVAL( SAO_WHILE( mmm,qqq,__VA_ARGS__ ) )
 //////////////////////////////////////////////////////////////////////////////
 #define DEFINE_ENUM_LIBC(n) libc_##n,
 #define LIBC_FUNC_LIST fprintf,stderr,exit,malloc,memset,strdup,strcmp,printf,\
-	stdin,putc,getc,ungetc,isalnum,strchr,isdigit,isalpha,fopen,fread,fclose,feof,\
-	usleep,msleep,sleep,fputc,_setmode,_fileno,setmode,fileno,\
-	gettimeofday,calloc,stdout,NULL
-//TODO make ffi buffer then after the ffic()
+	stdin,putc,getc,isalnum,strchr,isdigit,isalpha,fopen,fread,fclose,feof,\
+	usleep,msleep,sleep,fputc,setmode,fileno,gettimeofday,calloc,stdout,NULL
+//TODO macro for (int=>char* map)
 enum {
 	SAO_ITR(DEFINE_ENUM_LIBC,SAO_EXPAND(LIBC_FUNC_LIST))
 };
 void* (*libc_a[libc_NULL])();//function buffer
 #define libc(f) libcf(libc_##f,#f)
-#include "ffic.h"
+#include "ffic.h" //github.com/partnernetsoftware/ffic/blob/master/src/ffic.h
 typedef void*(*ffi_func)();
 ffi_func libcf(int fi,const char* fn){
 	return libc_a[fi]?libc_a[fi]:(libc_a[fi]=ffic("c",fn));
 }
-//TODO change to int=>char* map
-#define NULL ((void*)0)
+//#define NULL ((void*)0)
+#define NULL 0
 //////////////////////////////////////////////////////////////////////////////
 #define is_null(x) ((x) == 0 || (x) == NIL)
 #define is_EOL(x) (is_null((x)) || (x) == END_LIST)
@@ -64,14 +63,13 @@ ffi_func libcf(int fi,const char* fn){
 #define cdadr(x) (cdr(car(cdr((x)))))
 #define atom(x) (!is_null(x) && (x)->type != type_list)
 #define type_check(x, t) (sao_type_check(__func__, x, t))
-char *types[6] = {"integer","symbol","string","list","primitive","vector"};
+char *types[6] = {"integer","symbol","string","list","native","vector"};
 typedef enum {
-	type_integer, type_symbol, type_string, type_list, type_primitive, type_vector
+	type_integer, type_symbol, type_string, type_list, type_native, type_vector
 } type_t;
 typedef struct object object;
-typedef object *(*primitive_t)(object *);
+typedef object *(*native_t)(object *);
 struct object {
-	char gc;
 	type_t type;
 	union {
 		i64 integer;
@@ -84,7 +82,7 @@ struct object {
 			object *car;
 			object *cdr;
 		};
-		primitive_t primitive;
+		native_t native;
 	};
 } __attribute__((packed));
 object *GLOBAL;
@@ -209,10 +207,10 @@ object *make_integer(int x) {
 	ret->integer = x;
 	return ret;
 }
-object *make_primitive(primitive_t x) {
+object *make_native(native_t x) {
 	object *ret = alloc();
-	ret->type = type_primitive;
-	ret->primitive = x;
+	ret->type = type_native;
+	ret->native = x;
 	return ret;
 }
 object *make_lambda(object *params, object *body) {
@@ -260,7 +258,7 @@ int is_equal(object *x, object *y) {
 		case type_symbol:
 		case type_string:
 			return !libc(strcmp)(x->string, y->string);
-		case type_primitive:
+		case type_native:
 			return 0;
 		case type_vector:
 			return 0;
@@ -346,7 +344,7 @@ object *prim_cmp(object *args) {
 		return FALSE;
 	return (car(args)->integer == cadr(args)->integer) ? TRUE : FALSE;
 }
-/* eq? primitive, checks memory location, or if equal values for primitives */
+/* eq? native, checks memory location, or if equal values for natives */
 object *prim_eq(object *args) {
 	return is_equal(car(args), cadr(args)) ? TRUE : FALSE;
 }
@@ -622,7 +620,7 @@ int sao_getc(FILEWrapper *fw) //like atok
 	}
 	return c;
 }
-object *sao_prim_print(object *args) {
+object *sao_print(object *args) {
 	sao_out_expr(0, car(args));
 	libc(printf)("\n");
 	return NIL;
@@ -781,7 +779,7 @@ void sao_out_expr(char *str, object *e)
 		case type_integer:
 			libc(printf)("%ld", e->integer);
 			break;
-		case type_primitive:
+		case type_native:
 			libc(printf)("<function>");
 			break;
 		case type_vector:
@@ -920,8 +918,8 @@ tail:
 #endif
 			return NIL;
 		}
-		if (proc->type == type_primitive)
-			return proc->primitive(args);
+		if (proc->type == type_native)
+			return proc->native(args);
 		if (is_tagged(proc, PROCEDURE)) {
 			env = extend_env(cadr(proc), args, cadddr(proc));
 			exp = cons(BEGIN, caddr(proc)); /* procedure body */
@@ -933,7 +931,7 @@ tail:
 	return NIL;
 }
 void init_env() {
-#define add_prim(s, c) define_variable(sao_make_symbol(s), make_primitive(c), GLOBAL)
+#define add_native(s, c) define_variable(sao_make_symbol(s), make_native(c), GLOBAL)
 #define add_sym(s, c) do{c=sao_make_symbol(s);define_variable(c,c,GLOBAL);}while(0);
 	GLOBAL = extend_env(NIL, NIL, NIL);
 	add_sym("#t", TRUE);
@@ -949,51 +947,51 @@ void init_env() {
 	add_sym("if", IF);
 	define_variable(sao_make_symbol("true"), TRUE, GLOBAL);
 	define_variable(sao_make_symbol("false"), FALSE, GLOBAL);
-	add_prim("cons", prim_cons);
-	add_prim("car", prim_car);
-	add_prim("cdr", prim_cdr);
-	add_prim("set-car!", prim_setcar);
-	add_prim("set-cdr!", prim_setcdr);
-	add_prim("list", prim_list);
-	add_prim("list?", prim_listq);
-	add_prim("null?", prim_is_nullq);
-	add_prim("pair?", prim_pairq);
-	add_prim("atom?", prim_atomq);
+	add_native("cons", prim_cons);
+	add_native("car", prim_car);
+	add_native("cdr", prim_cdr);
+	add_native("set-car!", prim_setcar);
+	add_native("set-cdr!", prim_setcdr);
+	add_native("list", prim_list);
+	add_native("list?", prim_listq);
+	add_native("null?", prim_is_nullq);
+	add_native("pair?", prim_pairq);
+	add_native("atom?", prim_atomq);
 
-	add_prim("eq?", prim_eq);
-	add_prim("equal?", prim_equal);
+	add_native("eq?", prim_eq);
+	add_native("equal?", prim_equal);
 
 	//TODO remove at "sao"
-	add_prim("+", prim_add);
-	add_prim("-", prim_sub);
-	add_prim("*", prim_mul);
-	add_prim("/", prim_div);
-	add_prim("=", prim_cmp);
-	add_prim("<", prim_lt);
-	add_prim(">", prim_gt);
+	add_native("+", prim_add);
+	add_native("-", prim_sub);
+	add_native("*", prim_mul);
+	add_native("/", prim_div);
+	add_native("=", prim_cmp);
+	add_native("<", prim_lt);
+	add_native(">", prim_gt);
 	//TODO "!", prim_not
 
-	add_prim("add", prim_add);
-	add_prim("sub", prim_sub);
-	add_prim("mul", prim_mul);
-	add_prim("div", prim_div);
-	add_prim("cmp", prim_cmp);
-	add_prim("lt", prim_lt);
-	add_prim("gt", prim_gt);
+	add_native("add", prim_add);
+	add_native("sub", prim_sub);
+	add_native("mul", prim_mul);
+	add_native("div", prim_div);
+	add_native("cmp", prim_cmp);
+	add_native("lt", prim_lt);
+	add_native("gt", prim_gt);
 	
-	add_prim("type", prim_type);
-	add_prim("load", load_file);
-	add_prim("print", sao_prim_print);
-	//add_prim("ffi", prim_ffi);
-	//add_prim("get-global-environment", prim_get_env);
-	add_prim("global", prim_get_global);//remove this feature
-	//	add_prim("set-global-environment", prim_set_env);
-	add_prim("exit", prim_exit);//TODO change to ffi
-	//add_prim("exec", prim_exec);//TODO change to ffi
-	add_prim("read", prim_read);//read from stdin (like scan)
-	add_prim("vector", prim_vec);
-	add_prim("vector-get", prim_vget);
-	add_prim("vector-set", prim_vset);
+	add_native("type", prim_type);
+	add_native("load", load_file);
+	add_native("print", sao_print);
+	//add_native("ffi", prim_ffi);
+	//add_native("get-global-environment", prim_get_env);
+	add_native("global", prim_get_global);//remove this feature
+	//	add_native("set-global-environment", prim_set_env);
+	add_native("exit", prim_exit);//TODO change to ffi
+	//add_native("exec", prim_exec);//TODO change to ffi
+	add_native("read", prim_read);//read from stdin (like scan)
+	add_native("vector", prim_vec);
+	add_native("vector-get", prim_vget);
+	add_native("vector-set", prim_vset);
 }
 int main(int argc, char **argv)
 {

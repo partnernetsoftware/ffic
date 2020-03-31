@@ -1,17 +1,16 @@
-/*
- * ffic() to unify libc
- */
-#ifndef PTRSIZE
+/* ffic() to unify libc */
+#ifndef SIZEOF_POINTER
 # if defined(_WIN64)
-# define PTRSIZE 8 //WIN 64
+# define SIZEOF_POINTER 8 //WIN 64
 # elif defined(_WIN32)
-# define PTRSIZE 4 //32
+# define SIZEOF_POINTER 4 //32
+//# elif //TODO 32 linux
 # else
-# define PTRSIZE 8 //64
+# define SIZEOF_POINTER 8 //64 as default...
 # endif
 #endif
 
-#if PTRSIZE==8
+#if SIZEOF_POINTER==8
 typedef signed char i8;
 typedef signed short int i16;
 typedef signed int i32;
@@ -20,7 +19,7 @@ typedef unsigned char u8;
 typedef unsigned short int u16;
 typedef unsigned int u32;
 typedef unsigned long int u64;
-#elif PTRSIZE==4
+#elif SIZEOF_POINTER==4
 typedef signed char i8;
 typedef signed short int i16;
 typedef signed int i32;
@@ -29,12 +28,14 @@ typedef unsigned char u8;
 typedef unsigned short int u16;
 typedef unsigned int u32;
 typedef unsigned long long int u64;
-#else //TODO 128
+#elif SIZEOF_POINTER==16
+#error TODO SIZEOF_POINTER 16(128bit)
+#else
+#error Unknown SIZEOF_POINTER ?
 #endif
 
 #  if defined(_WIN32) || defined(_WIN64)
-
-struct _iobuf {
+typedef struct _iobuf {
 	char *_ptr;
 	int _cnt;
 	char *_base;
@@ -43,8 +44,7 @@ struct _iobuf {
 	int _charbuf;
 	int _bufsiz;
 	char *_tmpfname;
-};
-typedef struct _iobuf FILE;
+} FILE;
 
 #ifdef _WIN64
 #define __cdecl
@@ -94,9 +94,8 @@ extern void*(*ffic(const char*, const char*, ...))();
 #  define libc(f) ffic("c",#f)
 #  endif
 # elif FFIC==1
-//int sprintf(char *str, const char *format, ...);
-int fprintf(FILE *stream, const char *format, ...);
-int fflush(FILE *stream);
+extern int fprintf(FILE *stream, const char *format, ...);
+extern int fflush(FILE *stream);
 extern int strcmp(const char*,const char*);
 #  if defined(_WIN32) || defined(_WIN64)
 #ifdef UNICODE
@@ -115,6 +114,7 @@ extern void *dlsym(void *, const char *);
 #   endif
 #define ffic_dlopen dlopen 
 void ffic_strcat(char *target, const char *source, const char* append) {
+	//TODO check size.
 	while (*source) {
 		*target = *source;
 		source++;
@@ -178,9 +178,6 @@ void*(*ffic(const char* libname, const char* funcname, ...))()
 			if(!strcmp("fileno",funcname)){
 #ifdef _WIN32
 				funcname = "_fileno";
-#else
-				//TODO for non win...
-				addr = ffic_void;
 #endif
 			}else if(!strcmp("setmode",funcname)){
 #ifdef _WIN32
@@ -201,9 +198,7 @@ void*(*ffic(const char* libname, const char* funcname, ...))()
 			}
 		}
 	}
-	if(addr==0){
-		addr = ffic_raw(libname,funcname,0);
-	}
+	if(addr==0) addr = ffic_raw(libname,funcname,0);
 	return addr;
 }
 void* ffic_sleep(int seconds)
@@ -233,7 +228,6 @@ void* ffic_usleep(int nano_seconds)
 #endif
 	return 0;
 };
-
 #  ifndef libc
 #  define libc(f) ffic("c",#f)
 #  endif
