@@ -1,5 +1,5 @@
 enum {
- libc_fprintf, libc_stderr, libc_exit, libc_malloc, libc_memset, libc_strdup, libc_strcmp, libc_printf, libc_stdin, libc_putc, libc_getc, libc_isalnum, libc_strchr, libc_isdigit, libc_isalpha, libc_fopen, libc_fread, libc_fclose, libc_feof, libc_usleep, libc_msleep, libc_sleep, libc_fputc, libc_setmode, libc_fileno, libc_gettimeofday, libc_calloc, libc_stdout, libc_NULL,
+ libc_fprintf, libc_stderr, libc_exit, libc_malloc, libc_memset, libc_strdup, libc_strcmp, libc_printf, libc_stdin, libc_putc, libc_getc, libc_isalnum, libc_strchr, libc_isdigit, libc_isalpha, libc_fopen, libc_fread, libc_fgets, libc_fclose, libc_feof, libc_usleep, libc_msleep, libc_sleep, libc_fputc, libc_setmode, libc_fileno, libc_gettimeofday, libc_calloc, libc_stdout, libc_NULL,
 };
 void* (*libc_a[libc_NULL])();
 typedef signed char i8;
@@ -583,14 +583,23 @@ FILEWrapper * FileWrapper_new(FILE* fp)
 }
 void FileWrapper_feed(FILEWrapper* fw)
 {
+ ffi_func printf = libcf(libc_printf,"printf");
  ffi_func fread = libcf(libc_fread,"fread");
+ ffi_func fgets = libcf(libc_fgets,"fgets");
+ ffi_func malloc = libcf(libc_malloc,"malloc");
+ ffi_func memset = libcf(libc_memset,"memset");
  int ok=0,ko=0;
  int k=0;
  int ct = 0;
  for(;;)
  {
-  if(1==(long)fread(&k,sizeof(char),1,fw->fp))
-  {
+  char*line = malloc(1024);
+  if (line == 0) native_exit(NIL);
+  memset(line, -1, 1024);
+  fgets(line,1024,fw->fp);
+  for(int i=0;i<1024;i++){
+   int k = line[i];
+   if(k<0) return;
    FileChar*fc=libcf(libc_calloc,"calloc")(sizeof(FileChar),sizeof(char));;
    fc->c = k;
    fc->next = (void*) 0;
@@ -608,10 +617,8 @@ void FileWrapper_feed(FILEWrapper* fw)
    }
    fw->count+=1;
    ok++;
-  }else{
-   return;
+   ct++;
   }
-  ct++;
  }
 }
 int sao_getc(FILEWrapper *fw)
@@ -712,6 +719,7 @@ object *sao_load_expr(FILEWrapper * fw)
   c = sao_getc(fw);
   if (c == (-1)) return 0;
   if (c == '\n' || c == '\r' || c == ' ' || c == '\t'
+    || c == 0
     || c == ',' || (c=='/'&&'/'==sao_peek(fw)))
   {
    continue;
@@ -944,7 +952,7 @@ int main(int argc, char **argv)
 {
  ffi_func printf = libcf(libc_printf,"printf");
  for(int i=1;i<argc;i++){
-  printf("%s\n",argv[i]);
+  printf("argv[%d] %s\n",i,argv[i]);
  }
  ht_init(8192-1);
  init_global();

@@ -34,8 +34,8 @@
 //////////////////////////////////////////////////////////////////////////////
 #define DEFINE_ENUM_LIBC(n) libc_##n,
 #define LIBC_FUNC_LIST fprintf,stderr,exit,malloc,memset,strdup,strcmp,printf,\
-	stdin,putc,getc,isalnum,strchr,isdigit,isalpha,fopen,fread,fclose,feof,\
-	usleep,msleep,sleep,fputc,setmode,fileno,gettimeofday,calloc,stdout,NULL
+stdin,putc,getc,isalnum,strchr,isdigit,isalpha,fopen,fread,fgets,fclose,feof,\
+usleep,msleep,sleep,fputc,setmode,fileno,gettimeofday,calloc,stdout,NULL
 //TODO macro for (int=>char* map)
 enum {
 	SAO_ITR(DEFINE_ENUM_LIBC,SAO_EXPAND(LIBC_FUNC_LIST))
@@ -579,14 +579,27 @@ FILEWrapper * FileWrapper_new(FILE* fp)
 }
 void FileWrapper_feed(FILEWrapper* fw)
 {
-	ffi_func fread = libc(fread);
+	ffi_func printf = libc(printf);
+	ffi_func fread  = libc(fread);
+	ffi_func fgets  = libc(fgets);
+	ffi_func malloc = libc(malloc);
+	ffi_func memset = libc(memset);
 	int ok=0,ko=0;
 	int k=0;
 	int ct = 0;
 	for(;;)
 	{
-		if(1==(long)fread(&k,sizeof(char),1,fw->fp))
-		{
+		char*line = malloc(1024);
+		if (line == NULL) native_exit(NIL);
+		memset(line, -1, 1024);
+		//int line[1024] = {-1};
+		fgets(line,1024,fw->fp);
+		//printf("c=%d\n",c);
+		for(int i=0;i<1024;i++){
+			int k = line[i];
+			if(k<0) return;
+			//printf("%d:%d,",i,k);
+			//if(k<0) break;
 			NEW_OBJECT(FileChar,fc);
 			fc->c = k; 
 			fc->next = (void*) 0;
@@ -605,10 +618,34 @@ void FileWrapper_feed(FILEWrapper* fw)
 			}
 			fw->count+=1;
 			ok++;
-		}else{ //printf("ct=%d,ok=%d,ko=%d,k=%d,EOF=%s\n",ct,ok,ko,k,feof(fw->fp)?"Y":"N");
-			return;
+			ct++;
 		}
-		ct++;
+		////if(1==(long)fread(&k,sizeof(char),1,fw->fp))
+		//fgets(&k,1,fw->fp);
+		//if(k>0)
+		//{
+		//	NEW_OBJECT(FileChar,fc);
+		//	fc->c = k; 
+		//	fc->next = (void*) 0;
+		//	fc->prev = (void*) 0;
+		//	printf("%d-%c ",k,k);
+		//	if(0==fw->first){
+		//		fw->first = fc;
+		//		fw->current = fc;
+		//	}
+		//	if(0==fw->last){
+		//		fw->last = fc;
+		//	}else{
+		//		fc->prev = fw->last;//
+		//		fw->last->next = fc;
+		//		fw->last = fc;
+		//	}
+		//	fw->count+=1;
+		//	ok++;
+		//}else{ //printf("ct=%d,ok=%d,ko=%d,k=%d,EOF=%s\n",ct,ok,ko,k,feof(fw->fp)?"Y":"N");
+		//	return;
+		//}
+		//ct++;
 	}
 }
 int sao_getc(FILEWrapper *fw) //like atok
@@ -710,6 +747,7 @@ object *sao_load_expr(FILEWrapper * fw)
 		c = sao_getc(fw);
 		if (c == (-1)) return NULL;
 		if (c == '\n' || c == '\r' || c == ' ' || c == '\t'
+				|| c == 0
 				|| c == ',' || (c=='/'&&'/'==sao_peek(fw)))
 		{
 			//if ((c == '\n' || c == '\r') && is_stdin) {
@@ -980,7 +1018,7 @@ int main(int argc, char **argv)
 	for(int i=1;i<argc;i++){
 		//printf("%s",argv[i]);
 		//object *obj = sao_load_expr(fw);//TODO wrap string to FILEWrapper !
-		printf("%s\n",argv[i]);
+		printf("argv[%d] %s\n",i,argv[i]);
 	}
 	//return 0;
 
