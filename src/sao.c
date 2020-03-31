@@ -27,7 +27,7 @@ ffi_func libcf(int fi,const char* fn){
 #define NULL ((void*)0)
 //////////////////////////////////////////////////////////////////////////////
 #define is_null(x) ((x) == 0 || (x) == NIL)
-#define is_EOL(x) (is_null((x)) || (x) == EMPTY_LIST)
+#define is_EOL(x) (is_null((x)) || (x) == END_LIST)
 #define error(x) do{libc(fprintf)(libc(stderr),"%s\n",x);libc(exit)(1);}while(0)
 #define caar(x) (car(car((x))))
 #define cdar(x) (cdr(car((x))))
@@ -64,7 +64,7 @@ struct object {
 } __attribute__((packed));
 object *GLOBAL;
 object *NIL;
-object *EMPTY_LIST;
+object *END_LIST;
 object *TRUE;
 object *FALSE;
 object *QUOTE;
@@ -107,7 +107,7 @@ object *sao_load_str(FILEWrapper * fw);
 object *sao_read_list(FILEWrapper * fw,object * caller);
 int sao_read_int(FILEWrapper * fw, int start);
 int sao_peek(FILEWrapper * fw);
-void sao_ungetc(FILEWrapper * fw,int c);//TODO remove it
+//void sao_ungetc(FILEWrapper * fw,int c);//TODO remove it
 object *sao_make_integer(int x);
 object *sao_read_symbol(FILEWrapper * fw, char start);
 void sao_out_expr(char *str, object *e);
@@ -195,7 +195,7 @@ object *make_lambda(object *params, object *body) {
 }
 object *make_procedure(object *params, object *body,
 		object *env) {
-	return cons(PROCEDURE, cons(params, cons(body, cons(env, EMPTY_LIST))));
+	return cons(PROCEDURE, cons(params, cons(body, cons(env, END_LIST))));
 }
 inline object *cons(object *car, object *cdr) {
 	object *ret = alloc();
@@ -626,19 +626,28 @@ object *sao_make_integer(int x)
 	ret->integer = x;
 	return ret;
 }
-void sao_ungetc(FILEWrapper * fw,int c)
+//void sao_ungetc(FILEWrapper * fw,int c)
+//{
+//	FileChar * current = fw->current;
+//	if(current!=0){
+//		c = current->c;
+//		fw->current=current->prev;
+//	}
+//}
+int sao_peek(FILEWrapper * fw)
 {
+	int c = -1;
 	FileChar * current = fw->current;
 	if(current!=0){
 		c = current->c;
-		fw->current=current->prev;
+		//FileChar * next = current->next;
+		//if(next!=0){
+		//	c = next->c;
+		//}
 	}
-}
-//TODO just return next... no need tune pointer...
-int sao_peek(FILEWrapper * fw)
-{
-	int c = sao_getc(fw);
-	sao_ungetc(fw,c);
+	return c;
+//	int c = sao_getc(fw);
+//	sao_ungetc(fw,c);
 	return c;
 }
 int sao_read_int(FILEWrapper * fw, int start)
@@ -647,17 +656,27 @@ int sao_read_int(FILEWrapper * fw, int start)
 		start = start * 10 + (sao_getc(fw) - '0');
 	return start;
 }
+object * tmpLast;
 object *sao_read_list(FILEWrapper * fw, object* caller)
 {
 	object *obj;
-	object *cell = EMPTY_LIST;
+	object *cell = END_LIST;
+	int first=0;
 	for (;;) {
 		obj = sao_load_expr(fw,caller);
-		if (obj == EMPTY_LIST)
-			return reverse(cell, EMPTY_LIST);
+		if (obj == END_LIST) //end of list
+			return reverse(cell, END_LIST);//pop and then return the list
+//		if(first==0){
+//			first=1;
+//			//cell = cons(tmpLast, cell);
+//			//sao_out_expr("\n tmpLast=",tmpLast);
+//			cell = END_LIST;
+//		}else{
+//			cell = cons(obj, cell);
+//		}
 		cell = cons(obj, cell);
 	}
-	return EMPTY_LIST;
+	return END_LIST;
 }
 inline object *sao_load_str(FILEWrapper * fw)
 {
@@ -701,7 +720,9 @@ object *sao_load_expr(FILEWrapper * fw, object* caller)
 		if (c == ';' || c=='#') { sao_comment(fw); continue; }
 		if (c == '\'') return cons(QUOTE, cons(sao_load_expr(fw, caller), NIL));
 		if (libc(isalpha)(c) || libc(strchr)(type_symbolS, c)){
-			return sao_read_symbol(fw, c);
+			tmpLast = sao_read_symbol(fw,c);
+			return tmpLast;
+			//return sao_read_symbol(fw,c);
 		}
 		if (c == '(') {
 			//TODO !! make prev symbol higher level...
@@ -710,7 +731,7 @@ object *sao_load_expr(FILEWrapper * fw, object* caller)
 		}
 		if (c == ')') {
 			//depth--;
-			return EMPTY_LIST;
+			return END_LIST;
 		}
 		if (sao_is_digit(c)) return sao_make_integer(sao_read_int(fw, c - '0'));
 		if (c == '-' && sao_is_digit(sao_peek(fw)))
@@ -749,18 +770,19 @@ void sao_out_expr(char *str, object *e)
 				return;
 			}
 			int first=0;
-			sao_out_expr(0, e->car);
+			sao_out_expr(0, e->car);//out car
 			libc(printf)("(");
 			object **t = &e;
 			while (!is_null(*t)) {
-				if(first==0){
+				if(first==0){ //skip
 					first=1;
 				}else{
+					libc(printf)(" ");
 					sao_out_expr(0, (*t)->car);
 				}
+				//if(first==0)
+				//	libc(printf)(" ");
 				if (!is_null((*t)->cdr)) {
-					//if(first==1)
-					libc(printf)(" ");
 					if ((*t)->cdr->type == type_list) {
 						t = &(*t)->cdr;
 					} else {
@@ -776,7 +798,7 @@ void sao_out_expr(char *str, object *e)
 object *sao_eval(object *exp, object *env)
 {
 tail:
-	if (is_null(exp) || exp == EMPTY_LIST) {
+	if (is_null(exp) || exp == END_LIST) {
 		return NIL;
 	} else if (exp->type == type_integer || exp->type == type_string) {
 		return exp;
