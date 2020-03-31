@@ -929,7 +929,7 @@ void init_global()
 	add_sym("procedure", PROCEDURE);
 
 	//TODO merge three:
-	add_sym("define", DEFINE);
+	add_sym("var", DEFINE);
 	add_sym("let", LET);
 	add_sym("set!", SET);
 

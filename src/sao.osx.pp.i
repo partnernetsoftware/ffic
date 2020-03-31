@@ -904,7 +904,7 @@ void init_global()
  do{QUOTE=sao_make_symbol("quote");define_variable(QUOTE,QUOTE,GLOBAL);}while(0);;
  do{LAMBDA=sao_make_symbol("lambda");define_variable(LAMBDA,LAMBDA,GLOBAL);}while(0);;
  do{PROCEDURE=sao_make_symbol("procedure");define_variable(PROCEDURE,PROCEDURE,GLOBAL);}while(0);;
- do{DEFINE=sao_make_symbol("define");define_variable(DEFINE,DEFINE,GLOBAL);}while(0);;
+ do{DEFINE=sao_make_symbol("var");define_variable(DEFINE,DEFINE,GLOBAL);}while(0);;
  do{LET=sao_make_symbol("let");define_variable(LET,LET,GLOBAL);}while(0);;
  do{SET=sao_make_symbol("set!");define_variable(SET,SET,GLOBAL);}while(0);;
  do{BEGIN=sao_make_symbol("begin");define_variable(BEGIN,BEGIN,GLOBAL);}while(0);;
