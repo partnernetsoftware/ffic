@@ -852,7 +852,6 @@ void sao_out_expr(char *str, sao_object *e)
 												 break;
 										 }
 										 printf(")");
-		default: //TODO
 	}
 }
 sao_object *sao_eval(sao_object *exp, sao_object *ctx)
@@ -1049,7 +1048,6 @@ int main(int argc, char **argv)
 	libc(setmode)(libc(fileno)(libc(stdin)),0x8000/*O_BINARY*/);
 	SaoStream * fw = SaoStream_new(libc(stdin),stream_FILE);
 	sao_object * result = sao_parse( fw, 1/*eval*/ );
-	//printf("gHTable_len=%d\n",gHTable_len);
 	return 0;
 }
 
@@ -1058,6 +1056,7 @@ int main(int argc, char **argv)
  * * +sao_err()
  * * _string stream
  * * options in sao
- * * fix empty list leading....
+ * * remove "ok" stuff
  * * macro the types: (enum=>enum_name)
+ * * redesign context/global
  */
