@@ -69,7 +69,7 @@ typedef sao_object *(*native_t)(sao_object *);
 struct _sao_object {
 	type_t type;
 	union {
-		i64 integer;
+		long integer;
 		char *string;
 		struct {
 			sao_object **table;
@@ -82,19 +82,21 @@ struct _sao_object {
 		native_t native;
 	};
 } __attribute__((packed));
-sao_object *GLOBAL    ;//= NULL;
-sao_object *NIL       ;//= NULL;
-sao_object *END_LIST  ;//= NULL;
-sao_object *TRUE      ;//= NULL;
-sao_object *FALSE     ;//= NULL;
-sao_object *QUOTE     ;//= NULL;
-sao_object *SET       ;//= NULL;
-sao_object *LET       ;//= NULL;
-sao_object *DEFINE    ;//= NULL;
-sao_object *PROCEDURE ;//= NULL;
-sao_object *IF        ;//= NULL;
-sao_object *LAMBDA    ;//= NULL;
-sao_object *BEGIN     ;//= NULL;
+
+sao_object *NIL       = NULL;
+sao_object *END_LIST  = NULL;
+
+sao_object *GLOBAL    = NULL;
+sao_object *TRUE      = NULL;
+sao_object *FALSE     = NULL;
+sao_object *QUOTE     = NULL;
+sao_object *SET       = NULL;
+sao_object *LET       = NULL;
+sao_object *DEFINE    = NULL;
+sao_object *PROCEDURE = NULL;
+sao_object *IF        = NULL;
+sao_object *LAMBDA    = NULL;
+sao_object *BEGIN     = NULL;
 
 int is_tagged(sao_object *cell, sao_object *tag);
 sao_object *cons(sao_object *car, sao_object *cdr);
@@ -127,9 +129,9 @@ typedef struct {
 	long total;//TODO for gc()
 } SaoStream;
 SaoStream * SaoStream_new(void*,stream_t);
-u64 sao_is_digit(int c);
-u64 sao_is_alpha(int c);
-u64 sao_is_alphanumber(int c);
+long sao_is_digit(int c);
+long sao_is_alpha(int c);
+long sao_is_alphanumber(int c);
 sao_object *sao_eval(sao_object *exp, sao_object *ctx);
 sao_object *sao_load_expr(SaoStream * fw);
 void sao_comment(SaoStream * fw);
@@ -140,16 +142,17 @@ int sao_peek(SaoStream * fw);
 sao_object *sao_make_integer(int x);
 sao_object *sao_read_symbol(SaoStream * fw, char start);
 void sao_out_expr(char *str, sao_object *e);
-inline u64 sao_is_digit(int c) { return (u64) libc(isdigit)(c); }
-inline u64 sao_is_alpha(int c) { return (u64) libc(isalpha)(c); }
-inline u64 sao_is_alphanumber(int c) { return (u64) libc(isalnum)(c); }
+inline long sao_is_digit(int c) { return (long) libc(isdigit)(c); }
+inline long sao_is_alpha(int c) { return (long) libc(isalpha)(c); }
+inline long sao_is_alphanumber(int c) { return (long) libc(isalnum)(c); }
 ////////////////////////////////////////////////////////////////////////
 struct htable { sao_object *key; };
 static struct htable *HTABLE = 0;
 static int HTABLE_SIZE = 0;
-static i64 ht_hash(const char *s) {
-	i64 h = 0;
-	u8 *u = (u8 *) s;
+//#define TOK_HASH_FUNC(h, c) ((h) + ((h) << 5) + ((h) >> 27) + (c))
+static long ht_hash(const char *s) {
+	long h = 0;
+	char *u = (char *) s;
 	while (*u) { h = (h * 256 + (*u)) % HTABLE_SIZE; u++; }
 	return h;
 }
@@ -165,12 +168,12 @@ int ht_init(int size) {
 	return size;
 }
 void ht_insert(sao_object *key) {
-	i64 h = ht_hash(key->string);
+	long h = ht_hash(key->string);
 	HTABLE[h].key = key;
 }
 //TODO expand when every hit (ref to tcc later)
 sao_object *ht_lookup(char *s) {
-	i64 h = ht_hash(s);
+	long h = ht_hash(s);
 	return HTABLE[h].key;
 }
 ////////////////////////////////////////////////////////////////////////
@@ -387,7 +390,7 @@ sao_object *native_equal(sao_object *args) {
 }
 sao_object *native_add(sao_object *list) {
 	type_check(car(list), type_integer);
-	i64 total = car(list)->integer;
+	long total = car(list)->integer;
 	list = cdr(list);
 	//while (!is_EOL(car(list)))
 	while (!is_NIL(car(list)))
@@ -400,7 +403,7 @@ sao_object *native_add(sao_object *list) {
 }
 sao_object *native_sub(sao_object *list) {
 	type_check(car(list), type_integer);
-	i64 total = car(list)->integer;
+	long total = car(list)->integer;
 	list = cdr(list);
 	while (!is_NIL(list)) {
 		type_check(car(list), type_integer);
@@ -411,7 +414,7 @@ sao_object *native_sub(sao_object *list) {
 }
 sao_object *native_div(sao_object *list) {
 	type_check(car(list), type_integer);
-	i64 total = car(list)->integer;
+	long total = car(list)->integer;
 	list = cdr(list);
 	while (!is_NIL(list)) {
 		type_check(car(list), type_integer);
@@ -422,7 +425,7 @@ sao_object *native_div(sao_object *list) {
 }
 sao_object *native_mul(sao_object *list) {
 	type_check(car(list), type_integer);
-	i64 total = car(list)->integer;
+	long total = car(list)->integer;
 	list = cdr(list);
 	while (!is_NIL(list)) {
 		type_check(car(list), type_integer);
@@ -561,14 +564,14 @@ sao_object *load_file(sao_object *args) {
 #include "debug_scheme.c"
 #endif
 #define PROFILE
-static u64 ffi_microtime(void)
+static long ffi_microtime(void)
 {
 #ifdef _WIN32
-	return (u64)(ffic("kernel32","GetTickCount")());
+	return (long)(ffic("kernel32","GetTickCount")());
 #else
 	struct timeval {
-		u64 tv_sec;
-		u64 tv_usec;
+		long tv_sec;
+		long tv_usec;
 	};
 	struct timeval * tv = libc(calloc)(sizeof(struct timeval),sizeof(char));
 	libc(gettimeofday)(tv, 0);
@@ -814,6 +817,7 @@ sao_object *sao_load_expr(SaoStream * fw)
 		if (libc(isalpha)(c) || libc(strchr)(type_symbolS, c)){
 			theSymbol = sao_read_symbol(fw,c);
 
+			//TODO sao_peek( fw, /*ignore*/ " \t" );
 			if('('==sao_peek(fw)){
 				c = sao_deq_c(fw);
 			}else{
@@ -1027,8 +1031,7 @@ void init_global()
 	add_sym("quote", QUOTE);
 	add_sym("lambda", LAMBDA);
 	add_sym("procedure", PROCEDURE);
-
-	//TODO merge three:
+	//TODO to merge three:
 	add_sym("var", DEFINE);
 	add_sym("let", LET);
 	add_sym("set!", SET);
@@ -1075,7 +1078,7 @@ void init_global()
 }
 
 //TODO upgrade SaoStream to SaoStream to support string
-sao_object * sao_handle( SaoStream * fw, int do_eval )
+sao_object * sao_parse( SaoStream * fw, int do_eval )
 {
 	sao_read_line(fw);
 	
@@ -1125,19 +1128,19 @@ sao_object * sao_handle( SaoStream * fw, int do_eval )
 }
 int main(int argc, char **argv)
 {
+	ht_init(8192-1);
 	ffi_func printf = libc(printf);
 	//TODO sao_load_expr( SaoStreamWrapper ( join(argc, argv) ));
 	for(int i=1;i<argc;i++){
 		//printf("%s",argv[i]);
 		printf("argv[%d] %s\n",i,argv[i]);
 	}
-	ht_init(8192-1);
 	init_global();//TODO make libsaodefault for the natives
 //	printf("NIL=%d\n",NIL);
 //	printf("END_LIST=%d\n",END_LIST);
 //	printf("(END_LIST==NIL)=%s\n",((END_LIST)==(NIL))?"Y":"N");
 	libc(setmode)(libc(fileno)(libc(stdin)),0x8000/*O_BINARY*/);
 	SaoStream * fw = SaoStream_new(libc(stdin),stream_FILE);
-	sao_object * result = sao_handle( fw, 1 );
+	sao_object * result = sao_parse( fw, 1/*eval*/ );
 	return 0;
 }

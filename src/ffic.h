@@ -10,29 +10,29 @@
 # endif
 #endif
 
-#if SIZEOF_POINTER==8
-typedef signed char i8;
-typedef signed short int i16;
-typedef signed int i32;
-typedef signed long int i64;
-typedef unsigned char u8;
-typedef unsigned short int u16;
-typedef unsigned int u32;
-typedef unsigned long int u64;
-#elif SIZEOF_POINTER==4
-typedef signed char i8;
-typedef signed short int i16;
-typedef signed int i32;
-typedef signed long long int i64;
-typedef unsigned char u8;
-typedef unsigned short int u16;
-typedef unsigned int u32;
-typedef unsigned long long int u64;
-#elif SIZEOF_POINTER==16
-#error TODO SIZEOF_POINTER 16(128bit)
-#else
-#error Unknown SIZEOF_POINTER ?
-#endif
+//#if SIZEOF_POINTER==8
+//typedef signed char i8;
+//typedef signed short int i16;
+//typedef signed int i32;
+//typedef signed long int i64;
+//typedef unsigned char u8;
+//typedef unsigned short int u16;
+//typedef unsigned int u32;
+//typedef unsigned long int u64;
+//#elif SIZEOF_POINTER==4
+//typedef signed char i8;
+//typedef signed short int i16;
+//typedef signed int i32;
+//typedef signed long long int i64;
+//typedef unsigned char u8;
+//typedef unsigned short int u16;
+//typedef unsigned int u32;
+//typedef unsigned long long int u64;
+//#elif SIZEOF_POINTER==16
+//#error TODO SIZEOF_POINTER 16(128bit)
+//#else
+//#error Unknown SIZEOF_POINTER ?
+//#endif
 
 #  if defined(_WIN32) || defined(_WIN64)
 typedef struct _iobuf {

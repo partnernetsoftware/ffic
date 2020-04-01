@@ -43,7 +43,7 @@ var( assoc( key list)
       car( list)
       assoc( key cdr( list)))))
 
-;;; Lambda key-list with dispatch
+# Lambda key-list with dispatch
 var( make-key-list()
   let( (list( '())) 
     var( get-val lambda( var() 
@@ -56,7 +56,7 @@ var( make-key-list()
           list)))
     dispatch))
 
-;;; Lambda stack with dispatch
+# Lambda stack with dispatch
 var( make-stack()
   let( (stack( '()))
     var( push lambda( x() 
@@ -80,7 +80,7 @@ var( last-item-in-list lambda( list()
         helper( cdr( remaining))))
     helper( list)))
 
-;;; Returns a list from 0-number()
+# Returns a list from 0-number()
 var( range( number) 
   var( range-helper( start max)
     if( cmp( start max)
@@ -88,7 +88,7 @@ var( range( number)
       cons( start range-helper( add( 1 start) max))))
   range-helper( 0 number))
 
-;;; Returns a list from 0-number()
+# Returns a list from 0-number()
 var( range-from( start finish)
   if( cmp( start finish)
     finish
@@ -102,7 +102,7 @@ var( length( list)
       length-helper( add( 1 accum) cdr( remaining))))
   length-helper( 1 cdr( list)))
 
-;;; Append list2 to list1
+# Append list2 to list1
 var( append lambda( list1( list2) 
     var( append-helper( l1 l2)
       if( null?( l1)
@@ -110,7 +110,7 @@ var( append lambda( list1( list2)
         cons( car( l1) append-helper( cdr( l1) l2))))
     append-helper( list1 list2)))
 
-;;; Reverse list
+# Reverse list
 var( reverse( list)
   var( reverse-iter( remaining first) 
     if( null?( remaining)
@@ -143,8 +143,8 @@ var( mod( a b)
       iter( sub( rem div) div)))
   iter( a b))
 
-;;; A couple macros
-;;; Because this is LISP and we can...
+# A couple macros
+# Because this is LISP and we can...
 var( procedure-body lambda( proc() caddr( proc)))
 var( procedure-args lambda( proc() cadr( proc)))
 var( mutate-procedure-env( name new-env) set-car!( cdddr( name) new-env))
@@ -165,7 +165,7 @@ var( gen-accum( number)
     set!( number add( number amount))
     number))
 
-;;; Everytime new-accum() is called, it's accumulator should be increased by one
+# Everytime new-accum() is called, it's accumulator should be increased by one
 var( new-accum gen-accum( 0))
 
 ;; Simple for loop
@@ -185,8 +185,8 @@ var( make-withdraw( balance)
         balance)
       "Insufficient funds")))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; Various tests
+#;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+# Various tests
 var( x '1( 2 3))
 var( factorial lambda(n() if( cmp( n 0) 1 mul( n factorial( sub( n 1))))))
 var( add1 lambda(n() add( 1 n)))
@@ -197,11 +197,9 @@ var( sum-of-squares( num-list)
         sos-helper( cdr( remaining) add( sum-so-far mul( car( remaining) car( remaining)))))))
   sos-helper( num-list 0))
 
-;;; Procedure with no args
+# Procedure with no args
 var( new-env() cons( cons( '() '()) '()))
-;;; Construct a procedure with macro
+# Construct a procedure with macro
 var( new-func construct-procedure( 'a() 'cons( a 10) get-global-environment()))
 var( with-macros construct-procedure( 'x() if-zero( 'x 'ZERO) get-global-environment()))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;  convertion-1 :%s/\((\)\([^ ()]*\)/\2\1/gc

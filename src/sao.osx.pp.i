@@ -1,15 +1,7 @@
 enum {
- libc_fprintf, libc_stderr, libc_exit, libc_malloc, libc_memset, libc_strdup, libc_strcmp, libc_printf, libc_stdin, libc_putc, libc_getc, libc_isalnum, libc_strchr, libc_isdigit, libc_isalpha, libc_fopen, libc_fread, libc_fgets, libc_fclose, libc_feof, libc_usleep, libc_msleep, libc_sleep, libc_fputc, libc_setmode, libc_fileno, libc_gettimeofday, libc_calloc, libc_stdout, libc_strlen, libc_NULL,
+ libc_fprintf, libc_stderr, libc_exit, libc_malloc, libc_memset, libc_strdup, libc_strcmp, libc_printf, libc_stdin, libc_putc, libc_getc, libc_isalnum, libc_strchr, libc_isdigit, libc_isalpha, libc_fopen, libc_fread, libc_fgets, libc_fclose, libc_feof, libc_usleep, libc_msleep, libc_sleep, libc_fputc, libc_setmode, libc_fileno, libc_gettimeofday, libc_calloc, libc_stdout, libc_strlen, libc_fflush, libc_NULL,
 };
 void* (*libc_a[libc_NULL])();
-typedef signed char i8;
-typedef signed short int i16;
-typedef signed int i32;
-typedef signed long int i64;
-typedef unsigned char u8;
-typedef unsigned short int u16;
-typedef unsigned int u32;
-typedef unsigned long int u64;
 typedef struct __FILE FILE;
 extern FILE *__stdinp;
 extern FILE *__stdoutp;
@@ -101,16 +93,20 @@ typedef void*(*ffi_func)();
 ffi_func libcf(int fi,const char* fn){
  return libc_a[fi]?libc_a[fi]:(libc_a[fi]=ffic("c",fn));
 }
+typedef enum {
+ stream_FILE,
+ stream_char,
+} stream_t;
 char *types[7] = {"integer","symbol","string","list","native","table","null"};
 typedef enum {
- type_integer, type_symbol, type_string, type_list, type_native, type_table, type_null
+type_integer,type_symbol,type_string,type_list,type_native,type_table,type_null
 } type_t;
 typedef struct _sao_object sao_object;
 typedef sao_object *(*native_t)(sao_object *);
 struct _sao_object {
  type_t type;
  union {
-  i64 integer;
+  long integer;
   char *string;
   struct {
    sao_object **table;
@@ -123,19 +119,19 @@ struct _sao_object {
   native_t native;
  };
 } __attribute__((packed));
-sao_object *GLOBAL ;
-sao_object *NIL ;
-sao_object *END_LIST ;
-sao_object *TRUE ;
-sao_object *FALSE ;
-sao_object *QUOTE ;
-sao_object *SET ;
-sao_object *LET ;
-sao_object *DEFINE ;
-sao_object *PROCEDURE ;
-sao_object *IF ;
-sao_object *LAMBDA ;
-sao_object *BEGIN ;
+sao_object *NIL = 0;
+sao_object *END_LIST = 0;
+sao_object *GLOBAL = 0;
+sao_object *TRUE = 0;
+sao_object *FALSE = 0;
+sao_object *QUOTE = 0;
+sao_object *SET = 0;
+sao_object *LET = 0;
+sao_object *DEFINE = 0;
+sao_object *PROCEDURE = 0;
+sao_object *IF = 0;
+sao_object *LAMBDA = 0;
+sao_object *BEGIN = 0;
 int is_tagged(sao_object *cell, sao_object *tag);
 sao_object *cons(sao_object *car, sao_object *cdr);
 sao_object *load_file(sao_object *args);
@@ -143,42 +139,42 @@ sao_object *cdr(sao_object *);
 sao_object *car(sao_object *);
 sao_object *sao_lookup_var(sao_object *var, sao_object *ctx);
 int sao_type_check(const char *func, sao_object *obj, type_t type);
-typedef struct _FileChar FileChar;
-struct _FileChar {
+typedef struct _FileChar {
  int c;
- FileChar * prev;
- FileChar * next;
-};
+ struct _FileChar * ptr_prev;
+ struct _FileChar * ptr_next;
+} FileChar;
 typedef struct {
  FILE* fp;
- FileChar * first;
- FileChar * last;
- FileChar * current;
- long count;
-} FILEWrapper;
-FILEWrapper * FILEWrapper_new(FILE* fp);
-u64 sao_is_digit(int c);
-u64 sao_is_alpha(int c);
-u64 sao_is_alphanumber(int c);
+ FileChar * ptr_start;
+ FileChar * ptr_head;
+ FileChar * ptr_last;
+ long rest;
+ long total;
+} SaoStream;
+SaoStream * SaoStream_new(void*,stream_t);
+long sao_is_digit(int c);
+long sao_is_alpha(int c);
+long sao_is_alphanumber(int c);
 sao_object *sao_eval(sao_object *exp, sao_object *ctx);
-sao_object *sao_load_expr(FILEWrapper * fw);
-void sao_comment(FILEWrapper * fw);
-sao_object *sao_load_str(FILEWrapper * fw);
-sao_object *sao_read_list(FILEWrapper * fw);
-int sao_read_int(FILEWrapper * fw, int start);
-int sao_peek(FILEWrapper * fw);
+sao_object *sao_load_expr(SaoStream * fw);
+void sao_comment(SaoStream * fw);
+sao_object *sao_load_str(SaoStream * fw);
+sao_object *sao_read_list(SaoStream * fw);
+int sao_read_int(SaoStream * fw, int start);
+int sao_peek(SaoStream * fw);
 sao_object *sao_make_integer(int x);
-sao_object *sao_read_symbol(FILEWrapper * fw, char start);
+sao_object *sao_read_symbol(SaoStream * fw, char start);
 void sao_out_expr(char *str, sao_object *e);
-inline u64 sao_is_digit(int c) { return (u64) libcf(libc_isdigit,"isdigit")(c); }
-inline u64 sao_is_alpha(int c) { return (u64) libcf(libc_isalpha,"isalpha")(c); }
-inline u64 sao_is_alphanumber(int c) { return (u64) libcf(libc_isalnum,"isalnum")(c); }
+inline long sao_is_digit(int c) { return (long) libcf(libc_isdigit,"isdigit")(c); }
+inline long sao_is_alpha(int c) { return (long) libcf(libc_isalpha,"isalpha")(c); }
+inline long sao_is_alphanumber(int c) { return (long) libcf(libc_isalnum,"isalnum")(c); }
 struct htable { sao_object *key; };
 static struct htable *HTABLE = 0;
 static int HTABLE_SIZE = 0;
-static i64 ht_hash(const char *s) {
- i64 h = 0;
- u8 *u = (u8 *) s;
+static long ht_hash(const char *s) {
+ long h = 0;
+ char *u = (char *) s;
  while (*u) { h = (h * 256 + (*u)) % HTABLE_SIZE; u++; }
  return h;
 }
@@ -193,11 +189,11 @@ int ht_init(int size) {
  return size;
 }
 void ht_insert(sao_object *key) {
- i64 h = ht_hash(key->string);
+ long h = ht_hash(key->string);
  HTABLE[h].key = key;
 }
 sao_object *ht_lookup(char *s) {
- i64 h = ht_hash(s);
+ long h = ht_hash(s);
  return HTABLE[h].key;
 }
 sao_object *sao_alloc() {
@@ -300,9 +296,9 @@ int not_false(sao_object *x) {
  if (x->type == type_integer && x->integer == 0) return 0;
  return 1;
 }
-int is_tagged(sao_object *cell, sao_object *tag) {
- if (((cell)==0||(cell)==NIL) || cell->type != type_list)
-  return 0;
+int is_tagged(sao_object *cell, sao_object *tag)
+{
+ if (((cell)==0||(cell)==NIL) || cell->type != type_list) return 0;
  return is_equal(car(cell), tag);
 }
 int length(sao_object *exp) {
@@ -337,7 +333,7 @@ sao_object *native_setcdr(sao_object *args) {
  (args->car->cdr = ((car(cdr((args))))));
  return NIL;
 }
-sao_object *native_is_NILq(sao_object *args) {
+sao_object *native_is_null(sao_object *args) {
  return ((((car(args)))==0||((car(args)))==NIL) || (car(args)) == END_LIST) ? TRUE : FALSE;
 }
 sao_object *native_pairq(sao_object *args) {
@@ -345,7 +341,7 @@ sao_object *native_pairq(sao_object *args) {
   return FALSE;
  return ((!(((car(car((args)))))==0||((car(car((args)))))==NIL) && ((car(car((args)))))->type != type_list) && (!(((cdr(car((args)))))==0||((cdr(car((args)))))==NIL) && ((cdr(car((args)))))->type != type_list)) ? TRUE : FALSE;
 }
-sao_object *native_listq(sao_object *args) {
+sao_object *native_is_list(sao_object *args) {
  sao_object *list;
  if (car(args)->type != type_list)
   return FALSE;
@@ -398,9 +394,10 @@ sao_object *native_equal(sao_object *args) {
 }
 sao_object *native_add(sao_object *list) {
  (sao_type_check(__func__, car(list), type_integer));
- i64 total = car(list)->integer;
+ long total = car(list)->integer;
  list = cdr(list);
- while (!((((car(list)))==0||((car(list)))==NIL) || (car(list)) == END_LIST)) {
+ while (!((car(list))==0||(car(list))==NIL))
+ {
   (sao_type_check(__func__, car(list), type_integer));
   total += car(list)->integer;
   list = cdr(list);
@@ -409,7 +406,7 @@ sao_object *native_add(sao_object *list) {
 }
 sao_object *native_sub(sao_object *list) {
  (sao_type_check(__func__, car(list), type_integer));
- i64 total = car(list)->integer;
+ long total = car(list)->integer;
  list = cdr(list);
  while (!((list)==0||(list)==NIL)) {
   (sao_type_check(__func__, car(list), type_integer));
@@ -420,7 +417,7 @@ sao_object *native_sub(sao_object *list) {
 }
 sao_object *native_div(sao_object *list) {
  (sao_type_check(__func__, car(list), type_integer));
- i64 total = car(list)->integer;
+ long total = car(list)->integer;
  list = cdr(list);
  while (!((list)==0||(list)==NIL)) {
   (sao_type_check(__func__, car(list), type_integer));
@@ -431,7 +428,7 @@ sao_object *native_div(sao_object *list) {
 }
 sao_object *native_mul(sao_object *list) {
  (sao_type_check(__func__, car(list), type_integer));
- i64 total = car(list)->integer;
+ long total = car(list)->integer;
  list = cdr(list);
  while (!((list)==0||(list)==NIL)) {
   (sao_type_check(__func__, car(list), type_integer));
@@ -455,7 +452,7 @@ sao_object *native_exit(sao_object *args) {
  return NIL;
 }
 sao_object *native_read(sao_object *args) {
- FILEWrapper * fw = FILEWrapper_new((FILE*)libcf(libc_stdin,"stdin"));
+ SaoStream * fw = SaoStream_new(libcf(libc_stdin,"stdin"),stream_FILE);
  return sao_load_expr(fw);
 }
 sao_object *native_vget(sao_object *args) {
@@ -549,7 +546,7 @@ sao_object *load_file(sao_object *args) {
   libcf(libc_printf,"printf")("Error opening file %s\n", filename);
   return NIL;
  }
- FILEWrapper * fw = FILEWrapper_new(fp);
+ SaoStream * fw = SaoStream_new(fp,stream_FILE);
  for (;;) {
   exp = sao_load_expr(fw);
   if (((exp)==0||(exp)==NIL))
@@ -559,85 +556,96 @@ sao_object *load_file(sao_object *args) {
  libcf(libc_fclose,"fclose")(fp);
  return ret;
 }
-static u64 ffi_microtime(void)
+static long ffi_microtime(void)
 {
  struct timeval {
-  u64 tv_sec;
-  u64 tv_usec;
+  long tv_sec;
+  long tv_usec;
  };
  struct timeval * tv = libcf(libc_calloc,"calloc")(sizeof(struct timeval),sizeof(char));
  libcf(libc_gettimeofday,"gettimeofday")(tv, 0);
  return tv->tv_sec*1000 + (tv->tv_usec+500)/1000;
 }
-FILEWrapper * FILEWrapper_new(FILE* fp)
+SaoStream * SaoStream_new(void* fp,stream_t stt)
 {
- FILEWrapper*fw=libcf(libc_calloc,"calloc")(sizeof(FILEWrapper),1);;
- fw->fp = fp;
- fw->current = fw->last = fw->first = (void*)0;
- fw->count = 0;
- return fw;
+ if(stt==stream_char){
+  libcf(libc_printf,"printf")("TODO stream_char");
+  return 0;
+ }else{
+  SaoStream*fw=libcf(libc_calloc,"calloc")(sizeof(SaoStream),1);;
+  fw->fp = (FILE*) fp;
+  fw->ptr_head = fw->ptr_last = fw->ptr_start = 0;
+  fw->rest = 0;
+  return fw;
+ }
 }
-void FILEWrapper_feed_char(FILEWrapper* fw,int k){
+int sao_deq_c(SaoStream *fw)
+{
+ int c = -2;
+ FileChar * ptr_head = fw->ptr_head;
+ if(ptr_head!=0){
+  c = ptr_head->c;
+  fw->ptr_head=ptr_head->ptr_next;
+  fw->rest --;
+ }else{
+ }
+ return c;
+}
+int sao_enq_c(SaoStream* fw,int k){
  FileChar*fc=libcf(libc_calloc,"calloc")(sizeof(FileChar),1);;
  fc->c = k;
- fc->next = (void*) 0;
- fc->prev = (void*) 0;
- if(0==fw->first){
-  fw->first = fc;
-  fw->current = fc;
+ fc->ptr_prev= fw->ptr_last;
+ if(0==fw->ptr_start){
+  fw->ptr_start = fc;
  }
- if(0==fw->last){
-  fw->last = fc;
- }else{
-  fc->prev = fw->last;
-  fw->last->next = fc;
-  fw->last = fc;
+ if(0==fw->ptr_head){
+  fw->ptr_head = fc;
  }
- fw->count++;
+ if(0!=fw->ptr_last){
+  fw->ptr_last->ptr_next = fc;
+ }
+ fw->ptr_last = fc;
+ fw->rest ++;
+ return k;
 }
 int depth = 0;
-void FILEWrapper_feed_line(FILEWrapper* fw)
+int line_num = 0;
+int sao_read_line(SaoStream* fw)
 {
  ffi_func printf = libcf(libc_printf,"printf");
  ffi_func feof = libcf(libc_feof,"feof");
- if(feof(fw->fp)){
-  return;
- }
- ffi_func fgets = libcf(libc_fgets,"fgets");
- ffi_func malloc = libcf(libc_malloc,"malloc");
- ffi_func memset = libcf(libc_memset,"memset");
- ffi_func calloc = libcf(libc_calloc,"calloc");
- ffi_func strlen = libcf(libc_strlen,"strlen");
- int LINE_LEN = 1024;
+ do{
+  if(feof(fw->fp)){
+   break;
+  }
+  ffi_func fgets = libcf(libc_fgets,"fgets");
+  ffi_func malloc = libcf(libc_malloc,"malloc");
+  ffi_func memset = libcf(libc_memset,"memset");
+  ffi_func calloc = libcf(libc_calloc,"calloc");
+  ffi_func strlen = libcf(libc_strlen,"strlen");
+  int LINE_LEN = 1024;
   char *line = calloc(LINE_LEN, sizeof(char));
   fgets(line,LINE_LEN,fw->fp);
   long strlen_line = (long) strlen(line);
   if(strlen_line>0){
    for(int i=0;i<strlen_line;i++)
    {
-    FILEWrapper_feed_char(fw,line[i]);
+    if('\n'==sao_enq_c(fw,line[i])){
+     line_num++;
+    }
    }
   }else{
-   FILEWrapper_feed_char(fw,(-1));
-   return;
+   sao_enq_c(fw,(-1));
   }
-}
-int sao_getc(FILEWrapper *fw)
-{
- int c = -2;
- FileChar * current = fw->current;
- if(current!=0){
-  c = current->c;
-  fw->current=current->next;
- }
- return c;
+ }while(0);
+ return line_num;
 }
 sao_object *sao_print(sao_object *args) {
  sao_out_expr(0, car(args));
  libcf(libc_printf,"printf")("\n");
  return NIL;
 }
-sao_object *sao_read_symbol(FILEWrapper * fw, char start)
+sao_object *sao_read_symbol(SaoStream * fw, char start)
 {
  char buf[128];
  buf[0] = start;
@@ -647,15 +655,10 @@ sao_object *sao_read_symbol(FILEWrapper * fw, char start)
  {
   if (i >= 128)
    do{libcf(libc_fprintf,"fprintf")(libcf(libc_stderr,"stderr"),"%s\n","Symbol name too long - maximum length 128 characters");libcf(libc_exit,"exit")(1);}while(0);
-  buf[i++] = sao_getc(fw);
+  buf[i++] = sao_deq_c(fw);
  }
  buf[i] = '\0';
  return sao_make_symbol(buf);
-}
-inline sao_object * sao_make_type( type_t type ){
- sao_object *ret = sao_alloc();
- ret->type = type;
- return ret;
 }
 sao_object *sao_make_integer(int x)
 {
@@ -664,28 +667,22 @@ sao_object *sao_make_integer(int x)
  ret->integer = x;
  return ret;
 }
-sao_object *sao_make_null()
-{
- sao_object *ret = sao_alloc();
- ret->type = type_null;
- return ret;
-}
-int sao_peek(FILEWrapper * fw)
+int sao_peek(SaoStream * fw)
 {
  int c = 0;
- FileChar * current = fw->current;
- if(current!=0){
-  c = current->c;
+ FileChar * ptr_head = fw->ptr_head;
+ if(ptr_head!=0){
+  c = ptr_head->c;
  }
  return c;
 }
-int sao_read_int(FILEWrapper * fw, int start)
+int sao_read_int(SaoStream * fw, int start)
 {
  while ( sao_is_digit(sao_peek(fw)) )
-  start = start * 10 + (sao_getc(fw) - '0');
+  start = start * 10 + (sao_deq_c(fw) - '0');
  return start;
 }
-sao_object *sao_read_list(FILEWrapper * fw)
+sao_object *sao_read_list(SaoStream * fw)
 {
  sao_object *obj;
  sao_object *cell = END_LIST;
@@ -697,12 +694,12 @@ sao_object *sao_read_list(FILEWrapper * fw)
  }
  return END_LIST;
 }
-inline sao_object *sao_load_str(FILEWrapper * fw)
+inline sao_object *sao_load_str(SaoStream * fw)
 {
  char buf[256];
  int i = 0;
  int c;
- while ((c = sao_getc(fw)) != '\"') {
+ while ((c = sao_deq_c(fw)) != '\"') {
   if (c == (-1)) return NIL;
   if (i >= 256) do{libcf(libc_fprintf,"fprintf")(libcf(libc_stderr,"stderr"),"%s\n","String too long - maximum length 256 characters");libcf(libc_exit,"exit")(1);}while(0);
   buf[i++] = (char) c;
@@ -712,47 +709,44 @@ inline sao_object *sao_load_str(FILEWrapper * fw)
  s->type = type_string;
  return s;
 }
-void sao_comment(FILEWrapper * fw)
+void sao_comment(SaoStream * fw)
 {
  int c;
  for (;;) {
-  c = sao_getc(fw);
+  c = sao_deq_c(fw);
   if (c == '\n' || c == (-1)) return;
  }
 }
-sao_object *sao_load_expr(FILEWrapper * fw)
+sao_object *sao_load_expr(SaoStream * fw)
 {
  ffi_func printf = libcf(libc_printf,"printf");
  int c;
  for (;;) {
   sao_object * theSymbol = NIL;
-  c = sao_getc(fw);
-  if(c==-2){
-   printf(" need next row depth(%d)",depth);
-   FILEWrapper_feed_line(fw);
-   continue;
-  }
+  c = sao_deq_c(fw);
   if(c==(-1)){
    return 0;
   }
-  if(c==0){
-   return 0;
-  }
-  if(c==0){
+  if(c==-2){
+   sao_read_line(fw);
    continue;
   }
   if (c == '\n' || c == '\r' || c == ' ' || c == '\t'
+    || c == 0
     || c == ',') { continue; }
   if (c == '\"') return sao_load_str(fw);
   if (c == ';' || c=='#' || (c=='/'&&'/'==sao_peek(fw))){
    sao_comment(fw);
    continue;
   }
-  if (c == '\'') return cons(QUOTE, cons(sao_load_expr(fw), NIL));
+  if (c == '\''){
+   sao_object * child = sao_load_expr(fw);
+   return cons(QUOTE, cons(child, NIL));
+  }
   if (libcf(libc_isalpha,"isalpha")(c) || libcf(libc_strchr,"strchr")(type_symbolS, c)){
    theSymbol = sao_read_symbol(fw,c);
    if('('==sao_peek(fw)){
-    c = sao_getc(fw);
+    c = sao_deq_c(fw);
    }else{
     return theSymbol;
    }
@@ -771,7 +765,7 @@ sao_object *sao_load_expr(FILEWrapper * fw)
   }
   if (sao_is_digit(c)) return sao_make_integer(sao_read_int(fw, c - '0'));
   if (c == '-' && sao_is_digit(sao_peek(fw)))
-   return sao_make_integer(-1 * sao_read_int(fw, sao_getc(fw) - '0'));
+   return sao_make_integer(-1 * sao_read_int(fw, sao_deq_c(fw) - '0'));
  }
  return NIL;
 }
@@ -932,10 +926,9 @@ tail:
 }
 void init_global()
 {
- NIL = sao_make_null();
  GLOBAL = sao_expand(NIL, NIL, NIL);
- do{TRUE=sao_make_symbol("#t");define_variable(TRUE,TRUE,GLOBAL);}while(0);;
- do{FALSE=sao_make_symbol("#f");define_variable(FALSE,FALSE,GLOBAL);}while(0);;
+ do{TRUE=sao_make_symbol("true");define_variable(TRUE,TRUE,GLOBAL);}while(0);;
+ do{FALSE=sao_make_symbol("false");define_variable(FALSE,FALSE,GLOBAL);}while(0);;
  do{QUOTE=sao_make_symbol("quote");define_variable(QUOTE,QUOTE,GLOBAL);}while(0);;
  do{LAMBDA=sao_make_symbol("lambda");define_variable(LAMBDA,LAMBDA,GLOBAL);}while(0);;
  do{PROCEDURE=sao_make_symbol("procedure");define_variable(PROCEDURE,PROCEDURE,GLOBAL);}while(0);;
@@ -952,8 +945,8 @@ void init_global()
  define_variable(sao_make_symbol("set-car!"), make_native(native_setcar), GLOBAL);
  define_variable(sao_make_symbol("set-cdr!"), make_native(native_setcdr), GLOBAL);
  define_variable(sao_make_symbol("list"), make_native(native_list), GLOBAL);
- define_variable(sao_make_symbol("list?"), make_native(native_listq), GLOBAL);
- define_variable(sao_make_symbol("null?"), make_native(native_is_NILq), GLOBAL);
+ define_variable(sao_make_symbol("list?"), make_native(native_is_list), GLOBAL);
+ define_variable(sao_make_symbol("null?"), make_native(native_is_null), GLOBAL);
  define_variable(sao_make_symbol("pair?"), make_native(native_pairq), GLOBAL);
  define_variable(sao_make_symbol("atom?"), make_native(native_atomq), GLOBAL);
  define_variable(sao_make_symbol("eq?"), make_native(native_eq), GLOBAL);
@@ -975,8 +968,9 @@ void init_global()
  define_variable(sao_make_symbol("table-get"), make_native(native_vget), GLOBAL);
  define_variable(sao_make_symbol("table-set"), make_native(native_vset), GLOBAL);
 }
-sao_object * sao_handle( FILEWrapper * fw, int do_eval )
+sao_object * sao_parse( SaoStream * fw, int do_eval )
 {
+ sao_read_line(fw);
  ffi_func printf = libcf(libc_printf,"printf");
  ffi_func feof = libcf(libc_feof,"feof");
  ffi_func fgets = libcf(libc_fgets,"fgets");
@@ -1001,28 +995,28 @@ sao_object * sao_handle( FILEWrapper * fw, int do_eval )
      sao_out_expr("=>", rt);
      printf("\n");
     }else{
+     sao_out_expr("null ??",rt);
+     printf("\n");
     }
    }else{
     return obj;
    }
   }else{
-   printf("TODO depth=%d \n",depth);
+   printf("DEBUG TODO depth=%d \n",depth);
   }
  }
  return rt;
 }
 int main(int argc, char **argv)
 {
+ ht_init(8192-1);
  ffi_func printf = libcf(libc_printf,"printf");
  for(int i=1;i<argc;i++){
   printf("argv[%d] %s\n",i,argv[i]);
  }
- ht_init(8192-1);
  init_global();
- printf("NIL=%d\n",NIL);
- printf("END_LIST=%d\n",END_LIST);
  libcf(libc_setmode,"setmode")(libcf(libc_fileno,"fileno")(libcf(libc_stdin,"stdin")),0x8000 );
- FILEWrapper * fw = FILEWrapper_new((FILE*)libcf(libc_stdin,"stdin"));
- sao_object * result = sao_handle( fw, 1 );
+ SaoStream * fw = SaoStream_new(libcf(libc_stdin,"stdin"),stream_FILE);
+ sao_object * result = sao_parse( fw, 1 );
  return 0;
 }
