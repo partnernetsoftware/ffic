@@ -184,8 +184,6 @@ int ht_init(int size) {
  HTABLE = libcf(libc_malloc,"malloc")(sizeof(struct htable) * size);
  libcf(libc_memset,"memset")(HTABLE, 0, sizeof(struct htable) * size);
  HTABLE_SIZE = size;
- if(HTABLE_SIZE==0)
-  do{libcf(libc_fprintf,"fprintf")(libcf(libc_stderr,"stderr"),"%s\n","HTABLE_SIZE=0???");libcf(libc_exit,"exit")(1);}while(0);
  return size;
 }
 void ht_insert(sao_object *key) {
@@ -995,7 +993,7 @@ sao_object * sao_parse( SaoStream * fw, int do_eval )
      sao_out_expr("=>", rt);
      printf("\n");
     }else{
-     sao_out_expr("null ??",rt);
+     sao_out_expr("null after eval? ",obj);
      printf("\n");
     }
    }else{

@@ -37,7 +37,7 @@
 #define LIBC_FUNC_LIST fprintf,stderr,exit,malloc,memset,strdup,strcmp,printf,\
 	stdin,putc,getc,isalnum,strchr,isdigit,isalpha,fopen,fread,fgets,fclose,feof,\
 	usleep,msleep,sleep,fputc,setmode,fileno,gettimeofday,calloc,stdout,strlen,\
-	fflush,NULL
+	fflush,free,NULL
 //TODO macro for (int=>char* map)
 enum {
 	SAO_ITR(DEFINE_ENUM_LIBC,SAO_EXPAND(LIBC_FUNC_LIST))
@@ -146,35 +146,67 @@ inline long sao_is_digit(int c) { return (long) libc(isdigit)(c); }
 inline long sao_is_alpha(int c) { return (long) libc(isalpha)(c); }
 inline long sao_is_alphanumber(int c) { return (long) libc(isalnum)(c); }
 ////////////////////////////////////////////////////////////////////////
+void ht_insert(sao_object *key_obj);
+
 struct htable { sao_object *key; };
-static struct htable *HTABLE = 0;
-static int HTABLE_SIZE = 0;
+static struct htable *gHTable = 0;
+static int gHTable_len = 0;//default
 //#define TOK_HASH_FUNC(h, c) ((h) + ((h) << 5) + ((h) >> 27) + (c))
-static long ht_hash(const char *s) {
+static long ht_hash(const char *s, int ht_len) {
 	long h = 0;
 	char *u = (char *) s;
-	while (*u) { h = (h * 256 + (*u)) % HTABLE_SIZE; u++; }
+	while (*u) { h = (h * 256 + (*u)) % ht_len; u++; }
 	return h;
 }
-int ht_init(int size) {
-	if (HTABLE || !(size % 2))
-		error("Hash table already initialized or even # of entries");
-	//printf("ht_init %d\n",size);
-	HTABLE = libc(malloc)(sizeof(struct htable) * size);
-	libc(memset)(HTABLE, 0, sizeof(struct htable) * size);
-	HTABLE_SIZE = size;
-	if(HTABLE_SIZE==0)
-		error("HTABLE_SIZE=0???");
-	return size;
+int ht_resize(int newsize){
+	//struct htable * newTable = libc(calloc)(sizeof(struct htable) * newsize);
+	struct htable * newTable = libc(malloc)(sizeof(struct htable) * newsize);
+	libc(memset)(newTable, 0, sizeof(struct htable) * newsize);
+	for(int i=0;i<gHTable_len;i++){
+		if (NULL!=gHTable[i].key) {
+			int h = ht_hash(gHTable[i].key->string, newsize);
+			if(NULL != newTable[h].key){
+				//TODO add debug 
+				//error("!!! newTable still full ??\n");
+				libc(printf)("!!! newTable still full ??\n");
+			}
+			newTable[h].key = gHTable[i].key;
+			//libc(free)(gHTable[i]);//TODO
+		}
+	}
+	//libc(free)(gHTable);//TODO
+	gHTable = newTable;
+	gHTable_len = newsize;
+	return newsize;
 }
-void ht_insert(sao_object *key) {
-	long h = ht_hash(key->string);
-	HTABLE[h].key = key;
+//int ht_init(int size) {
+//	if (gHTable || !(size % 2))
+//		error("Hash table already initialized or even # of entries");
+//	gHTable = libc(malloc)(sizeof(struct htable) * size);
+//	libc(memset)(gHTable, 0, sizeof(struct htable) * size);
+//	gHTable_len = size;
+//	//if(gHTable_len==0) error("gHTable_len=0???");
+//	return size;
+//}
+void ht_insert(sao_object *key_obj)
+{
+	long h = ht_hash(key_obj->string, gHTable_len);
+	if(NULL != gHTable[h].key && NULL!=gHTable[h].key->string){
+		//error("symbol table full.\n");
+		int newsize = 2*(gHTable_len+1)-1 ;
+		//printf("gHTable[%ld] %s => %s, full symbol, expand to %d\n",
+		//		h,gHTable[h].key->string,key_obj->string,newsize);
+		ht_resize( newsize );
+		//ht_insert( key_obj );
+		gHTable[h].key = key_obj;
+		return;
+	}
+	gHTable[h].key = key_obj;
 }
-//TODO expand when every hit (ref to tcc later)
+
 sao_object *ht_lookup(char *s) {
-	long h = ht_hash(s);
-	return HTABLE[h].key;
+	long h = ht_hash(s, gHTable_len);
+	return gHTable[h].key;
 }
 ////////////////////////////////////////////////////////////////////////
 sao_object *sao_alloc() {
@@ -209,6 +241,17 @@ sao_object *sao_make_symbol(char *s) {
 		ret->type = type_symbol;
 		ret->string = libc(strdup)(s);
 		ht_insert(ret);
+	}else{
+		if(!libc(strcmp)(ret->string,s)){
+			//printf("DEBUG skip make symbol for %s",s);
+		}else{
+			//libc(printf)("DEBUG found (%s) when make symbol(%s)",ret->string,s);
+			//libc(printf)("DEBUG hash(%d) / (%d)",ht_hash(ret->string, gHTable_len),ht_hash(s, gHTable_len));
+			//error("symbol already exists? check table size?");
+			int newsize = 2*(gHTable_len+1)-1 ;
+			ht_resize( newsize );
+			return sao_make_symbol(s);
+		}
 	}
 	return ret;
 }
@@ -1018,7 +1061,7 @@ tail:
 	libc(printf)("\n");
 	return NIL;
 }
-void init_global()
+sao_object * init_global()
 {
 	//NIL = sao_make_null();
 	//END_LIST = sao_make_type(type_list);
@@ -1075,6 +1118,7 @@ void init_global()
 	add_native("table", native_vec);
 	add_native("table-get", native_vget);
 	add_native("table-set", native_vset);
+	return GLOBAL;
 }
 
 //TODO upgrade SaoStream to SaoStream to support string
@@ -1114,7 +1158,7 @@ sao_object * sao_parse( SaoStream * fw, int do_eval )
 					sao_out_expr("=>", rt);
 					printf("\n");
 				}else{
-					sao_out_expr("null ??",rt);
+					sao_out_expr("nothing after eval: ",obj);
 					printf("\n");
 				}
 			}else{
@@ -1128,7 +1172,8 @@ sao_object * sao_parse( SaoStream * fw, int do_eval )
 }
 int main(int argc, char **argv)
 {
-	ht_init(8192-1);
+	//ht_init(8192-1);
+	ht_resize(2048-1);
 	ffi_func printf = libc(printf);
 	//TODO sao_load_expr( SaoStreamWrapper ( join(argc, argv) ));
 	for(int i=1;i<argc;i++){
