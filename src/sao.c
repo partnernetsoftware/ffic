@@ -196,14 +196,12 @@ void ht_insert(sao_object *key_obj)
 	}
 	gHTable[h].key = key_obj;
 }
-
 sao_object *ht_lookup(char *s) {
 	long h = ht_hash(s, gHTable_len);
 	return gHTable[h].key;
 }
 sao_object *sao_alloc() {
-	NEW_OBJECT(sao_object,ret);
-	//TODO gc()
+	NEW_OBJECT(sao_object,ret);//TODO gc()
 	return ret;
 }
 int sao_type_check(const char *func, sao_object *obj, type_t type)
@@ -325,10 +323,6 @@ sao_object *native_type(sao_object *args) {
 sao_object *native_global(sao_object *args) {
 	return GLOBAL;
 }
-//sao_object *native_set_global(sao_object *args) {
-//	GLOBAL = car(args);
-//	return NIL;
-//}
 sao_object *native_list(sao_object *args) {
 	return (args);
 }
@@ -388,10 +382,10 @@ sao_object *native_not(sao_object *args) {
 	return native_cmp(args);
 }
 
-sao_object *native_eq(sao_object *args) {
+sao_object *native_eqq(sao_object *args) {
 	return is_equal(car(args), cadr(args)) ? TRUE : FALSE;
 }
-sao_object *native_equal(sao_object *args) {
+sao_object *native_equalq(sao_object *args) {
 	if (is_equal(car(args), cadr(args)))
 		return TRUE;
 	if ((car(args)->type == type_list) && (cadr(args)->type == type_list)) {
@@ -478,8 +472,6 @@ sao_object *native_lt(sao_object *sexp) {
 	return (car(sexp)->_integer < cadr(sexp)->_integer) ? TRUE : NIL;
 }
 sao_object * native_ffi(sao_object *args) {
-	//libc(printf)("ffi todo");
-    //int l = sao_length(args);
 	sao_out_expr("ffi todo",args);
 	return NIL;
 }
@@ -512,11 +504,9 @@ sao_object *native_table(sao_object *args) {
 	type_check(car(args), type_integer);
 	return make_table(car(args)->_integer);
 }
-
 sao_object *sao_expand(sao_object *var, sao_object *val, sao_object *ctx) {
 	return cons(cons(var, val), ctx);
 }
-
 sao_object *sao_lookup_var(sao_object *var, sao_object *ctx) {
 	while (!is_NIL(ctx)) {
 		sao_object *frame = car(ctx);
@@ -639,7 +629,6 @@ int sao_deq_c(SaoStream *fw)
 	}
 	return c;
 }
-
 int sao_enq_c(SaoStream* fw,int k){
 	NEW_OBJECT(FileChar,fc);
 	fc->c = k; 
@@ -657,7 +646,6 @@ int sao_enq_c(SaoStream* fw,int k){
 	fw->rest ++;
 	return k;
 }
-
 int depth = 0;
 int line_num = 0;
 int sao_read_line(SaoStream* fw)
@@ -687,7 +675,6 @@ int sao_read_line(SaoStream* fw)
 	}while(0);
 	return line_num;
 }
-
 sao_object *native_print(sao_object *args) {
 	sao_out_expr(0, car(args));
 	libc(printf)("\n");
@@ -774,49 +761,30 @@ sao_object *sao_load_expr(SaoStream * fw)
 	for (;;) {
 		sao_object * theSymbol = NIL;
 		c = sao_deq_c(fw);
-
-		if(c==EOF){
-			//printf("\nTMP DEBUG return NULL for c==EOF, depth=(%d)\n",depth);
-			return NULL;
+		switch(c){
+			case EOF: return NULL;
+			case -2: sao_read_line(fw);continue;
+			case '\n':
+			case '\r':
+			case ' ':
+			case '\t':
+			case 0:
+			case ',': continue;
+			case '\"': return sao_load_str(fw);
 		}
-
-		if(c==-2){
-			//TODO if mode REPL
-//#if defined(REPL)
-			//if(depth>0) printf("%d> ",depth);
-			//else printf("> ");
-//#endif
-			sao_read_line(fw);
-			continue;
-		}
-		//printf("%d ",c);
-		//switch(c){
-		//	case 0: return NIL;
-		//	case EOF: return NULL;
-		//}
-		if (c == '\n' || c == '\r' || c == ' ' || c == '\t'
-				|| c == 0
-				|| c == ',') { continue; }
-		//printf("%d(%c) ",c,c);
-		if (c == '\"') return sao_load_str(fw);
 		if (c == ';' || c=='#' || (c=='/'&&'/'==sao_peek(fw))){
 			sao_comment(fw);
 			continue;
 		}
 		if (c == '\''){
 			sao_object * child = sao_load_expr(fw);
-			//if(NULL==child){
-			//	printf("DEBUG child=sao_load_expr(fw) is NULL\n");
-			//	return NULL;
-			//}
 			return cons(QUOTE, cons(child, NIL));
 		}
-
 		if (libc(isalpha)(c) || libc(strchr)(type_symbolS, c)){
 			theSymbol = sao_read_symbol(fw,c);
 			while(' '==sao_peek(fw)) c = sao_deq_c(fw);//TODO support \t later
 			if('('==sao_peek(fw)){
-				c = sao_deq_c(fw);
+				c = sao_deq_c(fw);//jump next
 			}else{
 				return theSymbol;
 			}
@@ -1005,8 +973,6 @@ tail:
 #define add_sym_with(n) add_native(#n, native_##n);
 sao_object * init_global()
 {
-	//NIL
-	//END_LIST 
 	GLOBAL = sao_expand(NIL, NIL, NIL);
 	add_sym("true", TRUE);
 	add_sym("false", FALSE);
@@ -1027,14 +993,9 @@ sao_object * init_global()
 				list,table,tget,tset,//data
 				add,sub,mul,div,cmp,not,lt,gt,//logic
 				load,print,read,//io
+				is_null,is_list,
+				pairq,atomq,eqq,equalq,
 				));
-
-	add_native("list?", native_is_list);
-	add_native("null?", native_is_null);
-	add_native("pair?", native_pairq);
-	add_native("atom?", native_atomq);
-	add_native("eq?", native_eq);
-	add_native("equal?", native_equal);
 
 	return GLOBAL;
 }
