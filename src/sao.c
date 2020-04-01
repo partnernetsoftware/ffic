@@ -277,9 +277,9 @@ int not_false(sao_object *x) {
 	if (x->type == type_integer && x->integer == 0) return 0;
 	return 1;
 }
-int is_tagged(sao_object *cell, sao_object *tag) {
-	if (is_NIL(cell) || cell->type != type_list)
-		return 0;
+int is_tagged(sao_object *cell, sao_object *tag)
+{
+	if (is_NIL(cell) || cell->type != type_list) return 0;
 	return is_equal(car(cell), tag);
 }
 int length(sao_object *exp) {
@@ -696,11 +696,11 @@ sao_object *sao_read_symbol(SaoStream * fw, char start)
 	buf[i] = '\0';
 	return sao_make_symbol(buf);
 }
-inline sao_object * sao_make_type( type_t type ){
-	sao_object *ret = sao_alloc();
-	ret->type = type;
-	return ret;
-}
+//inline sao_object * sao_make_type( type_t type ){
+//	sao_object *ret = sao_alloc();
+//	ret->type = type;
+//	return ret;
+//}
 sao_object *sao_make_integer(int x)
 {
 	sao_object *ret = sao_alloc();
@@ -708,12 +708,12 @@ sao_object *sao_make_integer(int x)
 	ret->integer = x;
 	return ret;
 }
-sao_object *sao_make_null()
-{
-	sao_object *ret = sao_alloc();
-	ret->type = type_null;
-	return ret;
-}
+//sao_object *sao_make_null()
+//{
+//	sao_object *ret = sao_alloc();
+//	ret->type = type_null;
+//	return ret;
+//}
 int sao_peek(SaoStream * fw)
 {
 	int c = 0;
@@ -780,7 +780,11 @@ sao_object *sao_load_expr(SaoStream * fw)
 		}
 
 		if(c==-2){
-			printf(" need next row, depth(%d)\n",depth);
+			//TODO if mode REPL
+//#if defined(REPL)
+			//if(depth>0) printf("%d> ",depth);
+			//else printf("> ");
+//#endif
 			sao_read_line(fw);
 			continue;
 		}
@@ -800,10 +804,10 @@ sao_object *sao_load_expr(SaoStream * fw)
 		}
 		if (c == '\''){
 			sao_object * child = sao_load_expr(fw);
-			if(NULL==child){
-				printf("DEBUG child=sao_load_expr(fw) is NULL\n");
-				return NULL;
-			}
+			//if(NULL==child){
+			//	printf("DEBUG child=sao_load_expr(fw) is NULL\n");
+			//	return NULL;
+			//}
 			return cons(QUOTE, cons(child, NIL));
 		}
 
@@ -1012,16 +1016,14 @@ tail:
 }
 void init_global()
 {
-	NIL = sao_make_null();
+	//NIL = sao_make_null();
 	//END_LIST = sao_make_type(type_list);
 
 #define add_native(s, c) define_variable(sao_make_symbol(s), make_native(c), GLOBAL)
 #define add_sym(s, c) do{c=sao_make_symbol(s);define_variable(c,c,GLOBAL);}while(0);
 	GLOBAL = sao_expand(NIL, NIL, NIL);
-
-	add_sym("#t", TRUE);
-	add_sym("#f", FALSE);
-
+	add_sym("true", TRUE);
+	add_sym("false", FALSE);
 	add_sym("quote", QUOTE);
 	add_sym("lambda", LAMBDA);
 	add_sym("procedure", PROCEDURE);
@@ -1089,7 +1091,7 @@ sao_object * sao_handle( SaoStream * fw, int do_eval )
 	for(;;){
 		sao_object *obj = sao_load_expr(fw);
 		if(obj==NULL){
-			printf("DEBUG NULL to exit\n");
+			//printf("DEBUG NULL to exit\n");
 			break;
 		}
 		if (!is_NIL(obj)) {
@@ -1131,9 +1133,9 @@ int main(int argc, char **argv)
 	}
 	ht_init(8192-1);
 	init_global();//TODO make libsaodefault for the natives
-	printf("NIL=%d\n",NIL);
-	printf("END_LIST=%d\n",END_LIST);
-	printf("(END_LIST==NIL)=%s\n",((END_LIST)==(NIL))?"Y":"N");
+//	printf("NIL=%d\n",NIL);
+//	printf("END_LIST=%d\n",END_LIST);
+//	printf("(END_LIST==NIL)=%s\n",((END_LIST)==(NIL))?"Y":"N");
 	libc(setmode)(libc(fileno)(libc(stdin)),0x8000/*O_BINARY*/);
 	SaoStream * fw = SaoStream_new(libc(stdin),stream_FILE);
 	sao_object * result = sao_handle( fw, 1 );
