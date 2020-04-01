@@ -60,9 +60,9 @@ typedef enum {
 	stream_FILE,//FILE* fp
 	stream_char,//char* string
 } stream_t;
-char *types[7] = {"integer","symbol","string","list","native","table","null"};
+char *types[] = {"integer","symbol","string","list","native","table"};
 typedef enum {
-type_integer,type_symbol,type_string,type_list,type_native,type_table,type_null
+type_integer,type_symbol,type_string,type_list,type_native,type_table
 } type_t;
 typedef struct _sao_object sao_object;
 typedef sao_object *(*native_t)(sao_object *);
@@ -147,7 +147,6 @@ inline long sao_is_alpha(int c) { return (long) libc(isalpha)(c); }
 inline long sao_is_alphanumber(int c) { return (long) libc(isalnum)(c); }
 ////////////////////////////////////////////////////////////////////////
 void ht_insert(sao_object *key_obj);
-
 struct htable { sao_object *key; };
 static struct htable *gHTable = 0;
 static int gHTable_len = 0;//default
@@ -166,9 +165,9 @@ int ht_resize(int newsize){
 		if (NULL!=gHTable[i].key) {
 			int h = ht_hash(gHTable[i].key->string, newsize);
 			if(NULL != newTable[h].key){
-				//TODO add debug 
+				//TODO add debug to see why
 				//error("!!! newTable still full ??\n");
-				libc(printf)("!!! newTable still full ??\n");
+				libc(printf)("DEBUG !!! newTable still full ??\n");
 			}
 			newTable[h].key = gHTable[i].key;
 			//libc(free)(gHTable[i]);//TODO
@@ -179,26 +178,15 @@ int ht_resize(int newsize){
 	gHTable_len = newsize;
 	return newsize;
 }
-//int ht_init(int size) {
-//	if (gHTable || !(size % 2))
-//		error("Hash table already initialized or even # of entries");
-//	gHTable = libc(malloc)(sizeof(struct htable) * size);
-//	libc(memset)(gHTable, 0, sizeof(struct htable) * size);
-//	gHTable_len = size;
-//	//if(gHTable_len==0) error("gHTable_len=0???");
-//	return size;
-//}
 void ht_insert(sao_object *key_obj)
 {
 	long h = ht_hash(key_obj->string, gHTable_len);
 	if(NULL != gHTable[h].key && NULL!=gHTable[h].key->string){
 		//error("symbol table full.\n");
 		int newsize = 2*(gHTable_len+1)-1 ;
-		//printf("gHTable[%ld] %s => %s, full symbol, expand to %d\n",
-		//		h,gHTable[h].key->string,key_obj->string,newsize);
 		ht_resize( newsize );
-		//ht_insert( key_obj );
-		gHTable[h].key = key_obj;
+		ht_insert( key_obj );
+		//gHTable[h].key = key_obj;
 		return;
 	}
 	gHTable[h].key = key_obj;
@@ -208,7 +196,6 @@ sao_object *ht_lookup(char *s) {
 	long h = ht_hash(s, gHTable_len);
 	return gHTable[h].key;
 }
-////////////////////////////////////////////////////////////////////////
 sao_object *sao_alloc() {
 	NEW_OBJECT(sao_object,ret);
 	//TODO gc()
@@ -243,11 +230,7 @@ sao_object *sao_make_symbol(char *s) {
 		ht_insert(ret);
 	}else{
 		if(!libc(strcmp)(ret->string,s)){
-			//printf("DEBUG skip make symbol for %s",s);
 		}else{
-			//libc(printf)("DEBUG found (%s) when make symbol(%s)",ret->string,s);
-			//libc(printf)("DEBUG hash(%d) / (%d)",ht_hash(ret->string, gHTable_len),ht_hash(s, gHTable_len));
-			//error("symbol already exists? check table size?");
 			int newsize = 2*(gHTable_len+1)-1 ;
 			ht_resize( newsize );
 			return sao_make_symbol(s);
@@ -314,7 +297,6 @@ int is_equal(sao_object *x, sao_object *y) {
 		case type_string: return !libc(strcmp)(x->string, y->string);
 		case type_native: return 0;
 		case type_table: return 0;
-		case type_null: return 0;
 	}
 	return 0;
 }
@@ -335,8 +317,7 @@ int length(sao_object *exp) {
 sao_object *native_type(sao_object *args) {
 	return sao_make_symbol(types[car(args)->type]);
 }
-sao_object *native_get_global(sao_object *args) {
-	//libc(assert)(is_NIL(args));
+sao_object *native_global(sao_object *args) {
 	return GLOBAL;
 }
 //sao_object *native_set_global(sao_object *args) {
@@ -435,8 +416,7 @@ sao_object *native_add(sao_object *list) {
 	type_check(car(list), type_integer);
 	long total = car(list)->integer;
 	list = cdr(list);
-	//while (!is_EOL(car(list)))
-	while (!is_NIL(car(list)))
+	while (!is_EOL(car(list)))
 	{
 		type_check(car(list), type_integer);
 		total += car(list)->integer;
@@ -488,12 +468,10 @@ sao_object *native_lt(sao_object *sexp) {
 	return (car(sexp)->integer < cadr(sexp)->integer) ? TRUE : NIL;
 }
 sao_object *native_exit(sao_object *args) {
-	//libc(assert)(is_NIL(args));
 	libc(exit)(0);
 	return NIL;
 }
 sao_object *native_read(sao_object *args) {
-	//libc(assert)(is_NIL(args));
 	SaoStream * fw = SaoStream_new(libc(stdin),stream_FILE);
 	return sao_load_expr(fw);
 }
@@ -552,7 +530,6 @@ void set_variable(sao_object *var, sao_object *val, sao_object *ctx) {
 		ctx = cdr(ctx);
 	}
 }
-
 sao_object *define_variable(sao_object *var, sao_object *val, sao_object *ctx)
 {
 	sao_object *frame = car(ctx);
@@ -570,7 +547,6 @@ sao_object *define_variable(sao_object *var, sao_object *val, sao_object *ctx)
 	frame->cdr = cons(val, cdr(frame));
 	return val;
 }
-//char type_symbolS[] = "~!@#$%^&*_-+\\:,.<>|{}[]?=/";
 char type_symbolS[] = "~!@#$%^&*_-+\\:.<>|{}[]?=/";
 sao_object *eval_list(sao_object *exp, sao_object *ctx) {
 	if (is_NIL(exp)) return NIL;
@@ -621,8 +597,6 @@ static long ffi_microtime(void)
 	return tv->tv_sec*1000 + (tv->tv_usec+500)/1000;
 #endif
 }
-
-//TODO SaoStream * SaoStream_new(void* fp, fp_type_t)
 SaoStream * SaoStream_new(void* fp,stream_t stt)
 {
 	if(stt==stream_char){
@@ -637,7 +611,6 @@ SaoStream * SaoStream_new(void* fp,stream_t stt)
 		return fw;
 	}
 }
-
 int sao_deq_c(SaoStream *fw)
 {
 	int c = -2;//
@@ -646,32 +619,21 @@ int sao_deq_c(SaoStream *fw)
 		c = ptr_head->c;
 		fw->ptr_head=ptr_head->ptr_next;
 		fw->rest --;
-		//printf("deq(%d) ",c);libc(fflush)(libc(stdout));
-	}else{
-		//printf("deq() no head?? ");libc(fflush)(libc(stdout));
 	}
 	return c;
 }
 
 int sao_enq_c(SaoStream* fw,int k){
-	//printf("enq(%d) ",k);libc(fflush)(libc(stdout));
-
 	NEW_OBJECT(FileChar,fc);
 	fc->c = k; 
 	fc->ptr_prev= fw->ptr_last;
-	//fc->ptr_next = NULL;
-
-	//fc->ptr_prev= (void*) 0;
 	if(NULL==fw->ptr_start){
-		//printf("(enq1) ");
 		fw->ptr_start = fc;
 	}
 	if(NULL==fw->ptr_head){
-		//printf("(enq3) ");
 		fw->ptr_head = fc;
 	}
 	if(NULL!=fw->ptr_last){
-		//printf("(enq2) ");
 		fw->ptr_last->ptr_next = fc;
 	}
 	fw->ptr_last = fc;
@@ -686,10 +648,7 @@ int sao_read_line(SaoStream* fw)
 	ffi_func printf = libc(printf);
 	ffi_func feof = libc(feof);
 	do{
-		if(feof(fw->fp)){
-			//printf("feof");
-			break;
-		}
+		if(feof(fw->fp)){ break; }
 		ffi_func fgets  = libc(fgets);
 		ffi_func malloc = libc(malloc);
 		ffi_func memset = libc(memset);
@@ -700,7 +659,6 @@ int sao_read_line(SaoStream* fw)
 		fgets(line,LINE_LEN,fw->fp);
 		long strlen_line = (long) strlen(line);
 		if(strlen_line>0){
-			//printf("DEBUG strlen_line(%d):%s\n",strlen_line,line);
 			for(int i=0;i<strlen_line;i++)
 			{
 				if('\n'==sao_enq_c(fw,line[i])){
@@ -708,17 +666,9 @@ int sao_read_line(SaoStream* fw)
 				}
 			}
 		}else{
-			//printf("DEBUG strlen_line(%d) !!\n",strlen_line);
 			sao_enq_c(fw,EOF);
 		}
-		//if(feof(fw->fp)){
-		//	//printf(" feof ? ");
-			//sao_enq_c(fw,EOF);
-		//}else{
-		//	//printf(" not-feof? ");
-		//}
 	}while(0);
-	//printf("after sao_enq_c depth=%d\n",depth);
 	return line_num;
 }
 
@@ -742,11 +692,6 @@ sao_object *sao_read_symbol(SaoStream * fw, char start)
 	buf[i] = '\0';
 	return sao_make_symbol(buf);
 }
-//inline sao_object * sao_make_type( type_t type ){
-//	sao_object *ret = sao_alloc();
-//	ret->type = type;
-//	return ret;
-//}
 sao_object *sao_make_integer(int x)
 {
 	sao_object *ret = sao_alloc();
@@ -754,12 +699,6 @@ sao_object *sao_make_integer(int x)
 	ret->integer = x;
 	return ret;
 }
-//sao_object *sao_make_null()
-//{
-//	sao_object *ret = sao_alloc();
-//	ret->type = type_null;
-//	return ret;
-//}
 int sao_peek(SaoStream * fw)
 {
 	int c = 0;
@@ -859,8 +798,7 @@ sao_object *sao_load_expr(SaoStream * fw)
 
 		if (libc(isalpha)(c) || libc(strchr)(type_symbolS, c)){
 			theSymbol = sao_read_symbol(fw,c);
-
-			//TODO sao_peek( fw, /*ignore*/ " \t" );
+			while(' '==sao_peek(fw)) c = sao_deq_c(fw);//TODO support \t later
 			if('('==sao_peek(fw)){
 				c = sao_deq_c(fw);
 			}else{
@@ -870,14 +808,9 @@ sao_object *sao_load_expr(SaoStream * fw)
 		if (c == '(') {
 			depth++;
 			sao_object * list = sao_read_list(fw);
-			//if(NULL==list){
-			//	printf("DEBUG list=sao_load_expr(fw) is NULL");
-			//	return NULL;
-			//}
 			if(theSymbol!=NIL){
 				list = cons(theSymbol,list);
 			}
-			//depth--;
 			return list;
 		}
 		if (c == ')') {
@@ -893,31 +826,14 @@ sao_object *sao_load_expr(SaoStream * fw)
 void sao_out_expr(char *str, sao_object *e)
 {
 	ffi_func printf = libc(printf);
-	if (str)
-		printf("%s ", str);
-	if (is_NIL(e)) {
-		printf("'()");
-		return;
-	}
+	if (str) printf("%s ", str);
+	if (is_NIL(e)) { printf("'()"); return; }
 	switch (e->type) {
-		case type_null:
-			printf("null");
-			break;
-		case type_string:
-			printf("\"%s\"", e->string);
-			break;
-		case type_symbol:
-			printf("%s", e->string);
-			break;
-		case type_integer:
-			printf("%ld", e->integer);
-			break;
-		case type_native:
-			printf("<function>");
-			break;
-		case type_table:
-			printf("<table %d>", e->vsize);
-			break;
+		case type_string: printf("\"%s\"", e->string); break;
+		case type_symbol: printf("%s", e->string); break;
+		case type_integer: printf("%ld", e->integer); break;
+		case type_native: printf("<function>"); break;
+		case type_table: printf("<table %d>", e->vsize); break;
 		case type_list:
 			if (is_tagged(e, PROCEDURE)) {
 				printf("<closure>");
@@ -1069,55 +985,61 @@ sao_object * init_global()
 #define add_native(s, c) define_variable(sao_make_symbol(s), make_native(c), GLOBAL)
 #define add_sym(s, c) do{c=sao_make_symbol(s);define_variable(c,c,GLOBAL);}while(0);
 	GLOBAL = sao_expand(NIL, NIL, NIL);
+
+	add_native("exit", native_exit);
+	add_native("global", native_global);
 	add_sym("true", TRUE);
 	add_sym("false", FALSE);
-	add_sym("quote", QUOTE);
-	add_sym("lambda", LAMBDA);
-	add_sym("procedure", PROCEDURE);
-	//TODO to merge three:
-	add_sym("var", DEFINE);
-	add_sym("let", LET);
-	add_sym("set!", SET);
-
-	add_sym("begin", BEGIN);//TODO remove or add END
-	add_sym("if", IF);
 	define_variable(sao_make_symbol("true"), TRUE, GLOBAL);
 	define_variable(sao_make_symbol("false"), FALSE, GLOBAL);
-	add_native("cons", native_cons);
-	add_native("car", native_car);
-	add_native("cdr", native_cdr);
-	add_native("set-car!", native_setcar);
-	add_native("set-cdr!", native_setcdr);
-	add_native("list", native_list);
-	add_native("list?", native_is_list);
-	add_native("null?", native_is_null);
-	add_native("pair?", native_pairq);
-	add_native("atom?", native_atomq);
-
-	add_native("eq?", native_eq);
-	add_native("equal?", native_equal);
-
-	//TODO "not", native_not
-	add_native("add", native_add);
-	add_native("sub", native_sub);
-	add_native("mul", native_mul);
-	add_native("div", native_div);
-	add_native("cmp", native_cmp);
-	add_native("lt", native_lt);
-	add_native("gt", native_gt);
-
-	add_native("type", native_type);
-	add_native("load", load_file);
+//	add_sym("quote", QUOTE);
+//
+//	add_sym("lambda", LAMBDA);
+//	add_sym("procedure", PROCEDURE);
+//
+//	//TODO to merge three:
+//	add_sym("var", DEFINE);
+//	add_sym("let", LET);
+//	add_sym("set!", SET);
+//
+//	add_sym("begin", BEGIN);//TODO remove or add END
+//	add_sym("if", IF);
+//	add_native("cons", native_cons);
+//	add_native("car", native_car);
+//	add_native("cdr", native_cdr);
+//	add_native("set-car!", native_setcar);
+//	add_native("set-cdr!", native_setcdr);
+//	add_native("list", native_list);
+//	add_native("list?", native_is_list);
+//	add_native("null?", native_is_null);
+//	add_native("pair?", native_pairq);
+//	add_native("atom?", native_atomq);
+//
+//	add_native("eq?", native_eq);
+//	add_native("equal?", native_equal);
+//
+//	//TODO "not", native_not
+//	add_native("add", native_add);
+//	add_native("sub", native_sub);
+//	add_native("mul", native_mul);
+//	add_native("div", native_div);
+//	add_native("cmp", native_cmp);
+//	add_native("lt", native_lt);
+//	add_native("gt", native_gt);
+//
+//	add_native("type", native_type);
+//	add_native("load", load_file);
 	add_native("print", sao_print);
-	//add_native("ffi", native_ffi);//TODO
-	add_native("global", native_get_global);
-	add_native("exit", native_exit);//TODO change to ffi
-	//add_native("exec", native_exec);//TODO change to ffi
-	add_native("read", native_read);//read from stdin (like scan)
+//	//add_native("ffi", native_ffi);//TODO
+//
+//	add_native("exit", native_exit);
+//	//add_native("exec", native_exec);//TODO change to ffi
+//	add_native("read", native_read);//read from stdin (like scan)
+//
+//	add_native("table", native_vec);
+//	add_native("table-get", native_vget);
+//	add_native("table-set", native_vset);
 
-	add_native("table", native_vec);
-	add_native("table-get", native_vget);
-	add_native("table-set", native_vset);
 	return GLOBAL;
 }
 
@@ -1125,14 +1047,7 @@ sao_object * init_global()
 sao_object * sao_parse( SaoStream * fw, int do_eval )
 {
 	sao_read_line(fw);
-	
 	ffi_func printf = libc(printf);
-	ffi_func feof = libc(feof);
-	ffi_func fgets  = libc(fgets);
-	ffi_func malloc = libc(malloc);
-	ffi_func memset = libc(memset);
-	ffi_func calloc = libc(calloc);
-	ffi_func strlen = libc(strlen);
 	
 	sao_object *rt = NIL;
 	for(;;){
@@ -1158,7 +1073,9 @@ sao_object * sao_parse( SaoStream * fw, int do_eval )
 					sao_out_expr("=>", rt);
 					printf("\n");
 				}else{
+#if defined(DEBUG)
 					sao_out_expr("nothing after eval: ",obj);
+#endif
 					printf("\n");
 				}
 			}else{
@@ -1172,20 +1089,20 @@ sao_object * sao_parse( SaoStream * fw, int do_eval )
 }
 int main(int argc, char **argv)
 {
-	//ht_init(8192-1);
-	ht_resize(2048-1);
+	//ht_resize(2048-1);
+	ht_resize(8192-1);
 	ffi_func printf = libc(printf);
 	//TODO sao_load_expr( SaoStreamWrapper ( join(argc, argv) ));
 	for(int i=1;i<argc;i++){
 		//printf("%s",argv[i]);
 		printf("argv[%d] %s\n",i,argv[i]);
 	}
+	printf("TRUE=%d ",TRUE);
+	printf("FALSE=%d ",FALSE);
 	init_global();//TODO make libsaodefault for the natives
-//	printf("NIL=%d\n",NIL);
-//	printf("END_LIST=%d\n",END_LIST);
-//	printf("(END_LIST==NIL)=%s\n",((END_LIST)==(NIL))?"Y":"N");
 	libc(setmode)(libc(fileno)(libc(stdin)),0x8000/*O_BINARY*/);
 	SaoStream * fw = SaoStream_new(libc(stdin),stream_FILE);
 	sao_object * result = sao_parse( fw, 1/*eval*/ );
+	//printf("gHTable_len=%d\n",gHTable_len);
 	return 0;
 }

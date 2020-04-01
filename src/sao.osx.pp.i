@@ -1,5 +1,5 @@
 enum {
- libc_fprintf, libc_stderr, libc_exit, libc_malloc, libc_memset, libc_strdup, libc_strcmp, libc_printf, libc_stdin, libc_putc, libc_getc, libc_isalnum, libc_strchr, libc_isdigit, libc_isalpha, libc_fopen, libc_fread, libc_fgets, libc_fclose, libc_feof, libc_usleep, libc_msleep, libc_sleep, libc_fputc, libc_setmode, libc_fileno, libc_gettimeofday, libc_calloc, libc_stdout, libc_strlen, libc_fflush, libc_NULL,
+ libc_fprintf, libc_stderr, libc_exit, libc_malloc, libc_memset, libc_strdup, libc_strcmp, libc_printf, libc_stdin, libc_putc, libc_getc, libc_isalnum, libc_strchr, libc_isdigit, libc_isalpha, libc_fopen, libc_fread, libc_fgets, libc_fclose, libc_feof, libc_usleep, libc_msleep, libc_sleep, libc_fputc, libc_setmode, libc_fileno, libc_gettimeofday, libc_calloc, libc_stdout, libc_strlen, libc_fflush, libc_free, libc_NULL,
 };
 void* (*libc_a[libc_NULL])();
 typedef struct __FILE FILE;
@@ -169,30 +169,46 @@ void sao_out_expr(char *str, sao_object *e);
 inline long sao_is_digit(int c) { return (long) libcf(libc_isdigit,"isdigit")(c); }
 inline long sao_is_alpha(int c) { return (long) libcf(libc_isalpha,"isalpha")(c); }
 inline long sao_is_alphanumber(int c) { return (long) libcf(libc_isalnum,"isalnum")(c); }
+void ht_insert(sao_object *key_obj);
 struct htable { sao_object *key; };
-static struct htable *HTABLE = 0;
-static int HTABLE_SIZE = 0;
-static long ht_hash(const char *s) {
+static struct htable *gHTable = 0;
+static int gHTable_len = 0;
+static long ht_hash(const char *s, int ht_len) {
  long h = 0;
  char *u = (char *) s;
- while (*u) { h = (h * 256 + (*u)) % HTABLE_SIZE; u++; }
+ while (*u) { h = (h * 256 + (*u)) % ht_len; u++; }
  return h;
 }
-int ht_init(int size) {
- if (HTABLE || !(size % 2))
-  do{libcf(libc_fprintf,"fprintf")(libcf(libc_stderr,"stderr"),"%s\n","Hash table already initialized or even # of entries");libcf(libc_exit,"exit")(1);}while(0);
- HTABLE = libcf(libc_malloc,"malloc")(sizeof(struct htable) * size);
- libcf(libc_memset,"memset")(HTABLE, 0, sizeof(struct htable) * size);
- HTABLE_SIZE = size;
- return size;
+int ht_resize(int newsize){
+ struct htable * newTable = libcf(libc_malloc,"malloc")(sizeof(struct htable) * newsize);
+ libcf(libc_memset,"memset")(newTable, 0, sizeof(struct htable) * newsize);
+ for(int i=0;i<gHTable_len;i++){
+  if (0!=gHTable[i].key) {
+   int h = ht_hash(gHTable[i].key->string, newsize);
+   if(0 != newTable[h].key){
+    libcf(libc_printf,"printf")("!!! newTable still full ??\n");
+   }
+   newTable[h].key = gHTable[i].key;
+  }
+ }
+ gHTable = newTable;
+ gHTable_len = newsize;
+ return newsize;
 }
-void ht_insert(sao_object *key) {
- long h = ht_hash(key->string);
- HTABLE[h].key = key;
+void ht_insert(sao_object *key_obj)
+{
+ long h = ht_hash(key_obj->string, gHTable_len);
+ if(0 != gHTable[h].key && 0!=gHTable[h].key->string){
+  int newsize = 2*(gHTable_len+1)-1 ;
+  ht_resize( newsize );
+  gHTable[h].key = key_obj;
+  return;
+ }
+ gHTable[h].key = key_obj;
 }
 sao_object *ht_lookup(char *s) {
- long h = ht_hash(s);
- return HTABLE[h].key;
+ long h = ht_hash(s, gHTable_len);
+ return gHTable[h].key;
 }
 sao_object *sao_alloc() {
  sao_object*ret=libcf(libc_calloc,"calloc")(sizeof(sao_object),1);;
@@ -225,6 +241,13 @@ sao_object *sao_make_symbol(char *s) {
   ret->type = type_symbol;
   ret->string = libcf(libc_strdup,"strdup")(s);
   ht_insert(ret);
+ }else{
+  if(!libcf(libc_strcmp,"strcmp")(ret->string,s)){
+  }else{
+   int newsize = 2*(gHTable_len+1)-1 ;
+   ht_resize( newsize );
+   return sao_make_symbol(s);
+  }
  }
  return ret;
 }
@@ -922,7 +945,7 @@ tail:
  libcf(libc_printf,"printf")("\n");
  return NIL;
 }
-void init_global()
+sao_object * init_global()
 {
  GLOBAL = sao_expand(NIL, NIL, NIL);
  do{TRUE=sao_make_symbol("true");define_variable(TRUE,TRUE,GLOBAL);}while(0);;
@@ -965,6 +988,7 @@ void init_global()
  define_variable(sao_make_symbol("table"), make_native(native_vec), GLOBAL);
  define_variable(sao_make_symbol("table-get"), make_native(native_vget), GLOBAL);
  define_variable(sao_make_symbol("table-set"), make_native(native_vset), GLOBAL);
+ return GLOBAL;
 }
 sao_object * sao_parse( SaoStream * fw, int do_eval )
 {
@@ -993,7 +1017,7 @@ sao_object * sao_parse( SaoStream * fw, int do_eval )
      sao_out_expr("=>", rt);
      printf("\n");
     }else{
-     sao_out_expr("null after eval? ",obj);
+     sao_out_expr("nothing after eval: ",obj);
      printf("\n");
     }
    }else{
@@ -1007,7 +1031,7 @@ sao_object * sao_parse( SaoStream * fw, int do_eval )
 }
 int main(int argc, char **argv)
 {
- ht_init(8192-1);
+ ht_resize(2048-1);
  ffi_func printf = libcf(libc_printf,"printf");
  for(int i=1;i<argc;i++){
   printf("argv[%d] %s\n",i,argv[i]);

@@ -1,12 +1,36 @@
-// https://github.com/lazear/microlisp/blob/master/scheme/src/scheme.c
-// https://en.wikipedia.org/wiki/Scheme_(programming_language)
-// https://schemers.org/
-/* interpreter for lang(scheme)
- * MIT License
- * Copyright Michael Lazear (c) 2016
- * FFI version by Wanjo Chan (c) 2020
- */
-#include "macros.h"
+#define SAO_CAT(a, ...) SAO_PRIMITIVE_CAT(a, __VA_ARGS__)
+#define SAO_PRIMITIVE_CAT(a, ...) a ## __VA_ARGS__
+#define SAO_IIF(c) SAO_PRIMITIVE_CAT(SAO_IIF_, c)
+#define SAO_IIF_0(t, ...) __VA_ARGS__
+#define SAO_IIF_1(t, ...) t
+#define SAO_CHECK_N(x, n, ...) n
+#define SAO_CHECK(...) SAO_CHECK_N(__VA_ARGS__, 0,)
+#define SAO_PROBE(x) x, 1,
+#define SAO_IS_PAREN(x) SAO_CHECK(SAO_IS_PAREN_PROBE x)
+#define SAO_IS_PAREN_PROBE(...) SAO_PROBE(~)
+#define SAO_NOT(x) SAO_CHECK(SAO_PRIMITIVE_CAT(SAO_NOT_, x))
+#define SAO_NOT_0 SAO_PROBE(~)
+#define SAO_COMPL(b) SAO_PRIMITIVE_CAT(SAO_COMPL_, b)
+#define SAO_COMPL_0 1
+#define SAO_COMPL_1 0
+#define SAO_BOOL(x) SAO_COMPL(SAO_NOT(x))
+#define SAO_IF(c) SAO_IIF(SAO_BOOL(c))
+#define SAO_EAT(...)
+#define SAO_EXPAND(...) __VA_ARGS__
+#define SAO_WHEN(c) SAO_IF(c)(SAO_EXPAND, SAO_EAT)
+#define SAO_EMPTY()
+#define SAO_DEFER(id) id SAO_EMPTY()
+#define SAO_OBSTRUCT(...) __VA_ARGS__ SAO_DEFER(SAO_EMPTY)()
+#define SAO_EVAL(...)  SAO_EVAL1(SAO_EVAL1(SAO_EVAL1(__VA_ARGS__)))
+#define SAO_EVAL1(...) SAO_EVAL2(SAO_EVAL2(SAO_EVAL2(__VA_ARGS__)))
+#define SAO_EVAL2(...) SAO_EVAL3(SAO_EVAL3(SAO_EVAL3(__VA_ARGS__)))
+#define SAO_EVAL3(...) SAO_EVAL4(SAO_EVAL4(SAO_EVAL4(__VA_ARGS__)))
+#define SAO_EVAL4(...) SAO_EVAL5(SAO_EVAL5(SAO_EVAL5(__VA_ARGS__)))
+#define SAO_EVAL5(...) __VA_ARGS__
+#define SAO_WHILE(macro, value, ...) SAO_WHEN(SAO_NOT(SAO_IS_PAREN(value ())))\
+	( SAO_OBSTRUCT(macro) (value) SAO_OBSTRUCT(SAO_WHILE_INDIRECT) () (macro, __VA_ARGS__) )
+#define SAO_WHILE_INDIRECT() SAO_WHILE 
+#define SAO_ITR(mmm,qqq,...) SAO_EVAL( SAO_WHILE( mmm,qqq,__VA_ARGS__ ) )
 #define DEFINE_ENUM(n) libc_##n,
 #define LIBC_FUNC_LIST fprintf,stderr,exit,malloc,memset,strdup,strcmp,printf,\
 	stdin,putc,getc,ungetc,isalnum,strchr,isdigit,isalpha,fopen,fread,fclose,feof,\
@@ -14,11 +38,11 @@
 	gettimeofday,calloc,stdout,NULL
 //TODO make ffi buffer then after the ffic()
 enum {
-	ITR(DEFINE_ENUM,EXPAND(LIBC_FUNC_LIST))
+	SAO_ITR(DEFINE_ENUM,SAO_EXPAND(LIBC_FUNC_LIST))
 };
 void* (*libc_a[libc_NULL])();//function buffer
 #define libc(f) libcf(libc_##f,#f)
-#include "ffic.h"
+#include "../ffic.h"
 typedef void*(*ffi_func)();
 ffi_func libcf(int fi,const char* fn){
 	return libc_a[fi]?libc_a[fi]:(libc_a[fi]=ffic("c",fn));
@@ -49,7 +73,7 @@ struct object {
 	char gc;
 	type_t type;
 	union {
-		i64 integer;
+		long integer;
 		char *string;
 		struct {
 			object **vector;
@@ -97,9 +121,9 @@ typedef struct {
 	long count;
 } FILEWrapper;
 FILEWrapper * FileWrapper_new(FILE* fp);
-u64 sao_is_digit(int c);
-u64 sao_is_alpha(int c);
-u64 sao_is_alphanumber(int c);
+long sao_is_digit(int c);
+long sao_is_alpha(int c);
+long sao_is_alphanumber(int c);
 object *sao_eval(object *exp, object *env);
 object *sao_load_expr(FILEWrapper * fw);
 void sao_comment(FILEWrapper * fw);
@@ -111,16 +135,16 @@ void sao_ungetc(int c, FILEWrapper * fw);
 object *sao_make_integer(int x);
 object *sao_read_symbol(FILEWrapper * fw, char start);
 void sao_out_expr(char *str, object *e);
-inline u64 sao_is_digit(int c) { return (u64) libc(isdigit)(c); }
-inline u64 sao_is_alpha(int c) { return (u64) libc(isalpha)(c); }
-inline u64 sao_is_alphanumber(int c) { return (u64) libc(isalnum)(c); }
+inline long sao_is_digit(int c) { return (long) libc(isdigit)(c); }
+inline long sao_is_alpha(int c) { return (long) libc(isalpha)(c); }
+inline long sao_is_alphanumber(int c) { return (long) libc(isalnum)(c); }
 ////////////////////////////////////////////////////////////////////////
 struct htable { object *key; };
 static struct htable *HTABLE = 0;
 static int HTABLE_SIZE = 0;
-static i64 ht_hash(const char *s) {
-	i64 h = 0;
-	u8 *u = (u8 *) s;
+static long ht_hash(const char *s) {
+	long h = 0;
+	char *u = (char *) s;
 	while (*u) { h = (h * 256 + (*u)) % HTABLE_SIZE; u++; }
 	return h;
 }
@@ -136,11 +160,11 @@ int ht_init(int size) {
 	return size;
 }
 void ht_insert(object *key) {
-	i64 h = ht_hash(key->string);
+	long h = ht_hash(key->string);
 	HTABLE[h].key = key;
 }
 object *ht_lookup(char *s) {
-	i64 h = ht_hash(s);
+	long h = ht_hash(s);
 	return HTABLE[h].key;
 }
 ////////////////////////////////////////////////////////////////////////
@@ -259,10 +283,10 @@ int length(object *exp) {
 object *prim_type(object *args) {
 	return sao_make_symbol(types[car(args)->type]);
 }
-//object *prim_get_env(object *args) {
-//	//libc(assert)(is_null(args));
-//	return ENV;
-//}
+object *prim_get_env(object *args) {
+	//libc(assert)(is_null(args));
+	return ENV;
+}
 //object *prim_set_env(object *args) {
 //	ENV = car(args);
 //	return NIL;
@@ -358,7 +382,7 @@ object *prim_equal(object *args) {
 }
 object *prim_add(object *list) {
 	type_check(car(list), type_integer);
-	i64 total = car(list)->integer;
+	long total = car(list)->integer;
 	list = cdr(list);
 	while (!is_EOL(car(list))) {
 		type_check(car(list), type_integer);
@@ -369,7 +393,7 @@ object *prim_add(object *list) {
 }
 object *prim_sub(object *list) {
 	type_check(car(list), type_integer);
-	i64 total = car(list)->integer;
+	long total = car(list)->integer;
 	list = cdr(list);
 	while (!is_null(list)) {
 		type_check(car(list), type_integer);
@@ -380,7 +404,7 @@ object *prim_sub(object *list) {
 }
 object *prim_div(object *list) {
 	type_check(car(list), type_integer);
-	i64 total = car(list)->integer;
+	long total = car(list)->integer;
 	list = cdr(list);
 	while (!is_null(list)) {
 		type_check(car(list), type_integer);
@@ -391,7 +415,7 @@ object *prim_div(object *list) {
 }
 object *prim_mul(object *list) {
 	type_check(car(list), type_integer);
-	i64 total = car(list)->integer;
+	long total = car(list)->integer;
 	list = cdr(list);
 	while (!is_null(list)) {
 		type_check(car(list), type_integer);
@@ -529,14 +553,14 @@ object *load_file(object *args) {
 #include "debug_scheme.c"
 #endif
 #define PROFILE
-static u64 ffi_microtime(void)
+static long ffi_microtime(void)
 {
 #ifdef _WIN32
-	return (u64)(ffic("kernel32","GetTickCount")());
+	return (long)(ffic("kernel32","GetTickCount")());
 #else
 	struct timeval {
-		u64 tv_sec;
-		u64 tv_usec;
+		long tv_sec;
+		long tv_usec;
 	};
 	struct timeval * tv = libc(calloc)(sizeof(struct timeval),sizeof(char));
 	libc(gettimeofday)(tv, 0);
@@ -921,7 +945,7 @@ void init_env() {
 	add_prim("print", sao_prim_print);
 	//add_prim("ffi", prim_ffi);
 	//add_prim("get-global-environment", prim_get_env);
-	//add_prim("env", prim_get_env);//remove this feature
+	add_prim("env", prim_get_env);//remove this feature
 	//	add_prim("set-global-environment", prim_set_env);
 	add_prim("exit", prim_exit);//TODO change to ffi
 	//add_prim("exec", prim_exec);//TODO change to ffi
