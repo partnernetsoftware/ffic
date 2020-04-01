@@ -310,9 +310,9 @@ int is_tagged(sao_object *cell, sao_object *tag)
 	if (is_NIL(cell) || cell->type != type_list) return 0;
 	return is_equal(car(cell), tag);
 }
-int length(sao_object *exp) {
+int sao_length(sao_object *exp) {
 	if (is_NIL(exp)) return 0;
-	return 1 + length(cdr(exp));
+	return 1 + sao_length(cdr(exp));
 }
 sao_object *native_type(sao_object *args) {
 	return sao_make_symbol(types[car(args)->type]);
@@ -466,6 +466,12 @@ sao_object *native_lt(sao_object *sexp) {
 	type_check(car(sexp), type_integer);
 	type_check(cadr(sexp), type_integer);
 	return (car(sexp)->integer < cadr(sexp)->integer) ? TRUE : NIL;
+}
+sao_object * native_ffi(sao_object *args) {
+	//libc(printf)("ffi todo");
+    //int l = sao_length(args);
+	sao_out_expr("ffi todo",args);
+	return NIL;
 }
 sao_object *native_exit(sao_object *args) {
 	libc(exit)(0);
@@ -842,13 +848,20 @@ void sao_out_expr(char *str, sao_object *e)
 				return;
 			}
 			//TODO bug, if no leading should change back to pure list as (...)
-			int first=0;
-			sao_out_expr(0, e->car);//out car
-			printf("(");
+			int skip=0;
 			sao_object **t = &e;
+			if (!is_NIL(*t)) {
+				if(type_symbol == e->car->type){
+					sao_out_expr(0, e->car);//out car
+					skip=1;
+				}
+			}
+			printf("(");
 			while (!is_NIL(*t)) {
-				if(first==0){ //skip
-					first=1;
+				//sao_out_expr(0, (*t)->car);
+				//printf(" ");
+				if(skip==1){
+					skip=0;
 				}else{
 					printf(" ");
 					sao_out_expr(0, (*t)->car);
@@ -982,30 +995,27 @@ tail:
 }
 sao_object * init_global()
 {
-	//NIL = sao_make_null();
 	//END_LIST = sao_make_type(type_list);
-
 #define add_native(s, c) define_variable(sao_make_symbol(s), make_native(c), GLOBAL)
 #define add_sym(s, c) do{c=sao_make_symbol(s);define_variable(c,c,GLOBAL);}while(0);
 	GLOBAL = sao_expand(NIL, NIL, NIL);
-
 	add_sym("true", TRUE);
 	add_sym("false", FALSE);
 	define_variable(sao_make_symbol("true"), TRUE, GLOBAL);
 	define_variable(sao_make_symbol("false"), FALSE, GLOBAL);
-
 	add_sym("quote", QUOTE);
 	add_sym("lambda", LAMBDA);
 	add_sym("procedure", PROCEDURE);
-	//TODO to merge three:
-	add_sym("var", DEFINE);
+	add_sym("var", DEFINE);//TODO to merge three(DEFINE/LET/PROCEDURE ?)
 	add_sym("let", LET);
 	add_sym("set!", SET);
 	add_sym("begin", BEGIN);//TODO remove or add END
 	add_sym("if", IF);
 
-add_native("exit", native_exit);
-add_native("global", native_global);
+	add_native("ffi", native_ffi);
+
+	add_native("exit", native_exit);
+	add_native("global", native_global);
 
 	add_native("cons", native_cons);
 	add_native("car", native_car);
@@ -1031,7 +1041,6 @@ add_native("global", native_global);
 	add_native("load", native_load_file);
 	add_native("print", native_print);
 	//add_native("ffi", native_ffi);//TODO
-	add_native("exit", native_exit);
 	//add_native("exec", native_exec);//TODO change to ffi
 	add_native("read", native_read);//read from stdin (like scan)
 	add_native("table", native_vec);
@@ -1087,7 +1096,6 @@ sao_object * sao_parse( SaoStream * fw, int do_eval )
 }
 int main(int argc, char **argv)
 {
-	//ht_resize(2048-1);
 	ht_resize(8192-1);
 	ffi_func printf = libc(printf);
 	//TODO sao_load_expr( SaoStreamWrapper ( join(argc, argv) ));
@@ -1095,8 +1103,6 @@ int main(int argc, char **argv)
 		//printf("%s",argv[i]);
 		printf("argv[%d] %s\n",i,argv[i]);
 	}
-	printf("TRUE=%d ",TRUE);
-	printf("FALSE=%d ",FALSE);
 	init_global();//ffic("sao","init");//TODO libsao
 	libc(setmode)(libc(fileno)(libc(stdin)),0x8000/*O_BINARY*/);
 	SaoStream * fw = SaoStream_new(libc(stdin),stream_FILE);
