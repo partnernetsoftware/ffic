@@ -65,7 +65,7 @@ typedef enum {
 //TODO c_long,c_double,c_struct for ffi()
 char *types[] = {"integer","symbol","string","list","native","table"};
 typedef enum {
-type_integer,type_symbol,type_string,type_list,type_native,type_table
+	type_integer,type_symbol,type_string,type_list,type_native,type_table
 } type_t;
 typedef struct _sao_object sao_object;
 typedef sao_object *(*native_t)(sao_object *);
@@ -819,39 +819,40 @@ void sao_out_expr(char *str, sao_object *e)
 		case type_native: printf("<function>"); break;
 		case type_table: printf("<table %d>", e->_tblen); break;
 		case type_list:
-			if (is_tagged(e, PROCEDURE)) {
-				printf("<closure>");
-				return;
-			}
-			int skip=0;
-			sao_object **t = &e;
-			if (!is_NIL(*t)) {
-				if(type_symbol == e->car->type){
-					sao_out_expr(0, e->car);//out car
-					skip=1;
-				}
-			}
-			printf("(");
-			while (!is_NIL(*t)) {
-				//sao_out_expr(0, (*t)->car);
-				//printf(" ");
-				if(skip==1){
-					skip=0;
-				}else{
-					printf(" ");
-					sao_out_expr(0, (*t)->car);
-				}
-				if (!is_NIL((*t)->cdr)) {
-					if ((*t)->cdr->type == type_list) {
-						t = &(*t)->cdr;
-					} else {
-						sao_out_expr(".", (*t)->cdr);
-						break;
-					}
-				} else
-					break;
-			}
-			printf(")");
+										 if (is_tagged(e, PROCEDURE)) {
+											 printf("<closure>");
+											 return;
+										 }
+										 int skip=0;
+										 sao_object **t = &e;
+										 if (!is_NIL(*t)) {
+											 if(type_symbol == e->car->type){
+												 sao_out_expr(0, e->car);//out car
+												 skip=1;
+											 }
+										 }
+										 printf("(");
+										 while (!is_NIL(*t)) {
+											 //sao_out_expr(0, (*t)->car);
+											 //printf(" ");
+											 if(skip==1){
+												 skip=0;
+											 }else{
+												 printf(" ");
+												 sao_out_expr(0, (*t)->car);
+											 }
+											 if (!is_NIL((*t)->cdr)) {
+												 if ((*t)->cdr->type == type_list) {
+													 t = &(*t)->cdr;
+												 } else {
+													 sao_out_expr(".", (*t)->cdr);
+													 break;
+												 }
+											 } else
+												 break;
+										 }
+										 printf(")");
+		default: //TODO
 	}
 }
 sao_object *sao_eval(sao_object *exp, sao_object *ctx)
@@ -916,25 +917,20 @@ tail:
 			set_variable(car(cadr(exp)), closure, ctx);
 		}
 		return sao_make_symbol("ok");
-	} else if (is_tagged(exp, LET)) {
-		/* We go with the strategy of transforming let into a lambda function*/
+	} else if (is_tagged(exp, LET)) { /* transform into a lambda function*/
 		sao_object **tmp;
 		sao_object *vars = NIL;
 		sao_object *vals = NIL;
-		if (is_NIL(cadr(exp)))
-			return NIL;
-		/* NAMED LET */
+		if (is_NIL(cadr(exp))) return NIL;
 		if (atom(cadr(exp))) {
 			for (tmp = &exp->cdr->cdr->car; !is_NIL(*tmp); tmp = &(*tmp)->cdr) {
 				vars = cons(caar(*tmp), vars);
 				vals = cons(cadar(*tmp), vals);
 			}
-			/* Define the named let as a lambda function */
 			define_variable(cadr(exp),
 					sao_eval(make_lambda(vars, cdr(cddr(exp))),
 						sao_expand(vars, vals, ctx)),
-					ctx);
-			/* Then evaluate the lambda function with the starting values */
+					ctx); /* evaluate the lambda function with the starting values */
 			exp = cons(cadr(exp), vals);
 			goto tail;
 		}
@@ -944,9 +940,7 @@ tail:
 		}
 		exp = cons(make_lambda(vars, cddr(exp)), vals);
 		goto tail;
-	} else {
-		/* procedure structure is as follows:
-			 ('procedure, (parameters), (body), (ctx)) */
+	} else { /* ('procedure, (parameters), (body), (ctx)) */
 		sao_object *proc = sao_eval(car(exp), ctx);
 		sao_object *args = eval_list(cdr(exp), ctx);
 		if (is_NIL(proc)) {
@@ -996,16 +990,14 @@ sao_object * init_global()
 				is_null,is_list,
 				pairq,atomq,eqq,equalq,
 				));
-
 	return GLOBAL;
 }
-
 //TODO upgrade SaoStream to SaoStream to support _string
 sao_object * sao_parse( SaoStream * fw, int do_eval )
 {
 	sao_read_line(fw);
 	ffi_func printf = libc(printf);
-	
+
 	sao_object *rt = NIL;
 	for(;;){
 		sao_object *obj = sao_load_expr(fw);
