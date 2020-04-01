@@ -53,11 +53,13 @@ ffi_func libcf(int fi,const char* fn){
 #define NULL 0
 #define EOF (-1)
 //////////////////////////////////////////////////////////////////////////////
-//#define is_NIL(x) ((x)==NULL||(x)==NIL)
 #define is_NIL(x) ((x)==NULL||(x)==NIL)
 #define is_EOL(x) (is_NIL((x)) || (x) == END_LIST)
 #define error(x) do{libc(fprintf)(libc(stderr),"%s\n",x);libc(exit)(1);}while(0)
-
+typedef enum {
+	stream_FILE,//FILE* fp
+	stream_char,//char* string
+} stream_t;
 char *types[7] = {"integer","symbol","string","list","native","table","null"};
 typedef enum {
 	type_integer, type_symbol, type_string, type_list, type_native, type_table, type_null
@@ -124,7 +126,7 @@ typedef struct {
 	long rest;
 	long total;//TODO for gc()
 } SaoStream;
-SaoStream * SaoStream_new(FILE* fp);
+SaoStream * SaoStream_new(void*,stream_t);
 u64 sao_is_digit(int c);
 u64 sao_is_alpha(int c);
 u64 sao_is_alphanumber(int c);
@@ -444,7 +446,7 @@ sao_object *native_exit(sao_object *args) {
 }
 sao_object *native_read(sao_object *args) {
 	//libc(assert)(is_NIL(args));
-	SaoStream * fw = SaoStream_new((FILE*)libc(stdin));
+	SaoStream * fw = SaoStream_new(libc(stdin),stream_FILE);
 	return sao_load_expr(fw);
 }
 sao_object *native_vget(sao_object *args) {
@@ -543,7 +545,7 @@ sao_object *load_file(sao_object *args) {
 		libc(printf)("Error opening file %s\n", filename);
 		return NIL;
 	}
-	SaoStream * fw = SaoStream_new(fp);
+	SaoStream * fw = SaoStream_new(fp,stream_FILE);
 	for (;;) {
 		exp = sao_load_expr(fw);
 		if (is_NIL(exp))
@@ -573,14 +575,19 @@ static u64 ffi_microtime(void)
 }
 
 //TODO SaoStream * SaoStream_new(void* fp, fp_type_t)
-SaoStream * SaoStream_new(FILE* fp)
+SaoStream * SaoStream_new(void* fp,stream_t stt)
 {
-	//SaoStream * fw = libc(calloc)(sizeof(SaoStream),sizeof(char));
-	NEW_OBJECT(SaoStream,fw);
-	fw->fp = fp;
-	fw->ptr_head = fw->ptr_last = fw->ptr_start = NULL;
-	fw->rest = 0;
-	return fw;
+	if(stt==stream_char){
+		printf("TODO stream_char");
+		return NULL;
+	}else{
+		//SaoStream * fw = libc(calloc)(sizeof(SaoStream),sizeof(char));
+		NEW_OBJECT(SaoStream,fw);
+		fw->fp = (FILE*) fp;
+		fw->ptr_head = fw->ptr_last = fw->ptr_start = NULL;
+		fw->rest = 0;
+		return fw;
+	}
 }
 
 int sao_deq_c(SaoStream *fw)
@@ -724,7 +731,7 @@ sao_object *sao_read_list(SaoStream * fw)
 	sao_object *cell = END_LIST;
 	for (;;) {
 		obj = sao_load_expr(fw);
-		if(obj==NULL) return NULL;//break the error
+		//if(obj==NULL) return NULL;//break the error
 		if (obj == END_LIST)
 			return sao_reverse(cell, END_LIST);
 		cell = cons(obj, cell);
@@ -1155,7 +1162,7 @@ int main(int argc, char **argv)
 	printf("NIL=%d\n",NIL);
 	printf("END_LIST=%d\n",END_LIST);
 	libc(setmode)(libc(fileno)(libc(stdin)),0x8000/*O_BINARY*/);
-	SaoStream * fw = SaoStream_new((FILE*)libc(stdin));
+	SaoStream * fw = SaoStream_new(libc(stdin),stream_FILE);
 	sao_object * result = sao_handle( fw, 1 );
 	return 0;
 }
