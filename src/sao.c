@@ -32,6 +32,7 @@
 #define SAO_WHILE_INDIRECT() SAO_WHILE 
 #define SAO_ITR(mmm,qqq,...) SAO_EVAL( SAO_WHILE( mmm,qqq,__VA_ARGS__ ) )
 //////////////////////////////////////////////////////////////////////////////
+#define NEW_OBJECT(t,name) t*name=libc(calloc)(sizeof(t),1);
 #define DEFINE_ENUM_LIBC(n) libc_##n,
 #define LIBC_FUNC_LIST fprintf,stderr,exit,malloc,memset,strdup,strcmp,printf,\
 	stdin,putc,getc,isalnum,strchr,isdigit,isalpha,fopen,fread,fgets,fclose,feof,\
@@ -78,19 +79,19 @@ struct object {
 		native_t native;
 	};
 } __attribute__((packed));
-object *GLOBAL = NULL;
-object *NIL = NULL;
-object *END_LIST = NULL;
-object *TRUE = NULL;
-object *FALSE = NULL;
-object *QUOTE = NULL;
-object *DEFINE = NULL;
-object *SET = NULL;
-object *LET = NULL;
-object *IF = NULL;
-object *LAMBDA = NULL;
-object *BEGIN = NULL;
-object *PROCEDURE = NULL;
+object *GLOBAL    ;//= NULL;
+object *NIL       ;//= NULL;
+object *END_LIST  ;//= NULL;
+object *TRUE      ;//= NULL;
+object *FALSE     ;//= NULL;
+object *QUOTE     ;//= NULL;
+object *SET       ;//= NULL;
+object *LET       ;//= NULL;
+object *DEFINE    ;//= NULL;
+object *PROCEDURE ;//= NULL;
+object *IF        ;//= NULL;
+object *LAMBDA    ;//= NULL;
+object *BEGIN     ;//= NULL;
 
 int is_tagged(object *cell, object *tag);
 object *cons(object *car, object *cdr);
@@ -170,8 +171,9 @@ object *ht_lookup(char *s) {
 	return HTABLE[h].key;
 }
 ////////////////////////////////////////////////////////////////////////
-object *alloc() {
-	object *ret = libc(malloc)(sizeof(object)); //TODO gc()
+object *sao_alloc() {
+	NEW_OBJECT(object,ret);
+	//TODO gc()
 	return ret;
 }
 int sao_type_check(const char *func, object *obj, type_t type)
@@ -187,7 +189,7 @@ int sao_type_check(const char *func, object *obj, type_t type)
 	return 1;
 }
 object *make_table(int size) {
-	object *ret = alloc();
+	object *ret = sao_alloc();
 	ret->type = type_table;
 	ret->table = libc(malloc)(sizeof(object *) * size);
 	ret->vsize = size;
@@ -197,7 +199,7 @@ object *make_table(int size) {
 object *sao_make_symbol(char *s) {
 	object *ret = ht_lookup(s);
 	if (is_NIL(ret)) {
-		ret = alloc();
+		ret = sao_alloc();
 		ret->type = type_symbol;
 		ret->string = libc(strdup)(s);
 		ht_insert(ret);
@@ -205,13 +207,13 @@ object *sao_make_symbol(char *s) {
 	return ret;
 }
 object *make_integer(int x) {
-	object *ret = alloc();
+	object *ret = sao_alloc();
 	ret->type = type_integer;
 	ret->integer = x;
 	return ret;
 }
 object *make_native(native_t x) {
-	object *ret = alloc();
+	object *ret = sao_alloc();
 	ret->type = type_native;
 	ret->native = x;
 	return ret;
@@ -224,7 +226,7 @@ object *make_procedure(object *params, object *body,
 	return cons(PROCEDURE, cons(params, cons(body, cons(ctx, END_LIST))));
 }
 inline object *cons(object *car, object *cdr) {
-	object *ret = alloc();
+	object *ret = sao_alloc();
 	ret->type = type_list;
 	ret->car = car;
 	ret->cdr = cdr;
@@ -572,7 +574,6 @@ static u64 ffi_microtime(void)
 	return tv->tv_sec*1000 + (tv->tv_usec+500)/1000;
 #endif
 }
-#define NEW_OBJECT(t,name) t*name=libc(calloc)(sizeof(t),sizeof(char));
 FILEWrapper * FILEWrapper_new(FILE* fp)
 {
 	//FILEWrapper * fw = libc(calloc)(sizeof(FILEWrapper),sizeof(char));
@@ -583,7 +584,7 @@ FILEWrapper * FILEWrapper_new(FILE* fp)
 	return fw;
 }
 
-inline void FILEWrapper_feed_char(FILEWrapper* fw,int k){
+void FILEWrapper_feed_char(FILEWrapper* fw,int k){
 	//printf("%d ",k);
 	NEW_OBJECT(FileChar,fc);
 	fc->c = k; 
@@ -603,43 +604,43 @@ inline void FILEWrapper_feed_char(FILEWrapper* fw,int k){
 	fw->count++;
 }
 int depth = 0;
-void FILEWrapper_feed_line(FILEWrapper* fw)
-{
-	ffi_func printf = libc(printf);
-	ffi_func feof = libc(feof);
-	if(feof(fw->fp)){
-		return;
-	}
-	ffi_func fgets  = libc(fgets);
-	ffi_func malloc = libc(malloc);
-	ffi_func memset = libc(memset);
-	ffi_func calloc = libc(calloc);
-	ffi_func strlen = libc(strlen);
-	int LINE_LEN = 1024;//TODO
-	for(;;){
-		char *line = calloc(LINE_LEN, sizeof(char));
-		fgets(line,LINE_LEN,fw->fp);
-		long strlen_line = (long) strlen(line);
-		if(strlen_line>0){
-			//printf("DEBUG strlen_line(%d):%s\n",strlen_line,line);
-			for(int i=0;i<strlen_line;i++)
-			{
-				FILEWrapper_feed_char(fw,line[i]);
-			}
-			//FILEWrapper_feed_char(fw,'\n');
-		}else{
-			//printf("DEBUG feed char EOF\n");
-			FILEWrapper_feed_char(fw,EOF);
-			//return;
-			break;
-		}
-	}
-	//printf("after FILEWrapper_feed_char depth=%d\n",depth);
-}
+//void FILEWrapper_feed_line(FILEWrapper* fw)
+//{
+//	ffi_func printf = libc(printf);
+//	ffi_func feof = libc(feof);
+//	if(feof(fw->fp)){
+//		return;
+//	}
+//	ffi_func fgets  = libc(fgets);
+//	ffi_func malloc = libc(malloc);
+//	ffi_func memset = libc(memset);
+//	ffi_func calloc = libc(calloc);
+//	ffi_func strlen = libc(strlen);
+//	int LINE_LEN = 1024;//TODO
+//	//for(;;){
+//		char *line = calloc(LINE_LEN, sizeof(char));
+//		fgets(line,LINE_LEN,fw->fp);
+//		long strlen_line = (long) strlen(line);
+//		if(strlen_line>0){
+//			//printf("DEBUG strlen_line(%d):%s\n",strlen_line,line);
+//			for(int i=0;i<strlen_line;i++)
+//			{
+//				FILEWrapper_feed_char(fw,line[i]);
+//			}
+//			//FILEWrapper_feed_char(fw,'\n');
+//		}else{
+//			//printf("DEBUG feed char EOF\n");
+//			FILEWrapper_feed_char(fw,EOF);
+//			return;
+//			//break;
+//		}
+//	//}
+//	//printf("after FILEWrapper_feed_char depth=%d\n",depth);
+//}
 
 int sao_getc(FILEWrapper *fw) //like atok
 {
-	int c = 0;//pending
+	int c = 0;//
 	FileChar * current = fw->current;
 	if(current!=0){
 		c = current->c;
@@ -667,16 +668,21 @@ object *sao_read_symbol(FILEWrapper * fw, char start)
 	buf[i] = '\0';
 	return sao_make_symbol(buf);
 }
+inline object * sao_make_type( type_t type ){
+	object *ret = sao_alloc();
+	ret->type = type;
+	return ret;
+}
 object *sao_make_integer(int x)
 {
-	object *ret = alloc();
+	object *ret = sao_alloc();
 	ret->type = type_integer;
 	ret->integer = x;
 	return ret;
 }
 object *sao_make_null()
 {
-	object *ret = alloc();
+	object *ret = sao_alloc();
 	ret->type = type_null;
 	return ret;
 }
@@ -745,10 +751,14 @@ object *sao_load_expr(FILEWrapper * fw)
 			return NULL;
 		}
 		if(c==0){
-			printf("depth(%d)\n",depth);
 			//return NIL;
-			//continue;
 			return NULL;
+		}
+		if(c==0){
+			//printf("depth(%d)\n",depth);
+			//return NIL;
+			continue;
+			//return NULL;
 		}
 		//switch(c){
 		//	case 0: return NIL;
@@ -1022,32 +1032,41 @@ void init_global()
 	add_native("table-set", native_vset);
 }
 
-int main(int argc, char **argv)
+//TODO upgrade FILEWrapper to SaoStream to support string
+object * sao_handle( FILEWrapper * fw, int do_eval )
 {
 	ffi_func printf = libc(printf);
 	ffi_func feof = libc(feof);
-	for(int i=1;i<argc;i++){
-		//printf("%s",argv[i]);
-		//object *obj = sao_load_expr(fw);//TODO wrap string to FILEWrapper !
-		printf("argv[%d] %s\n",i,argv[i]);
-	}
-
-	//TODO fprintf(stderr,)
-	ht_init(8192-1);
-	init_global();//TODO make libsaodefault for the natives
-	libc(setmode)(libc(fileno)(libc(stdin)),0x8000/*O_BINARY*/);
-	FILEWrapper * fw = FILEWrapper_new((FILE*)libc(stdin));
+	ffi_func fgets  = libc(fgets);
+	ffi_func malloc = libc(malloc);
+	ffi_func memset = libc(memset);
+	ffi_func calloc = libc(calloc);
+	ffi_func strlen = libc(strlen);
+	
+	object *rt = NIL;
 	for(;;){
-		FILEWrapper_feed_line(fw);
-		if(depth>0){
-			printf("depth=%d \n",depth);
-		//	continue;//feed more...
+		//ffi_func printf = libc(printf);
+		//ffi_func feof = libc(feof);
+		//if(feof(fw->fp)){
+		//	return;
+		//}
+		int LINE_LEN = 1024;//TODO
+		char *line = calloc(LINE_LEN, sizeof(char));
+		fgets(line,LINE_LEN,fw->fp);
+		long strlen_line = (long) strlen(line);
+		if(strlen_line>0){
+			//printf("DEBUG strlen_line(%d):%s\n",strlen_line,line);
+			for(int i=0;i<strlen_line;i++)
+			{
+				FILEWrapper_feed_char(fw,line[i]);
+			}
+			//FILEWrapper_feed_char(fw,'\n');
+		}else{
+			//printf("DEBUG feed char EOF\n");
+			FILEWrapper_feed_char(fw,EOF);
+			return rt;
+			//break;
 		}
-		//FILEWrapper_feed_line(fw);
-		//FILEWrapper_feed_line(fw);
-		//FILEWrapper_feed_line(fw);
-		//FILEWrapper_feed_line(fw);
-		//FILEWrapper_feed_line(fw);
 		object *obj = sao_load_expr(fw);
 		if(obj==NULL){
 			//printf("DEBUG NULL to exit\n");
@@ -1059,21 +1078,47 @@ int main(int argc, char **argv)
 #endif
 			sao_out_expr("<=", obj);
 			printf("\n");
-			object *exp = sao_eval(obj, GLOBAL);
-			if (!is_NIL(exp)) {
+
+			object *rt = sao_eval(obj, GLOBAL);
+			if (do_eval){
+				if ( !is_NIL(rt)) {
 #if defined(PROFILE)
-				printf("%lu: ",ffi_microtime());
+					printf("%lu: ",ffi_microtime());
 #endif
-				//TODO if "-i"
-				sao_out_expr("=>", exp);
-				printf("\n");
+					//TODO if "-i"
+					sao_out_expr("=>", rt);
+					printf("\n");
+				}else{
+					//sao_out_expr("null??",rt);
+					//printf("\n");
+				}
 			}else{
-				//sao_out_expr("null??",exp);
-				//printf("\n");
+				return obj;
 			}
 		}else{
+			//if(depth>0){
+			printf("TODO depth=%d \n",depth);
+			//continue;//feed more...
+			//}
 			//printf(" DEBUG more ? \n");
 		}
 	}
+	return rt;
+}
+int main(int argc, char **argv)
+{
+	ffi_func printf = libc(printf);
+	//TODO sao_load_expr( SaoStreamWrapper ( join(argc, argv) ));
+	for(int i=1;i<argc;i++){
+		//printf("%s",argv[i]);
+		printf("argv[%d] %s\n",i,argv[i]);
+	}
+	ht_init(8192-1);
+	init_global();//TODO make libsaodefault for the natives
+	printf("NIL=%d\n",NIL);
+	printf("END_LIST=%d\n",END_LIST);
+	libc(setmode)(libc(fileno)(libc(stdin)),0x8000/*O_BINARY*/);
+	FILEWrapper * fw = FILEWrapper_new((FILE*)libc(stdin));
+	object * result = sao_handle( fw, 1 );
 	return 0;
 }
