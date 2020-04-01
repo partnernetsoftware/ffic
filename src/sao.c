@@ -62,7 +62,7 @@ typedef enum {
 } stream_t;
 char *types[7] = {"integer","symbol","string","list","native","table","null"};
 typedef enum {
-	type_integer, type_symbol, type_string, type_list, type_native, type_table, type_null
+type_integer,type_symbol,type_string,type_list,type_native,type_table,type_null
 } type_t;
 typedef struct _sao_object sao_object;
 typedef sao_object *(*native_t)(sao_object *);
@@ -325,7 +325,7 @@ sao_object *native_setcdr(sao_object *args) {
 	(args->car->cdr = (cadr(args)));
 	return NIL;
 }
-sao_object *native_is_NILq(sao_object *args) {
+sao_object *native_is_null(sao_object *args) {
 	return is_EOL(car(args)) ? TRUE : FALSE;
 }
 sao_object *native_pairq(sao_object *args) {
@@ -333,7 +333,7 @@ sao_object *native_pairq(sao_object *args) {
 		return FALSE;
 	return (atom(caar(args)) && atom(cdar(args))) ? TRUE : FALSE;
 }
-sao_object *native_listq(sao_object *args) {
+sao_object *native_is_list(sao_object *args) {
 	sao_object *list;
 	if (car(args)->type != type_list)
 		return FALSE;
@@ -389,7 +389,9 @@ sao_object *native_add(sao_object *list) {
 	type_check(car(list), type_integer);
 	i64 total = car(list)->integer;
 	list = cdr(list);
-	while (!is_EOL(car(list))) {
+	//while (!is_EOL(car(list)))
+	while (!is_NIL(car(list)))
+	{
 		type_check(car(list), type_integer);
 		total += car(list)->integer;
 		list = cdr(list);
@@ -578,7 +580,7 @@ static u64 ffi_microtime(void)
 SaoStream * SaoStream_new(void* fp,stream_t stt)
 {
 	if(stt==stream_char){
-		printf("TODO stream_char");
+		libc(printf)("TODO stream_char");
 		return NULL;
 	}else{
 		//SaoStream * fw = libc(calloc)(sizeof(SaoStream),sizeof(char));
@@ -605,7 +607,7 @@ int sao_deq_c(SaoStream *fw)
 	return c;
 }
 
-void sao_enq_c(SaoStream* fw,int k){
+int sao_enq_c(SaoStream* fw,int k){
 	//printf("enq(%d) ",k);libc(fflush)(libc(stdout));
 
 	NEW_OBJECT(FileChar,fc);
@@ -628,6 +630,7 @@ void sao_enq_c(SaoStream* fw,int k){
 	}
 	fw->ptr_last = fc;
 	fw->rest ++;
+	return k;
 }
 
 int depth = 0;
@@ -638,10 +641,9 @@ int sao_read_line(SaoStream* fw)
 	ffi_func feof = libc(feof);
 	do{
 		if(feof(fw->fp)){
-			printf("feof");
+			//printf("feof");
 			break;
 		}
-		line_num++;
 		ffi_func fgets  = libc(fgets);
 		ffi_func malloc = libc(malloc);
 		ffi_func memset = libc(memset);
@@ -652,21 +654,23 @@ int sao_read_line(SaoStream* fw)
 		fgets(line,LINE_LEN,fw->fp);
 		long strlen_line = (long) strlen(line);
 		if(strlen_line>0){
-			printf("DEBUG strlen_line(%d):%s\n",strlen_line,line);
+			//printf("DEBUG strlen_line(%d):%s\n",strlen_line,line);
 			for(int i=0;i<strlen_line;i++)
 			{
-				sao_enq_c(fw,line[i]);
+				if('\n'==sao_enq_c(fw,line[i])){
+					line_num++;
+				}
 			}
 		}else{
-			printf("DEBUG strlen_line(%d) !!\n",strlen_line);
+			//printf("DEBUG strlen_line(%d) !!\n",strlen_line);
 			sao_enq_c(fw,EOF);
 		}
-		if(feof(fw->fp)){
-			printf(" feof ? ");
+		//if(feof(fw->fp)){
+		//	//printf(" feof ? ");
 			//sao_enq_c(fw,EOF);
-		}else{
-			printf(" not-feof? ");
-		}
+		//}else{
+		//	//printf(" not-feof? ");
+		//}
 	}while(0);
 	//printf("after sao_enq_c depth=%d\n",depth);
 	return line_num;
@@ -769,26 +773,18 @@ sao_object *sao_load_expr(SaoStream * fw)
 	for (;;) {
 		sao_object * theSymbol = NIL;
 		c = sao_deq_c(fw);
+
 		if(c==EOF){
-			printf("DEBUG return NULL for c==EOF, depth=(%d)\n",depth);
+			//printf("\nTMP DEBUG return NULL for c==EOF, depth=(%d)\n",depth);
 			return NULL;
 		}
+
 		if(c==-2){
-			//printf(" need next row depth(%d)",depth);
+			printf(" need next row, depth(%d)\n",depth);
 			sao_read_line(fw);
 			continue;
 		}
-		printf("%d ",c);
-		//if(c==0){
-		//	//return NIL;
-		//	return NULL;
-		//}
-		if(c==0){
-			//printf("depth(%d)\n",depth);
-			//return NIL;
-			continue;
-			//return NULL;
-		}
+		//printf("%d ",c);
 		//switch(c){
 		//	case 0: return NIL;
 		//	case EOF: return NULL;
@@ -805,7 +801,7 @@ sao_object *sao_load_expr(SaoStream * fw)
 		if (c == '\''){
 			sao_object * child = sao_load_expr(fw);
 			if(NULL==child){
-				printf("DEBUG child=sao_load_expr(fw) is NULL");
+				printf("DEBUG child=sao_load_expr(fw) is NULL\n");
 				return NULL;
 			}
 			return cons(QUOTE, cons(child, NIL));
@@ -823,10 +819,10 @@ sao_object *sao_load_expr(SaoStream * fw)
 		if (c == '(') {
 			depth++;
 			sao_object * list = sao_read_list(fw);
-			if(NULL==list){
-				printf("DEBUG list=sao_load_expr(fw) is NULL");
-				return NULL;
-			}
+			//if(NULL==list){
+			//	printf("DEBUG list=sao_load_expr(fw) is NULL");
+			//	return NULL;
+			//}
 			if(theSymbol!=NIL){
 				list = cons(theSymbol,list);
 			}
@@ -1017,6 +1013,7 @@ tail:
 void init_global()
 {
 	NIL = sao_make_null();
+	//END_LIST = sao_make_type(type_list);
 
 #define add_native(s, c) define_variable(sao_make_symbol(s), make_native(c), GLOBAL)
 #define add_sym(s, c) do{c=sao_make_symbol(s);define_variable(c,c,GLOBAL);}while(0);
@@ -1044,16 +1041,15 @@ void init_global()
 	add_native("set-car!", native_setcar);
 	add_native("set-cdr!", native_setcdr);
 	add_native("list", native_list);
-	add_native("list?", native_listq);
-	add_native("null?", native_is_NILq);
+	add_native("list?", native_is_list);
+	add_native("null?", native_is_null);
 	add_native("pair?", native_pairq);
 	add_native("atom?", native_atomq);
 
 	add_native("eq?", native_eq);
 	add_native("equal?", native_equal);
 
-	//TODO "!", native_not
-
+	//TODO "not", native_not
 	add_native("add", native_add);
 	add_native("sub", native_sub);
 	add_native("mul", native_mul);
@@ -1079,6 +1075,8 @@ void init_global()
 //TODO upgrade SaoStream to SaoStream to support string
 sao_object * sao_handle( SaoStream * fw, int do_eval )
 {
+	sao_read_line(fw);
+	
 	ffi_func printf = libc(printf);
 	ffi_func feof = libc(feof);
 	ffi_func fgets  = libc(fgets);
@@ -1089,28 +1087,6 @@ sao_object * sao_handle( SaoStream * fw, int do_eval )
 	
 	sao_object *rt = NIL;
 	for(;;){
-		//ffi_func printf = libc(printf);
-		//ffi_func feof = libc(feof);
-		//if(feof(fw->fp)){
-		//	return;
-		//}
-//		int LINE_LEN = 1024;//TODO
-//		char *line = calloc(LINE_LEN, sizeof(char));
-//		fgets(line,LINE_LEN,fw->fp);
-//		long strlen_line = (long) strlen(line);
-//		if(strlen_line>0){
-//			//printf("DEBUG strlen_line(%d):%s\n",strlen_line,line);
-//			for(int i=0;i<strlen_line;i++)
-//			{
-//				sao_enq_c(fw,line[i]);
-//			}
-//			//sao_enq_c(fw,'\n');
-//		}else{
-//			//printf("DEBUG feed char EOF\n");
-//			sao_enq_c(fw,EOF);
-//			return rt;
-//			//break;
-//		}
 		sao_object *obj = sao_load_expr(fw);
 		if(obj==NULL){
 			printf("DEBUG NULL to exit\n");
@@ -1133,18 +1109,14 @@ sao_object * sao_handle( SaoStream * fw, int do_eval )
 					sao_out_expr("=>", rt);
 					printf("\n");
 				}else{
-					//sao_out_expr("null??",rt);
-					//printf("\n");
+					sao_out_expr("null ??",rt);
+					printf("\n");
 				}
 			}else{
 				return obj;
 			}
 		}else{
-			//if(depth>0){
-			printf("TODO depth=%d \n",depth);
-			//continue;//feed more...
-			//}
-			//printf(" DEBUG more ? \n");
+			printf("DEBUG TODO depth=%d \n",depth);
 		}
 	}
 	return rt;
@@ -1161,6 +1133,7 @@ int main(int argc, char **argv)
 	init_global();//TODO make libsaodefault for the natives
 	printf("NIL=%d\n",NIL);
 	printf("END_LIST=%d\n",END_LIST);
+	printf("(END_LIST==NIL)=%s\n",((END_LIST)==(NIL))?"Y":"N");
 	libc(setmode)(libc(fileno)(libc(stdin)),0x8000/*O_BINARY*/);
 	SaoStream * fw = SaoStream_new(libc(stdin),stream_FILE);
 	sao_object * result = sao_handle( fw, 1 );
