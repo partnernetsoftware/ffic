@@ -18,6 +18,7 @@ echo "(exit)" | ./ffic_osx scheme.c
 
 * release for LNX
 * release for WIN64
+* try little libc.so from https://github.com/lattera/glibc/
 
 # why?
 

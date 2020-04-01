@@ -32,11 +32,13 @@
 #define SAO_WHILE_INDIRECT() SAO_WHILE 
 #define SAO_ITR(mmm,qqq,...) SAO_EVAL( SAO_WHILE( mmm,qqq,__VA_ARGS__ ) )
 //////////////////////////////////////////////////////////////////////////////
-#define NEW_OBJECT(t,name) t*name=libc(calloc)(sizeof(t),1);
+//#define NEW_OBJECT(t,name) t* name=libc(malloc)(sizeof(t));libc(memset)(name,0,sizeof(t));
+#define NEW_OBJECT(t,name) t* name=libc(memset)(libc(malloc)(sizeof(t)),0,sizeof(t));
+#define NEW_OBJECT_SIZE(t,name,size) t* name=libc(memset)(libc(malloc)(sizeof(t)*size),0,sizeof(t)*size);
 #define DEFINE_ENUM_LIBC(n) libc_##n,
 #define LIBC_FUNC_LIST fprintf,stderr,exit,malloc,memset,strdup,strcmp,printf,\
 	stdin,putc,getc,isalnum,strchr,isdigit,isalpha,fopen,fread,fgets,fclose,feof,\
-	usleep,msleep,sleep,fputc,setmode,fileno,gettimeofday,calloc,stdout,strlen,\
+	usleep,msleep,sleep,fputc,setmode,fileno,gettimeofday,stdout,strlen,\
 	fflush,free,NULL
 //TODO macro for (int=>char* map)
 enum {
@@ -72,15 +74,16 @@ struct _sao_object {
 	union {
 		long _integer;
 		char *_string;
+		//char *_symbol;
 		struct {
-			sao_object **table;
-			int vsize;
+			sao_object **_table;
+			int _tblen;
 		};
 		struct {
 			sao_object *car;
 			sao_object *cdr;
 		};
-		double _double;
+		double _double;//TODO
 		//TODO BigNumber * _bignum;
 		native_t native;
 	};
@@ -161,7 +164,6 @@ static long ht_hash(const char *s, int ht_len) {
 	return h;
 }
 int ht_resize(int newsize){
-	//struct htable * newTable = libc(calloc)(sizeof(struct htable) * newsize);
 	struct htable * newTable = libc(malloc)(sizeof(struct htable) * newsize);
 	libc(memset)(newTable, 0, sizeof(struct htable) * newsize);
 	for(int i=0;i<gHTable_len;i++){
@@ -219,9 +221,9 @@ int sao_type_check(const char *func, sao_object *obj, type_t type)
 sao_object *make_table(int size) {
 	sao_object *ret = sao_alloc();
 	ret->type = type_table;
-	ret->table = libc(malloc)(sizeof(sao_object *) * size);
-	ret->vsize = size;
-	libc(memset)(ret->table, 0, size);
+	ret->_table = libc(malloc)(sizeof(sao_object *) * size);
+	ret->_tblen = size;
+	libc(memset)(ret->_table, 0, size);
 	return ret;
 }
 sao_object *sao_make_symbol(char *s) {
@@ -400,13 +402,13 @@ sao_object *native_equal(sao_object *args) {
 		return TRUE;
 	}
 	if ((car(args)->type == type_table) && (cadr(args)->type == type_table)) {
-		if (car(args)->vsize != cadr(args)->vsize) {
+		if (car(args)->_tblen != cadr(args)->_tblen) {
 			return FALSE;
 		}
-		sao_object **va = car(args)->table;
-		sao_object **vb = cadr(args)->table;
+		sao_object **va = car(args)->_table;
+		sao_object **vb = cadr(args)->_table;
 		int i = 0;
-		for (i = 0; i < car(args)->vsize; i++) {
+		for (i = 0; i < car(args)->_tblen; i++) {
 			if (!is_equal(*(va + i), *(vb + i))) {
 				return FALSE;
 			}
@@ -487,18 +489,18 @@ sao_object *native_read(sao_object *args) {
 sao_object *native_vget(sao_object *args) {
 	type_check(car(args), type_table);
 	type_check(cadr(args), type_integer);
-	if (cadr(args)->_integer >= car(args)->vsize)
+	if (cadr(args)->_integer >= car(args)->_tblen)
 		return NIL;
-	return car(args)->table[cadr(args)->_integer];
+	return car(args)->_table[cadr(args)->_integer];
 }
 sao_object *native_vset(sao_object *args) {
 	type_check(car(args), type_table);
 	type_check(cadr(args), type_integer);
 	if (is_NIL(caddr(args)))
 		return NIL;
-	if (cadr(args)->_integer >= car(args)->vsize)
+	if (cadr(args)->_integer >= car(args)->_tblen)
 		return NIL;
-	car(args)->table[cadr(args)->_integer] = caddr(args);
+	car(args)->_table[cadr(args)->_integer] = caddr(args);
 	return sao_make_symbol("ok");
 }
 sao_object *native_vec(sao_object *args) {
@@ -603,7 +605,7 @@ static long ffi_microtime(void)
 		long tv_sec;
 		long tv_usec;
 	};
-	struct timeval * tv = libc(calloc)(sizeof(struct timeval),sizeof(char));
+	NEW_OBJECT(struct timeval,tv);
 	libc(gettimeofday)(tv, 0);
 	return tv->tv_sec*1000 + (tv->tv_usec+500)/1000;
 #endif
@@ -614,7 +616,6 @@ SaoStream * SaoStream_new(void* fp,stream_t stt)
 		libc(printf)("TODO stream_char");
 		return NULL;
 	}else{
-		//SaoStream * fw = libc(calloc)(sizeof(SaoStream),sizeof(char));
 		NEW_OBJECT(SaoStream,fw);
 		fw->fp = (FILE*) fp;
 		fw->ptr_head = fw->ptr_last = fw->ptr_start = NULL;
@@ -663,10 +664,9 @@ int sao_read_line(SaoStream* fw)
 		ffi_func fgets  = libc(fgets);
 		ffi_func malloc = libc(malloc);
 		ffi_func memset = libc(memset);
-		ffi_func calloc = libc(calloc);
 		ffi_func strlen = libc(strlen);
 		int LINE_LEN = 1024;//TODO
-		char *line = calloc(LINE_LEN, sizeof(char));
+		NEW_OBJECT_SIZE(char,line,LINE_LEN);
 		fgets(line,LINE_LEN,fw->fp);
 		long strlen_line = (long) strlen(line);
 		if(strlen_line>0){
@@ -844,7 +844,7 @@ void sao_out_expr(char *str, sao_object *e)
 		case type_symbol: printf("%s", e->_string); break;
 		case type_integer: printf("%ld", e->_integer); break;
 		case type_native: printf("<function>"); break;
-		case type_table: printf("<table %d>", e->vsize); break;
+		case type_table: printf("<table %d>", e->_tblen); break;
 		case type_list:
 			if (is_tagged(e, PROCEDURE)) {
 				printf("<closure>");
