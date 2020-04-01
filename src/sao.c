@@ -60,6 +60,7 @@ typedef enum {
 	stream_FILE,//FILE* fp
 	stream_char,//char* string
 } stream_t;
+//TODO c_long,c_double,c_struct for ffi()
 char *types[] = {"integer","symbol","string","list","native","table"};
 typedef enum {
 type_integer,type_symbol,type_string,type_list,type_native,type_table
@@ -69,8 +70,8 @@ typedef sao_object *(*native_t)(sao_object *);
 struct _sao_object {
 	type_t type;
 	union {
-		long integer;
-		char *string;
+		long _integer;
+		char *_string;
 		struct {
 			sao_object **table;
 			int vsize;
@@ -79,13 +80,14 @@ struct _sao_object {
 			sao_object *car;
 			sao_object *cdr;
 		};
+		double _double;
+		//TODO BigNumber * _bignum;
 		native_t native;
 	};
 } __attribute__((packed));
 
 sao_object *NIL       = NULL;
 sao_object *END_LIST  = NULL;
-
 sao_object *GLOBAL    = NULL;
 sao_object *TRUE      = NULL;
 sao_object *FALSE     = NULL;
@@ -145,6 +147,7 @@ void sao_out_expr(char *str, sao_object *e);
 inline long sao_is_digit(int c) { return (long) libc(isdigit)(c); }
 inline long sao_is_alpha(int c) { return (long) libc(isalpha)(c); }
 inline long sao_is_alphanumber(int c) { return (long) libc(isalnum)(c); }
+//void sao_err(libc(stderr),...);
 ////////////////////////////////////////////////////////////////////////
 void ht_insert(sao_object *key_obj);
 struct htable { sao_object *key; };
@@ -163,7 +166,7 @@ int ht_resize(int newsize){
 	libc(memset)(newTable, 0, sizeof(struct htable) * newsize);
 	for(int i=0;i<gHTable_len;i++){
 		if (NULL!=gHTable[i].key) {
-			int h = ht_hash(gHTable[i].key->string, newsize);
+			int h = ht_hash(gHTable[i].key->_string, newsize);
 			if(NULL != newTable[h].key){
 				//TODO add debug to see why
 				//error("!!! newTable still full ??\n");
@@ -180,8 +183,8 @@ int ht_resize(int newsize){
 }
 void ht_insert(sao_object *key_obj)
 {
-	long h = ht_hash(key_obj->string, gHTable_len);
-	if(NULL != gHTable[h].key && NULL!=gHTable[h].key->string){
+	long h = ht_hash(key_obj->_string, gHTable_len);
+	if(NULL != gHTable[h].key && NULL!=gHTable[h].key->_string){
 		//error("symbol table full.\n");
 		int newsize = 2*(gHTable_len+1)-1 ;
 		ht_resize( newsize );
@@ -226,10 +229,10 @@ sao_object *sao_make_symbol(char *s) {
 	if (is_NIL(ret)) {
 		ret = sao_alloc();
 		ret->type = type_symbol;
-		ret->string = libc(strdup)(s);
+		ret->_string = libc(strdup)(s);
 		ht_insert(ret);
 	}else{
-		if(!libc(strcmp)(ret->string,s)){
+		if(!libc(strcmp)(ret->_string,s)){
 		}else{
 			int newsize = 2*(gHTable_len+1)-1 ;
 			ht_resize( newsize );
@@ -241,7 +244,7 @@ sao_object *sao_make_symbol(char *s) {
 sao_object *make_integer(int x) {
 	sao_object *ret = sao_alloc();
 	ret->type = type_integer;
-	ret->integer = x;
+	ret->_integer = x;
 	return ret;
 }
 sao_object *make_native(native_t x) {
@@ -292,9 +295,9 @@ int is_equal(sao_object *x, sao_object *y) {
 		return 0;
 	switch (x->type) {
 		case type_list: return 0;
-		case type_integer: return x->integer == y->integer;
+		case type_integer: return x->_integer == y->_integer;
 		case type_symbol:
-		case type_string: return !libc(strcmp)(x->string, y->string);
+		case type_string: return !libc(strcmp)(x->_string, y->_string);
 		case type_native: return 0;
 		case type_table: return 0;
 	}
@@ -302,7 +305,7 @@ int is_equal(sao_object *x, sao_object *y) {
 }
 int not_false(sao_object *x) {
 	if (is_NIL(x) || is_equal(x, FALSE)) return 0;
-	if (x->type == type_integer && x->integer == 0) return 0;
+	if (x->type == type_integer && x->_integer == 0) return 0;
 	return 1;
 }
 int is_tagged(sao_object *cell, sao_object *tag)
@@ -376,7 +379,7 @@ sao_object *native_atomq(sao_object *sexp) {
 sao_object *native_cmp(sao_object *args) {
 	if ((car(args)->type != type_integer) || (cadr(args)->type != type_integer))
 		return FALSE;
-	return (car(args)->integer == cadr(args)->integer) ? TRUE : FALSE;
+	return (car(args)->_integer == cadr(args)->_integer) ? TRUE : FALSE;
 }
 sao_object *native_eq(sao_object *args) {
 	return is_equal(car(args), cadr(args)) ? TRUE : FALSE;
@@ -414,45 +417,45 @@ sao_object *native_equal(sao_object *args) {
 }
 sao_object *native_add(sao_object *list) {
 	type_check(car(list), type_integer);
-	long total = car(list)->integer;
+	long total = car(list)->_integer;
 	list = cdr(list);
 	while (!is_EOL(car(list)))
 	{
 		type_check(car(list), type_integer);
-		total += car(list)->integer;
+		total += car(list)->_integer;
 		list = cdr(list);
 	}
 	return make_integer(total);
 }
 sao_object *native_sub(sao_object *list) {
 	type_check(car(list), type_integer);
-	long total = car(list)->integer;
+	long total = car(list)->_integer;
 	list = cdr(list);
 	while (!is_NIL(list)) {
 		type_check(car(list), type_integer);
-		total -= car(list)->integer;
+		total -= car(list)->_integer;
 		list = cdr(list);
 	}
 	return make_integer(total);
 }
 sao_object *native_div(sao_object *list) {
 	type_check(car(list), type_integer);
-	long total = car(list)->integer;
+	long total = car(list)->_integer;
 	list = cdr(list);
 	while (!is_NIL(list)) {
 		type_check(car(list), type_integer);
-		total /= car(list)->integer;
+		total /= car(list)->_integer;
 		list = cdr(list);
 	}
 	return make_integer(total);
 }
 sao_object *native_mul(sao_object *list) {
 	type_check(car(list), type_integer);
-	long total = car(list)->integer;
+	long total = car(list)->_integer;
 	list = cdr(list);
 	while (!is_NIL(list)) {
 		type_check(car(list), type_integer);
-		total *= car(list)->integer;
+		total *= car(list)->_integer;
 		list = cdr(list);
 	}
 	return make_integer(total);
@@ -460,12 +463,12 @@ sao_object *native_mul(sao_object *list) {
 sao_object *native_gt(sao_object *sexp) {
 	type_check(car(sexp), type_integer);
 	type_check(cadr(sexp), type_integer);
-	return (car(sexp)->integer > cadr(sexp)->integer) ? TRUE : NIL;
+	return (car(sexp)->_integer > cadr(sexp)->_integer) ? TRUE : NIL;
 }
 sao_object *native_lt(sao_object *sexp) {
 	type_check(car(sexp), type_integer);
 	type_check(cadr(sexp), type_integer);
-	return (car(sexp)->integer < cadr(sexp)->integer) ? TRUE : NIL;
+	return (car(sexp)->_integer < cadr(sexp)->_integer) ? TRUE : NIL;
 }
 sao_object * native_ffi(sao_object *args) {
 	//libc(printf)("ffi todo");
@@ -484,23 +487,23 @@ sao_object *native_read(sao_object *args) {
 sao_object *native_vget(sao_object *args) {
 	type_check(car(args), type_table);
 	type_check(cadr(args), type_integer);
-	if (cadr(args)->integer >= car(args)->vsize)
+	if (cadr(args)->_integer >= car(args)->vsize)
 		return NIL;
-	return car(args)->table[cadr(args)->integer];
+	return car(args)->table[cadr(args)->_integer];
 }
 sao_object *native_vset(sao_object *args) {
 	type_check(car(args), type_table);
 	type_check(cadr(args), type_integer);
 	if (is_NIL(caddr(args)))
 		return NIL;
-	if (cadr(args)->integer >= car(args)->vsize)
+	if (cadr(args)->_integer >= car(args)->vsize)
 		return NIL;
-	car(args)->table[cadr(args)->integer] = caddr(args);
+	car(args)->table[cadr(args)->_integer] = caddr(args);
 	return sao_make_symbol("ok");
 }
 sao_object *native_vec(sao_object *args) {
 	type_check(car(args), type_integer);
-	return make_table(car(args)->integer);
+	return make_table(car(args)->_integer);
 }
 
 sao_object *sao_expand(sao_object *var, sao_object *val, sao_object *ctx) {
@@ -568,7 +571,7 @@ sao_object *eval_sequence(sao_object *exps, sao_object *ctx) {
 sao_object *native_load_file(sao_object *args) {
 	sao_object *exp;
 	sao_object *ret = 0;
-	char *filename = car(args)->string;
+	char *filename = car(args)->_string;
 #if defined(DEBUG)
 	libc(printf)("Evaluating file %s\n", filename);
 #endif
@@ -704,7 +707,7 @@ sao_object *sao_make_integer(int x)
 {
 	sao_object *ret = sao_alloc();
 	ret->type = type_integer;
-	ret->integer = x;
+	ret->_integer = x;
 	return ret;
 }
 int sao_peek(SaoStream * fw)
@@ -837,9 +840,9 @@ void sao_out_expr(char *str, sao_object *e)
 	if (str) printf("%s ", str);
 	if (is_NIL(e)) { printf("'()"); return; }
 	switch (e->type) {
-		case type_string: printf("\"%s\"", e->string); break;
-		case type_symbol: printf("%s", e->string); break;
-		case type_integer: printf("%ld", e->integer); break;
+		case type_string: printf("\"%s\"", e->_string); break;
+		case type_symbol: printf("%s", e->_string); break;
+		case type_integer: printf("%ld", e->_integer); break;
 		case type_native: printf("<function>"); break;
 		case type_table: printf("<table %d>", e->vsize); break;
 		case type_list:
@@ -847,7 +850,6 @@ void sao_out_expr(char *str, sao_object *e)
 				printf("<closure>");
 				return;
 			}
-			//TODO bug, if no leading should change back to pure list as (...)
 			int skip=0;
 			sao_object **t = &e;
 			if (!is_NIL(*t)) {
@@ -995,9 +997,10 @@ tail:
 }
 sao_object * init_global()
 {
-	//END_LIST = sao_make_type(type_list);
 #define add_native(s, c) define_variable(sao_make_symbol(s), make_native(c), GLOBAL)
 #define add_sym(s, c) do{c=sao_make_symbol(s);define_variable(c,c,GLOBAL);}while(0);
+	//NIL
+	//END_LIST 
 	GLOBAL = sao_expand(NIL, NIL, NIL);
 	add_sym("true", TRUE);
 	add_sym("false", FALSE);
@@ -1012,7 +1015,7 @@ sao_object * init_global()
 	add_sym("begin", BEGIN);//TODO remove or add END
 	add_sym("if", IF);
 
-	add_native("ffi", native_ffi);
+	add_native("ffi", native_ffi);//TODO
 
 	add_native("exit", native_exit);
 	add_native("global", native_global);
@@ -1040,8 +1043,6 @@ sao_object * init_global()
 	add_native("type", native_type);
 	add_native("load", native_load_file);
 	add_native("print", native_print);
-	//add_native("ffi", native_ffi);//TODO
-	//add_native("exec", native_exec);//TODO change to ffi
 	add_native("read", native_read);//read from stdin (like scan)
 	add_native("table", native_vec);
 	add_native("table-get", native_vget);
@@ -1050,7 +1051,7 @@ sao_object * init_global()
 	return GLOBAL;
 }
 
-//TODO upgrade SaoStream to SaoStream to support string
+//TODO upgrade SaoStream to SaoStream to support _string
 sao_object * sao_parse( SaoStream * fw, int do_eval )
 {
 	sao_read_line(fw);
@@ -1114,7 +1115,7 @@ int main(int argc, char **argv)
 /* QUICK TODO
  * * printf=>sao_out
  * * +sao_err()
- * * string stream
+ * * _string stream
  * * options in sao
  * * fix empty list leading....
  * * macro the types: (enum=>enum_name)
