@@ -105,7 +105,7 @@ sao_object *BEGIN     = NULL;
 
 int is_tagged(sao_object *cell, sao_object *tag);
 sao_object *cons(sao_object *car, sao_object *cdr);
-sao_object *native_load_file(sao_object *args);
+sao_object *native_load(sao_object *args);
 sao_object *cdr(sao_object *);
 sao_object *car(sao_object *);
 #define caar(x) (car(car((x))))
@@ -383,6 +383,11 @@ sao_object *native_cmp(sao_object *args) {
 		return FALSE;
 	return (car(args)->_integer == cadr(args)->_integer) ? TRUE : FALSE;
 }
+
+sao_object *native_not(sao_object *args) {
+	return native_cmp(args);
+}
+
 sao_object *native_eq(sao_object *args) {
 	return is_equal(car(args), cadr(args)) ? TRUE : FALSE;
 }
@@ -486,14 +491,14 @@ sao_object *native_read(sao_object *args) {
 	SaoStream * fw = SaoStream_new(libc(stdin),stream_FILE);
 	return sao_load_expr(fw);
 }
-sao_object *native_vget(sao_object *args) {
+sao_object *native_tget(sao_object *args) {
 	type_check(car(args), type_table);
 	type_check(cadr(args), type_integer);
 	if (cadr(args)->_integer >= car(args)->_tblen)
 		return NIL;
 	return car(args)->_table[cadr(args)->_integer];
 }
-sao_object *native_vset(sao_object *args) {
+sao_object *native_tset(sao_object *args) {
 	type_check(car(args), type_table);
 	type_check(cadr(args), type_integer);
 	if (is_NIL(caddr(args)))
@@ -503,7 +508,7 @@ sao_object *native_vset(sao_object *args) {
 	car(args)->_table[cadr(args)->_integer] = caddr(args);
 	return sao_make_symbol("ok");
 }
-sao_object *native_vec(sao_object *args) {
+sao_object *native_table(sao_object *args) {
 	type_check(car(args), type_integer);
 	return make_table(car(args)->_integer);
 }
@@ -570,7 +575,7 @@ sao_object *eval_sequence(sao_object *exps, sao_object *ctx) {
 	sao_eval(car(exps), ctx);
 	return eval_sequence(cdr(exps), ctx);
 }
-sao_object *native_load_file(sao_object *args) {
+sao_object *native_load(sao_object *args) {
 	sao_object *exp;
 	sao_object *ret = 0;
 	char *filename = car(args)->_string;
@@ -995,10 +1000,11 @@ tail:
 	libc(printf)("\n");
 	return NIL;
 }
-sao_object * init_global()
-{
 #define add_native(s, c) define_variable(sao_make_symbol(s), make_native(c), GLOBAL)
 #define add_sym(s, c) do{c=sao_make_symbol(s);define_variable(c,c,GLOBAL);}while(0);
+#define add_sym_with(n) add_native(#n, native_##n);
+sao_object * init_global()
+{
 	//NIL
 	//END_LIST 
 	GLOBAL = sao_expand(NIL, NIL, NIL);
@@ -1015,38 +1021,20 @@ sao_object * init_global()
 	add_sym("begin", BEGIN);//TODO remove or add END
 	add_sym("if", IF);
 
-	add_native("ffi", native_ffi);//TODO
+	SAO_ITR(add_sym_with,SAO_EXPAND(
+				exit,ffi,global,//sys
+				type,cons,car,cdr,setcar,setcdr,//lang
+				list,table,tget,tset,//data
+				add,sub,mul,div,cmp,not,lt,gt,//logic
+				load,print,read,//io
+				));
 
-	add_native("exit", native_exit);
-	add_native("global", native_global);
-
-	add_native("cons", native_cons);
-	add_native("car", native_car);
-	add_native("cdr", native_cdr);
-	add_native("set-car!", native_setcar);
-	add_native("set-cdr!", native_setcdr);
-	add_native("list", native_list);
 	add_native("list?", native_is_list);
 	add_native("null?", native_is_null);
 	add_native("pair?", native_pairq);
 	add_native("atom?", native_atomq);
 	add_native("eq?", native_eq);
 	add_native("equal?", native_equal);
-	//TODO "not", native_not
-	add_native("add", native_add);
-	add_native("sub", native_sub);
-	add_native("mul", native_mul);
-	add_native("div", native_div);
-	add_native("cmp", native_cmp);
-	add_native("lt", native_lt);
-	add_native("gt", native_gt);
-	add_native("type", native_type);
-	add_native("load", native_load_file);
-	add_native("print", native_print);
-	add_native("read", native_read);//read from stdin (like scan)
-	add_native("table", native_vec);
-	add_native("table-get", native_vget);
-	add_native("table-set", native_vset);
 
 	return GLOBAL;
 }

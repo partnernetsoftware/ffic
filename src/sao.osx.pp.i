@@ -135,7 +135,7 @@ sao_object *LAMBDA = 0;
 sao_object *BEGIN = 0;
 int is_tagged(sao_object *cell, sao_object *tag);
 sao_object *cons(sao_object *car, sao_object *cdr);
-sao_object *native_load_file(sao_object *args);
+sao_object *native_load(sao_object *args);
 sao_object *cdr(sao_object *);
 sao_object *car(sao_object *);
 sao_object *sao_lookup_var(sao_object *var, sao_object *ctx);
@@ -379,6 +379,9 @@ sao_object *native_cmp(sao_object *args) {
   return FALSE;
  return (car(args)->_integer == (car(cdr((args))))->_integer) ? TRUE : FALSE;
 }
+sao_object *native_not(sao_object *args) {
+ return native_cmp(args);
+}
 sao_object *native_eq(sao_object *args) {
  return is_equal(car(args), (car(cdr((args))))) ? TRUE : FALSE;
 }
@@ -480,14 +483,14 @@ sao_object *native_read(sao_object *args) {
  SaoStream * fw = SaoStream_new(libcf(libc_stdin,"stdin"),stream_FILE);
  return sao_load_expr(fw);
 }
-sao_object *native_vget(sao_object *args) {
+sao_object *native_tget(sao_object *args) {
  (sao_type_check(__func__, car(args), type_table));
  (sao_type_check(__func__, (car(cdr((args)))), type_integer));
  if ((car(cdr((args))))->_integer >= car(args)->_tblen)
   return NIL;
  return car(args)->_table[(car(cdr((args))))->_integer];
 }
-sao_object *native_vset(sao_object *args) {
+sao_object *native_tset(sao_object *args) {
  (sao_type_check(__func__, car(args), type_table));
  (sao_type_check(__func__, (car(cdr((args)))), type_integer));
  if ((((car(cdr(cdr((args))))))==0||((car(cdr(cdr((args))))))==NIL))
@@ -497,7 +500,7 @@ sao_object *native_vset(sao_object *args) {
  car(args)->_table[(car(cdr((args))))->_integer] = (car(cdr(cdr((args)))));
  return sao_make_symbol("ok");
 }
-sao_object *native_vec(sao_object *args) {
+sao_object *native_table(sao_object *args) {
  (sao_type_check(__func__, car(args), type_integer));
  return make_table(car(args)->_integer);
 }
@@ -562,7 +565,7 @@ sao_object *eval_sequence(sao_object *exps, sao_object *ctx) {
  sao_eval(car(exps), ctx);
  return eval_sequence(cdr(exps), ctx);
 }
-sao_object *native_load_file(sao_object *args) {
+sao_object *native_load(sao_object *args) {
  sao_object *exp;
  sao_object *ret = 0;
  char *filename = car(args)->_string;
@@ -949,35 +952,13 @@ sao_object * init_global()
  do{SET=sao_make_symbol("set!");define_variable(SET,SET,GLOBAL);}while(0);;
  do{BEGIN=sao_make_symbol("begin");define_variable(BEGIN,BEGIN,GLOBAL);}while(0);;
  do{IF=sao_make_symbol("if");define_variable(IF,IF,GLOBAL);}while(0);;
- define_variable(sao_make_symbol("ffi"), make_native(native_ffi), GLOBAL);
- define_variable(sao_make_symbol("exit"), make_native(native_exit), GLOBAL);
- define_variable(sao_make_symbol("global"), make_native(native_global), GLOBAL);
- define_variable(sao_make_symbol("cons"), make_native(native_cons), GLOBAL);
- define_variable(sao_make_symbol("car"), make_native(native_car), GLOBAL);
- define_variable(sao_make_symbol("cdr"), make_native(native_cdr), GLOBAL);
- define_variable(sao_make_symbol("set-car!"), make_native(native_setcar), GLOBAL);
- define_variable(sao_make_symbol("set-cdr!"), make_native(native_setcdr), GLOBAL);
- define_variable(sao_make_symbol("list"), make_native(native_list), GLOBAL);
+ define_variable(sao_make_symbol("exit"), make_native(native_exit), GLOBAL); define_variable(sao_make_symbol("ffi"), make_native(native_ffi), GLOBAL); define_variable(sao_make_symbol("global"), make_native(native_global), GLOBAL); define_variable(sao_make_symbol("type"), make_native(native_type), GLOBAL); define_variable(sao_make_symbol("cons"), make_native(native_cons), GLOBAL); define_variable(sao_make_symbol("car"), make_native(native_car), GLOBAL); define_variable(sao_make_symbol("cdr"), make_native(native_cdr), GLOBAL); define_variable(sao_make_symbol("setcar"), make_native(native_setcar), GLOBAL); define_variable(sao_make_symbol("setcdr"), make_native(native_setcdr), GLOBAL); define_variable(sao_make_symbol("list"), make_native(native_list), GLOBAL); define_variable(sao_make_symbol("add"), make_native(native_add), GLOBAL); define_variable(sao_make_symbol("sub"), make_native(native_sub), GLOBAL); define_variable(sao_make_symbol("mul"), make_native(native_mul), GLOBAL); define_variable(sao_make_symbol("div"), make_native(native_div), GLOBAL); define_variable(sao_make_symbol("cmp"), make_native(native_cmp), GLOBAL); define_variable(sao_make_symbol("not"), make_native(native_not), GLOBAL); define_variable(sao_make_symbol("lt"), make_native(native_lt), GLOBAL); define_variable(sao_make_symbol("gt"), make_native(native_gt), GLOBAL); define_variable(sao_make_symbol("load"), make_native(native_load), GLOBAL); define_variable(sao_make_symbol("print"), make_native(native_print), GLOBAL); define_variable(sao_make_symbol("read"), make_native(native_read), GLOBAL); define_variable(sao_make_symbol("table"), make_native(native_table), GLOBAL); define_variable(sao_make_symbol("tget"), make_native(native_tget), GLOBAL); define_variable(sao_make_symbol("tset"), make_native(native_tset), GLOBAL);;
  define_variable(sao_make_symbol("list?"), make_native(native_is_list), GLOBAL);
  define_variable(sao_make_symbol("null?"), make_native(native_is_null), GLOBAL);
  define_variable(sao_make_symbol("pair?"), make_native(native_pairq), GLOBAL);
  define_variable(sao_make_symbol("atom?"), make_native(native_atomq), GLOBAL);
  define_variable(sao_make_symbol("eq?"), make_native(native_eq), GLOBAL);
  define_variable(sao_make_symbol("equal?"), make_native(native_equal), GLOBAL);
- define_variable(sao_make_symbol("add"), make_native(native_add), GLOBAL);
- define_variable(sao_make_symbol("sub"), make_native(native_sub), GLOBAL);
- define_variable(sao_make_symbol("mul"), make_native(native_mul), GLOBAL);
- define_variable(sao_make_symbol("div"), make_native(native_div), GLOBAL);
- define_variable(sao_make_symbol("cmp"), make_native(native_cmp), GLOBAL);
- define_variable(sao_make_symbol("lt"), make_native(native_lt), GLOBAL);
- define_variable(sao_make_symbol("gt"), make_native(native_gt), GLOBAL);
- define_variable(sao_make_symbol("type"), make_native(native_type), GLOBAL);
- define_variable(sao_make_symbol("load"), make_native(native_load_file), GLOBAL);
- define_variable(sao_make_symbol("print"), make_native(native_print), GLOBAL);
- define_variable(sao_make_symbol("read"), make_native(native_read), GLOBAL);
- define_variable(sao_make_symbol("table"), make_native(native_vec), GLOBAL);
- define_variable(sao_make_symbol("table-get"), make_native(native_vget), GLOBAL);
- define_variable(sao_make_symbol("table-set"), make_native(native_vset), GLOBAL);
  return GLOBAL;
 }
 sao_object * sao_parse( SaoStream * fw, int do_eval )
