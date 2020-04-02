@@ -574,9 +574,6 @@ sao_object *native_load(sao_object *args) {
 	libc(fclose)(fp);
 	return ret;
 }
-#if defined(DEBUG)
-#include "debug_scheme.c"
-#endif
 #define PROFILE
 static long ffi_microtime(void)
 {
@@ -949,7 +946,7 @@ tail:
 #define add_native(s, c) define_variable(sao_make_symbol(s), make_native(c), GLOBAL)
 #define add_sym(s, c) do{c=sao_make_symbol(s);define_variable(c,c,GLOBAL);}while(0);
 #define add_sym_with(n) add_native(#n, native_##n);
-sao_object * init_global()
+sao_object * sao_init()
 {
 	GLOBAL = sao_expand(NIL, NIL, NIL);
 	add_sym("true", TRUE);
@@ -1024,23 +1021,28 @@ int main(int argc, char **argv)
 {
 	ht_resize(8192-1);
 	ffi_func printf = libc(printf);
-	//SaoStream * fw = SaoStream_new("",stream_char);
-	//TODO sao_load_expr( SaoStreamWrapper ( join(argc, argv) ));
-	for(int i=1;i<argc;i++){
-		//printf("%s",argv[i]);
-		printf("argv[%d] %s\n",i,argv[i]);
+	if(argc>1){
+		SaoStream * fw = SaoStream_new(argv[1],stream_char);
+		//sao_object * result = sao_parse( fw, 1/*eval*/ );
+		//TODO sao_load_expr( ( join(argc, argv) ));
+		//for(int i=1;i<argc;i++){
+		//	printf("TODO %d %s\n",i,argv[i]);
+		//}
+		return 0;
 	}
-	init_global();//ffic("sao","init");//TODO libsao
+	sao_init();//ffic("sao","init");//TODO libsao
 	libc(setmode)(libc(fileno)(libc(stdin)),0x8000/*O_BINARY*/);
 	SaoStream * fw = SaoStream_new(libc(stdin),stream_file);
 	sao_object * result = sao_parse( fw, 1/*eval*/ );
 	return 0;
 }
-/* QUICK TODO
+/* TODO (Plan)
  * * printf=>sao_out
  * * +sao_err()
  * * _string stream
  * * options in sao
  * * remove "ok" stuff?
  * * redesign context/global
+ * * improve: translate logic func (caar...) to officially inline
+ * * utf8 support for strings
  */

@@ -46,26 +46,18 @@ void*(*ffic(const char* libname, const char* funcname, ...))()
 {
  void* addr = 0;
  if(!strcmp("c",libname)){
-  if(!strcmp("stderr",funcname)){
-   addr = __stderrp;
-  }else if(!strcmp("stdout",funcname)){
-   addr = __stdoutp;
-  }else if(!strcmp("stdin",funcname)){
-   addr = __stdinp;
-  }else{
+  if(!strcmp("stderr",funcname)){ addr = __stderrp; }
+  else if(!strcmp("stdout",funcname)){ addr = __stdoutp; }
+  else if(!strcmp("stdin",funcname)){ addr = __stdinp; }
+  else{
    libname =
     "libc"
     ;
-   if(!strcmp("fileno",funcname)){
-   }else if(!strcmp("setmode",funcname)){
+   if(!strcmp("usleep",funcname)){ return ffic_usleep; }
+   else if(!strcmp("sleep",funcname)){ return ffic_sleep; }
+   else if(!strcmp("msleep",funcname)){ return ffic_msleep; }
+   else if(!strcmp("setmode",funcname)){
     addr = ffic_void;
-   }else if(!strcmp("strdup",funcname)){
-   }else if(!strcmp("usleep",funcname)){
-    return ffic_usleep;
-   }else if(!strcmp("sleep",funcname)){
-    return ffic_sleep;
-   }else if(!strcmp("msleep",funcname)){
-    return ffic_msleep;
    }
   }
  }
@@ -917,7 +909,7 @@ tail:
  libcbf(libc_printf,"printf")("\n");
  return NIL;
 }
-sao_object * init_global()
+sao_object * sao_init()
 {
  GLOBAL = sao_expand(NIL, NIL, NIL);
  do{TRUE=sao_make_symbol("true");define_variable(TRUE,TRUE,GLOBAL);}while(0);;
@@ -971,10 +963,11 @@ int main(int argc, char **argv)
 {
  ht_resize(8192-1);
  ffi_func printf = libcbf(libc_printf,"printf");
- for(int i=1;i<argc;i++){
-  printf("argv[%d] %s\n",i,argv[i]);
+ if(argc>1){
+  SaoStream * fw = SaoStream_new(argv[1],stream_char);
+  return 0;
  }
- init_global();
+ sao_init();
  libcbf(libc_setmode,"setmode")(libcbf(libc_fileno,"fileno")(libcbf(libc_stdin,"stdin")),0x8000 );
  SaoStream * fw = SaoStream_new(libcbf(libc_stdin,"stdin"),stream_file);
  sao_object * result = sao_parse( fw, 1 );

@@ -16,7 +16,7 @@ var( <= lambda( a( b) if( gt( a b) false true)))
 # Return the maximum value from a list of integers
 var( max( list-of-numbers)
   var( max-iter( best remaining)
-    cond( (null?( remaining) best)
+    cond( (is_null( remaining) best)
       (gt( car( remaining) best) max-iter( car( remaining) cdr( remaining)))
       else( max-iter( best cdr( remaining)))))
   max-iter( car( list-of-numbers) cdr( list-of-numbers)))
@@ -24,20 +24,20 @@ var( max( list-of-numbers)
 # Return the minimum value from a list of integers
 var( min( list-of-numbers)
   var( min-iter( best remaining)
-    cond( (null?( remaining) best)
+    cond( (is_null( remaining) best)
       (lt( car( remaining) best) min-iter( car( remaining) cdr( remaining)))
       else( min-iter( best cdr( remaining)))))
   min-iter( car( list-of-numbers) cdr( list-of-numbers)))
 
-; Map a function 'f' onto list 'a'
+# Map a function 'f' onto list 'a'
 var( map lambda( f( a)
-    if( null?( a) 
+    if( is_null( a) 
       '()
       cons( f( car( a)) map( f cdr( a))))))
 
-#;;; Provide the association pair of key from list
+# Provide the association pair of key from list
 var( assoc( key list)
-  if( null?( list)
+  if( is_null( list)
     '()
     if( eq?( key car( car( list))) 
       car( list)
@@ -75,7 +75,7 @@ var( make-stack()
 # Pointer to cdr if list, Pointer to object if pair
 var( last-item-in-list lambda( list()
     var( helper( remaining)
-      if( null?( cdr( remaining))
+      if( is_null( cdr( remaining))
         remaining
         helper( cdr( remaining))))
     helper( list)))
@@ -94,10 +94,10 @@ var( range-from( start finish)
     finish
     cons( start range-from( add( 1 start) finish))))
 
-#;;; Tail recursive length
+# Tail recursive length
 var( length( list)
   var( length-helper( accum remaining)
-    if( null?( remaining)
+    if( is_null( remaining)
       accum
       length-helper( add( 1 accum) cdr( remaining))))
   length-helper( 1 cdr( list)))
@@ -105,7 +105,7 @@ var( length( list)
 # Append list2 to list1
 var( append lambda( list1( list2) 
     var( append-helper( l1 l2)
-      if( null?( l1)
+      if( is_null( l1)
         l2
         cons( car( l1) append-helper( cdr( l1) l2))))
     append-helper( list1 list2)))
@@ -113,7 +113,7 @@ var( append lambda( list1( list2)
 # Reverse list
 var( reverse( list)
   var( reverse-iter( remaining first) 
-    if( null?( remaining)
+    if( is_null( remaining)
       first
       reverse-iter( cdr( remaining) cons( car( remaining) first))))
   reverse-iter( list '()))
@@ -168,7 +168,7 @@ var( gen-accum( number)
 # Everytime new-accum() is called, it's accumulator should be increased by one
 var( new-accum gen-accum( 0))
 
-;; Simple for loop
+# Simple for loop
 var( for lambda( start( end do)
     var( for-loop( a z)
       if( cmp( a z)
@@ -185,14 +185,13 @@ var( make-withdraw( balance)
         balance)
       "Insufficient funds")))
 
-#;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 # Various tests
 var( x '1( 2 3))
 var( factorial lambda(n() if( cmp( n 0) 1 mul( n factorial( sub( n 1))))))
 var( add1 lambda(n() add( 1 n)))
 var( sum-of-squares( num-list)
   var( sos-helper lambda( remaining( sum-so-far)
-      if( null?( remaining) 
+      if( is_null( remaining) 
         sum-so-far 
         sos-helper( cdr( remaining) add( sum-so-far mul( car( remaining) car( remaining)))))))
   sos-helper( num-list 0))

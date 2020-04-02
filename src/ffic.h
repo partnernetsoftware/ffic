@@ -10,6 +10,7 @@
 # endif
 #endif
 
+#if 0
 //#if SIZEOF_POINTER==8
 //typedef signed char i8;
 //typedef signed short int i16;
@@ -33,6 +34,7 @@
 //#else
 //#error Unknown SIZEOF_POINTER ?
 //#endif
+#endif
 
 #  if defined(_WIN32) || defined(_WIN64)
 typedef struct _iobuf {
@@ -157,13 +159,10 @@ void*(*ffic(const char* libname, const char* funcname, ...))()
 {
 	void* addr = 0;
 	if(!strcmp("c",libname)){
-		if(!strcmp("stderr",funcname)){
-			addr = stderr;
-		}else if(!strcmp("stdout",funcname)){
-			addr = stdout;
-		}else if(!strcmp("stdin",funcname)){
-			addr = stdin;
-		}else{
+		if(!strcmp("stderr",funcname)){ addr = stderr; }
+		else if(!strcmp("stdout",funcname)){ addr = stdout; }
+		else if(!strcmp("stdin",funcname)){ addr = stdin; }
+		else{
 			libname = 
 #if defined(__APPLE__)
 				"libc"
@@ -175,27 +174,22 @@ void*(*ffic(const char* libname, const char* funcname, ...))()
 				"libc"
 #endif
 				;				
-			if(!strcmp("fileno",funcname)){
+			if(!strcmp("usleep",funcname)){ return ffic_usleep; }
+			else if(!strcmp("sleep",funcname)){ return ffic_sleep; }
+			else if(!strcmp("msleep",funcname)){ return ffic_msleep; }
 #ifdef _WIN32
-				funcname = "_fileno";
+			else if(!strcmp("fileno",funcname)){ funcname = "_fileno"; }
 #endif
-			}else if(!strcmp("setmode",funcname)){
+			else if(!strcmp("setmode",funcname)){
 #ifdef _WIN32
 				funcname = "_setmode";
 #else
 				addr = ffic_void;
 #endif
-			}else if(!strcmp("strdup",funcname)){
-#if defined(_WIN32)
-				funcname = "_strdup";
-#endif
-			}else if(!strcmp("usleep",funcname)){
-				return ffic_usleep;
-			}else if(!strcmp("sleep",funcname)){
-				return ffic_sleep;
-			}else if(!strcmp("msleep",funcname)){
-				return ffic_msleep;
 			}
+#if defined(_WIN32)
+			else if(!strcmp("strdup",funcname)){ funcname = "_strdup"; }
+#endif
 		}
 	}
 	if(addr==0) addr = ffic_raw(libname,funcname,0);
