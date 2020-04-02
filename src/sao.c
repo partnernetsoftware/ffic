@@ -42,16 +42,16 @@
 #define LIBC_FUNC_LIST fprintf,stderr,exit,malloc,memset,strdup,strcmp,printf,\
 	stdin,putc,getc,isalnum,strchr,isdigit,isalpha,fopen,fread,fgets,fclose,feof,\
 	usleep,msleep,sleep,fputc,setmode,fileno,gettimeofday,stdout,strlen,\
-	fflush,free,NULL
+	fflush,free,SAO_NULL
 enum { SAO_ITR(DEFINE_ENUM_LIBC,SAO_EXPAND(LIBC_FUNC_LIST)) };
-void* (*libc_a[libc_NULL])();//libc buffer
+void* (*libc_a[libc_SAO_NULL])();//libc buffer
 #define libc(f) libcbf(libc_##f,#f)
 #include "ffic.h" //github.com/partnernetsoftware/ffic/blob/master/src/ffic.h
 typedef void*(*ffi_func)();
 ffi_func libcbf(int fi,const char* fn);
-inline ffi_func libcbf(int fi,const char* fn){ return libc_a[fi]?libc_a[fi]:(libc_a[fi]=ffic("c",fn)); }
-#define NULL 0 // same as ((void*)0)
-#define EOF (-1)
+ffi_func libcbf(int fi,const char* fn){ return libc_a[fi]?libc_a[fi]:(libc_a[fi]=ffic("c",fn)); }
+#define SAO_NULL 0 // same as ((void*)0)
+#define SAO_EOF (-1)
 #define define_enum_name(n) #n,
 #define define_enum_item(p,v) p##_##v,
 #define define_enum(name, ...) typedef enum {\
@@ -63,7 +63,7 @@ inline ffi_func libcbf(int fi,const char* fn){ return libc_a[fi]?libc_a[fi]:(lib
 	define_enum(name,__VA_ARGS__) define_map_arr(name,__VA_ARGS__)
 #define NEW_OBJECT(t,name) t* name=libc(memset)(libc(malloc)(sizeof(t)),0,sizeof(t));
 #define NEW_OBJECT_SIZE(t,name,size) t* name=libc(memset)(libc(malloc)(sizeof(t)*size),0,sizeof(t)*size);
-#define is_NIL(x) ((x)==NULL||(x)==NIL)
+#define is_NIL(x) ((x)==SAO_NULL||(x)==NIL)
 #define is_EOL(x) (is_NIL((x)) || (x) == END_LIST)
 #define error(x) do{libc(fprintf)(libc(stderr),"%s\n",x);libc(exit)(1);}while(0)
 #define caar(x) (car(car((x))))
@@ -101,7 +101,7 @@ struct _sao_object {
 		native_t native;
 	};
 } __attribute__((packed));
-#define define_sao_object(n) sao_object*n=NULL;
+#define define_sao_object(n) sao_object*n=SAO_NULL;
 SAO_ITR(define_sao_object, NIL,END_LIST,GLOBAL,TRUE,FALSE,QUOTE,SET,LET,DEFINE,PROCEDURE,IF,LAMBDA,BEGIN);
 int is_tagged(sao_object *cell, sao_object *tag);
 sao_object *cons(sao_object *car, sao_object *cdr);
@@ -138,9 +138,9 @@ int sao_peek(SaoStream * fw);
 sao_object *sao_make_integer(int x);
 sao_object *sao_read_symbol(SaoStream * fw, char start);
 void sao_out_expr(char *str, sao_object *e);
-inline long sao_is_digit(int c) { return (long) libc(isdigit)(c); }
-inline long sao_is_alpha(int c) { return (long) libc(isalpha)(c); }
-inline long sao_is_alphanumber(int c) { return (long) libc(isalnum)(c); }
+long sao_is_digit(int c) { return (long) libc(isdigit)(c); }
+long sao_is_alpha(int c) { return (long) libc(isalpha)(c); }
+long sao_is_alphanumber(int c) { return (long) libc(isalnum)(c); }
 //void sao_err(libc(stderr),...);
 ////////////////////////////////////////////////////////////////////////
 void ht_insert(sao_object *key_obj);
@@ -158,9 +158,9 @@ int ht_resize(int newsize){
 	struct htable * newTable = libc(malloc)(sizeof(struct htable) * newsize);
 	libc(memset)(newTable, 0, sizeof(struct htable) * newsize);
 	for(int i=0;i<gHTable_len;i++){
-		if (NULL!=gHTable[i].key) {
+		if (SAO_NULL!=gHTable[i].key) {
 			int h = ht_hash(gHTable[i].key->_string, newsize);
-			if(NULL != newTable[h].key){
+			if(SAO_NULL != newTable[h].key){
 				//TODO add debug to see why
 				//error("!!! newTable still full ??\n");
 				libc(printf)("DEBUG !!! newTable still full ??\n");
@@ -177,7 +177,7 @@ int ht_resize(int newsize){
 void ht_insert(sao_object *key_obj)
 {
 	long h = ht_hash(key_obj->_string, gHTable_len);
-	if(NULL != gHTable[h].key && NULL!=gHTable[h].key->_string){
+	if(SAO_NULL != gHTable[h].key && SAO_NULL!=gHTable[h].key->_string){
 		//error("symbol table full.\n");
 		int newsize = 2*(gHTable_len+1)-1 ;
 		ht_resize( newsize );
@@ -251,18 +251,18 @@ sao_object *make_procedure(sao_object *params, sao_object *body,
 		sao_object *ctx) {
 	return cons(PROCEDURE, cons(params, cons(body, cons(ctx, END_LIST))));
 }
-inline sao_object *cons(sao_object *car, sao_object *cdr) {
+sao_object *cons(sao_object *car, sao_object *cdr) {
 	sao_object *ret = sao_alloc();
 	ret->type = type_list;
 	ret->car = car;
 	ret->cdr = cdr;
 	return ret;
 }
-inline sao_object *car(sao_object *cell) {
+sao_object *car(sao_object *cell) {
 	if (is_NIL(cell) || cell->type != type_list) return NIL;
 	return cell->car;
 }
-inline sao_object *cdr(sao_object *cell) {
+sao_object *cdr(sao_object *cell) {
 	if (is_NIL(cell) || cell->type != type_list) return NIL;
 	return cell->cdr;
 }
@@ -600,11 +600,11 @@ SaoStream * SaoStream_new(void* fp,stream_t stt)
 {
 	if(stt==stream_char){
 		libc(printf)("TODO stream_char");
-		return NULL;
+		return SAO_NULL;
 	}else{
 		NEW_OBJECT(SaoStream,fw);
 		fw->fp = fp;
-		fw->ptr_head = fw->ptr_last = fw->ptr_start = NULL;
+		fw->ptr_head = fw->ptr_last = fw->ptr_start = SAO_NULL;
 		fw->rest = 0;
 		return fw;
 	}
@@ -613,7 +613,7 @@ int sao_deq_c(SaoStream *fw)
 {
 	int c = -2;//
 	FileChar * ptr_head = fw->ptr_head;
-	if(ptr_head!=NULL){
+	if(ptr_head!=SAO_NULL){
 		c = ptr_head->c;
 		fw->ptr_head=ptr_head->ptr_next;
 		fw->rest --;
@@ -624,13 +624,13 @@ int sao_enq_c(SaoStream* fw,int k){
 	NEW_OBJECT(FileChar,fc);
 	fc->c = k; 
 	fc->ptr_prev= fw->ptr_last;
-	if(NULL==fw->ptr_start){
+	if(SAO_NULL==fw->ptr_start){
 		fw->ptr_start = fc;
 	}
-	if(NULL==fw->ptr_head){
+	if(SAO_NULL==fw->ptr_head){
 		fw->ptr_head = fc;
 	}
-	if(NULL!=fw->ptr_last){
+	if(SAO_NULL!=fw->ptr_last){
 		fw->ptr_last->ptr_next = fc;
 	}
 	fw->ptr_last = fc;
@@ -661,7 +661,7 @@ int sao_read_line(SaoStream* fw)
 				}
 			}
 		}else{
-			sao_enq_c(fw,EOF);
+			sao_enq_c(fw,SAO_EOF);
 		}
 	}while(0);
 	return line_num;
@@ -714,20 +714,20 @@ sao_object *sao_read_list(SaoStream * fw)
 	sao_object *cell = END_LIST;
 	for (;;) {
 		obj = sao_load_expr(fw);
-		//if(obj==NULL) return NULL;//break the error
+		//if(obj==SAO_NULL) return SAO_NULL;//break the error
 		if (obj == END_LIST)
 			return sao_reverse(cell, END_LIST);
 		cell = cons(obj, cell);
 	}
 	return END_LIST;
 }
-inline sao_object *sao_load_str(SaoStream * fw)
+sao_object *sao_load_str(SaoStream * fw)
 {
 	char buf[256];
 	int i = 0;
 	int c;
 	while ((c = sao_deq_c(fw)) != '\"') {
-		if (c == EOF) return NIL;
+		if (c == SAO_EOF) return NIL;
 		if (i >= 256) error("String too long - maximum length 256 characters");
 		buf[i++] = (char) c;
 	}
@@ -741,7 +741,7 @@ void sao_comment(SaoStream * fw)
 	int c;
 	for (;;) {
 		c = sao_deq_c(fw);
-		if (c == '\n' || c == EOF) return;
+		if (c == '\n' || c == SAO_EOF) return;
 	}
 }
 sao_object *sao_load_expr(SaoStream * fw)
@@ -753,7 +753,7 @@ sao_object *sao_load_expr(SaoStream * fw)
 		sao_object * theSymbol = NIL;
 		c = sao_deq_c(fw);
 		switch(c){
-			case EOF: return NULL;
+			case SAO_EOF: return SAO_NULL;
 			case -2: sao_read_line(fw);continue;
 			case '\n':
 			case '\r':
@@ -989,8 +989,8 @@ sao_object * sao_parse( SaoStream * fw, int do_eval )
 	sao_object *rt = NIL;
 	for(;;){
 		sao_object *obj = sao_load_expr(fw);
-		if(obj==NULL){
-			//printf("DEBUG NULL to exit\n");
+		if(obj==SAO_NULL){
+			//printf("DEBUG SAO_NULL to exit\n");
 			break;
 		}
 		if (!is_NIL(obj)) {

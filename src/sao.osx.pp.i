@@ -1,5 +1,5 @@
-enum { libc_fprintf, libc_stderr, libc_exit, libc_malloc, libc_memset, libc_strdup, libc_strcmp, libc_printf, libc_stdin, libc_putc, libc_getc, libc_isalnum, libc_strchr, libc_isdigit, libc_isalpha, libc_fopen, libc_fread, libc_fgets, libc_fclose, libc_feof, libc_usleep, libc_msleep, libc_sleep, libc_fputc, libc_setmode, libc_fileno, libc_gettimeofday, libc_stdout, libc_strlen, libc_fflush, libc_free, libc_NULL, };
-void* (*libc_a[libc_NULL])();
+enum { libc_fprintf, libc_stderr, libc_exit, libc_malloc, libc_memset, libc_strdup, libc_strcmp, libc_printf, libc_stdin, libc_putc, libc_getc, libc_isalnum, libc_strchr, libc_isdigit, libc_isalpha, libc_fopen, libc_fread, libc_fgets, libc_fclose, libc_feof, libc_usleep, libc_msleep, libc_sleep, libc_fputc, libc_setmode, libc_fileno, libc_gettimeofday, libc_stdout, libc_strlen, libc_fflush, libc_free, libc_SAO_NULL, };
+void* (*libc_a[libc_SAO_NULL])();
 typedef struct __FILE FILE;
 extern FILE *__stdinp;
 extern FILE *__stdoutp;
@@ -89,7 +89,7 @@ void* ffic_usleep(int nano_seconds)
 };
 typedef void*(*ffi_func)();
 ffi_func libcbf(int fi,const char* fn);
-inline ffi_func libcbf(int fi,const char* fn){ return libc_a[fi]?libc_a[fi]:(libc_a[fi]=ffic("c",fn)); }
+ffi_func libcbf(int fi,const char* fn){ return libc_a[fi]?libc_a[fi]:(libc_a[fi]=ffic("c",fn)); }
 typedef enum { stream_file, stream_char,} stream_t; char* stream_names[] = { "file", "char", };;
 typedef enum { type_integer, type_symbol, type_string, type_list, type_native, type_table,} type_t; char* type_names[] = { "integer", "symbol", "string", "list", "native", "table", };;
 typedef enum { ctype_long, ctype_double, ctype_any,} ctype_t; char* ctype_names[] = { "long", "double", "any", };;
@@ -148,9 +148,9 @@ int sao_peek(SaoStream * fw);
 sao_object *sao_make_integer(int x);
 sao_object *sao_read_symbol(SaoStream * fw, char start);
 void sao_out_expr(char *str, sao_object *e);
-inline long sao_is_digit(int c) { return (long) libcbf(libc_isdigit,"isdigit")(c); }
-inline long sao_is_alpha(int c) { return (long) libcbf(libc_isalpha,"isalpha")(c); }
-inline long sao_is_alphanumber(int c) { return (long) libcbf(libc_isalnum,"isalnum")(c); }
+long sao_is_digit(int c) { return (long) libcbf(libc_isdigit,"isdigit")(c); }
+long sao_is_alpha(int c) { return (long) libcbf(libc_isalpha,"isalpha")(c); }
+long sao_is_alphanumber(int c) { return (long) libcbf(libc_isalnum,"isalnum")(c); }
 void ht_insert(sao_object *key_obj);
 struct htable { sao_object *key; };
 static struct htable *gHTable = 0;
@@ -252,18 +252,18 @@ sao_object *make_procedure(sao_object *params, sao_object *body,
   sao_object *ctx) {
  return cons(PROCEDURE, cons(params, cons(body, cons(ctx, END_LIST))));
 }
-inline sao_object *cons(sao_object *car, sao_object *cdr) {
+sao_object *cons(sao_object *car, sao_object *cdr) {
  sao_object *ret = sao_alloc();
  ret->type = type_list;
  ret->car = car;
  ret->cdr = cdr;
  return ret;
 }
-inline sao_object *car(sao_object *cell) {
+sao_object *car(sao_object *cell) {
  if (((cell)==0||(cell)==NIL) || cell->type != type_list) return NIL;
  return cell->car;
 }
-inline sao_object *cdr(sao_object *cell) {
+sao_object *cdr(sao_object *cell) {
  if (((cell)==0||(cell)==NIL) || cell->type != type_list) return NIL;
  return cell->cdr;
 }
@@ -699,7 +699,7 @@ sao_object *sao_read_list(SaoStream * fw)
  }
  return END_LIST;
 }
-inline sao_object *sao_load_str(SaoStream * fw)
+sao_object *sao_load_str(SaoStream * fw)
 {
  char buf[256];
  int i = 0;
