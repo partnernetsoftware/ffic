@@ -30,43 +30,56 @@
 #define SAO_WHILE(macro, value, ...) SAO_WHEN(SAO_NOT(SAO_IS_PAREN(value ())))\
 	( SAO_OBSTRUCT(macro) (value) SAO_OBSTRUCT(SAO_WHILE_INDIRECT) () (macro, __VA_ARGS__) )
 #define SAO_WHILE_INDIRECT() SAO_WHILE 
+#define SAO_WHILE1(macro, value1,value, ...) \
+	SAO_WHEN(SAO_NOT(SAO_IS_PAREN(value ()))) \
+( SAO_OBSTRUCT(macro) (value1,value) SAO_OBSTRUCT(SAO_WHILE_INDIRECT1) () (macro, value1,__VA_ARGS__) \
+)
+#define SAO_WHILE_INDIRECT1() SAO_WHILE1
 #define SAO_ITR(mmm,qqq,...) SAO_EVAL( SAO_WHILE( mmm,qqq,__VA_ARGS__ ) )
+#define SAO_ITR1(mmm,mm1,qqq,...) SAO_EVAL( SAO_WHILE1( mmm,mm1,qqq,__VA_ARGS__) )
 //////////////////////////////////////////////////////////////////////////////
-//#define NEW_OBJECT(t,name) t* name=libc(malloc)(sizeof(t));libc(memset)(name,0,sizeof(t));
-#define NEW_OBJECT(t,name) t* name=libc(memset)(libc(malloc)(sizeof(t)),0,sizeof(t));
-#define NEW_OBJECT_SIZE(t,name,size) t* name=libc(memset)(libc(malloc)(sizeof(t)*size),0,sizeof(t)*size);
 #define DEFINE_ENUM_LIBC(n) libc_##n,
 #define LIBC_FUNC_LIST fprintf,stderr,exit,malloc,memset,strdup,strcmp,printf,\
 	stdin,putc,getc,isalnum,strchr,isdigit,isalpha,fopen,fread,fgets,fclose,feof,\
 	usleep,msleep,sleep,fputc,setmode,fileno,gettimeofday,stdout,strlen,\
 	fflush,free,NULL
-//TODO macro for (int=>char* map)
-enum {
-	SAO_ITR(DEFINE_ENUM_LIBC,SAO_EXPAND(LIBC_FUNC_LIST))
-};
-void* (*libc_a[libc_NULL])();//function buffer
-#define libc(f) libcf(libc_##f,#f)
+enum { SAO_ITR(DEFINE_ENUM_LIBC,SAO_EXPAND(LIBC_FUNC_LIST)) };
+void* (*libc_a[libc_NULL])();//libc buffer
+#define libc(f) libcbf(libc_##f,#f)
 #include "ffic.h" //github.com/partnernetsoftware/ffic/blob/master/src/ffic.h
 typedef void*(*ffi_func)();
-ffi_func libcf(int fi,const char* fn){
-	return libc_a[fi]?libc_a[fi]:(libc_a[fi]=ffic("c",fn));
-}
-//#define NULL ((void*)0)
-#define NULL 0
+//ffi_func libcbf(int fi,const char* fn);
+//inline ffi_func libcbf(int fi,const char* fn){ return libc_a[fi]?libc_a[fi]:(libc_a[fi]=ffic("c",fn)); }
+#define NULL 0 // same as ((void*)0)
 #define EOF (-1)
-//////////////////////////////////////////////////////////////////////////////
+#define define_enum_name(n) #n,
+#define define_enum_item(p,v) p##_##v,
+#define define_enum(name, ...) typedef enum {\
+	SAO_ITR1(define_enum_item,name,__VA_ARGS__)\
+} name ## _t;
+#define define_map_arr(name, ...) char* name##_names[] = \
+{ SAO_ITR(define_enum_name,__VA_ARGS__) };
+#define define_map(name, ...)\
+	define_enum(name,__VA_ARGS__) define_map_arr(name,__VA_ARGS__)
+#define NEW_OBJECT(t,name) t* name=libc(memset)(libc(malloc)(sizeof(t)),0,sizeof(t));
+#define NEW_OBJECT_SIZE(t,name,size) t* name=libc(memset)(libc(malloc)(sizeof(t)*size),0,sizeof(t)*size);
 #define is_NIL(x) ((x)==NULL||(x)==NIL)
 #define is_EOL(x) (is_NIL((x)) || (x) == END_LIST)
 #define error(x) do{libc(fprintf)(libc(stderr),"%s\n",x);libc(exit)(1);}while(0)
-typedef enum {
-	stream_file,//FILE* fp
-	stream_char,//char* string
-} stream_t;
-//TODO c_long,c_double,c_struct for ffi()
-char *types[] = {"integer","symbol","string","list","native","table"};
-typedef enum {
-	type_integer,type_symbol,type_string,type_list,type_native,type_table
-} type_t;
+#define caar(x) (car(car((x))))
+#define cdar(x) (cdr(car((x))))
+#define cadr(x) (car(cdr((x))))
+#define caddr(x) (car(cdr(cdr((x)))))
+#define cadddr(x) (car(cdr(cdr(cdr((x))))))
+#define cadar(x) (car(cdr(car((x)))))
+#define cddr(x) (cdr(cdr((x))))
+#define cdadr(x) (cdr(car(cdr((x)))))
+#define atom(x) (!is_NIL(x) && (x)->type != type_list)
+#define type_check(x, t) (sao_type_check(__func__, x, t))
+//////////////////////////////////////////////////////////////////////////////
+define_map(stream, file,char);
+define_map(type,   integer,symbol,string,list,native,table);
+define_map(ctype,  long,double,any);
 typedef struct _sao_object sao_object;
 typedef sao_object *(*native_t)(sao_object *);
 struct _sao_object {
@@ -88,36 +101,13 @@ struct _sao_object {
 		native_t native;
 	};
 } __attribute__((packed));
-
-sao_object *NIL       = NULL;
-sao_object *END_LIST  = NULL;
-sao_object *GLOBAL    = NULL;
-sao_object *TRUE      = NULL;
-sao_object *FALSE     = NULL;
-sao_object *QUOTE     = NULL;
-sao_object *SET       = NULL;
-sao_object *LET       = NULL;
-sao_object *DEFINE    = NULL;
-sao_object *PROCEDURE = NULL;
-sao_object *IF        = NULL;
-sao_object *LAMBDA    = NULL;
-sao_object *BEGIN     = NULL;
-
+#define define_sao_object(n) sao_object*n=NULL;
+SAO_ITR(define_sao_object, NIL,END_LIST,GLOBAL,TRUE,FALSE,QUOTE,SET,LET,DEFINE,PROCEDURE,IF,LAMBDA,BEGIN);
 int is_tagged(sao_object *cell, sao_object *tag);
 sao_object *cons(sao_object *car, sao_object *cdr);
 sao_object *native_load(sao_object *args);
 sao_object *cdr(sao_object *);
 sao_object *car(sao_object *);
-#define caar(x) (car(car((x))))
-#define cdar(x) (cdr(car((x))))
-#define cadr(x) (car(cdr((x))))
-#define caddr(x) (car(cdr(cdr((x)))))
-#define cadddr(x) (car(cdr(cdr(cdr((x))))))
-#define cadar(x) (car(cdr(car((x)))))
-#define cddr(x) (cdr(cdr((x))))
-#define cdadr(x) (cdr(car(cdr((x)))))
-#define atom(x) (!is_NIL(x) && (x)->type != type_list)
-#define type_check(x, t) (sao_type_check(__func__, x, t))
 sao_object *sao_lookup_var(sao_object *var, sao_object *ctx);
 int sao_type_check(const char *func, sao_object *obj, type_t type);
 typedef struct _FileChar {
@@ -212,7 +202,7 @@ int sao_type_check(const char *func, sao_object *obj, type_t type)
 		libc(exit)(1);
 	} else if (obj->type != type) {
 		libc(fprintf)(libc(stderr), "ERR: function %s. expected %s got %s\n",
-				func, types[type], types[obj->type]);
+				func, type_names[type], type_names[obj->type]);
 		libc(exit)(1);
 	}
 	return 1;
@@ -319,7 +309,7 @@ int sao_length(sao_object *exp) {
 	return 1 + sao_length(cdr(exp));
 }
 sao_object *native_type(sao_object *args) {
-	return sao_make_symbol(types[car(args)->type]);
+	return sao_make_symbol(type_names[car(args)->type]);
 }
 sao_object *native_global(sao_object *args) {
 	return GLOBAL;
@@ -1050,13 +1040,11 @@ int main(int argc, char **argv)
 	sao_object * result = sao_parse( fw, 1/*eval*/ );
 	return 0;
 }
-
 /* QUICK TODO
  * * printf=>sao_out
  * * +sao_err()
  * * _string stream
  * * options in sao
- * * remove "ok" stuff
- * * macro the types: (enum=>enum_name)
+ * * remove "ok" stuff?
  * * redesign context/global
  */
