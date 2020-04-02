@@ -48,8 +48,8 @@ void* (*libc_a[libc_NULL])();//libc buffer
 #define libc(f) libcbf(libc_##f,#f)
 #include "ffic.h" //github.com/partnernetsoftware/ffic/blob/master/src/ffic.h
 typedef void*(*ffi_func)();
-//ffi_func libcbf(int fi,const char* fn);
-//inline ffi_func libcbf(int fi,const char* fn){ return libc_a[fi]?libc_a[fi]:(libc_a[fi]=ffic("c",fn)); }
+ffi_func libcbf(int fi,const char* fn);
+inline ffi_func libcbf(int fi,const char* fn){ return libc_a[fi]?libc_a[fi]:(libc_a[fi]=ffic("c",fn)); }
 #define NULL 0 // same as ((void*)0)
 #define EOF (-1)
 #define define_enum_name(n) #n,
