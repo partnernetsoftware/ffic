@@ -59,7 +59,7 @@ ffi_func libcf(int fi,const char* fn){
 #define is_EOL(x) (is_NIL((x)) || (x) == END_LIST)
 #define error(x) do{libc(fprintf)(libc(stderr),"%s\n",x);libc(exit)(1);}while(0)
 typedef enum {
-	stream_FILE,//FILE* fp
+	stream_file,//FILE* fp
 	stream_char,//char* string
 } stream_t;
 //TODO c_long,c_double,c_struct for ffi()
@@ -126,7 +126,8 @@ typedef struct _FileChar {
 	struct _FileChar * ptr_next;
 } FileChar;
 typedef struct {
-	FILE* fp;
+	stream_t type;
+	void* fp;
 	FileChar * ptr_start;//TODO for gc(start to head->ptr_prev)
 	FileChar * ptr_head;
 	FileChar * ptr_last;
@@ -480,7 +481,7 @@ sao_object *native_exit(sao_object *args) {
 	return NIL;
 }
 sao_object *native_read(sao_object *args) {
-	SaoStream * fw = SaoStream_new(libc(stdin),stream_FILE);
+	SaoStream * fw = SaoStream_new(libc(stdin),stream_file);
 	return sao_load_expr(fw);
 }
 sao_object *native_tget(sao_object *args) {
@@ -572,12 +573,12 @@ sao_object *native_load(sao_object *args) {
 #if defined(DEBUG)
 	libc(printf)("Evaluating file %s\n", filename);
 #endif
-	FILE *fp = libc(fopen)(filename, "r");
+	void*fp = libc(fopen)(filename, "r");
 	if (fp == 0) {
 		libc(printf)("Error opening file %s\n", filename);
 		return NIL;
 	}
-	SaoStream * fw = SaoStream_new(fp,stream_FILE);
+	SaoStream * fw = SaoStream_new(fp,stream_file);
 	for (;;) {
 		exp = sao_load_expr(fw);
 		if (is_NIL(exp))
@@ -612,7 +613,7 @@ SaoStream * SaoStream_new(void* fp,stream_t stt)
 		return NULL;
 	}else{
 		NEW_OBJECT(SaoStream,fw);
-		fw->fp = (FILE*) fp;
+		fw->fp = fp;
 		fw->ptr_head = fw->ptr_last = fw->ptr_start = NULL;
 		fw->rest = 0;
 		return fw;
@@ -827,14 +828,12 @@ void sao_out_expr(char *str, sao_object *e)
 										 sao_object **t = &e;
 										 if (!is_NIL(*t)) {
 											 if(type_symbol == e->car->type){
-												 sao_out_expr(0, e->car);//out car
+												 sao_out_expr(0, e->car);
 												 skip=1;
 											 }
 										 }
 										 printf("(");
 										 while (!is_NIL(*t)) {
-											 //sao_out_expr(0, (*t)->car);
-											 //printf(" ");
 											 if(skip==1){
 												 skip=0;
 											 }else{
@@ -1039,6 +1038,7 @@ int main(int argc, char **argv)
 {
 	ht_resize(8192-1);
 	ffi_func printf = libc(printf);
+	//SaoStream * fw = SaoStream_new("",stream_char);
 	//TODO sao_load_expr( SaoStreamWrapper ( join(argc, argv) ));
 	for(int i=1;i<argc;i++){
 		//printf("%s",argv[i]);
@@ -1046,7 +1046,7 @@ int main(int argc, char **argv)
 	}
 	init_global();//ffic("sao","init");//TODO libsao
 	libc(setmode)(libc(fileno)(libc(stdin)),0x8000/*O_BINARY*/);
-	SaoStream * fw = SaoStream_new(libc(stdin),stream_FILE);
+	SaoStream * fw = SaoStream_new(libc(stdin),stream_file);
 	sao_object * result = sao_parse( fw, 1/*eval*/ );
 	return 0;
 }

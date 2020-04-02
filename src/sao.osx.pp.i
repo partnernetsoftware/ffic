@@ -94,12 +94,12 @@ ffi_func libcf(int fi,const char* fn){
  return libc_a[fi]?libc_a[fi]:(libc_a[fi]=ffic("c",fn));
 }
 typedef enum {
- stream_FILE,
+ stream_file,
  stream_char,
 } stream_t;
 char *types[] = {"integer","symbol","string","list","native","table"};
 typedef enum {
-type_integer,type_symbol,type_string,type_list,type_native,type_table
+ type_integer,type_symbol,type_string,type_list,type_native,type_table
 } type_t;
 typedef struct _sao_object sao_object;
 typedef sao_object *(*native_t)(sao_object *);
@@ -146,7 +146,8 @@ typedef struct _FileChar {
  struct _FileChar * ptr_next;
 } FileChar;
 typedef struct {
- FILE* fp;
+ stream_t type;
+ void* fp;
  FileChar * ptr_start;
  FileChar * ptr_head;
  FileChar * ptr_last;
@@ -382,10 +383,10 @@ sao_object *native_cmp(sao_object *args) {
 sao_object *native_not(sao_object *args) {
  return native_cmp(args);
 }
-sao_object *native_eq(sao_object *args) {
+sao_object *native_eqq(sao_object *args) {
  return is_equal(car(args), (car(cdr((args))))) ? TRUE : FALSE;
 }
-sao_object *native_equal(sao_object *args) {
+sao_object *native_equalq(sao_object *args) {
  if (is_equal(car(args), (car(cdr((args))))))
   return TRUE;
  if ((car(args)->type == type_list) && ((car(cdr((args))))->type == type_list)) {
@@ -480,7 +481,7 @@ sao_object *native_exit(sao_object *args) {
  return NIL;
 }
 sao_object *native_read(sao_object *args) {
- SaoStream * fw = SaoStream_new(libcf(libc_stdin,"stdin"),stream_FILE);
+ SaoStream * fw = SaoStream_new(libcf(libc_stdin,"stdin"),stream_file);
  return sao_load_expr(fw);
 }
 sao_object *native_tget(sao_object *args) {
@@ -569,12 +570,12 @@ sao_object *native_load(sao_object *args) {
  sao_object *exp;
  sao_object *ret = 0;
  char *filename = car(args)->_string;
- FILE *fp = libcf(libc_fopen,"fopen")(filename, "r");
+ void*fp = libcf(libc_fopen,"fopen")(filename, "r");
  if (fp == 0) {
   libcf(libc_printf,"printf")("Error opening file %s\n", filename);
   return NIL;
  }
- SaoStream * fw = SaoStream_new(fp,stream_FILE);
+ SaoStream * fw = SaoStream_new(fp,stream_file);
  for (;;) {
   exp = sao_load_expr(fw);
   if (((exp)==0||(exp)==NIL))
@@ -601,7 +602,7 @@ SaoStream * SaoStream_new(void* fp,stream_t stt)
   return 0;
  }else{
   SaoStream* fw=libcf(libc_memset,"memset")(libcf(libc_malloc,"malloc")(sizeof(SaoStream)),0,sizeof(SaoStream));;
-  fw->fp = (FILE*) fp;
+  fw->fp = fp;
   fw->ptr_head = fw->ptr_last = fw->ptr_start = 0;
   fw->rest = 0;
   return fw;
@@ -748,17 +749,17 @@ sao_object *sao_load_expr(SaoStream * fw)
  for (;;) {
   sao_object * theSymbol = NIL;
   c = sao_deq_c(fw);
-  if(c==(-1)){
-   return 0;
+  switch(c){
+   case (-1): return 0;
+   case -2: sao_read_line(fw);continue;
+   case '\n':
+   case '\r':
+   case ' ':
+   case '\t':
+   case 0:
+   case ',': continue;
+   case '\"': return sao_load_str(fw);
   }
-  if(c==-2){
-   sao_read_line(fw);
-   continue;
-  }
-  if (c == '\n' || c == '\r' || c == ' ' || c == '\t'
-    || c == 0
-    || c == ',') { continue; }
-  if (c == '\"') return sao_load_str(fw);
   if (c == ';' || c=='#' || (c=='/'&&'/'==sao_peek(fw))){
    sao_comment(fw);
    continue;
@@ -806,37 +807,37 @@ void sao_out_expr(char *str, sao_object *e)
   case type_native: printf("<function>"); break;
   case type_table: printf("<table %d>", e->_tblen); break;
   case type_list:
-   if (is_tagged(e, PROCEDURE)) {
-    printf("<closure>");
-    return;
-   }
-   int skip=0;
-   sao_object **t = &e;
-   if (!((*t)==0||(*t)==NIL)) {
-    if(type_symbol == e->car->type){
-     sao_out_expr(0, e->car);
-     skip=1;
-    }
-   }
-   printf("(");
-   while (!((*t)==0||(*t)==NIL)) {
-    if(skip==1){
-     skip=0;
-    }else{
-     printf(" ");
-     sao_out_expr(0, (*t)->car);
-    }
-    if (!(((*t)->cdr)==0||((*t)->cdr)==NIL)) {
-     if ((*t)->cdr->type == type_list) {
-      t = &(*t)->cdr;
-     } else {
-      sao_out_expr(".", (*t)->cdr);
-      break;
-     }
-    } else
-     break;
-   }
-   printf(")");
+           if (is_tagged(e, PROCEDURE)) {
+            printf("<closure>");
+            return;
+           }
+           int skip=0;
+           sao_object **t = &e;
+           if (!((*t)==0||(*t)==NIL)) {
+            if(type_symbol == e->car->type){
+             sao_out_expr(0, e->car);
+             skip=1;
+            }
+           }
+           printf("(");
+           while (!((*t)==0||(*t)==NIL)) {
+            if(skip==1){
+             skip=0;
+            }else{
+             printf(" ");
+             sao_out_expr(0, (*t)->car);
+            }
+            if (!(((*t)->cdr)==0||((*t)->cdr)==NIL)) {
+             if ((*t)->cdr->type == type_list) {
+              t = &(*t)->cdr;
+             } else {
+              sao_out_expr(".", (*t)->cdr);
+              break;
+             }
+            } else
+             break;
+           }
+           printf(")");
  }
 }
 sao_object *sao_eval(sao_object *exp, sao_object *ctx)
@@ -899,8 +900,7 @@ tail:
   sao_object **tmp;
   sao_object *vars = NIL;
   sao_object *vals = NIL;
-  if ((((car(cdr((exp)))))==0||((car(cdr((exp)))))==NIL))
-   return NIL;
+  if ((((car(cdr((exp)))))==0||((car(cdr((exp)))))==NIL)) return NIL;
   if ((!(((car(cdr((exp)))))==0||((car(cdr((exp)))))==NIL) && ((car(cdr((exp)))))->type != type_list)) {
    for (tmp = &exp->cdr->cdr->car; !((*tmp)==0||(*tmp)==NIL); tmp = &(*tmp)->cdr) {
     vars = cons((car(car((*tmp)))), vars);
@@ -952,13 +952,7 @@ sao_object * init_global()
  do{SET=sao_make_symbol("set!");define_variable(SET,SET,GLOBAL);}while(0);;
  do{BEGIN=sao_make_symbol("begin");define_variable(BEGIN,BEGIN,GLOBAL);}while(0);;
  do{IF=sao_make_symbol("if");define_variable(IF,IF,GLOBAL);}while(0);;
- define_variable(sao_make_symbol("exit"), make_native(native_exit), GLOBAL); define_variable(sao_make_symbol("ffi"), make_native(native_ffi), GLOBAL); define_variable(sao_make_symbol("global"), make_native(native_global), GLOBAL); define_variable(sao_make_symbol("type"), make_native(native_type), GLOBAL); define_variable(sao_make_symbol("cons"), make_native(native_cons), GLOBAL); define_variable(sao_make_symbol("car"), make_native(native_car), GLOBAL); define_variable(sao_make_symbol("cdr"), make_native(native_cdr), GLOBAL); define_variable(sao_make_symbol("setcar"), make_native(native_setcar), GLOBAL); define_variable(sao_make_symbol("setcdr"), make_native(native_setcdr), GLOBAL); define_variable(sao_make_symbol("list"), make_native(native_list), GLOBAL); define_variable(sao_make_symbol("add"), make_native(native_add), GLOBAL); define_variable(sao_make_symbol("sub"), make_native(native_sub), GLOBAL); define_variable(sao_make_symbol("mul"), make_native(native_mul), GLOBAL); define_variable(sao_make_symbol("div"), make_native(native_div), GLOBAL); define_variable(sao_make_symbol("cmp"), make_native(native_cmp), GLOBAL); define_variable(sao_make_symbol("not"), make_native(native_not), GLOBAL); define_variable(sao_make_symbol("lt"), make_native(native_lt), GLOBAL); define_variable(sao_make_symbol("gt"), make_native(native_gt), GLOBAL); define_variable(sao_make_symbol("load"), make_native(native_load), GLOBAL); define_variable(sao_make_symbol("print"), make_native(native_print), GLOBAL); define_variable(sao_make_symbol("read"), make_native(native_read), GLOBAL); define_variable(sao_make_symbol("table"), make_native(native_table), GLOBAL); define_variable(sao_make_symbol("tget"), make_native(native_tget), GLOBAL); define_variable(sao_make_symbol("tset"), make_native(native_tset), GLOBAL);;
- define_variable(sao_make_symbol("list?"), make_native(native_is_list), GLOBAL);
- define_variable(sao_make_symbol("null?"), make_native(native_is_null), GLOBAL);
- define_variable(sao_make_symbol("pair?"), make_native(native_pairq), GLOBAL);
- define_variable(sao_make_symbol("atom?"), make_native(native_atomq), GLOBAL);
- define_variable(sao_make_symbol("eq?"), make_native(native_eq), GLOBAL);
- define_variable(sao_make_symbol("equal?"), make_native(native_equal), GLOBAL);
+ define_variable(sao_make_symbol("exit"), make_native(native_exit), GLOBAL); define_variable(sao_make_symbol("ffi"), make_native(native_ffi), GLOBAL); define_variable(sao_make_symbol("global"), make_native(native_global), GLOBAL); define_variable(sao_make_symbol("type"), make_native(native_type), GLOBAL); define_variable(sao_make_symbol("cons"), make_native(native_cons), GLOBAL); define_variable(sao_make_symbol("car"), make_native(native_car), GLOBAL); define_variable(sao_make_symbol("cdr"), make_native(native_cdr), GLOBAL); define_variable(sao_make_symbol("setcar"), make_native(native_setcar), GLOBAL); define_variable(sao_make_symbol("setcdr"), make_native(native_setcdr), GLOBAL); define_variable(sao_make_symbol("list"), make_native(native_list), GLOBAL); define_variable(sao_make_symbol("table"), make_native(native_table), GLOBAL); define_variable(sao_make_symbol("tget"), make_native(native_tget), GLOBAL); define_variable(sao_make_symbol("tset"), make_native(native_tset), GLOBAL); define_variable(sao_make_symbol("add"), make_native(native_add), GLOBAL); define_variable(sao_make_symbol("sub"), make_native(native_sub), GLOBAL); define_variable(sao_make_symbol("mul"), make_native(native_mul), GLOBAL); define_variable(sao_make_symbol("div"), make_native(native_div), GLOBAL); define_variable(sao_make_symbol("cmp"), make_native(native_cmp), GLOBAL); define_variable(sao_make_symbol("not"), make_native(native_not), GLOBAL); define_variable(sao_make_symbol("lt"), make_native(native_lt), GLOBAL); define_variable(sao_make_symbol("gt"), make_native(native_gt), GLOBAL); define_variable(sao_make_symbol("load"), make_native(native_load), GLOBAL); define_variable(sao_make_symbol("print"), make_native(native_print), GLOBAL); define_variable(sao_make_symbol("read"), make_native(native_read), GLOBAL); define_variable(sao_make_symbol("is_null"), make_native(native_is_null), GLOBAL); define_variable(sao_make_symbol("is_list"), make_native(native_is_list), GLOBAL); define_variable(sao_make_symbol("pairq"), make_native(native_pairq), GLOBAL); define_variable(sao_make_symbol("atomq"), make_native(native_atomq), GLOBAL); define_variable(sao_make_symbol("eqq"), make_native(native_eqq), GLOBAL); define_variable(sao_make_symbol("equalq"), make_native(native_equalq), GLOBAL);;
  return GLOBAL;
 }
 sao_object * sao_parse( SaoStream * fw, int do_eval )
@@ -1002,7 +996,7 @@ int main(int argc, char **argv)
  }
  init_global();
  libcf(libc_setmode,"setmode")(libcf(libc_fileno,"fileno")(libcf(libc_stdin,"stdin")),0x8000 );
- SaoStream * fw = SaoStream_new(libcf(libc_stdin,"stdin"),stream_FILE);
+ SaoStream * fw = SaoStream_new(libcf(libc_stdin,"stdin"),stream_file);
  sao_object * result = sao_parse( fw, 1 );
  return 0;
 }
