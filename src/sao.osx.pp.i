@@ -39,9 +39,21 @@ void*(*ffic_raw(const char* part1, const char* funcname, const char* part2))()
  }
  return addr;
 }
-void* ffic_usleep(int nano_seconds);
-void* ffic_msleep(int microseconds);
-void* ffic_sleep(int seconds);
+void* ffic_usleep(int nano_seconds)
+{
+ ffic_raw("libc","usleep",0)(nano_seconds);
+ return 0;
+};
+void* ffic_msleep(int microseconds)
+{
+ ffic_raw("libc","usleep",0)(microseconds*1000);
+ return 0;
+};
+void* ffic_sleep(int seconds)
+{
+ ffic_raw("libc","usleep",0)(seconds*1000000);
+ return 0;
+}
 void*(*ffic(const char* libname, const char* funcname, ...))()
 {
  void* addr = 0;
@@ -64,21 +76,6 @@ void*(*ffic(const char* libname, const char* funcname, ...))()
  if(addr==0) addr = ffic_raw(libname,funcname,0);
  return addr;
 }
-void* ffic_sleep(int seconds)
-{
- ffic_raw("libc","usleep",0)(seconds*1000000);
- return 0;
-}
-void* ffic_msleep(int microseconds)
-{
- ffic_raw("libc","usleep",0)(microseconds*1000);
- return 0;
-};
-void* ffic_usleep(int nano_seconds)
-{
- ffic_raw("libc","usleep",0)(nano_seconds);
- return 0;
-};
 typedef void*(*ffi_func)();
 ffi_func libcbf(int fi,const char* fn);
 ffi_func libcbf(int fi,const char* fn){ return libc_a[fi]?libc_a[fi]:(libc_a[fi]=ffic("c",fn)); }
@@ -143,6 +140,7 @@ void sao_out_expr(char *str, sao_object *e);
 long sao_is_digit(int c) { return (long) libcbf(libc_isdigit,"isdigit")(c); }
 long sao_is_alpha(int c) { return (long) libcbf(libc_isalpha,"isalpha")(c); }
 long sao_is_alphanumber(int c) { return (long) libcbf(libc_isalnum,"isalnum")(c); }
+void* sao_alloc_c(long _sizeof){return libcbf(libc_memset,"memset")(libcbf(libc_malloc,"malloc")(_sizeof),0,_sizeof);}
 void ht_insert(sao_object *key_obj);
 struct htable { sao_object *key; };
 static struct htable *gHTable = 0;
@@ -185,7 +183,7 @@ sao_object *ht_lookup(char *s) {
  return gHTable[h].key;
 }
 sao_object *sao_alloc() {
- sao_object* ret=libcbf(libc_memset,"memset")(libcbf(libc_malloc,"malloc")(sizeof(sao_object)),0,sizeof(sao_object));;
+ sao_object*ret=sao_alloc_c( sizeof(sao_object) );
  return ret;
 }
 int sao_type_check(const char *func, sao_object *obj, type_t type)
@@ -563,7 +561,7 @@ static long ffi_microtime(void)
   long tv_sec;
   long tv_usec;
  };
- struct timeval* tv=libcbf(libc_memset,"memset")(libcbf(libc_malloc,"malloc")(sizeof(struct timeval)),0,sizeof(struct timeval));;
+ struct timeval*tv=sao_alloc_c( sizeof(struct timeval) );
  libcbf(libc_gettimeofday,"gettimeofday")(tv, 0);
  return tv->tv_sec*1000 + (tv->tv_usec+500)/1000;
 }
@@ -573,7 +571,7 @@ SaoStream * SaoStream_new(void* fp,stream_t stt)
   libcbf(libc_printf,"printf")("TODO stream_char");
   return 0;
  }else{
-  SaoStream* fw=libcbf(libc_memset,"memset")(libcbf(libc_malloc,"malloc")(sizeof(SaoStream)),0,sizeof(SaoStream));;
+  SaoStream*fw=sao_alloc_c( sizeof(SaoStream) );
   fw->fp = fp;
   fw->ptr_head = fw->ptr_last = fw->ptr_start = 0;
   fw->rest = 0;
@@ -592,7 +590,7 @@ int sao_deq_c(SaoStream *fw)
  return c;
 }
 int sao_enq_c(SaoStream* fw,int k){
- FileChar* fc=libcbf(libc_memset,"memset")(libcbf(libc_malloc,"malloc")(sizeof(FileChar)),0,sizeof(FileChar));;
+ FileChar*fc=sao_alloc_c( sizeof(FileChar) );
  fc->c = k;
  fc->ptr_prev= fw->ptr_last;
  if(0==fw->ptr_start){
@@ -621,7 +619,7 @@ int sao_read_line(SaoStream* fw)
   ffi_func memset = libcbf(libc_memset,"memset");
   ffi_func strlen = libcbf(libc_strlen,"strlen");
   int LINE_LEN = 1024;
-  char* line=libcbf(libc_memset,"memset")(libcbf(libc_malloc,"malloc")(sizeof(char)*LINE_LEN),0,sizeof(char)*LINE_LEN);;
+  char*line=sao_alloc_c( sizeof(char) *LINE_LEN );
   fgets(line,LINE_LEN,fw->fp);
   long strlen_line = (long) strlen(line);
   if(strlen_line>0){

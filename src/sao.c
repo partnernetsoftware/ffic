@@ -57,8 +57,7 @@ ffi_func libcbf(int fi,const char* fn){ return libc_a[fi]?libc_a[fi]:(libc_a[fi]
 #define define_enum(n, ...) typedef enum { SAO_ITR1(define_enum_item,n,__VA_ARGS__) } n##_t;
 #define define_map_arr(n, ...) char* n##_names[] = { SAO_ITR(define_enum_name,__VA_ARGS__) };
 #define define_map(n, ...) define_enum(n,__VA_ARGS__) define_map_arr(n,__VA_ARGS__)
-#define NEW_OBJECT(t,n) t* n=libc(memset)(libc(malloc)(sizeof(t)),0,sizeof(t));
-#define NEW_OBJECT_SIZE(t,n,size) t* n=libc(memset)(libc(malloc)(sizeof(t)*size),0,sizeof(t)*size);
+#define NEW_OBJECT(t,n,...) t*n=sao_alloc_c( sizeof(t) SAO_IF(SAO_IS_PAREN(__VA_ARGS__ ()))(SAO_EAT(),*__VA_ARGS__) )
 #define is_NIL(x) ((x)==SAO_NULL||(x)==NIL)
 #define is_EOL(x) (is_NIL((x)) || (x) == END_LIST)
 #define error(x) do{libc(fprintf)(libc(stderr),"%s\n",x);libc(exit)(1);}while(0)
@@ -137,6 +136,7 @@ void sao_out_expr(char *str, sao_object *e);
 long sao_is_digit(int c) { return (long) libc(isdigit)(c); }
 long sao_is_alpha(int c) { return (long) libc(isalpha)(c); }
 long sao_is_alphanumber(int c) { return (long) libc(isalnum)(c); }
+void* sao_alloc_c(long _sizeof){return libc(memset)(libc(malloc)(_sizeof),0,_sizeof);}
 //void sao_err(libc(stderr),...);
 ////////////////////////////////////////////////////////////////////////
 void ht_insert(sao_object *key_obj);
@@ -643,7 +643,7 @@ int sao_read_line(SaoStream* fw)
 		ffi_func memset = libc(memset);
 		ffi_func strlen = libc(strlen);
 		int LINE_LEN = 1024;//TODO
-		NEW_OBJECT_SIZE(char,line,LINE_LEN);
+		NEW_OBJECT(char,line,LINE_LEN);
 		fgets(line,LINE_LEN,fw->fp);
 		long strlen_line = (long) strlen(line);
 		if(strlen_line>0){

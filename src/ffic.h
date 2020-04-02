@@ -152,9 +152,33 @@ void*(*ffic_raw(const char* part1, const char* funcname, const char* part2))()
 	}
 	return addr;
 }
-void* ffic_usleep(int nano_seconds);
-void* ffic_msleep(int microseconds);
-void* ffic_sleep(int seconds);
+void* ffic_usleep(int nano_seconds)
+{
+#ifdef _WIN32
+	ffic_raw("kernel32","Sleep",0)(nano_seconds/1000);
+#else
+	ffic_raw("libc","usleep",0)(nano_seconds);
+#endif
+	return 0;
+};
+void* ffic_msleep(int microseconds)
+{
+#ifdef _WIN32
+	ffic_raw("kernel32","Sleep",0)(microseconds);
+#else
+	ffic_raw("libc","usleep",0)(microseconds*1000);
+#endif
+	return 0;
+};
+void* ffic_sleep(int seconds)
+{
+#ifdef _WIN32
+	ffic_raw("kernel32","Sleep",0)(seconds*1000);
+#else
+	ffic_raw("libc","usleep",0)(seconds*1000000);
+#endif
+	return 0;
+}
 void*(*ffic(const char* libname, const char* funcname, ...))()
 {
 	void* addr = 0;
@@ -195,33 +219,6 @@ void*(*ffic(const char* libname, const char* funcname, ...))()
 	if(addr==0) addr = ffic_raw(libname,funcname,0);
 	return addr;
 }
-void* ffic_sleep(int seconds)
-{
-#ifdef _WIN32
-	ffic_raw("kernel32","Sleep",0)(seconds*1000);
-#else
-	ffic_raw("libc","usleep",0)(seconds*1000000);
-#endif
-	return 0;
-}
-void* ffic_msleep(int microseconds)
-{
-#ifdef _WIN32
-	ffic_raw("kernel32","Sleep",0)(microseconds);
-#else
-	ffic_raw("libc","usleep",0)(microseconds*1000);
-#endif
-	return 0;
-};
-void* ffic_usleep(int nano_seconds)
-{
-#ifdef _WIN32
-	ffic_raw("kernel32","Sleep",0)(nano_seconds/1000);
-#else
-	ffic_raw("libc","usleep",0)(nano_seconds);
-#endif
-	return 0;
-};
 #  ifndef libc
 #  define libc(f) ffic("c",#f)
 #  endif
