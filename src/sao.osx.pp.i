@@ -90,9 +90,9 @@ void* ffic_usleep(int nano_seconds)
 typedef void*(*ffi_func)();
 ffi_func libcbf(int fi,const char* fn);
 ffi_func libcbf(int fi,const char* fn){ return libc_a[fi]?libc_a[fi]:(libc_a[fi]=ffic("c",fn)); }
-typedef enum { stream_file, stream_char,} stream_t; char* stream_names[] = { "file", "char", };;
-typedef enum { type_integer, type_symbol, type_string, type_list, type_native, type_table,} type_t; char* type_names[] = { "integer", "symbol", "string", "list", "native", "table", };;
-typedef enum { ctype_long, ctype_double, ctype_any,} ctype_t; char* ctype_names[] = { "long", "double", "any", };;
+typedef enum { stream_file, stream_char, } stream_t; char* stream_names[] = { "file", "char", };;
+typedef enum { type_integer, type_symbol, type_string, type_list, type_native, type_table, } type_t; char* type_names[] = { "integer", "symbol", "string", "list", "native", "table", };;
+typedef enum { ctype_long, ctype_double, ctype_any, } ctype_t; char* ctype_names[] = { "long", "double", "any", };;
 typedef struct _sao_object sao_object;
 typedef sao_object *(*native_t)(sao_object *);
 struct _sao_object {

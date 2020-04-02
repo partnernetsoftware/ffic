@@ -54,15 +54,11 @@ ffi_func libcbf(int fi,const char* fn){ return libc_a[fi]?libc_a[fi]:(libc_a[fi]
 #define SAO_EOF (-1)
 #define define_enum_name(n) #n,
 #define define_enum_item(p,v) p##_##v,
-#define define_enum(name, ...) typedef enum {\
-	SAO_ITR1(define_enum_item,name,__VA_ARGS__)\
-} name ## _t;
-#define define_map_arr(name, ...) char* name##_names[] = \
-{ SAO_ITR(define_enum_name,__VA_ARGS__) };
-#define define_map(name, ...)\
-	define_enum(name,__VA_ARGS__) define_map_arr(name,__VA_ARGS__)
-#define NEW_OBJECT(t,name) t* name=libc(memset)(libc(malloc)(sizeof(t)),0,sizeof(t));
-#define NEW_OBJECT_SIZE(t,name,size) t* name=libc(memset)(libc(malloc)(sizeof(t)*size),0,sizeof(t)*size);
+#define define_enum(n, ...) typedef enum { SAO_ITR1(define_enum_item,n,__VA_ARGS__) } n##_t;
+#define define_map_arr(n, ...) char* n##_names[] = { SAO_ITR(define_enum_name,__VA_ARGS__) };
+#define define_map(n, ...) define_enum(n,__VA_ARGS__) define_map_arr(n,__VA_ARGS__)
+#define NEW_OBJECT(t,n) t* n=libc(memset)(libc(malloc)(sizeof(t)),0,sizeof(t));
+#define NEW_OBJECT_SIZE(t,n,size) t* n=libc(memset)(libc(malloc)(sizeof(t)*size),0,sizeof(t)*size);
 #define is_NIL(x) ((x)==SAO_NULL||(x)==NIL)
 #define is_EOL(x) (is_NIL((x)) || (x) == END_LIST)
 #define error(x) do{libc(fprintf)(libc(stderr),"%s\n",x);libc(exit)(1);}while(0)
@@ -75,7 +71,7 @@ ffi_func libcbf(int fi,const char* fn){ return libc_a[fi]?libc_a[fi]:(libc_a[fi]
 #define cddr(x) (cdr(cdr((x))))
 #define cdadr(x) (cdr(car(cdr((x)))))
 #define atom(x) (!is_NIL(x) && (x)->type != type_list)
-#define type_check(x, t) (sao_type_check(__func__, x, t))
+#define SAO_CHECK_TYPE(x, t) (sao_type_check(__func__, x, t))
 //////////////////////////////////////////////////////////////////////////////
 define_map(stream, file,char);
 define_map(type,   integer,symbol,string,list,native,table);
@@ -322,23 +318,23 @@ sao_object *native_cons(sao_object *args) {
 }
 sao_object *native_car(sao_object *args) {
 #ifdef STRICT
-	type_check(car(args), type_list);
+	SAO_CHECK_TYPE(car(args), type_list);
 #endif
 	return caar(args);
 }
 sao_object *native_cdr(sao_object *args) {
 #ifdef STRICT
-	type_check(car(args), type_list);
+	SAO_CHECK_TYPE(car(args), type_list);
 #endif
 	return cdar(args);
 }
 sao_object *native_setcar(sao_object *args) {
-	type_check(car(args), type_list);
+	SAO_CHECK_TYPE(car(args), type_list);
 	(args->car->car = (cadr(args)));
 	return NIL;
 }
 sao_object *native_setcdr(sao_object *args) {
-	type_check(car(args), type_list);
+	SAO_CHECK_TYPE(car(args), type_list);
 	(args->car->cdr = (cadr(args)));
 	return NIL;
 }
@@ -408,58 +404,58 @@ sao_object *native_equalq(sao_object *args) {
 	return FALSE;
 }
 sao_object *native_add(sao_object *list) {
-	type_check(car(list), type_integer);
+	SAO_CHECK_TYPE(car(list), type_integer);
 	long total = car(list)->_integer;
 	list = cdr(list);
 	while (!is_EOL(car(list)))
 	{
-		type_check(car(list), type_integer);
+		SAO_CHECK_TYPE(car(list), type_integer);
 		total += car(list)->_integer;
 		list = cdr(list);
 	}
 	return make_integer(total);
 }
 sao_object *native_sub(sao_object *list) {
-	type_check(car(list), type_integer);
+	SAO_CHECK_TYPE(car(list), type_integer);
 	long total = car(list)->_integer;
 	list = cdr(list);
 	while (!is_NIL(list)) {
-		type_check(car(list), type_integer);
+		SAO_CHECK_TYPE(car(list), type_integer);
 		total -= car(list)->_integer;
 		list = cdr(list);
 	}
 	return make_integer(total);
 }
 sao_object *native_div(sao_object *list) {
-	type_check(car(list), type_integer);
+	SAO_CHECK_TYPE(car(list), type_integer);
 	long total = car(list)->_integer;
 	list = cdr(list);
 	while (!is_NIL(list)) {
-		type_check(car(list), type_integer);
+		SAO_CHECK_TYPE(car(list), type_integer);
 		total /= car(list)->_integer;
 		list = cdr(list);
 	}
 	return make_integer(total);
 }
 sao_object *native_mul(sao_object *list) {
-	type_check(car(list), type_integer);
+	SAO_CHECK_TYPE(car(list), type_integer);
 	long total = car(list)->_integer;
 	list = cdr(list);
 	while (!is_NIL(list)) {
-		type_check(car(list), type_integer);
+		SAO_CHECK_TYPE(car(list), type_integer);
 		total *= car(list)->_integer;
 		list = cdr(list);
 	}
 	return make_integer(total);
 }
 sao_object *native_gt(sao_object *sexp) {
-	type_check(car(sexp), type_integer);
-	type_check(cadr(sexp), type_integer);
+	SAO_CHECK_TYPE(car(sexp), type_integer);
+	SAO_CHECK_TYPE(cadr(sexp), type_integer);
 	return (car(sexp)->_integer > cadr(sexp)->_integer) ? TRUE : NIL;
 }
 sao_object *native_lt(sao_object *sexp) {
-	type_check(car(sexp), type_integer);
-	type_check(cadr(sexp), type_integer);
+	SAO_CHECK_TYPE(car(sexp), type_integer);
+	SAO_CHECK_TYPE(cadr(sexp), type_integer);
 	return (car(sexp)->_integer < cadr(sexp)->_integer) ? TRUE : NIL;
 }
 sao_object * native_ffi(sao_object *args) {
@@ -475,15 +471,15 @@ sao_object *native_read(sao_object *args) {
 	return sao_load_expr(fw);
 }
 sao_object *native_tget(sao_object *args) {
-	type_check(car(args), type_table);
-	type_check(cadr(args), type_integer);
+	SAO_CHECK_TYPE(car(args), type_table);
+	SAO_CHECK_TYPE(cadr(args), type_integer);
 	if (cadr(args)->_integer >= car(args)->_tblen)
 		return NIL;
 	return car(args)->_table[cadr(args)->_integer];
 }
 sao_object *native_tset(sao_object *args) {
-	type_check(car(args), type_table);
-	type_check(cadr(args), type_integer);
+	SAO_CHECK_TYPE(car(args), type_table);
+	SAO_CHECK_TYPE(cadr(args), type_integer);
 	if (is_NIL(caddr(args)))
 		return NIL;
 	if (cadr(args)->_integer >= car(args)->_tblen)
@@ -492,7 +488,7 @@ sao_object *native_tset(sao_object *args) {
 	return sao_make_symbol("ok");
 }
 sao_object *native_table(sao_object *args) {
-	type_check(car(args), type_integer);
+	SAO_CHECK_TYPE(car(args), type_integer);
 	return make_table(car(args)->_integer);
 }
 sao_object *sao_expand(sao_object *var, sao_object *val, sao_object *ctx) {
