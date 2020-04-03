@@ -3,9 +3,11 @@
 ```
 /* TODO (Plan)
  * * options: interact (REPL)
+ * * type: ERROR
  * * options: profiling
  * * redesign context/global
  * * improve: translate logic func (caar...) to officially inline
+ * * improve: route () to ext() ?
  * * remove "ok" stuff?
  * * utf8 support for strings
  * * fix: bug of ht expand...

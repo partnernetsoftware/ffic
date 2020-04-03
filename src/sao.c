@@ -58,18 +58,19 @@ ffic_func libcbf(int fi,const char* fn){ return libc_a[fi]?libc_a[fi]:(libc_a[fi
 #define define_map(n, ...) define_enum(n,__VA_ARGS__) define_map_arr(n,__VA_ARGS__)
 #define SAO_NEW(t,...) sao_alloc_c( sizeof(t) SAO_IF(SAO_IS_PAREN(__VA_ARGS__ ()))(SAO_EAT(),*__VA_ARGS__) )
 #define NEW_OBJECT(t,n,...) t*n=SAO_NEW(t,__VA_ARGS__);
-#define is_NIL(x) ((x)==SAO_NULL||(x)==NIL)
+//#define is_NIL(x) ((x)==SAO_NULL||(x)==NIL)
+#define is_NIL(x) (!x)
 #define is_EOL(x) (is_NIL((x)) || (x) == END_LIST)
 #define sao_stderr(...) libc(fprintf)(libc(stderr),__VA_ARGS__)
 #define sao_stdout(...) libc(printf)(__VA_ARGS__)
 #define sao_error(x) do{sao_stderr("%s\n",x);libc(exit)(1);}while(0)
-#define caar(x) (car(car((x))))
-#define cdar(x) (cdr(car((x))))
-#define cadr(x) (car(cdr((x))))
+#define caar(x) (car(car((x)))) //head of head
+#define cdar(x) (cdr(car((x)))) //rest of head
+#define cadr(x) (car(cdr((x)))) //head of rest
+#define cddr(x) (cdr(cdr((x)))) //rest of rest
 #define caddr(x) (car(cdr(cdr((x)))))
 #define cadddr(x) (car(cdr(cdr(cdr((x))))))
 #define cadar(x) (car(cdr(car((x)))))
-#define cddr(x) (cdr(cdr((x))))
 #define cdadr(x) (cdr(car(cdr((x)))))
 #define atom(x) (!is_NIL(x) && (x)->type != type_list)
 #define SAO_CHECK_TYPE(x, t) (sao_type_check(__func__, x, t))
@@ -100,14 +101,14 @@ struct _sao_object {
 	};
 } __attribute__((packed));
 #define define_sao_object(n) sao_object*n=SAO_NULL;
-SAO_ITR(define_sao_object, NIL,END_LIST,GLOBAL,TRUE,FALSE,QUOTE,SET,LET,DEFINE,PROCEDURE,IF,LAMBDA,BEGIN);
+SAO_ITR(define_sao_object, NIL,END_LIST,GLOBAL,TRUE,FALSE,QUOTE,SET,LET,DEFINE,PROCEDURE,IF,LAMBDA,BEGIN,ERROR);
 int is_tagged(sao_object *cell, sao_object *tag);
 sao_object *cons(sao_object *car, sao_object *cdr);
 sao_object *native_load(sao_object *args);
 sao_object *cdr(sao_object *);
 sao_object *car(sao_object *);
 sao_object *sao_lookup_var(sao_object *var, sao_object *ctx);
-int sao_type_check(const char *func, sao_object *obj, type_t type);
+sao_object *sao_type_check(const char *func, sao_object *obj, type_t type);
 typedef struct _FileChar {
 	int c;
 	struct _FileChar * ptr_prev;
@@ -210,7 +211,7 @@ sao_object *append(sao_object *l1, sao_object *l2) {
 	if (is_NIL(l1)) return l2;
 	return cons(car(l1), append(cdr(l1), l2));
 }
-int sao_type_check(const char *func, sao_object *obj, type_t type)
+sao_object * sao_type_check(const char *func, sao_object *obj, type_t type)
 {
 	if (is_NIL(obj)) {
 		sao_stderr("Invalid argument to function %s: NIL\n", func);
@@ -220,7 +221,7 @@ int sao_type_check(const char *func, sao_object *obj, type_t type)
 				func, type_names[type], type_names[obj->type]);
 		libc(exit)(1);
 	}
-	return 1;
+	return obj;
 }
 sao_object *make_table(int size) {
 	sao_object *ret = sao_alloc();
@@ -472,20 +473,17 @@ sao_object *native_read(sao_object *args) {
 	return sao_load_expr(sao_stream_new(libc(stdin),stream_file));
 }
 sao_object *native_tget(sao_object *args) {
-	SAO_CHECK_TYPE(car(args), type_table);
-	SAO_CHECK_TYPE(cadr(args), type_integer);
-	if (cadr(args)->_integer >= car(args)->_tblen)
-		return NIL;
-	return car(args)->_table[cadr(args)->_integer];
+	sao_object * tbl = SAO_CHECK_TYPE(car(args), type_table);
+	sao_object * key = SAO_CHECK_TYPE(cadr(args), type_integer);
+	if (key->_integer >= tbl->_tblen) return NIL;
+	return tbl->_table[key->_integer];
 }
-sao_object *native_tset(sao_object *args) {
-	SAO_CHECK_TYPE(car(args), type_table);
-	SAO_CHECK_TYPE(cadr(args), type_integer);
-	if (is_NIL(caddr(args)))
-		return NIL;
-	if (cadr(args)->_integer >= car(args)->_tblen)
-		return NIL;
-	car(args)->_table[cadr(args)->_integer] = caddr(args);
+sao_object *native_tset(sao_object *args){
+	sao_object * tbl = SAO_CHECK_TYPE(car(args), type_table);
+	sao_object * key = SAO_CHECK_TYPE(cadr(args), type_integer);
+	if (is_NIL(caddr(args))) return NIL;
+	if (key->_integer >= tbl->_tblen) return NIL;
+	car(args)->_table[key->_integer] = caddr(args);
 	return sao_make_symbol("ok");
 }
 sao_object *native_table(sao_object *args) {
