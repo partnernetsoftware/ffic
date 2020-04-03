@@ -6,7 +6,9 @@
 #define anyptr void*
 int main(int argc, char **argv){
 	anyptr tcc_ptr = tcc(tcc_new)();
-	if (!tcc_ptr) { return 1; }
+	if (!tcc_ptr) {
+		//tcc_error("Unable new tcc, memory full?")
+		return 1; }
 
 	tcc(tcc_set_output_type)(tcc_ptr, 1/*TCC_OUTPUT_MEMORY*/);
 

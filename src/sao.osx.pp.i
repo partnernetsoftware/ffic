@@ -1,5 +1,13 @@
 enum { libc_fprintf, libc_stderr, libc_exit, libc_malloc, libc_memset, libc_strdup, libc_strcmp, libc_printf, libc_stdin, libc_putc, libc_getc, libc_isalnum, libc_strchr, libc_isdigit, libc_isalpha, libc_fopen, libc_fread, libc_fgets, libc_fclose, libc_feof, libc_usleep, libc_msleep, libc_sleep, libc_fputc, libc_setmode, libc_fileno, libc_gettimeofday, libc_stdout, libc_strlen, libc_fflush, libc_free, libc_SAO_NULL, };
 void* (*libc_a[libc_SAO_NULL])();
+typedef signed char sao_i8;
+typedef unsigned char sao_u8;
+typedef signed short int sao_i16;
+typedef unsigned short int sao_u16;
+typedef signed int sao_i32;
+typedef unsigned int sao_u32;
+typedef signed long int sao_i64;
+typedef unsigned long int sao_u64;
 typedef struct __FILE FILE;
 extern FILE *__stdinp;
 extern FILE *__stdoutp;
@@ -9,18 +17,18 @@ extern int fflush(FILE *stream);
 extern int strcmp(const char*,const char*);
 extern void* dlopen(const char *,int);
 extern void *dlsym(void *, const char *);
-void ffic_strcat(char *target, const char *source, const char* append) {
+void ffic_strcat(char *buffer, const char *source, const char* append) {
  while (*source) {
-  *target = *source;
+  *buffer = *source;
   source++;
-  target++;
+  buffer++;
  }
  while (*append) {
-  *target = *append;
+  *buffer= *append;
   append++;
-  target++;
+  buffer++;
  }
- *target = '\0';
+ *buffer = '\0';
 }
 void* ffic_void(){return 0;};
 void*(*ffic_raw(const char* part1, const char* funcname, const char* part2))()
@@ -31,13 +39,7 @@ void*(*ffic_raw(const char* part1, const char* funcname, const char* part2))()
    ".dylib"
    :part2
    );
- void* rt_dlopen = (void*) dlopen(libfilename,1 );
- void* addr = dlsym(rt_dlopen, funcname);
- if(0==addr){
-  fprintf(__stderrp,"ERR: Not found %s.%s\n", libfilename, funcname);fflush(__stderrp);
-  return ffic_void;
- }
- return addr;
+ return dlsym(dlopen(libfilename,1 ), funcname);
 }
 void* ffic_usleep(int nano_seconds)
 {
@@ -74,6 +76,10 @@ void*(*ffic(const char* libname, const char* funcname, ...))()
   }
  }
  if(addr==0) addr = ffic_raw(libname,funcname,0);
+ if(0==addr){
+  fprintf(__stderrp,"ERR: Not found %s.%s\n", libname, funcname);fflush(__stderrp);
+  return ffic_void;
+ }
  return addr;
 }
 typedef void*(*ffi_func)();
@@ -555,28 +561,22 @@ sao_object *native_load(sao_object *args) {
  libcbf(libc_fclose,"fclose")(fp);
  return ret;
 }
-static long ffi_microtime(void)
+struct timeval {
+ long tv_sec;
+ long tv_usec;
+};
+static sao_u64 ffi_microtime(void)
 {
- struct timeval {
-  long tv_sec;
-  long tv_usec;
- };
  struct timeval*tv=sao_alloc_c( sizeof(struct timeval) );
  libcbf(libc_gettimeofday,"gettimeofday")(tv, 0);
- return tv->tv_sec*1000 + (tv->tv_usec+500)/1000;
+ return tv->tv_sec*1000 + (tv->tv_usec+0)/1000;
 }
-SaoStream * SaoStream_new(void* fp,stream_t stt)
+SaoStream * SaoStream_new(void* fp,stream_t type)
 {
- if(stt==stream_char){
-  libcbf(libc_printf,"printf")("TODO stream_char");
-  return 0;
- }else{
-  SaoStream*fw=sao_alloc_c( sizeof(SaoStream) );
-  fw->fp = fp;
-  fw->ptr_head = fw->ptr_last = fw->ptr_start = 0;
-  fw->rest = 0;
-  return fw;
- }
+ SaoStream*fw=sao_alloc_c( sizeof(SaoStream) );
+ fw->fp = fp;
+ fw->type = type;
+ return fw;
 }
 int sao_deq_c(SaoStream *fw)
 {
@@ -936,13 +936,13 @@ sao_object * sao_parse( SaoStream * fw, int do_eval )
    break;
   }
   if (!((obj)==0||(obj)==NIL)) {
-   printf("%lu: ",ffi_microtime());
+   printf("%llu: ",ffi_microtime());
    sao_out_expr("<=", obj);
    printf("\n");
    sao_object *rt = sao_eval(obj, GLOBAL);
    if (do_eval){
     if ( !((rt)==0||(rt)==NIL)) {
-     printf("%lu: ",ffi_microtime());
+     printf("%llu: ",ffi_microtime());
      sao_out_expr("=>", rt);
      printf("\n");
     }else{

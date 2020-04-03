@@ -466,6 +466,7 @@ sao_object *native_exit(sao_object *args) {
 	libc(exit)(0);
 	return NIL;
 }
+//TODO merge read/load
 sao_object *native_read(sao_object *args) {
 	SaoStream * fw = SaoStream_new(libc(stdin),stream_file);
 	return sao_load_expr(fw);
@@ -552,13 +553,14 @@ sao_object *eval_sequence(sao_object *exps, sao_object *ctx) {
 	sao_eval(car(exps), ctx);
 	return eval_sequence(cdr(exps), ctx);
 }
-sao_object *native_load(sao_object *args) {
+sao_object *native_load(sao_object *args) { //TODO merge with native_read() 1!!!
 	sao_object *exp;
 	sao_object *ret = 0;
 	char *filename = car(args)->_string;
 #if defined(DEBUG)
 	libc(printf)("Evaluating file %s\n", filename);
 #endif
+	//TODO
 	void*fp = libc(fopen)(filename, "r");
 	if (fp == 0) {
 		libc(printf)("Error opening file %s\n", filename);
@@ -575,32 +577,58 @@ sao_object *native_load(sao_object *args) {
 	return ret;
 }
 #define PROFILE
-static long ffi_microtime(void)
-{
+struct timeval {
+	long tv_sec;
+	long tv_usec;
+};
 #ifdef _WIN32
-	return (long)(ffic("kernel32","GetTickCount")());
-#else
-	struct timeval {
-		long tv_sec;
-		long tv_usec;
-	};
-	NEW_OBJECT(struct timeval,tv);
-	libc(gettimeofday)(tv, 0);
-	return tv->tv_sec*1000 + (tv->tv_usec+500)/1000;
+/* FILETIME of Jan 1 1970 00:00:00, the PostgreSQL epoch */
+static const sao_u64 epoch = 116444736000000000;
+//typedef unsigned long DWORD;
+#define FILETIME_UNITS_PER_SEC	10000000L
+#define FILETIME_UNITS_PER_USEC 10
+typedef struct _FILETIME {
+	//DWORD dwLowDateTime;
+	//DWORD dwHighDateTime;
+	sao_u32 dwLowDateTime;
+	sao_u32 dwHighDateTime;
+} FILETIME;
 #endif
-}
-SaoStream * SaoStream_new(void* fp,stream_t stt)
+static sao_u64 ffi_microtime(void)
 {
-	if(stt==stream_char){
-		libc(printf)("TODO stream_char");
-		return SAO_NULL;
-	}else{
-		NEW_OBJECT(SaoStream,fw);
-		fw->fp = fp;
-		fw->ptr_head = fw->ptr_last = fw->ptr_start = SAO_NULL;
-		fw->rest = 0;
-		return fw;
-	}
+	NEW_OBJECT(struct timeval,tv);
+#ifdef _WIN32
+	/* (https://github.com/postgres/postgres/blob/master/src/port/gettimeofday.c) */
+	/* (https://github.com/coreutils/gnulib/blob/master/lib/gettimeofday.c) */
+	/* (https://docs.microsoft.com/en-us/windows/desktop/api/sysinfoapi/nf-sysinfoapi-getsystemtimeasfiletime)
+		 (https://docs.microsoft.com/en-us/windows/desktop/api/sysinfoapi/nf-sysinfoapi-getsystemtimepreciseasfiletime)
+		 (http://www.windowstimestamp.com/description)
+		 (https://docs.microsoft.com/en-us/windows/desktop/api/minwinbase/ns-minwinbase-filetime) */
+	static ffi_func gettimeofday;
+	if(!gettimeofday)
+	gettimeofday = ffic_raw("kernel32","GetSystemTimePreciseAsFileTime",0);//WIN8+
+	if(!gettimeofday)
+	gettimeofday = ffic_raw("kernel32","GetSystemTimeAsFileTime",0);
+	FILETIME file_time;
+	gettimeofday(&file_time);
+	sao_u64 since_1601 = ( (sao_u64) file_time.dwHighDateTime << 32) | (sao_u64) file_time.dwLowDateTime;
+	sao_u64 since_1970 = ((sao_u64) since_1601 - epoch);
+	sao_u64 microseconds_since_1970 = since_1970 / 10;
+	tv->tv_sec = (microseconds_since_1970 / (sao_u64) 1000000);
+	tv->tv_usec = microseconds_since_1970 % 1000000;
+	//return tv->tv_sec*1000 + (tv->tv_usec/1000);
+#else
+	libc(gettimeofday)(tv, 0);
+	//return tv->tv_sec*1000 + (tv->tv_usec+500)/1000;
+#endif
+	return tv->tv_sec*1000 + (tv->tv_usec+0)/1000;
+}
+SaoStream * SaoStream_new(void* fp,stream_t type)
+{
+	NEW_OBJECT(SaoStream,fw);
+	fw->fp = fp;
+	fw->type = type;
+	return fw;
 }
 int sao_deq_c(SaoStream *fw)
 {
@@ -988,7 +1016,7 @@ sao_object * sao_parse( SaoStream * fw, int do_eval )
 		}
 		if (!is_NIL(obj)) {
 #if defined(PROFILE)
-			printf("%lu: ",ffi_microtime());
+			printf("%llu: ",ffi_microtime());
 #endif
 			sao_out_expr("<=", obj);
 			printf("\n");
@@ -997,7 +1025,7 @@ sao_object * sao_parse( SaoStream * fw, int do_eval )
 			if (do_eval){
 				if ( !is_NIL(rt)) {
 #if defined(PROFILE)
-					printf("%lu: ",ffi_microtime());
+					printf("%llu: ",ffi_microtime());
 #endif
 					//TODO if "-i"
 					sao_out_expr("=>", rt);

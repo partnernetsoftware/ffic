@@ -4,38 +4,28 @@
 # define SIZEOF_POINTER 8 //WIN 64
 # elif defined(_WIN32)
 # define SIZEOF_POINTER 4 //32
-//# elif //TODO 32 linux
+//# elif //TODO 32 linux..
 # else
 # define SIZEOF_POINTER 8 //64 as default...
 # endif
 #endif
-
-#if 0
-//#if SIZEOF_POINTER==8
-//typedef signed char i8;
-//typedef signed short int i16;
-//typedef signed int i32;
-//typedef signed long int i64;
-//typedef unsigned char u8;
-//typedef unsigned short int u16;
-//typedef unsigned int u32;
-//typedef unsigned long int u64;
-//#elif SIZEOF_POINTER==4
-//typedef signed char i8;
-//typedef signed short int i16;
-//typedef signed int i32;
-//typedef signed long long int i64;
-//typedef unsigned char u8;
-//typedef unsigned short int u16;
-//typedef unsigned int u32;
-//typedef unsigned long long int u64;
-//#elif SIZEOF_POINTER==16
-//#error TODO SIZEOF_POINTER 16(128bit)
-//#else
-//#error Unknown SIZEOF_POINTER ?
-//#endif
+typedef signed char sao_i8;
+typedef unsigned char sao_u8;
+typedef signed short int sao_i16;
+typedef unsigned short int sao_u16;
+typedef signed int sao_i32;
+typedef unsigned int sao_u32;
+#if SIZEOF_POINTER==8
+typedef signed long int sao_i64;
+typedef unsigned long int sao_u64;
+#elif SIZEOF_POINTER==4
+typedef signed long long int sao_i64;
+typedef unsigned long long int sao_u64;
+#elif SIZEOF_POINTER==16
+#error TODO SIZEOF_POINTER 16(128bit)
+#else
+#error Unknown SIZEOF_POINTER ?
 #endif
-
 #  if defined(_WIN32) || defined(_WIN64)
 typedef struct _iobuf {
 	char *_ptr;
@@ -47,7 +37,6 @@ typedef struct _iobuf {
 	int _bufsiz;
 	char *_tmpfname;
 } FILE;
-
 #ifdef _WIN64
 #define __cdecl
 #define __declspec(x) __attribute__((x))
@@ -115,23 +104,24 @@ extern void *dlsym(void *, const char *);
 #define ffic_dlsym dlsym
 #   endif
 #define ffic_dlopen dlopen 
-void ffic_strcat(char *target, const char *source, const char* append) {
-	//TODO check size.
+//CALLER WARNING: makesure your buffer enough!
+void ffic_strcat(char *buffer, const char *source, const char* append) {
 	while (*source) {
-		*target = *source;
+		*buffer = *source;
 		source++;
-		target++;
+		buffer++;
 	}
 	while (*append) {
-		*target = *append;
+		*buffer= *append;
 		append++;
-		target++;
+		buffer++;
 	}
-	*target = '\0';
+	*buffer = '\0';
 }
 void* ffic_void(){return 0;};
 void*(*ffic_raw(const char* part1, const char* funcname, const char* part2))()
 {
+	//char libfilename[strlen(funcname)+strlen(part2)+8]={0};
 	char libfilename[256] = {0};
 	ffic_strcat(libfilename,part1,
 			(part2==0)?
@@ -144,13 +134,7 @@ void*(*ffic_raw(const char* part1, const char* funcname, const char* part2))()
 #endif
 			:part2
 			);
-	void* rt_dlopen = (void*) ffic_dlopen(libfilename,1/*RTLD_LAZY*/);
-	void*	addr = ffic_dlsym(rt_dlopen, funcname);
-	if(0==addr){
-		fprintf(stderr,"ERR: Not found %s.%s\n", libfilename, funcname);fflush(stderr);
-		return ffic_void;
-	}
-	return addr;
+	return ffic_dlsym(ffic_dlopen(libfilename,1/*RTLD_LAZY*/), funcname);
 }
 void* ffic_usleep(int nano_seconds)
 {
@@ -217,6 +201,10 @@ void*(*ffic(const char* libname, const char* funcname, ...))()
 		}
 	}
 	if(addr==0) addr = ffic_raw(libname,funcname,0);
+	if(0==addr){
+		fprintf(stderr,"ERR: Not found %s.%s\n", libname, funcname);fflush(stderr);
+		return ffic_void;
+	}
 	return addr;
 }
 #  ifndef libc
