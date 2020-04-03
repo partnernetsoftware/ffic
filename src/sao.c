@@ -222,6 +222,7 @@ sao_object * sao_type_check(const char *func, sao_object *obj, type_t type)
 	return obj;
 }
 sao_object *sao_new_table(int size) {
+	//NEW_OBJECT(sao_object,ret)
 	sao_object *ret = sao_alloc(type_table);
 	ret->_table = SAO_NEW(sao_object,size);
 	ret->_tblen = size;
@@ -869,9 +870,9 @@ tail:
 		}
 		return NIL;
 	} else if (is_tagged(exp, SET)) {
-		if (atom(cadr(exp)))
+		if (atom(cadr(exp))){
 			set_variable(cadr(exp), sao_eval(caddr(exp), ctx), ctx);
-		else {
+		} else {
 			sao_object *closure =
 				sao_eval(sao_new_lambda(cdr(cadr(exp)), cddr(exp)), ctx);
 			set_variable(car(cadr(exp)), closure, ctx);
@@ -937,7 +938,7 @@ sao_object * sao_init()
 	add_sym("procedure", PROCEDURE);
 	add_sym("var", DEFINE);//TODO to merge three(DEFINE/LET/PROCEDURE ?)
 	add_sym("let", LET);
-	add_sym("set!", SET);
+	add_sym("set", SET);
 	add_sym("begin", BEGIN);//TODO remove or add END
 	add_sym("if", IF);
 

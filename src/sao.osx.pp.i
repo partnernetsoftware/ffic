@@ -149,7 +149,7 @@ sao_object *sao_load_str(sao_stream * fw);
 sao_object *sao_read_list(sao_stream * fw);
 int sao_read_int(sao_stream * fw, int start);
 int sao_peek(sao_stream * fw);
-sao_object *sao_make_integer(int x);
+sao_object *sao_new_integer(int x);
 sao_object *sao_read_symbol(sao_stream * fw, char start);
 void sao_out_expr(char *str, sao_object *e);
 long sao_is_digit(int c) { return (long) libcbf(libc_isdigit,"isdigit")(c); }
@@ -168,7 +168,6 @@ static long ht_hash(const char *s, int ht_len) {
 }
 int ht_resize(int newsize){
  struct htable * newTable = sao_calloc( sizeof(struct htable) *newsize );
- libcbf(libc_memset,"memset")(newTable, 0, sizeof(struct htable) * newsize);
  for(int i=0;i<gHTable_len;i++){
   if (0!=gHTable[i].key) {
    int h = ht_hash(gHTable[i].key->_string, newsize);
@@ -229,14 +228,13 @@ sao_object * sao_type_check(const char *func, sao_object *obj, type_t type)
  }
  return obj;
 }
-sao_object *sao_make_table(int size) {
+sao_object *sao_new_table(int size) {
  sao_object *ret = sao_alloc(type_table);
  ret->_table = sao_calloc( sizeof(sao_object) *size );
  ret->_tblen = size;
- libcbf(libc_memset,"memset")(ret->_table, 0, size);
  return ret;
 }
-sao_object *sao_make_symbol(char *s) {
+sao_object *sao_new_symbol(char *s) {
  sao_object *ret = ht_lookup(s);
  if ((!ret)) {
   ret = sao_alloc(type_symbol);
@@ -247,25 +245,20 @@ sao_object *sao_make_symbol(char *s) {
   }else{
    int newsize = 2*(gHTable_len+1)-1 ;
    ht_resize( newsize );
-   return sao_make_symbol(s);
+   return sao_new_symbol(s);
   }
  }
  return ret;
 }
-sao_object *make_integer(int x) {
- sao_object *ret = sao_alloc(type_integer);
- ret->_integer = x;
- return ret;
-}
-sao_object *make_native(native_t x) {
+sao_object *sao_new_native(native_t x) {
  sao_object *ret = sao_alloc(type_native);
  ret->native = x;
  return ret;
 }
-sao_object *make_lambda(sao_object *params, sao_object *body) {
+sao_object *sao_new_lambda(sao_object *params, sao_object *body) {
  return cons(LAMBDA, cons(params, body));
 }
-sao_object *make_procedure(sao_object *params, sao_object *body,
+sao_object *sao_new_procedure(sao_object *params, sao_object *body,
   sao_object *ctx) {
  return cons(PROCEDURE, cons(params, cons(body, cons(ctx, END_LIST))));
 }
@@ -306,7 +299,7 @@ int sao_length(sao_object *exp) {
  return 1 + sao_length(cdr(exp));
 }
 sao_object *native_type(sao_object *args) {
- return sao_make_symbol(type_names[car(args)->type]);
+ return sao_new_symbol(type_names[car(args)->type]);
 }
 sao_object *native_global(sao_object *args) {
  return GLOBAL;
@@ -405,7 +398,7 @@ sao_object *native_add(sao_object *list) {
   total += car(list)->_integer;
   list = cdr(list);
  }
- return make_integer(total);
+ return sao_new_integer(total);
 }
 sao_object *native_sub(sao_object *list) {
  (sao_type_check(__func__, car(list), type_integer));
@@ -416,7 +409,7 @@ sao_object *native_sub(sao_object *list) {
   total -= car(list)->_integer;
   list = cdr(list);
  }
- return make_integer(total);
+ return sao_new_integer(total);
 }
 sao_object *native_div(sao_object *list) {
  (sao_type_check(__func__, car(list), type_integer));
@@ -427,7 +420,7 @@ sao_object *native_div(sao_object *list) {
   total /= car(list)->_integer;
   list = cdr(list);
  }
- return make_integer(total);
+ return sao_new_integer(total);
 }
 sao_object *native_mul(sao_object *list) {
  (sao_type_check(__func__, car(list), type_integer));
@@ -438,7 +431,7 @@ sao_object *native_mul(sao_object *list) {
   total *= car(list)->_integer;
   list = cdr(list);
  }
- return make_integer(total);
+ return sao_new_integer(total);
 }
 sao_object *native_gt(sao_object *sexp) {
  (sao_type_check(__func__, car(sexp), type_integer));
@@ -473,11 +466,11 @@ sao_object *native_tset(sao_object *args){
  if ((!(car(cdr(cdr((args))))))) return NIL;
  if (key->_integer >= tbl->_tblen) return NIL;
  car(args)->_table[key->_integer] = (car(cdr(cdr((args)))));
- return sao_make_symbol("ok");
+ return sao_new_symbol("ok");
 }
 sao_object *native_table(sao_object *args) {
  sao_object * sym = (sao_type_check(__func__, car(args), type_integer));
- return sao_make_table(sym->_integer);
+ return sao_new_table(sym->_integer);
 }
 sao_object *sao_expand(sao_object *var, sao_object *val, sao_object *ctx) {
  return cons(cons(var, val), ctx);
@@ -611,7 +604,6 @@ int sao_read_line(sao_stream* fw)
    }
   }
   ffic_func fgets = libcbf(libc_fgets,"fgets");
-  ffic_func memset = libcbf(libc_memset,"memset");
   ffic_func strlen = libcbf(libc_strlen,"strlen");
   int LINE_LEN = 1024;
   char*line=sao_calloc( sizeof(char) *LINE_LEN );;
@@ -654,9 +646,9 @@ sao_object *sao_read_symbol(sao_stream * fw, char start)
   buf[i++] = sao_deq_c(fw);
  }
  buf[i] = '\0';
- return sao_make_symbol(buf);
+ return sao_new_symbol(buf);
 }
-sao_object *sao_make_integer(int x)
+sao_object *sao_new_integer(int x)
 {
  sao_object *ret = sao_alloc(type_integer);
  ret->_integer = x;
@@ -700,7 +692,7 @@ sao_object *sao_load_str(sao_stream * fw)
   buf[i++] = (char) c;
  }
  buf[i] = '\0';
- sao_object *s = sao_make_symbol(buf);
+ sao_object *s = sao_new_symbol(buf);
  s->type = type_string;
  return s;
 }
@@ -758,9 +750,9 @@ sao_object *sao_load_expr(sao_stream * fw)
    depth--;
    return END_LIST;
   }
-  if (sao_is_digit(c)) return sao_make_integer(sao_read_int(fw, c - '0'));
+  if (sao_is_digit(c)) return sao_new_integer(sao_read_int(fw, c - '0'));
   if (c == '-' && sao_is_digit(sao_peek(fw)))
-   return sao_make_integer(-1 * sao_read_int(fw, sao_deq_c(fw) - '0'));
+   return sao_new_integer(-1 * sao_read_int(fw, sao_deq_c(fw) - '0'));
  }
  return NIL;
 }
@@ -821,16 +813,16 @@ tail:
  } else if (is_tagged(exp, QUOTE)) {
   return (car(cdr((exp))));
  } else if (is_tagged(exp, LAMBDA)) {
-  return make_procedure((car(cdr((exp)))), (cdr(cdr((exp)))), ctx);
+  return sao_new_procedure((car(cdr((exp)))), (cdr(cdr((exp)))), ctx);
  } else if (is_tagged(exp, DEFINE)) {
   if ((!(!(car(cdr((exp))))) && ((car(cdr((exp)))))->type != type_list))
    define_variable((car(cdr((exp)))), sao_eval((car(cdr(cdr((exp))))), ctx), ctx);
   else {
    sao_object *closure =
-    sao_eval(make_lambda(cdr((car(cdr((exp))))), (cdr(cdr((exp))))), ctx);
+    sao_eval(sao_new_lambda(cdr((car(cdr((exp))))), (cdr(cdr((exp))))), ctx);
    define_variable(car((car(cdr((exp))))), closure, ctx);
   }
-  return sao_make_symbol("ok");
+  return sao_new_symbol("ok");
  } else if (is_tagged(exp, BEGIN)) {
   sao_object *args = cdr(exp);
   for (; !(!cdr(args)); args = cdr(args))
@@ -841,14 +833,14 @@ tail:
   sao_object *predicate = sao_eval((car(cdr((exp)))), ctx);
   exp = (not_false(predicate)) ? (car(cdr(cdr((exp))))) : (car(cdr(cdr(cdr((exp))))));
   goto tail;
- } else if (is_tagged(exp, sao_make_symbol("or"))) {
+ } else if (is_tagged(exp, sao_new_symbol("or"))) {
   sao_object *predicate = sao_eval((car(cdr((exp)))), ctx);
   exp = (not_false(predicate)) ? (car(cdr(cdr((exp))))) : (car(cdr(cdr(cdr((exp))))));
   goto tail;
- } else if (is_tagged(exp, sao_make_symbol("cond"))) {
+ } else if (is_tagged(exp, sao_new_symbol("cond"))) {
   sao_object *branch = cdr(exp);
   for (; !(!branch); branch = cdr(branch)) {
-   if (is_tagged(car(branch), sao_make_symbol("else")) ||
+   if (is_tagged(car(branch), sao_new_symbol("else")) ||
      not_false(sao_eval((car(car((branch)))), ctx))) {
     exp = cons(BEGIN, (cdr(car((branch)))));
     goto tail;
@@ -856,14 +848,14 @@ tail:
   }
   return NIL;
  } else if (is_tagged(exp, SET)) {
-  if ((!(!(car(cdr((exp))))) && ((car(cdr((exp)))))->type != type_list))
+  if ((!(!(car(cdr((exp))))) && ((car(cdr((exp)))))->type != type_list)){
    set_variable((car(cdr((exp)))), sao_eval((car(cdr(cdr((exp))))), ctx), ctx);
-  else {
+  } else {
    sao_object *closure =
-    sao_eval(make_lambda(cdr((car(cdr((exp))))), (cdr(cdr((exp))))), ctx);
+    sao_eval(sao_new_lambda(cdr((car(cdr((exp))))), (cdr(cdr((exp))))), ctx);
    set_variable(car((car(cdr((exp))))), closure, ctx);
   }
-  return sao_make_symbol("ok");
+  return sao_new_symbol("ok");
  } else if (is_tagged(exp, LET)) {
   sao_object **tmp;
   sao_object *vars = NIL;
@@ -875,7 +867,7 @@ tail:
     vals = cons((car(cdr(car((*tmp))))), vals);
    }
    define_variable((car(cdr((exp)))),
-     sao_eval(make_lambda(vars, cdr((cdr(cdr((exp)))))),
+     sao_eval(sao_new_lambda(vars, cdr((cdr(cdr((exp)))))),
       sao_expand(vars, vals, ctx)),
      ctx);
    exp = cons((car(cdr((exp)))), vals);
@@ -885,7 +877,7 @@ tail:
    vars = cons((car(car((*tmp)))), vars);
    vals = cons((car(cdr(car((*tmp))))), vals);
   }
-  exp = cons(make_lambda(vars, (cdr(cdr((exp))))), vals);
+  exp = cons(sao_new_lambda(vars, (cdr(cdr((exp))))), vals);
   goto tail;
  } else {
   sao_object *proc = sao_eval(car(exp), ctx);
@@ -908,19 +900,19 @@ tail:
 sao_object * sao_init()
 {
  GLOBAL = sao_expand(NIL, NIL, NIL);
- do{TRUE=sao_make_symbol("true");define_variable(TRUE,TRUE,GLOBAL);}while(0);;
- do{FALSE=sao_make_symbol("false");define_variable(FALSE,FALSE,GLOBAL);}while(0);;
- define_variable(sao_make_symbol("true"), TRUE, GLOBAL);
- define_variable(sao_make_symbol("false"), FALSE, GLOBAL);
- do{QUOTE=sao_make_symbol("quote");define_variable(QUOTE,QUOTE,GLOBAL);}while(0);;
- do{LAMBDA=sao_make_symbol("lambda");define_variable(LAMBDA,LAMBDA,GLOBAL);}while(0);;
- do{PROCEDURE=sao_make_symbol("procedure");define_variable(PROCEDURE,PROCEDURE,GLOBAL);}while(0);;
- do{DEFINE=sao_make_symbol("var");define_variable(DEFINE,DEFINE,GLOBAL);}while(0);;
- do{LET=sao_make_symbol("let");define_variable(LET,LET,GLOBAL);}while(0);;
- do{SET=sao_make_symbol("set!");define_variable(SET,SET,GLOBAL);}while(0);;
- do{BEGIN=sao_make_symbol("begin");define_variable(BEGIN,BEGIN,GLOBAL);}while(0);;
- do{IF=sao_make_symbol("if");define_variable(IF,IF,GLOBAL);}while(0);;
- define_variable(sao_make_symbol("exit"), make_native(native_exit), GLOBAL); define_variable(sao_make_symbol("ffi"), make_native(native_ffi), GLOBAL); define_variable(sao_make_symbol("global"), make_native(native_global), GLOBAL); define_variable(sao_make_symbol("type"), make_native(native_type), GLOBAL); define_variable(sao_make_symbol("cons"), make_native(native_cons), GLOBAL); define_variable(sao_make_symbol("car"), make_native(native_car), GLOBAL); define_variable(sao_make_symbol("cdr"), make_native(native_cdr), GLOBAL); define_variable(sao_make_symbol("setcar"), make_native(native_setcar), GLOBAL); define_variable(sao_make_symbol("setcdr"), make_native(native_setcdr), GLOBAL); define_variable(sao_make_symbol("list"), make_native(native_list), GLOBAL); define_variable(sao_make_symbol("table"), make_native(native_table), GLOBAL); define_variable(sao_make_symbol("tget"), make_native(native_tget), GLOBAL); define_variable(sao_make_symbol("tset"), make_native(native_tset), GLOBAL); define_variable(sao_make_symbol("add"), make_native(native_add), GLOBAL); define_variable(sao_make_symbol("sub"), make_native(native_sub), GLOBAL); define_variable(sao_make_symbol("mul"), make_native(native_mul), GLOBAL); define_variable(sao_make_symbol("div"), make_native(native_div), GLOBAL); define_variable(sao_make_symbol("cmp"), make_native(native_cmp), GLOBAL); define_variable(sao_make_symbol("not"), make_native(native_not), GLOBAL); define_variable(sao_make_symbol("lt"), make_native(native_lt), GLOBAL); define_variable(sao_make_symbol("gt"), make_native(native_gt), GLOBAL); define_variable(sao_make_symbol("load"), make_native(native_load), GLOBAL); define_variable(sao_make_symbol("print"), make_native(native_print), GLOBAL); define_variable(sao_make_symbol("read"), make_native(native_read), GLOBAL); define_variable(sao_make_symbol("is_null"), make_native(native_is_null), GLOBAL); define_variable(sao_make_symbol("is_list"), make_native(native_is_list), GLOBAL); define_variable(sao_make_symbol("pairq"), make_native(native_pairq), GLOBAL); define_variable(sao_make_symbol("atomq"), make_native(native_atomq), GLOBAL); define_variable(sao_make_symbol("eqq"), make_native(native_eqq), GLOBAL); define_variable(sao_make_symbol("equalq"), make_native(native_equalq), GLOBAL);;
+ do{TRUE=sao_new_symbol("true");define_variable(TRUE,TRUE,GLOBAL);}while(0);;
+ do{FALSE=sao_new_symbol("false");define_variable(FALSE,FALSE,GLOBAL);}while(0);;
+ define_variable(sao_new_symbol("true"), TRUE, GLOBAL);
+ define_variable(sao_new_symbol("false"), FALSE, GLOBAL);
+ do{QUOTE=sao_new_symbol("quote");define_variable(QUOTE,QUOTE,GLOBAL);}while(0);;
+ do{LAMBDA=sao_new_symbol("lambda");define_variable(LAMBDA,LAMBDA,GLOBAL);}while(0);;
+ do{PROCEDURE=sao_new_symbol("procedure");define_variable(PROCEDURE,PROCEDURE,GLOBAL);}while(0);;
+ do{DEFINE=sao_new_symbol("var");define_variable(DEFINE,DEFINE,GLOBAL);}while(0);;
+ do{LET=sao_new_symbol("let");define_variable(LET,LET,GLOBAL);}while(0);;
+ do{SET=sao_new_symbol("set");define_variable(SET,SET,GLOBAL);}while(0);;
+ do{BEGIN=sao_new_symbol("begin");define_variable(BEGIN,BEGIN,GLOBAL);}while(0);;
+ do{IF=sao_new_symbol("if");define_variable(IF,IF,GLOBAL);}while(0);;
+ define_variable(sao_new_symbol("exit"), sao_new_native(native_exit), GLOBAL); define_variable(sao_new_symbol("ffi"), sao_new_native(native_ffi), GLOBAL); define_variable(sao_new_symbol("global"), sao_new_native(native_global), GLOBAL); define_variable(sao_new_symbol("type"), sao_new_native(native_type), GLOBAL); define_variable(sao_new_symbol("cons"), sao_new_native(native_cons), GLOBAL); define_variable(sao_new_symbol("car"), sao_new_native(native_car), GLOBAL); define_variable(sao_new_symbol("cdr"), sao_new_native(native_cdr), GLOBAL); define_variable(sao_new_symbol("setcar"), sao_new_native(native_setcar), GLOBAL); define_variable(sao_new_symbol("setcdr"), sao_new_native(native_setcdr), GLOBAL); define_variable(sao_new_symbol("list"), sao_new_native(native_list), GLOBAL); define_variable(sao_new_symbol("table"), sao_new_native(native_table), GLOBAL); define_variable(sao_new_symbol("tget"), sao_new_native(native_tget), GLOBAL); define_variable(sao_new_symbol("tset"), sao_new_native(native_tset), GLOBAL); define_variable(sao_new_symbol("add"), sao_new_native(native_add), GLOBAL); define_variable(sao_new_symbol("sub"), sao_new_native(native_sub), GLOBAL); define_variable(sao_new_symbol("mul"), sao_new_native(native_mul), GLOBAL); define_variable(sao_new_symbol("div"), sao_new_native(native_div), GLOBAL); define_variable(sao_new_symbol("cmp"), sao_new_native(native_cmp), GLOBAL); define_variable(sao_new_symbol("not"), sao_new_native(native_not), GLOBAL); define_variable(sao_new_symbol("lt"), sao_new_native(native_lt), GLOBAL); define_variable(sao_new_symbol("gt"), sao_new_native(native_gt), GLOBAL); define_variable(sao_new_symbol("load"), sao_new_native(native_load), GLOBAL); define_variable(sao_new_symbol("print"), sao_new_native(native_print), GLOBAL); define_variable(sao_new_symbol("read"), sao_new_native(native_read), GLOBAL); define_variable(sao_new_symbol("is_null"), sao_new_native(native_is_null), GLOBAL); define_variable(sao_new_symbol("is_list"), sao_new_native(native_is_list), GLOBAL); define_variable(sao_new_symbol("pairq"), sao_new_native(native_pairq), GLOBAL); define_variable(sao_new_symbol("atomq"), sao_new_native(native_atomq), GLOBAL); define_variable(sao_new_symbol("eqq"), sao_new_native(native_eqq), GLOBAL); define_variable(sao_new_symbol("equalq"), sao_new_native(native_equalq), GLOBAL);;
  return GLOBAL;
 }
 sao_object * sao_parse( sao_stream * fw, int do_eval )
