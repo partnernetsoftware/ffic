@@ -137,20 +137,20 @@ typedef struct {
  FileChar * ptr_last;
  long rest;
  long total;
-} SaoStream;
-SaoStream * SaoStream_new(void*,stream_t);
+} sao_stream;
+sao_stream * sao_stream_new(void*,stream_t);
 long sao_is_digit(int c);
 long sao_is_alpha(int c);
 long sao_is_alphanumber(int c);
 sao_object *sao_eval(sao_object *exp, sao_object *ctx);
-sao_object *sao_load_expr(SaoStream * fw);
-void sao_comment(SaoStream * fw);
-sao_object *sao_load_str(SaoStream * fw);
-sao_object *sao_read_list(SaoStream * fw);
-int sao_read_int(SaoStream * fw, int start);
-int sao_peek(SaoStream * fw);
+sao_object *sao_load_expr(sao_stream * fw);
+void sao_comment(sao_stream * fw);
+sao_object *sao_load_str(sao_stream * fw);
+sao_object *sao_read_list(sao_stream * fw);
+int sao_read_int(sao_stream * fw, int start);
+int sao_peek(sao_stream * fw);
 sao_object *sao_make_integer(int x);
-sao_object *sao_read_symbol(SaoStream * fw, char start);
+sao_object *sao_read_symbol(sao_stream * fw, char start);
 void sao_out_expr(char *str, sao_object *e);
 long sao_is_digit(int c) { return (long) libcbf(libc_isdigit,"isdigit")(c); }
 long sao_is_alpha(int c) { return (long) libcbf(libc_isalpha,"isalpha")(c); }
@@ -463,7 +463,7 @@ sao_object *native_exit(sao_object *args) {
  return NIL;
 }
 sao_object *native_read(sao_object *args) {
- return sao_load_expr(SaoStream_new(libcbf(libc_stdin,"stdin"),stream_file));
+ return sao_load_expr(sao_stream_new(libcbf(libc_stdin,"stdin"),stream_file));
 }
 sao_object *native_tget(sao_object *args) {
  (sao_type_check(__func__, car(args), type_table));
@@ -556,7 +556,7 @@ sao_object *native_load(sao_object *args) {
   libcbf(libc_printf,"printf")("Error opening file %s\n", filename);
   return NIL;
  }
- SaoStream * fw = SaoStream_new(fp,stream_file);
+ sao_stream * fw = sao_stream_new(fp,stream_file);
  for (;;) {
   exp = sao_load_expr(fw);
   if (((exp)==0||(exp)==NIL))
@@ -566,15 +566,15 @@ sao_object *native_load(sao_object *args) {
  libcbf(libc_fclose,"fclose")(fp);
  return ret;
 }
-SaoStream * SaoStream_new(void* fp,stream_t type)
+sao_stream * sao_stream_new(void* fp,stream_t type)
 {
- SaoStream*fw=sao_alloc_c( sizeof(SaoStream) );;
+ sao_stream*fw=sao_alloc_c( sizeof(sao_stream) );;
  fw->fp = fp;
  if(type==stream_char) fw->pos = fp;
  fw->type = type;
  return fw;
 }
-int sao_deq_c(SaoStream *fw)
+int sao_deq_c(sao_stream *fw)
 {
  int c = -2;
  FileChar * ptr_head = fw->ptr_head;
@@ -585,7 +585,7 @@ int sao_deq_c(SaoStream *fw)
  }
  return c;
 }
-int sao_enq_c(SaoStream* fw,int k){
+int sao_enq_c(sao_stream* fw,int k){
  FileChar*fc=sao_alloc_c( sizeof(FileChar) );;
  fc->c = k;
  fc->ptr_prev= fw->ptr_last;
@@ -604,7 +604,7 @@ int sao_enq_c(SaoStream* fw,int k){
 }
 int depth = 0;
 int line_num = 0;
-int sao_read_line(SaoStream* fw)
+int sao_read_line(sao_stream* fw)
 {
  ffic_func feof = libcbf(libc_feof,"feof");
  do{
@@ -649,7 +649,7 @@ sao_object *native_print(sao_object *args) {
  libcbf(libc_printf,"printf")("\n");
  return NIL;
 }
-sao_object *sao_read_symbol(SaoStream * fw, char start)
+sao_object *sao_read_symbol(sao_stream * fw, char start)
 {
  char buf[128];
  buf[0] = start;
@@ -671,7 +671,7 @@ sao_object *sao_make_integer(int x)
  ret->_integer = x;
  return ret;
 }
-int sao_peek(SaoStream * fw)
+int sao_peek(sao_stream * fw)
 {
  int c = 0;
  FileChar * ptr_head = fw->ptr_head;
@@ -680,13 +680,13 @@ int sao_peek(SaoStream * fw)
  }
  return c;
 }
-int sao_read_int(SaoStream * fw, int start)
+int sao_read_int(sao_stream * fw, int start)
 {
  while ( sao_is_digit(sao_peek(fw)) )
   start = start * 10 + (sao_deq_c(fw) - '0');
  return start;
 }
-sao_object *sao_read_list(SaoStream * fw)
+sao_object *sao_read_list(sao_stream * fw)
 {
  sao_object *obj;
  sao_object *cell = END_LIST;
@@ -698,7 +698,7 @@ sao_object *sao_read_list(SaoStream * fw)
  }
  return END_LIST;
 }
-sao_object *sao_load_str(SaoStream * fw)
+sao_object *sao_load_str(sao_stream * fw)
 {
  char buf[256];
  int i = 0;
@@ -713,7 +713,7 @@ sao_object *sao_load_str(SaoStream * fw)
  s->type = type_string;
  return s;
 }
-void sao_comment(SaoStream * fw)
+void sao_comment(sao_stream * fw)
 {
  int c;
  for (;;) {
@@ -721,7 +721,7 @@ void sao_comment(SaoStream * fw)
   if (c == '\n' || c == (-1)) return;
  }
 }
-sao_object *sao_load_expr(SaoStream * fw)
+sao_object *sao_load_expr(sao_stream * fw)
 {
  int c;
  for (;;) {
@@ -932,7 +932,7 @@ sao_object * sao_init()
  define_variable(sao_make_symbol("exit"), make_native(native_exit), GLOBAL); define_variable(sao_make_symbol("ffi"), make_native(native_ffi), GLOBAL); define_variable(sao_make_symbol("global"), make_native(native_global), GLOBAL); define_variable(sao_make_symbol("type"), make_native(native_type), GLOBAL); define_variable(sao_make_symbol("cons"), make_native(native_cons), GLOBAL); define_variable(sao_make_symbol("car"), make_native(native_car), GLOBAL); define_variable(sao_make_symbol("cdr"), make_native(native_cdr), GLOBAL); define_variable(sao_make_symbol("setcar"), make_native(native_setcar), GLOBAL); define_variable(sao_make_symbol("setcdr"), make_native(native_setcdr), GLOBAL); define_variable(sao_make_symbol("list"), make_native(native_list), GLOBAL); define_variable(sao_make_symbol("table"), make_native(native_table), GLOBAL); define_variable(sao_make_symbol("tget"), make_native(native_tget), GLOBAL); define_variable(sao_make_symbol("tset"), make_native(native_tset), GLOBAL); define_variable(sao_make_symbol("add"), make_native(native_add), GLOBAL); define_variable(sao_make_symbol("sub"), make_native(native_sub), GLOBAL); define_variable(sao_make_symbol("mul"), make_native(native_mul), GLOBAL); define_variable(sao_make_symbol("div"), make_native(native_div), GLOBAL); define_variable(sao_make_symbol("cmp"), make_native(native_cmp), GLOBAL); define_variable(sao_make_symbol("not"), make_native(native_not), GLOBAL); define_variable(sao_make_symbol("lt"), make_native(native_lt), GLOBAL); define_variable(sao_make_symbol("gt"), make_native(native_gt), GLOBAL); define_variable(sao_make_symbol("load"), make_native(native_load), GLOBAL); define_variable(sao_make_symbol("print"), make_native(native_print), GLOBAL); define_variable(sao_make_symbol("read"), make_native(native_read), GLOBAL); define_variable(sao_make_symbol("is_null"), make_native(native_is_null), GLOBAL); define_variable(sao_make_symbol("is_list"), make_native(native_is_list), GLOBAL); define_variable(sao_make_symbol("pairq"), make_native(native_pairq), GLOBAL); define_variable(sao_make_symbol("atomq"), make_native(native_atomq), GLOBAL); define_variable(sao_make_symbol("eqq"), make_native(native_eqq), GLOBAL); define_variable(sao_make_symbol("equalq"), make_native(native_equalq), GLOBAL);;
  return GLOBAL;
 }
-sao_object * sao_parse( SaoStream * fw, int do_eval )
+sao_object * sao_parse( sao_stream * fw, int do_eval )
 {
  sao_read_line(fw);
  sao_u64 (*microtime)() = ( sao_u64(*)() ) libcbf(libc_microtime,"microtime");
@@ -964,16 +964,16 @@ sao_object * sao_parse( SaoStream * fw, int do_eval )
 }
 int main(int argc, char **argv)
 {
+ libcbf(libc_setmode,"setmode")(libcbf(libc_fileno,"fileno")(libcbf(libc_stdin,"stdin")),0x8000 );
  ht_resize(8192-1);
  if(argc>1){
-  SaoStream * fw = SaoStream_new(argv[1],stream_char);
+  sao_stream * fw = sao_stream_new(argv[1],stream_char);
   sao_object * arg_expr = sao_load_expr( fw );
   sao_out_expr("DEBUG car(arg_expr)=>",arg_expr);
   return 0;
  }
  sao_init();
- libcbf(libc_setmode,"setmode")(libcbf(libc_fileno,"fileno")(libcbf(libc_stdin,"stdin")),0x8000 );
- SaoStream * fw = SaoStream_new(libcbf(libc_stdin,"stdin"),stream_file);
+ sao_stream * fw = sao_stream_new(libcbf(libc_stdin,"stdin"),stream_file);
  sao_object * result = sao_parse( fw, 1 );
  return 0;
 }
