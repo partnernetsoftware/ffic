@@ -68,10 +68,11 @@ ffic_func libcbf(int fi,const char* fn){ return libc_a[fi]?libc_a[fi]:(libc_a[fi
 #define cdar(x) (cdr(car((x)))) //rest of head
 #define cadr(x) (car(cdr((x)))) //head of rest
 #define cddr(x) (cdr(cdr((x)))) //rest of rest
-#define caddr(x) (car(cdr(cdr((x)))))
-#define cadddr(x) (car(cdr(cdr(cdr((x))))))
 #define cadar(x) (car(cdr(car((x)))))
+#define caddr(x) (car(cdr(cdr((x)))))
+#define cdddr(x) (cdr(cdr(cdr((x)))))
 #define cdadr(x) (cdr(car(cdr((x)))))
+#define cadddr(x) (car(cdr(cdr(cdr((x))))))
 #define atom(x) (!is_NIL(x) && (x)->type != type_list)
 #define SAO_CHECK_TYPE(x, t) (sao_type_check(__func__, x, t))
 //#define car(x) ((is_NIL(x)||x->type!=type_list)?NIL:x->car)

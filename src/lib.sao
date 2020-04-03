@@ -7,6 +7,7 @@ var( cddr lambda(a() cdr( cdr( a))))
 var( cadar lambda(a() car( cdr( car( a)))))
 var( caddr lambda(a() car( cdr( cdr( a)))))
 var( cdddr lambda(a() cdr( cdr( cdr( a)))))
+var( cdadr lambda(a() cdr( car( cdr( a)))))
 var( cadddr lambda(a() car( cdr( cdr( cdr( a))))))
 
 var( cmpnot lambda( a( b) if( cmp( a b) false true)))

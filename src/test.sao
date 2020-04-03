@@ -1,0 +1,15 @@
+var( caar lambda(a() car( car( a))))
+var( cadr lambda(a() car( cdr( a))))
+var( cdar lambda(a() cdr( car( a))))
+var( cddr lambda(a() cdr( cdr( a))))
+var( cadar lambda(a() car( cdr( car( a)))))
+var( caddr lambda(a() car( cdr( cdr( a)))))
+var( cdddr lambda(a() cdr( cdr( cdr( a)))))
+var( cdadr lambda(a() cdr( car( cdr( a)))))
+var( cadddr lambda(a() car( cdr( cdr( cdr( a))))))
+
+var(
+	fib(n),if(lt(n,3),1,add(fib(sub(n,1)),fib(sub(n,2))))
+)
+fib(12)
+exit()
