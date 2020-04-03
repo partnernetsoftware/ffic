@@ -56,7 +56,8 @@ ffic_func libcbf(int fi,const char* fn){ return libc_a[fi]?libc_a[fi]:(libc_a[fi
 #define define_enum(n, ...) typedef enum { SAO_ITR1(define_enum_item,n,__VA_ARGS__) } n##_t;
 #define define_map_arr(n, ...) char* n##_names[] = { SAO_ITR(define_enum_name,__VA_ARGS__) };
 #define define_map(n, ...) define_enum(n,__VA_ARGS__) define_map_arr(n,__VA_ARGS__)
-#define NEW_OBJECT(t,n,...) t*n=sao_alloc_c( sizeof(t) SAO_IF(SAO_IS_PAREN(__VA_ARGS__ ()))(SAO_EAT(),*__VA_ARGS__) )
+#define SAO_NEW(t,...) sao_alloc_c( sizeof(t) SAO_IF(SAO_IS_PAREN(__VA_ARGS__ ()))(SAO_EAT(),*__VA_ARGS__) )
+#define NEW_OBJECT(t,n,...) t*n=SAO_NEW(t,__VA_ARGS__);
 #define is_NIL(x) ((x)==SAO_NULL||(x)==NIL)
 #define is_EOL(x) (is_NIL((x)) || (x) == END_LIST)
 #define sao_stderr(...) libc(fprintf)(libc(stderr),__VA_ARGS__)
@@ -72,6 +73,7 @@ ffic_func libcbf(int fi,const char* fn){ return libc_a[fi]?libc_a[fi]:(libc_a[fi
 #define cdadr(x) (cdr(car(cdr((x)))))
 #define atom(x) (!is_NIL(x) && (x)->type != type_list)
 #define SAO_CHECK_TYPE(x, t) (sao_type_check(__func__, x, t))
+//#define car(x) ((is_NIL(x)||x->type!=type_list)?NIL:x->car)
 //////////////////////////////////////////////////////////////////////////////
 define_map(stream, file,char);
 define_map(type,   integer,symbol,string,list,native,table);
@@ -80,6 +82,7 @@ typedef struct _sao_object sao_object;
 typedef sao_object *(*native_t)(sao_object *);
 struct _sao_object {
 	type_t type;
+	int gc;//TODO
 	union {
 		long _integer;
 		char *_string;
@@ -138,7 +141,6 @@ long sao_is_digit(int c) { return (long) libc(isdigit)(c); }
 long sao_is_alpha(int c) { return (long) libc(isalpha)(c); }
 long sao_is_alphanumber(int c) { return (long) libc(isalnum)(c); }
 void* sao_alloc_c(long _sizeof){return libc(memset)(libc(malloc)(_sizeof),0,_sizeof);}
-////////////////////////////////////////////////////////////////////////
 void ht_insert(sao_object *key_obj);
 struct htable { sao_object *key; };
 static struct htable *gHTable = 0;
@@ -187,8 +189,26 @@ sao_object *ht_lookup(char *s) {
 	return gHTable[h].key;
 }
 sao_object *sao_alloc() {
+	//return SAO_NEW(sao_object);
 	NEW_OBJECT(sao_object,ret);//TODO gc()
 	return ret;
+}
+sao_object *cons(sao_object *car, sao_object *cdr) {
+	sao_object *ret = sao_alloc();
+	ret->type = type_list;
+	ret->car = car;
+	ret->cdr = cdr;
+	return ret;
+}
+sao_object *car(sao_object *cell) {
+	return (is_NIL(cell) || cell->type != type_list) ? NIL : cell->car;
+}
+sao_object *cdr(sao_object *cell) {
+	return (is_NIL(cell) || cell->type != type_list) ? NIL : cell->cdr;
+}
+sao_object *append(sao_object *l1, sao_object *l2) {
+	if (is_NIL(l1)) return l2;
+	return cons(car(l1), append(cdr(l1), l2));
 }
 int sao_type_check(const char *func, sao_object *obj, type_t type)
 {
@@ -246,26 +266,6 @@ sao_object *make_procedure(sao_object *params, sao_object *body,
 		sao_object *ctx) {
 	return cons(PROCEDURE, cons(params, cons(body, cons(ctx, END_LIST))));
 }
-sao_object *cons(sao_object *car, sao_object *cdr) {
-	sao_object *ret = sao_alloc();
-	ret->type = type_list;
-	ret->car = car;
-	ret->cdr = cdr;
-	return ret;
-}
-sao_object *car(sao_object *cell) {
-	if (is_NIL(cell) || cell->type != type_list) return NIL;
-	return cell->car;
-}
-sao_object *cdr(sao_object *cell) {
-	if (is_NIL(cell) || cell->type != type_list) return NIL;
-	return cell->cdr;
-}
-sao_object *append(sao_object *l1, sao_object *l2) {
-	if (is_NIL(l1)) return l2;
-	return cons(car(l1), append(cdr(l1), l2));
-}
-
 sao_object * sao_reverse(sao_object *list, sao_object *first) {
 	sao_object * rt = (is_NIL(list)) ? first :
 		sao_reverse(cdr(list), cons(car(list), first));
@@ -973,7 +973,6 @@ sao_object * sao_init()
 sao_object * sao_parse( SaoStream * fw, int do_eval )
 {
 	sao_read_line(fw);
-	//CAST_AS(sao_u64(*)(),microtime);
 	sao_u64 (*microtime)() = ( sao_u64(*)() ) libc(microtime);
 	sao_object *rt = NIL;
 	for(;;){

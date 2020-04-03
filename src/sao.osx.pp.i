@@ -27,7 +27,7 @@ void ffic_strcat(char *buffer, const char *source, const char* append) {
 ffic_ptr ffic_void(){return 0;};
 ffic_ptr(*ffic_raw(const char* part1, const char* funcname, const char* part2))()
 {
- char libfilename[256] = {0};
+ char libfilename[512] = {0};
  ffic_strcat(libfilename,part1,
    (part2==0)?
    ".dylib"
@@ -99,6 +99,7 @@ typedef struct _sao_object sao_object;
 typedef sao_object *(*native_t)(sao_object *);
 struct _sao_object {
  type_t type;
+ int gc;
  union {
   long _integer;
   char *_string;
@@ -197,8 +198,25 @@ sao_object *ht_lookup(char *s) {
  return gHTable[h].key;
 }
 sao_object *sao_alloc() {
- sao_object*ret=sao_alloc_c( sizeof(sao_object) );
+ sao_object*ret=sao_alloc_c( sizeof(sao_object) );;
  return ret;
+}
+sao_object *cons(sao_object *car, sao_object *cdr) {
+ sao_object *ret = sao_alloc();
+ ret->type = type_list;
+ ret->car = car;
+ ret->cdr = cdr;
+ return ret;
+}
+sao_object *car(sao_object *cell) {
+ return (((cell)==0||(cell)==NIL) || cell->type != type_list) ? NIL : cell->car;
+}
+sao_object *cdr(sao_object *cell) {
+ return (((cell)==0||(cell)==NIL) || cell->type != type_list) ? NIL : cell->cdr;
+}
+sao_object *append(sao_object *l1, sao_object *l2) {
+ if (((l1)==0||(l1)==NIL)) return l2;
+ return cons(car(l1), append(cdr(l1), l2));
 }
 int sao_type_check(const char *func, sao_object *obj, type_t type)
 {
@@ -254,25 +272,6 @@ sao_object *make_lambda(sao_object *params, sao_object *body) {
 sao_object *make_procedure(sao_object *params, sao_object *body,
   sao_object *ctx) {
  return cons(PROCEDURE, cons(params, cons(body, cons(ctx, END_LIST))));
-}
-sao_object *cons(sao_object *car, sao_object *cdr) {
- sao_object *ret = sao_alloc();
- ret->type = type_list;
- ret->car = car;
- ret->cdr = cdr;
- return ret;
-}
-sao_object *car(sao_object *cell) {
- if (((cell)==0||(cell)==NIL) || cell->type != type_list) return NIL;
- return cell->car;
-}
-sao_object *cdr(sao_object *cell) {
- if (((cell)==0||(cell)==NIL) || cell->type != type_list) return NIL;
- return cell->cdr;
-}
-sao_object *append(sao_object *l1, sao_object *l2) {
- if (((l1)==0||(l1)==NIL)) return l2;
- return cons(car(l1), append(cdr(l1), l2));
 }
 sao_object * sao_reverse(sao_object *list, sao_object *first) {
  sao_object * rt = (((list)==0||(list)==NIL)) ? first :
@@ -569,7 +568,7 @@ sao_object *native_load(sao_object *args) {
 }
 SaoStream * SaoStream_new(void* fp,stream_t type)
 {
- SaoStream*fw=sao_alloc_c( sizeof(SaoStream) );
+ SaoStream*fw=sao_alloc_c( sizeof(SaoStream) );;
  fw->fp = fp;
  if(type==stream_char) fw->pos = fp;
  fw->type = type;
@@ -587,7 +586,7 @@ int sao_deq_c(SaoStream *fw)
  return c;
 }
 int sao_enq_c(SaoStream* fw,int k){
- FileChar*fc=sao_alloc_c( sizeof(FileChar) );
+ FileChar*fc=sao_alloc_c( sizeof(FileChar) );;
  fc->c = k;
  fc->ptr_prev= fw->ptr_last;
  if(0==fw->ptr_start){
@@ -623,7 +622,7 @@ int sao_read_line(SaoStream* fw)
   ffic_func memset = libcbf(libc_memset,"memset");
   ffic_func strlen = libcbf(libc_strlen,"strlen");
   int LINE_LEN = 1024;
-  char*line=sao_alloc_c( sizeof(char) *LINE_LEN );
+  char*line=sao_alloc_c( sizeof(char) *LINE_LEN );;
   if(fw->type==stream_file){
    fgets(line,LINE_LEN,fw->fp);
    long strlen_line = (long) strlen(line);
