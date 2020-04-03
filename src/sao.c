@@ -189,14 +189,14 @@ sao_object *ht_lookup(char *s) {
 	long h = ht_hash(s, gHTable_len);
 	return gHTable[h].key;
 }
-sao_object *sao_alloc() {
+sao_object *sao_alloc(type_t type) {
 	//return SAO_NEW(sao_object);
 	NEW_OBJECT(sao_object,ret);//TODO gc()
+	ret->type = type;
 	return ret;
 }
 sao_object *cons(sao_object *car, sao_object *cdr) {
-	sao_object *ret = sao_alloc();
-	ret->type = type_list;
+	sao_object *ret = sao_alloc(type_list);
 	ret->car = car;
 	ret->cdr = cdr;
 	return ret;
@@ -223,9 +223,8 @@ sao_object * sao_type_check(const char *func, sao_object *obj, type_t type)
 	}
 	return obj;
 }
-sao_object *make_table(int size) {
-	sao_object *ret = sao_alloc();
-	ret->type = type_table;
+sao_object *sao_make_table(int size) {
+	sao_object *ret = sao_alloc(type_table);
 	ret->_table = libc(malloc)(sizeof(sao_object *) * size);
 	ret->_tblen = size;
 	libc(memset)(ret->_table, 0, size);
@@ -234,8 +233,7 @@ sao_object *make_table(int size) {
 sao_object *sao_make_symbol(char *s) {
 	sao_object *ret = ht_lookup(s);
 	if (is_NIL(ret)) {
-		ret = sao_alloc();
-		ret->type = type_symbol;
+		ret = sao_alloc(type_symbol);
 		ret->_string = libc(strdup)(s);
 		ht_insert(ret);
 	}else{
@@ -249,14 +247,12 @@ sao_object *sao_make_symbol(char *s) {
 	return ret;
 }
 sao_object *make_integer(int x) {
-	sao_object *ret = sao_alloc();
-	ret->type = type_integer;
+	sao_object *ret = sao_alloc(type_integer);
 	ret->_integer = x;
 	return ret;
 }
 sao_object *make_native(native_t x) {
-	sao_object *ret = sao_alloc();
-	ret->type = type_native;
+	sao_object *ret = sao_alloc(type_native);
 	ret->native = x;
 	return ret;
 }
@@ -487,8 +483,8 @@ sao_object *native_tset(sao_object *args){
 	return sao_make_symbol("ok");
 }
 sao_object *native_table(sao_object *args) {
-	SAO_CHECK_TYPE(car(args), type_integer);
-	return make_table(car(args)->_integer);
+	sao_object * sym = SAO_CHECK_TYPE(car(args), type_integer);
+	return sao_make_table(sym->_integer);
 }
 sao_object *sao_expand(sao_object *var, sao_object *val, sao_object *ctx) {
 	return cons(cons(var, val), ctx);
@@ -677,8 +673,7 @@ sao_object *sao_read_symbol(sao_stream * fw, char start)
 }
 sao_object *sao_make_integer(int x)
 {
-	sao_object *ret = sao_alloc();
-	ret->type = type_integer;
+	sao_object *ret = sao_alloc(type_integer);
 	ret->_integer = x;
 	return ret;
 }
