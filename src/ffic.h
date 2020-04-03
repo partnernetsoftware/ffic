@@ -109,23 +109,16 @@ extern ffic_ptr dlsym(ffic_ptr, const char *);
 #define ffic_dlopen dlopen 
 //CALLER WARNING: makesure your buffer enough!
 void ffic_strcat(char *buffer, const char *source, const char* append) {
-	while (*source) {
-		*buffer = *source;
-		source++;
-		buffer++;
-	}
-	while (*append) {
-		*buffer= *append;
-		append++;
-		buffer++;
-	}
+	while (*source)  *(buffer++) = *(source++); 
+	while (*append)  *(buffer++) = *(append++); 
 	*buffer = '\0';
 }
 ffic_ptr ffic_void(){return 0;};
 ffic_ptr(*ffic_raw(const char* part1, const char* funcname, const char* part2))()
 {
-	//char libfilename[strlen(funcname)+strlen(part2)+8]={0};
-	char libfilename[256] = {0};
+	//int libfilename_size = strlen(funcname)+strlen(part2)+8;
+	//char libfilename[libfilename_size] = {0};
+	char libfilename[512] = {0};
 	ffic_strcat(libfilename,part1,
 			(part2==0)?
 #if defined(__APPLE__)

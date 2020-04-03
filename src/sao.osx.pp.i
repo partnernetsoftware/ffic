@@ -20,16 +20,8 @@ extern int strcmp(const char*,const char*);
 extern ffic_ptr dlopen(const char *,int);
 extern ffic_ptr dlsym(ffic_ptr, const char *);
 void ffic_strcat(char *buffer, const char *source, const char* append) {
- while (*source) {
-  *buffer = *source;
-  source++;
-  buffer++;
- }
- while (*append) {
-  *buffer= *append;
-  append++;
-  buffer++;
- }
+ while (*source) *(buffer++) = *(source++);
+ while (*append) *(buffer++) = *(append++);
  *buffer = '\0';
 }
 ffic_ptr ffic_void(){return 0;};
@@ -973,8 +965,6 @@ sao_object * sao_parse( SaoStream * fw, int do_eval )
 }
 int main(int argc, char **argv)
 {
- sao_u64 (*microtime)() = ( sao_u64(*)() ) libcbf(libc_microtime,"microtime");
- libcbf(libc_printf,"printf")("%llu: \n",microtime());
  ht_resize(8192-1);
  if(argc>1){
   SaoStream * fw = SaoStream_new(argv[1],stream_char);
