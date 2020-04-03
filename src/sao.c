@@ -56,7 +56,7 @@ ffic_func libcbf(int fi,const char* fn){ return libc_a[fi]?libc_a[fi]:(libc_a[fi
 #define define_enum(n, ...) typedef enum { SAO_ITR1(define_enum_item,n,__VA_ARGS__) } n##_t;
 #define define_map_arr(n, ...) char* n##_names[] = { SAO_ITR(define_enum_name,__VA_ARGS__) };
 #define define_map(n, ...) define_enum(n,__VA_ARGS__) define_map_arr(n,__VA_ARGS__)
-#define SAO_NEW(t,...) sao_alloc_c( sizeof(t) SAO_IF(SAO_IS_PAREN(__VA_ARGS__ ()))(SAO_EAT(),*__VA_ARGS__) )
+#define SAO_NEW(t,...) sao_calloc( sizeof(t) SAO_IF(SAO_IS_PAREN(__VA_ARGS__ ()))(SAO_EAT(),*__VA_ARGS__) )
 #define NEW_OBJECT(t,n,...) t*n=SAO_NEW(t,__VA_ARGS__);
 //#define is_NIL(x) ((x)==SAO_NULL||(x)==NIL)
 #define is_NIL(x) (!x)
@@ -135,13 +135,13 @@ sao_object *sao_load_str(sao_stream * fw);
 sao_object *sao_read_list(sao_stream * fw);
 int sao_read_int(sao_stream * fw, int start);
 int sao_peek(sao_stream * fw);
-sao_object *sao_make_integer(int x);
+sao_object *sao_new_integer(int x);
 sao_object *sao_read_symbol(sao_stream * fw, char start);
 void sao_out_expr(char *str, sao_object *e);
 long sao_is_digit(int c) { return (long) libc(isdigit)(c); }
 long sao_is_alpha(int c) { return (long) libc(isalpha)(c); }
 long sao_is_alphanumber(int c) { return (long) libc(isalnum)(c); }
-void* sao_alloc_c(long _sizeof){return libc(memset)(libc(malloc)(_sizeof),0,_sizeof);}
+void* sao_calloc(long _sizeof){return libc(memset)(libc(malloc)(_sizeof),0,_sizeof);}
 void ht_insert(sao_object *key_obj);
 struct htable { sao_object *key; };
 static struct htable *gHTable = 0;
@@ -154,8 +154,7 @@ static long ht_hash(const char *s, int ht_len) {
 	return h;
 }
 int ht_resize(int newsize){
-	struct htable * newTable = libc(malloc)(sizeof(struct htable) * newsize);
-	libc(memset)(newTable, 0, sizeof(struct htable) * newsize);
+	struct htable * newTable = SAO_NEW(struct htable,newsize);
 	for(int i=0;i<gHTable_len;i++){
 		if (SAO_NULL!=gHTable[i].key) {
 			int h = ht_hash(gHTable[i].key->_string, newsize);
@@ -190,7 +189,6 @@ sao_object *ht_lookup(char *s) {
 	return gHTable[h].key;
 }
 sao_object *sao_alloc(type_t type) {
-	//return SAO_NEW(sao_object);
 	NEW_OBJECT(sao_object,ret);//TODO gc()
 	ret->type = type;
 	return ret;
@@ -223,14 +221,13 @@ sao_object * sao_type_check(const char *func, sao_object *obj, type_t type)
 	}
 	return obj;
 }
-sao_object *sao_make_table(int size) {
+sao_object *sao_new_table(int size) {
 	sao_object *ret = sao_alloc(type_table);
-	ret->_table = libc(malloc)(sizeof(sao_object *) * size);
+	ret->_table = SAO_NEW(sao_object,size);
 	ret->_tblen = size;
-	libc(memset)(ret->_table, 0, size);
 	return ret;
 }
-sao_object *sao_make_symbol(char *s) {
+sao_object *sao_new_symbol(char *s) {
 	sao_object *ret = ht_lookup(s);
 	if (is_NIL(ret)) {
 		ret = sao_alloc(type_symbol);
@@ -241,25 +238,20 @@ sao_object *sao_make_symbol(char *s) {
 		}else{
 			int newsize = 2*(gHTable_len+1)-1 ;
 			ht_resize( newsize );
-			return sao_make_symbol(s);
+			return sao_new_symbol(s);
 		}
 	}
 	return ret;
 }
-sao_object *make_integer(int x) {
-	sao_object *ret = sao_alloc(type_integer);
-	ret->_integer = x;
-	return ret;
-}
-sao_object *make_native(native_t x) {
+sao_object *sao_new_native(native_t x) {
 	sao_object *ret = sao_alloc(type_native);
 	ret->native = x;
 	return ret;
 }
-sao_object *make_lambda(sao_object *params, sao_object *body) {
+sao_object *sao_new_lambda(sao_object *params, sao_object *body) {
 	return cons(LAMBDA, cons(params, body));
 }
-sao_object *make_procedure(sao_object *params, sao_object *body,
+sao_object *sao_new_procedure(sao_object *params, sao_object *body,
 		sao_object *ctx) {
 	return cons(PROCEDURE, cons(params, cons(body, cons(ctx, END_LIST))));
 }
@@ -301,7 +293,7 @@ int sao_length(sao_object *exp) {
 	return 1 + sao_length(cdr(exp));
 }
 sao_object *native_type(sao_object *args) {
-	return sao_make_symbol(type_names[car(args)->type]);
+	return sao_new_symbol(type_names[car(args)->type]);
 }
 sao_object *native_global(sao_object *args) {
 	return GLOBAL;
@@ -409,7 +401,7 @@ sao_object *native_add(sao_object *list) {
 		total += car(list)->_integer;
 		list = cdr(list);
 	}
-	return make_integer(total);
+	return sao_new_integer(total);
 }
 sao_object *native_sub(sao_object *list) {
 	SAO_CHECK_TYPE(car(list), type_integer);
@@ -420,7 +412,7 @@ sao_object *native_sub(sao_object *list) {
 		total -= car(list)->_integer;
 		list = cdr(list);
 	}
-	return make_integer(total);
+	return sao_new_integer(total);
 }
 sao_object *native_div(sao_object *list) {
 	SAO_CHECK_TYPE(car(list), type_integer);
@@ -431,7 +423,7 @@ sao_object *native_div(sao_object *list) {
 		total /= car(list)->_integer;
 		list = cdr(list);
 	}
-	return make_integer(total);
+	return sao_new_integer(total);
 }
 sao_object *native_mul(sao_object *list) {
 	SAO_CHECK_TYPE(car(list), type_integer);
@@ -442,7 +434,7 @@ sao_object *native_mul(sao_object *list) {
 		total *= car(list)->_integer;
 		list = cdr(list);
 	}
-	return make_integer(total);
+	return sao_new_integer(total);
 }
 sao_object *native_gt(sao_object *sexp) {
 	SAO_CHECK_TYPE(car(sexp), type_integer);
@@ -480,11 +472,11 @@ sao_object *native_tset(sao_object *args){
 	if (is_NIL(caddr(args))) return NIL;
 	if (key->_integer >= tbl->_tblen) return NIL;
 	car(args)->_table[key->_integer] = caddr(args);
-	return sao_make_symbol("ok");
+	return sao_new_symbol("ok");
 }
 sao_object *native_table(sao_object *args) {
 	sao_object * sym = SAO_CHECK_TYPE(car(args), type_integer);
-	return sao_make_table(sym->_integer);
+	return sao_new_table(sym->_integer);
 }
 sao_object *sao_expand(sao_object *var, sao_object *val, sao_object *ctx) {
 	return cons(cons(var, val), ctx);
@@ -624,8 +616,6 @@ int sao_read_line(sao_stream* fw)
 			}
 		}
 		ffic_func fgets  = libc(fgets);
-		ffic_func malloc = libc(malloc);
-		ffic_func memset = libc(memset);
 		ffic_func strlen = libc(strlen);
 		int LINE_LEN = 1024;//TODO
 		NEW_OBJECT(char,line,LINE_LEN);
@@ -669,9 +659,9 @@ sao_object *sao_read_symbol(sao_stream * fw, char start)
 		buf[i++] = sao_deq_c(fw);
 	}
 	buf[i] = '\0';
-	return sao_make_symbol(buf);
+	return sao_new_symbol(buf);
 }
-sao_object *sao_make_integer(int x)
+sao_object *sao_new_integer(int x)
 {
 	sao_object *ret = sao_alloc(type_integer);
 	ret->_integer = x;
@@ -716,7 +706,7 @@ sao_object *sao_load_str(sao_stream * fw)
 		buf[i++] = (char) c;
 	}
 	buf[i] = '\0';
-	sao_object *s = sao_make_symbol(buf);
+	sao_object *s = sao_new_symbol(buf);
 	s->type = type_string;
 	return s;
 }
@@ -775,9 +765,9 @@ sao_object *sao_load_expr(sao_stream * fw)
 			depth--;
 			return END_LIST;
 		}
-		if (sao_is_digit(c)) return sao_make_integer(sao_read_int(fw, c - '0'));
+		if (sao_is_digit(c)) return sao_new_integer(sao_read_int(fw, c - '0'));
 		if (c == '-' && sao_is_digit(sao_peek(fw)))
-			return sao_make_integer(-1 * sao_read_int(fw, sao_deq_c(fw) - '0'));
+			return sao_new_integer(-1 * sao_read_int(fw, sao_deq_c(fw) - '0'));
 	}
 	return NIL;
 }
@@ -844,16 +834,16 @@ tail:
 	} else if (is_tagged(exp, QUOTE)) {
 		return cadr(exp);
 	} else if (is_tagged(exp, LAMBDA)) {
-		return make_procedure(cadr(exp), cddr(exp), ctx);
+		return sao_new_procedure(cadr(exp), cddr(exp), ctx);
 	} else if (is_tagged(exp, DEFINE)) {
 		if (atom(cadr(exp)))
 			define_variable(cadr(exp), sao_eval(caddr(exp), ctx), ctx);
 		else {
 			sao_object *closure =
-				sao_eval(make_lambda(cdr(cadr(exp)), cddr(exp)), ctx);
+				sao_eval(sao_new_lambda(cdr(cadr(exp)), cddr(exp)), ctx);
 			define_variable(car(cadr(exp)), closure, ctx);
 		}
-		return sao_make_symbol("ok");
+		return sao_new_symbol("ok");
 	} else if (is_tagged(exp, BEGIN)) {
 		sao_object *args = cdr(exp);
 		for (; !is_NIL(cdr(args)); args = cdr(args))
@@ -864,14 +854,14 @@ tail:
 		sao_object *predicate = sao_eval(cadr(exp), ctx);
 		exp = (not_false(predicate)) ? caddr(exp) : cadddr(exp);
 		goto tail;
-	} else if (is_tagged(exp, sao_make_symbol("or"))) {
+	} else if (is_tagged(exp, sao_new_symbol("or"))) {
 		sao_object *predicate = sao_eval(cadr(exp), ctx);
 		exp = (not_false(predicate)) ? caddr(exp) : cadddr(exp);
 		goto tail;
-	} else if (is_tagged(exp, sao_make_symbol("cond"))) {
+	} else if (is_tagged(exp, sao_new_symbol("cond"))) {
 		sao_object *branch = cdr(exp);
 		for (; !is_NIL(branch); branch = cdr(branch)) {
-			if (is_tagged(car(branch), sao_make_symbol("else")) ||
+			if (is_tagged(car(branch), sao_new_symbol("else")) ||
 					not_false(sao_eval(caar(branch), ctx))) {
 				exp = cons(BEGIN, cdar(branch));
 				goto tail;
@@ -883,10 +873,10 @@ tail:
 			set_variable(cadr(exp), sao_eval(caddr(exp), ctx), ctx);
 		else {
 			sao_object *closure =
-				sao_eval(make_lambda(cdr(cadr(exp)), cddr(exp)), ctx);
+				sao_eval(sao_new_lambda(cdr(cadr(exp)), cddr(exp)), ctx);
 			set_variable(car(cadr(exp)), closure, ctx);
 		}
-		return sao_make_symbol("ok");
+		return sao_new_symbol("ok");
 	} else if (is_tagged(exp, LET)) { /* transform into a lambda function*/
 		sao_object **tmp;
 		sao_object *vars = NIL;
@@ -898,7 +888,7 @@ tail:
 				vals = cons(cadar(*tmp), vals);
 			}
 			define_variable(cadr(exp),
-					sao_eval(make_lambda(vars, cdr(cddr(exp))),
+					sao_eval(sao_new_lambda(vars, cdr(cddr(exp))),
 						sao_expand(vars, vals, ctx)),
 					ctx); /* evaluate the lambda function with the starting values */
 			exp = cons(cadr(exp), vals);
@@ -908,7 +898,7 @@ tail:
 			vars = cons(caar(*tmp), vars);
 			vals = cons(cadar(*tmp), vals);
 		}
-		exp = cons(make_lambda(vars, cddr(exp)), vals);
+		exp = cons(sao_new_lambda(vars, cddr(exp)), vals);
 		goto tail;
 	} else { /* ('procedure, (parameters), (body), (ctx)) */
 		sao_object *proc = sao_eval(car(exp), ctx);
@@ -932,16 +922,16 @@ tail:
 	sao_stdout("\n");
 	return NIL;
 }
-#define add_native(s, c) define_variable(sao_make_symbol(s), make_native(c), GLOBAL)
-#define add_sym(s, c) do{c=sao_make_symbol(s);define_variable(c,c,GLOBAL);}while(0);
+#define add_native(s, c) define_variable(sao_new_symbol(s), sao_new_native(c), GLOBAL)
+#define add_sym(s, c) do{c=sao_new_symbol(s);define_variable(c,c,GLOBAL);}while(0);
 #define add_sym_with(n) add_native(#n, native_##n);
 sao_object * sao_init()
 {
 	GLOBAL = sao_expand(NIL, NIL, NIL);
 	add_sym("true", TRUE);
 	add_sym("false", FALSE);
-	define_variable(sao_make_symbol("true"), TRUE, GLOBAL);
-	define_variable(sao_make_symbol("false"), FALSE, GLOBAL);
+	define_variable(sao_new_symbol("true"), TRUE, GLOBAL);
+	define_variable(sao_new_symbol("false"), FALSE, GLOBAL);
 	add_sym("quote", QUOTE);
 	add_sym("lambda", LAMBDA);
 	add_sym("procedure", PROCEDURE);

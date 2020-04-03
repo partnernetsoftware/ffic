@@ -155,7 +155,7 @@ void sao_out_expr(char *str, sao_object *e);
 long sao_is_digit(int c) { return (long) libcbf(libc_isdigit,"isdigit")(c); }
 long sao_is_alpha(int c) { return (long) libcbf(libc_isalpha,"isalpha")(c); }
 long sao_is_alphanumber(int c) { return (long) libcbf(libc_isalnum,"isalnum")(c); }
-void* sao_alloc_c(long _sizeof){return libcbf(libc_memset,"memset")(libcbf(libc_malloc,"malloc")(_sizeof),0,_sizeof);}
+void* sao_calloc(long _sizeof){return libcbf(libc_memset,"memset")(libcbf(libc_malloc,"malloc")(_sizeof),0,_sizeof);}
 void ht_insert(sao_object *key_obj);
 struct htable { sao_object *key; };
 static struct htable *gHTable = 0;
@@ -167,7 +167,7 @@ static long ht_hash(const char *s, int ht_len) {
  return h;
 }
 int ht_resize(int newsize){
- struct htable * newTable = libcbf(libc_malloc,"malloc")(sizeof(struct htable) * newsize);
+ struct htable * newTable = sao_calloc( sizeof(struct htable) *newsize );
  libcbf(libc_memset,"memset")(newTable, 0, sizeof(struct htable) * newsize);
  for(int i=0;i<gHTable_len;i++){
   if (0!=gHTable[i].key) {
@@ -198,7 +198,7 @@ sao_object *ht_lookup(char *s) {
  return gHTable[h].key;
 }
 sao_object *sao_alloc(type_t type) {
- sao_object*ret=sao_alloc_c( sizeof(sao_object) );;
+ sao_object*ret=sao_calloc( sizeof(sao_object) );;
  ret->type = type;
  return ret;
 }
@@ -231,7 +231,7 @@ sao_object * sao_type_check(const char *func, sao_object *obj, type_t type)
 }
 sao_object *sao_make_table(int size) {
  sao_object *ret = sao_alloc(type_table);
- ret->_table = libcbf(libc_malloc,"malloc")(sizeof(sao_object *) * size);
+ ret->_table = sao_calloc( sizeof(sao_object) *size );
  ret->_tblen = size;
  libcbf(libc_memset,"memset")(ret->_table, 0, size);
  return ret;
@@ -561,7 +561,7 @@ sao_object *native_load(sao_object *args) {
 }
 sao_stream * sao_stream_new(void* fp,stream_t type)
 {
- sao_stream*fw=sao_alloc_c( sizeof(sao_stream) );;
+ sao_stream*fw=sao_calloc( sizeof(sao_stream) );;
  fw->fp = fp;
  if(type==stream_char) fw->pos = fp;
  fw->type = type;
@@ -579,7 +579,7 @@ int sao_deq_c(sao_stream *fw)
  return c;
 }
 int sao_enq_c(sao_stream* fw,int k){
- FileChar*fc=sao_alloc_c( sizeof(FileChar) );;
+ FileChar*fc=sao_calloc( sizeof(FileChar) );;
  fc->c = k;
  fc->ptr_prev= fw->ptr_last;
  if(0==fw->ptr_start){
@@ -611,11 +611,10 @@ int sao_read_line(sao_stream* fw)
    }
   }
   ffic_func fgets = libcbf(libc_fgets,"fgets");
-  ffic_func malloc = libcbf(libc_malloc,"malloc");
   ffic_func memset = libcbf(libc_memset,"memset");
   ffic_func strlen = libcbf(libc_strlen,"strlen");
   int LINE_LEN = 1024;
-  char*line=sao_alloc_c( sizeof(char) *LINE_LEN );;
+  char*line=sao_calloc( sizeof(char) *LINE_LEN );;
   if(fw->type==stream_file){
    fgets(line,LINE_LEN,fw->fp);
    long strlen_line = (long) strlen(line);
