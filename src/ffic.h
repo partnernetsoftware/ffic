@@ -74,6 +74,9 @@ extern FILE *stdout;
 extern FILE *stderr;
 #   endif
 
+typedef void* ffic_ptr;
+typedef ffic_ptr(*ffic_func)();
+
 #ifndef FFIC
 #define FFIC 1
 #endif
@@ -85,7 +88,6 @@ extern void*(*ffic(const char*, const char*, ...))();
 #  define libc(f) ffic("c",#f)
 #  endif
 # elif FFIC==1
-typedef void* ffic_ptr;
 extern int fprintf(FILE *stream, const char *format, ...);
 extern int fflush(FILE *stream);
 extern int strcmp(const char*,const char*);
@@ -119,7 +121,6 @@ void ffic_strcat(char *buffer, const char *source, const char* append) {
 	}
 	*buffer = '\0';
 }
-typedef ffic_ptr(*ffic_func)();
 ffic_ptr ffic_void(){return 0;};
 ffic_ptr(*ffic_raw(const char* part1, const char* funcname, const char* part2))()
 {
