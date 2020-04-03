@@ -47,9 +47,8 @@ enum { SAO_ITR(DEFINE_ENUM_LIBC,SAO_EXPAND(LIBC_FUNC_LIST)) };
 void* (*libc_a[libc_SAO_NULL])();//libc buffer
 #define libc(f) libcbf(libc_##f,#f)
 #include "ffic.h" //github.com/partnernetsoftware/ffic/blob/master/src/ffic.h
-//typedef void*(*ffi_func)();
-ffi_func libcbf(int fi,const char* fn);
-ffi_func libcbf(int fi,const char* fn){ return libc_a[fi]?libc_a[fi]:(libc_a[fi]=ffic("c",fn)); }
+ffic_func libcbf(int fi,const char* fn);
+ffic_func libcbf(int fi,const char* fn){ return libc_a[fi]?libc_a[fi]:(libc_a[fi]=ffic("c",fn)); }
 #define SAO_NULL 0 // same as ((void*)0)
 #define SAO_EOF (-1)
 #define define_enum_name(n) #n,
@@ -616,14 +615,14 @@ int depth = 0;
 int line_num = 0;
 int sao_read_line(SaoStream* fw)
 {
-	ffi_func printf = libc(printf);
-	ffi_func feof = libc(feof);
+	ffic_func printf = libc(printf);
+	ffic_func feof = libc(feof);
 	do{
 		if(feof(fw->fp)){ break; }
-		ffi_func fgets  = libc(fgets);
-		ffi_func malloc = libc(malloc);
-		ffi_func memset = libc(memset);
-		ffi_func strlen = libc(strlen);
+		ffic_func fgets  = libc(fgets);
+		ffic_func malloc = libc(malloc);
+		ffic_func memset = libc(memset);
+		ffic_func strlen = libc(strlen);
 		int LINE_LEN = 1024;//TODO
 		NEW_OBJECT(char,line,LINE_LEN);
 		fgets(line,LINE_LEN,fw->fp);
@@ -721,7 +720,7 @@ void sao_comment(SaoStream * fw)
 }
 sao_object *sao_load_expr(SaoStream * fw)
 {
-	ffi_func printf = libc(printf);
+	ffic_func printf = libc(printf);
 	int c;
 	//TODO switch(){} for better loop
 	for (;;) {
@@ -775,7 +774,7 @@ sao_object *sao_load_expr(SaoStream * fw)
 }
 void sao_out_expr(char *str, sao_object *e)
 {
-	ffi_func printf = libc(printf);
+	ffic_func printf = libc(printf);
 	if (str) printf("%s ", str);
 	if (is_NIL(e)) { printf("'()"); return; }
 	switch (e->type) {
@@ -959,7 +958,7 @@ sao_object * sao_init()
 sao_object * sao_parse( SaoStream * fw, int do_eval )
 {
 	sao_read_line(fw);
-	ffi_func printf = libc(printf);
+	ffic_func printf = libc(printf);
 	//CAST_AS(sao_u64(*)(),microtime);
 	sao_u64 (*microtime)() = ( sao_u64(*)() ) libc(microtime);
 	sao_object *rt = NIL;
@@ -972,7 +971,7 @@ sao_object * sao_parse( SaoStream * fw, int do_eval )
 		if (!is_NIL(obj)) {
 #if defined(PROFILE)
 			//printf("%llu: ",ffic_microtime());
-			printf("%llu: ",microtime());
+			printf("%llu: ", microtime());
 #endif
 			sao_out_expr("<=", obj);
 			printf("\n");
@@ -1005,7 +1004,7 @@ sao_object * sao_parse( SaoStream * fw, int do_eval )
 int main(int argc, char **argv)
 {
 	ht_resize(8192-1);
-	ffi_func printf = libc(printf);
+	ffic_func printf = libc(printf);
 	if(argc>1){
 		SaoStream * fw = SaoStream_new(argv[1],stream_char);
 		//sao_object * result = sao_parse( fw, 1/*eval*/ );

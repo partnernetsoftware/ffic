@@ -85,22 +85,23 @@ extern void*(*ffic(const char*, const char*, ...))();
 #  define libc(f) ffic("c",#f)
 #  endif
 # elif FFIC==1
+typedef void* ffic_ptr;
 extern int fprintf(FILE *stream, const char *format, ...);
 extern int fflush(FILE *stream);
 extern int strcmp(const char*,const char*);
 #  if defined(_WIN32) || defined(_WIN64)
 #ifdef UNICODE
-extern void* LoadLibraryW(const char*);
+extern ffic_ptr LoadLibraryW(const char*);
 #define dlopen LoadLibraryW
 #else
-extern void* LoadLibraryA(const char*);
+extern ffic_ptr LoadLibraryA(const char*);
 #define dlopen(l,c) LoadLibraryA(l)
 #endif
-extern void* GetProcAddress(void*,const char*);
+extern ffic_ptr GetProcAddress(ffic_ptr,const char*);
 #define ffic_dlsym GetProcAddress
 #   else
-extern void* dlopen(const char *,int);
-extern void *dlsym(void *, const char *);
+extern ffic_ptr dlopen(const char *,int);
+extern ffic_ptr dlsym(ffic_ptr, const char *);
 #define ffic_dlsym dlsym
 #   endif
 #define ffic_dlopen dlopen 
@@ -118,9 +119,9 @@ void ffic_strcat(char *buffer, const char *source, const char* append) {
 	}
 	*buffer = '\0';
 }
-typedef void*(*ffi_func)();
-void* ffic_void(){return 0;};
-void*(*ffic_raw(const char* part1, const char* funcname, const char* part2))()
+typedef ffic_ptr(*ffic_func)();
+ffic_ptr ffic_void(){return 0;};
+ffic_ptr(*ffic_raw(const char* part1, const char* funcname, const char* part2))()
 {
 	//char libfilename[strlen(funcname)+strlen(part2)+8]={0};
 	char libfilename[256] = {0};
@@ -137,7 +138,7 @@ void*(*ffic_raw(const char* part1, const char* funcname, const char* part2))()
 			);
 	return ffic_dlsym(ffic_dlopen(libfilename,1/*RTLD_LAZY*/), funcname);
 }
-void* ffic_usleep(int nano_seconds)
+ffic_ptr ffic_usleep(int nano_seconds)
 {
 #ifdef _WIN32
 	ffic_raw("kernel32","Sleep",0)(nano_seconds/1000);
@@ -146,7 +147,7 @@ void* ffic_usleep(int nano_seconds)
 #endif
 	return 0;
 };
-void* ffic_msleep(int microseconds)
+ffic_ptr ffic_msleep(int microseconds)
 {
 #ifdef _WIN32
 	ffic_raw("kernel32","Sleep",0)(microseconds);
@@ -155,7 +156,7 @@ void* ffic_msleep(int microseconds)
 #endif
 	return 0;
 };
-void* ffic_sleep(int seconds)
+ffic_ptr ffic_sleep(int seconds)
 {
 #ifdef _WIN32
 	ffic_raw("kernel32","Sleep",0)(seconds*1000);
@@ -165,9 +166,9 @@ void* ffic_sleep(int seconds)
 	return 0;
 }
 sao_u64 ffic_microtime(void);
-void*(*ffic(const char* libname, const char* funcname, ...))()
+ffic_ptr(*ffic(const char* libname, const char* funcname, ...))()
 {
-	void* addr = 0;
+	ffic_ptr addr = 0;
 	if(!strcmp("c",libname)){
 		if(!strcmp("stderr",funcname)){ addr = stderr; }
 		else if(!strcmp("stdout",funcname)){ addr = stdout; }
@@ -184,7 +185,7 @@ void*(*ffic(const char* libname, const char* funcname, ...))()
 				"libc"
 #endif
 				;				
-			if(!strcmp("microtime",funcname)){ return (void*) ffic_microtime; }//sao_u64 (*microtime)() = libc(microtime);
+			if(!strcmp("microtime",funcname)){ return (ffic_ptr) ffic_microtime; }//sao_u64 (*microtime)() = libc(microtime);
 			else if(!strcmp("usleep",funcname)){ return ffic_usleep; }
 			else if(!strcmp("sleep",funcname)){ return ffic_sleep; }
 			else if(!strcmp("msleep",funcname)){ return ffic_msleep; }
@@ -221,7 +222,7 @@ struct timeval {
 sao_u64 ffic_microtime(void)
 {
 	struct timeval tv;
-	static ffi_func gettimeofday;
+	static ffic_func gettimeofday;
 #ifdef _WIN32
 	static const sao_u64 epoch = 116444736000000000;
 	/* (https://github.com/postgres/postgres/blob/master/src/port/gettimeofday.c) */
