@@ -1,4 +1,4 @@
-enum { libc_fprintf, libc_stderr, libc_exit, libc_malloc, libc_memset, libc_strdup, libc_strcmp, libc_printf, libc_stdin, libc_putc, libc_getc, libc_isalnum, libc_strchr, libc_isdigit, libc_isalpha, libc_fopen, libc_fread, libc_fgets, libc_fclose, libc_feof, libc_usleep, libc_msleep, libc_sleep, libc_fputc, libc_setmode, libc_fileno, libc_gettimeofday, libc_stdout, libc_strlen, libc_fflush, libc_free, libc_microtime, libc_SAO_NULL, };
+enum { libc_fprintf, libc_stderr, libc_exit, libc_malloc, libc_memset, libc_strdup, libc_strcmp, libc_printf, libc_stdin, libc_putc, libc_getc, libc_isalnum, libc_strchr, libc_isdigit, libc_isalpha, libc_fopen, libc_fread, libc_fgets, libc_fclose, libc_feof, libc_usleep, libc_msleep, libc_sleep, libc_fputc, libc_setmode, libc_fileno, libc_stdout, libc_strlen, libc_fflush, libc_free, libc_microtime, libc_SAO_NULL, };
 void* (*libc_a[libc_SAO_NULL])();
 typedef signed char sao_i8;
 typedef unsigned char sao_u8;
@@ -214,11 +214,10 @@ sao_object *sao_alloc() {
 int sao_type_check(const char *func, sao_object *obj, type_t type)
 {
  if (((obj)==0||(obj)==NIL)) {
-  libcbf(libc_fprintf,"fprintf")(libcbf(libc_stderr,"stderr"), "Invalid argument to function %s: NIL\n", func);
+  libcbf(libc_fprintf,"fprintf")(libcbf(libc_stderr,"stderr"),"Invalid argument to function %s: NIL\n", func);
   libcbf(libc_exit,"exit")(1);
  } else if (obj->type != type) {
-  libcbf(libc_fprintf,"fprintf")(libcbf(libc_stderr,"stderr"), "ERR: function %s. expected %s got %s\n",
-    func, type_names[type], type_names[obj->type]);
+  libcbf(libc_fprintf,"fprintf")(libcbf(libc_stderr,"stderr"),"ERR: function %s. expected %s got %s\n", func, type_names[type], type_names[obj->type]);
   libcbf(libc_exit,"exit")(1);
  }
  return 1;
@@ -619,7 +618,6 @@ int depth = 0;
 int line_num = 0;
 int sao_read_line(SaoStream* fw)
 {
- ffic_func printf = libcbf(libc_printf,"printf");
  ffic_func feof = libcbf(libc_feof,"feof");
  do{
   if(feof(fw->fp)){ break; }
@@ -723,7 +721,6 @@ void sao_comment(SaoStream * fw)
 }
 sao_object *sao_load_expr(SaoStream * fw)
 {
- ffic_func printf = libcbf(libc_printf,"printf");
  int c;
  for (;;) {
   sao_object * theSymbol = NIL;
@@ -776,18 +773,17 @@ sao_object *sao_load_expr(SaoStream * fw)
 }
 void sao_out_expr(char *str, sao_object *e)
 {
- ffic_func printf = libcbf(libc_printf,"printf");
- if (str) printf("%s ", str);
- if (((e)==0||(e)==NIL)) { printf("'()"); return; }
+ if (str) libcbf(libc_printf,"printf")("%s ", str);
+ if (((e)==0||(e)==NIL)) { libcbf(libc_printf,"printf")("'()"); return; }
  switch (e->type) {
-  case type_string: printf("\"%s\"", e->_string); break;
-  case type_symbol: printf("%s", e->_string); break;
-  case type_integer: printf("%ld", e->_integer); break;
-  case type_native: printf("<function>"); break;
-  case type_table: printf("<table %d>", e->_tblen); break;
+  case type_string: libcbf(libc_printf,"printf")("\"%s\"", e->_string); break;
+  case type_symbol: libcbf(libc_printf,"printf")("%s", e->_string); break;
+  case type_integer: libcbf(libc_printf,"printf")("%ld", e->_integer); break;
+  case type_native: libcbf(libc_printf,"printf")("<function>"); break;
+  case type_table: libcbf(libc_printf,"printf")("<table %d>", e->_tblen); break;
   case type_list:
            if (is_tagged(e, PROCEDURE)) {
-            printf("<closure>");
+            libcbf(libc_printf,"printf")("<closure>");
             return;
            }
            int skip=0;
@@ -798,12 +794,12 @@ void sao_out_expr(char *str, sao_object *e)
              skip=1;
             }
            }
-           printf("(");
+           libcbf(libc_printf,"printf")("(");
            while (!((*t)==0||(*t)==NIL)) {
             if(skip==1){
              skip=0;
             }else{
-             printf(" ");
+             libcbf(libc_printf,"printf")(" ");
              sao_out_expr(0, (*t)->car);
             }
             if (!(((*t)->cdr)==0||((*t)->cdr)==NIL)) {
@@ -816,7 +812,7 @@ void sao_out_expr(char *str, sao_object *e)
             } else
              break;
            }
-           printf(")");
+           libcbf(libc_printf,"printf")(")");
  }
 }
 sao_object *sao_eval(sao_object *exp, sao_object *ctx)
@@ -937,8 +933,6 @@ sao_object * sao_init()
 sao_object * sao_parse( SaoStream * fw, int do_eval )
 {
  sao_read_line(fw);
- ffic_func printf = libcbf(libc_printf,"printf");
- sao_u64 (*microtime)() = ( sao_u64(*)() ) libcbf(libc_microtime,"microtime");
  sao_object *rt = NIL;
  for(;;){
   sao_object *obj = sao_load_expr(fw);
@@ -946,23 +940,23 @@ sao_object * sao_parse( SaoStream * fw, int do_eval )
    break;
   }
   if (!((obj)==0||(obj)==NIL)) {
-   printf("%lu: ",(sao_u32) microtime());
+   libcbf(libc_printf,"printf")("%llu: ",ffic_microtime());
    sao_out_expr("<=", obj);
-   printf("\n");
+   libcbf(libc_printf,"printf")("\n");
    sao_object *rt = sao_eval(obj, GLOBAL);
    if (do_eval){
     if ( !((rt)==0||(rt)==NIL)) {
-     printf("%llu: ",microtime());
+     libcbf(libc_printf,"printf")("%llu: ",ffic_microtime());
      sao_out_expr("=>", rt);
-     printf("\n");
+     libcbf(libc_printf,"printf")("\n");
     }else{
-     printf("\n");
+     libcbf(libc_printf,"printf")("\n");
     }
    }else{
     return obj;
    }
   }else{
-   printf("DEBUG TODO depth=%d \n",depth);
+   libcbf(libc_printf,"printf")("DEBUG TODO depth=%d \n",depth);
   }
  }
  return rt;
@@ -970,7 +964,6 @@ sao_object * sao_parse( SaoStream * fw, int do_eval )
 int main(int argc, char **argv)
 {
  ht_resize(8192-1);
- ffic_func printf = libcbf(libc_printf,"printf");
  if(argc>1){
   SaoStream * fw = SaoStream_new(argv[1],stream_char);
   return 0;
