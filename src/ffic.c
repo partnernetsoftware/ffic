@@ -31,7 +31,10 @@ int main(int argc, char **argv){
 #endif
 	//tcc(tcc_set_options)(tcc_ptr, "-run");
 
+	if(0==tcc(tcc_get_symbol)(tcc_ptr, "ffic"))
 	tcc(tcc_add_symbol)(tcc_ptr, "ffic", ffic);
+
+	if(0==tcc(tcc_get_symbol)(tcc_ptr, "ffic_raw"))
 	tcc(tcc_add_symbol)(tcc_ptr, "ffic_raw", ffic_raw);
 
 	tcc(tcc_add_file)(tcc_ptr,(argc>1) ? argv[1] : "-");

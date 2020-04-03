@@ -1,3 +1,4 @@
+extern void*(*ffic())();
 //extern void*(*ffic(const char*, const char*, ...))();
 //extern void*(*ffi_raw(const char*, const char*, ...))();
 //extern void*(*ffi_raw())();
