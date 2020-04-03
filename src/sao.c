@@ -42,12 +42,12 @@
 #define LIBC_FUNC_LIST fprintf,stderr,exit,malloc,memset,strdup,strcmp,printf,\
 	stdin,putc,getc,isalnum,strchr,isdigit,isalpha,fopen,fread,fgets,fclose,feof,\
 	usleep,msleep,sleep,fputc,setmode,fileno,gettimeofday,stdout,strlen,\
-	fflush,free,SAO_NULL
+	fflush,free,microtime,SAO_NULL
 enum { SAO_ITR(DEFINE_ENUM_LIBC,SAO_EXPAND(LIBC_FUNC_LIST)) };
 void* (*libc_a[libc_SAO_NULL])();//libc buffer
 #define libc(f) libcbf(libc_##f,#f)
 #include "ffic.h" //github.com/partnernetsoftware/ffic/blob/master/src/ffic.h
-typedef void*(*ffi_func)();
+//typedef void*(*ffi_func)();
 ffi_func libcbf(int fi,const char* fn);
 ffi_func libcbf(int fi,const char* fn){ return libc_a[fi]?libc_a[fi]:(libc_a[fi]=ffic("c",fn)); }
 #define SAO_NULL 0 // same as ((void*)0)
@@ -577,52 +577,6 @@ sao_object *native_load(sao_object *args) { //TODO merge with native_read() 1!!!
 	return ret;
 }
 #define PROFILE
-struct timeval {
-	long tv_sec;
-	long tv_usec;
-};
-#ifdef _WIN32
-/* FILETIME of Jan 1 1970 00:00:00, the PostgreSQL epoch */
-static const sao_u64 epoch = 116444736000000000;
-//typedef unsigned long DWORD;
-#define FILETIME_UNITS_PER_SEC	10000000L
-#define FILETIME_UNITS_PER_USEC 10
-typedef struct _FILETIME {
-	//DWORD dwLowDateTime;
-	//DWORD dwHighDateTime;
-	sao_u32 dwLowDateTime;
-	sao_u32 dwHighDateTime;
-} FILETIME;
-#endif
-static sao_u64 ffi_microtime(void)
-{
-	NEW_OBJECT(struct timeval,tv);
-#ifdef _WIN32
-	/* (https://github.com/postgres/postgres/blob/master/src/port/gettimeofday.c) */
-	/* (https://github.com/coreutils/gnulib/blob/master/lib/gettimeofday.c) */
-	/* (https://docs.microsoft.com/en-us/windows/desktop/api/sysinfoapi/nf-sysinfoapi-getsystemtimeasfiletime)
-		 (https://docs.microsoft.com/en-us/windows/desktop/api/sysinfoapi/nf-sysinfoapi-getsystemtimepreciseasfiletime)
-		 (http://www.windowstimestamp.com/description)
-		 (https://docs.microsoft.com/en-us/windows/desktop/api/minwinbase/ns-minwinbase-filetime) */
-	static ffi_func gettimeofday;
-	if(!gettimeofday)
-	gettimeofday = ffic_raw("kernel32","GetSystemTimePreciseAsFileTime",0);//WIN8+
-	if(!gettimeofday)
-	gettimeofday = ffic_raw("kernel32","GetSystemTimeAsFileTime",0);
-	FILETIME file_time;
-	gettimeofday(&file_time);
-	sao_u64 since_1601 = ( (sao_u64) file_time.dwHighDateTime << 32) | (sao_u64) file_time.dwLowDateTime;
-	sao_u64 since_1970 = ((sao_u64) since_1601 - epoch);
-	sao_u64 microseconds_since_1970 = since_1970 / 10;
-	tv->tv_sec = (microseconds_since_1970 / (sao_u64) 1000000);
-	tv->tv_usec = microseconds_since_1970 % 1000000;
-	//return tv->tv_sec*1000 + (tv->tv_usec/1000);
-#else
-	libc(gettimeofday)(tv, 0);
-	//return tv->tv_sec*1000 + (tv->tv_usec+500)/1000;
-#endif
-	return tv->tv_sec*1000 + (tv->tv_usec+0)/1000;
-}
 SaoStream * SaoStream_new(void* fp,stream_t type)
 {
 	NEW_OBJECT(SaoStream,fw);
@@ -1006,7 +960,8 @@ sao_object * sao_parse( SaoStream * fw, int do_eval )
 {
 	sao_read_line(fw);
 	ffi_func printf = libc(printf);
-
+	//CAST_AS(sao_u64(*)(),microtime);
+	sao_u64 (*microtime)() = ( sao_u64(*)() ) libc(microtime);
 	sao_object *rt = NIL;
 	for(;;){
 		sao_object *obj = sao_load_expr(fw);
@@ -1016,7 +971,8 @@ sao_object * sao_parse( SaoStream * fw, int do_eval )
 		}
 		if (!is_NIL(obj)) {
 #if defined(PROFILE)
-			printf("%llu: ",ffi_microtime());
+			//printf("%llu: ",ffic_microtime());
+			printf("%llu: ",microtime());
 #endif
 			sao_out_expr("<=", obj);
 			printf("\n");
@@ -1025,7 +981,8 @@ sao_object * sao_parse( SaoStream * fw, int do_eval )
 			if (do_eval){
 				if ( !is_NIL(rt)) {
 #if defined(PROFILE)
-					printf("%llu: ",ffi_microtime());
+					//printf("%llu: ",ffic_microtime());
+					printf("%llu: ",microtime());
 #endif
 					//TODO if "-i"
 					sao_out_expr("=>", rt);

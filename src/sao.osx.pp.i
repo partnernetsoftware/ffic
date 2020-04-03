@@ -1,4 +1,4 @@
-enum { libc_fprintf, libc_stderr, libc_exit, libc_malloc, libc_memset, libc_strdup, libc_strcmp, libc_printf, libc_stdin, libc_putc, libc_getc, libc_isalnum, libc_strchr, libc_isdigit, libc_isalpha, libc_fopen, libc_fread, libc_fgets, libc_fclose, libc_feof, libc_usleep, libc_msleep, libc_sleep, libc_fputc, libc_setmode, libc_fileno, libc_gettimeofday, libc_stdout, libc_strlen, libc_fflush, libc_free, libc_SAO_NULL, };
+enum { libc_fprintf, libc_stderr, libc_exit, libc_malloc, libc_memset, libc_strdup, libc_strcmp, libc_printf, libc_stdin, libc_putc, libc_getc, libc_isalnum, libc_strchr, libc_isdigit, libc_isalpha, libc_fopen, libc_fread, libc_fgets, libc_fclose, libc_feof, libc_usleep, libc_msleep, libc_sleep, libc_fputc, libc_setmode, libc_fileno, libc_gettimeofday, libc_stdout, libc_strlen, libc_fflush, libc_free, libc_microtime, libc_SAO_NULL, };
 void* (*libc_a[libc_SAO_NULL])();
 typedef signed char sao_i8;
 typedef unsigned char sao_u8;
@@ -30,6 +30,7 @@ void ffic_strcat(char *buffer, const char *source, const char* append) {
  }
  *buffer = '\0';
 }
+typedef void*(*ffi_func)();
 void* ffic_void(){return 0;};
 void*(*ffic_raw(const char* part1, const char* funcname, const char* part2))()
 {
@@ -56,6 +57,7 @@ void* ffic_sleep(int seconds)
  ffic_raw("libc","usleep",0)(seconds*1000000);
  return 0;
 }
+sao_u64 ffic_microtime(void);
 void*(*ffic(const char* libname, const char* funcname, ...))()
 {
  void* addr = 0;
@@ -67,7 +69,8 @@ void*(*ffic(const char* libname, const char* funcname, ...))()
    libname =
     "libc"
     ;
-   if(!strcmp("usleep",funcname)){ return ffic_usleep; }
+   if(!strcmp("microtime",funcname)){ return (void*) ffic_microtime; }
+   else if(!strcmp("usleep",funcname)){ return ffic_usleep; }
    else if(!strcmp("sleep",funcname)){ return ffic_sleep; }
    else if(!strcmp("msleep",funcname)){ return ffic_msleep; }
    else if(!strcmp("setmode",funcname)){
@@ -82,7 +85,22 @@ void*(*ffic(const char* libname, const char* funcname, ...))()
  }
  return addr;
 }
-typedef void*(*ffi_func)();
+typedef struct _FILETIME {
+ unsigned long dwLowDateTime;
+ unsigned long dwHighDateTime;
+} FILETIME;
+struct timeval {
+ long tv_sec;
+ long tv_usec;
+};
+sao_u64 ffic_microtime(void)
+{
+ struct timeval tv;
+ static ffi_func gettimeofday;
+ if(!gettimeofday) gettimeofday = ffic("c","gettimeofday");
+ gettimeofday(&tv, 0);
+ return (sao_u64)tv.tv_sec*(sao_u64)1000 + ((sao_u64)tv.tv_usec+(sao_u64)500)/(sao_u64)1000;
+}
 ffi_func libcbf(int fi,const char* fn);
 ffi_func libcbf(int fi,const char* fn){ return libc_a[fi]?libc_a[fi]:(libc_a[fi]=ffic("c",fn)); }
 typedef enum { stream_file, stream_char, } stream_t; char* stream_names[] = { "file", "char", };;
@@ -561,16 +579,6 @@ sao_object *native_load(sao_object *args) {
  libcbf(libc_fclose,"fclose")(fp);
  return ret;
 }
-struct timeval {
- long tv_sec;
- long tv_usec;
-};
-static sao_u64 ffi_microtime(void)
-{
- struct timeval*tv=sao_alloc_c( sizeof(struct timeval) );
- libcbf(libc_gettimeofday,"gettimeofday")(tv, 0);
- return tv->tv_sec*1000 + (tv->tv_usec+0)/1000;
-}
 SaoStream * SaoStream_new(void* fp,stream_t type)
 {
  SaoStream*fw=sao_alloc_c( sizeof(SaoStream) );
@@ -929,6 +937,7 @@ sao_object * sao_parse( SaoStream * fw, int do_eval )
 {
  sao_read_line(fw);
  ffi_func printf = libcbf(libc_printf,"printf");
+ sao_u64 (*microtime)() = ( sao_u64(*)() ) libcbf(libc_microtime,"microtime");
  sao_object *rt = NIL;
  for(;;){
   sao_object *obj = sao_load_expr(fw);
@@ -936,13 +945,13 @@ sao_object * sao_parse( SaoStream * fw, int do_eval )
    break;
   }
   if (!((obj)==0||(obj)==NIL)) {
-   printf("%llu: ",ffi_microtime());
+   printf("%llu: ",microtime());
    sao_out_expr("<=", obj);
    printf("\n");
    sao_object *rt = sao_eval(obj, GLOBAL);
    if (do_eval){
     if ( !((rt)==0||(rt)==NIL)) {
-     printf("%llu: ",ffi_microtime());
+     printf("%llu: ",microtime());
      sao_out_expr("=>", rt);
      printf("\n");
     }else{

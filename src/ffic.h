@@ -118,6 +118,7 @@ void ffic_strcat(char *buffer, const char *source, const char* append) {
 	}
 	*buffer = '\0';
 }
+typedef void*(*ffi_func)();
 void* ffic_void(){return 0;};
 void*(*ffic_raw(const char* part1, const char* funcname, const char* part2))()
 {
@@ -163,6 +164,7 @@ void* ffic_sleep(int seconds)
 #endif
 	return 0;
 }
+sao_u64 ffic_microtime(void);
 void*(*ffic(const char* libname, const char* funcname, ...))()
 {
 	void* addr = 0;
@@ -182,7 +184,8 @@ void*(*ffic(const char* libname, const char* funcname, ...))()
 				"libc"
 #endif
 				;				
-			if(!strcmp("usleep",funcname)){ return ffic_usleep; }
+			if(!strcmp("microtime",funcname)){ return (void*) ffic_microtime; }//sao_u64 (*microtime)() = libc(microtime);
+			else if(!strcmp("usleep",funcname)){ return ffic_usleep; }
 			else if(!strcmp("sleep",funcname)){ return ffic_sleep; }
 			else if(!strcmp("msleep",funcname)){ return ffic_msleep; }
 #ifdef _WIN32
@@ -206,6 +209,43 @@ void*(*ffic(const char* libname, const char* funcname, ...))()
 		return ffic_void;
 	}
 	return addr;
+}
+typedef struct _FILETIME {
+	unsigned long dwLowDateTime;
+	unsigned long dwHighDateTime;
+} FILETIME;
+struct timeval {
+	long tv_sec;
+	long tv_usec;
+};
+sao_u64 ffic_microtime(void)
+{
+	struct timeval tv;
+	static ffi_func gettimeofday;
+#ifdef _WIN32
+	static const sao_u64 epoch = 116444736000000000;
+	/* (https://github.com/postgres/postgres/blob/master/src/port/gettimeofday.c) */
+	/* (https://github.com/coreutils/gnulib/blob/master/lib/gettimeofday.c) */
+	/* (https://docs.microsoft.com/en-us/windows/desktop/api/sysinfoapi/nf-sysinfoapi-getsystemtimeasfiletime)
+		 (https://docs.microsoft.com/en-us/windows/desktop/api/sysinfoapi/nf-sysinfoapi-getsystemtimepreciseasfiletime)
+		 (http://www.windowstimestamp.com/description)
+		 (https://docs.microsoft.com/en-us/windows/desktop/api/minwinbase/ns-minwinbase-filetime) */
+	if(!gettimeofday)
+	gettimeofday = ffic_raw("kernel32","GetSystemTimePreciseAsFileTime",0);//WIN8+
+	if(!gettimeofday)
+	gettimeofday = ffic_raw("kernel32","GetSystemTimeAsFileTime",0);
+	FILETIME file_time;
+	gettimeofday(&file_time);
+	sao_u64 since_1601 = ( (sao_u64) file_time.dwHighDateTime << 32) | (sao_u64) file_time.dwLowDateTime;
+	sao_u64 since_1970 = ((sao_u64) since_1601 - epoch);
+	sao_u64 microseconds_since_1970 = since_1970 / 10;
+	tv.tv_sec = (microseconds_since_1970 / (sao_u64) 1000000);
+	tv.tv_usec = microseconds_since_1970 % (sao_u64) 1000000;
+#else
+	if(!gettimeofday) gettimeofday = ffic("c","gettimeofday");
+	gettimeofday(&tv, 0);
+#endif
+	return (sao_u64)tv.tv_sec*(sao_u64)1000 + ((sao_u64)tv.tv_usec+(sao_u64)500)/(sao_u64)1000;
 }
 #  ifndef libc
 #  define libc(f) ffic("c",#f)
