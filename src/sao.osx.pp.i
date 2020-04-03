@@ -624,8 +624,7 @@ int sao_read_line(SaoStream* fw)
   if(fw->type==stream_file){
    if(feof(fw->fp)){ break; }
   }else{
-   do{libcbf(libc_fprintf,"fprintf")(libcbf(libc_stderr,"stderr"),"%s\n","exit8");libcbf(libc_exit,"exit")(1);}while(0);
-   if (fw->pos==0) libcbf(libc_fprintf,"fprintf")(libcbf(libc_stderr,"stderr"),"DEBUG pos?");
+   if (fw->pos==0) libcbf(libc_fprintf,"fprintf")(libcbf(libc_stderr,"stderr"),"DEBUG no pos?");
    if (*(fw->pos)==0){
     libcbf(libc_fprintf,"fprintf")(libcbf(libc_stderr,"stderr"),"DEBUG end?");
     break;
@@ -962,11 +961,9 @@ sao_object * sao_parse( SaoStream * fw, int do_eval )
    libcbf(libc_printf,"printf")("\n");
    sao_object *rt = sao_eval(obj, GLOBAL);
    if (do_eval){
+    libcbf(libc_printf,"printf")("%llu: ",microtime());
     if ( !((rt)==0||(rt)==NIL)) {
-     libcbf(libc_printf,"printf")("%llu: ",microtime());
      sao_out_expr("=>", rt);
-     libcbf(libc_printf,"printf")("\n");
-    }else{
      libcbf(libc_printf,"printf")("\n");
     }
    }else{
@@ -983,6 +980,8 @@ int main(int argc, char **argv)
  ht_resize(8192-1);
  if(argc>1){
   SaoStream * fw = SaoStream_new(argv[1],stream_char);
+  sao_object * arg_expr = sao_load_expr( fw );
+  sao_out_expr("DEBUG car(arg_expr)=>",arg_expr);
   return 0;
  }
  sao_init();

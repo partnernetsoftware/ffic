@@ -621,14 +621,10 @@ int sao_read_line(SaoStream* fw)
 	ffic_func feof = libc(feof);
 	do{
 		if(fw->type==stream_file){
-			//sao_stderr("debug fp=%d\n",fw->fp);
-			//sao_error("exit9");
 			if(feof(fw->fp)){ break; }
 		}else{
-			sao_error("exit8");
-			
 			//if(feof(fw->fp)){ break; }
-			if (fw->pos==0) sao_stderr("DEBUG pos?");
+			if (fw->pos==0) sao_stderr("DEBUG no pos?");
 			if (*(fw->pos)==0){
 				sao_stderr("DEBUG end?");
 				break;
@@ -654,6 +650,7 @@ int sao_read_line(SaoStream* fw)
 		}else{
 			while( *(fw->pos)!=0 ){
 				if('\n'==sao_enq_c(fw,(*(fw->pos)))){ line_num++; }
+				//sao_stderr(".");
 				fw->pos++;
 			}
 			sao_enq_c(fw,SAO_EOF);
@@ -986,28 +983,16 @@ sao_object * sao_parse( SaoStream * fw, int do_eval )
 			break;
 		}
 		if (!is_NIL(obj)) {
-#if defined(PROFILE)
-			//sao_stdout("%llu: ",ffic_microtime());
-			sao_stdout("%llu: ",microtime());
-#endif
-			sao_out_expr("<=", obj);
-			sao_stdout("\n");
+			sao_stdout("%llu: ",microtime());//TODO hide default option
+			sao_out_expr("<=", obj);//TODO show only -i
+			sao_stdout("\n");//ditto
 
 			sao_object *rt = sao_eval(obj, GLOBAL);
 			if (do_eval){
+				sao_stdout("%llu: ",microtime());//TODO hide default
 				if ( !is_NIL(rt)) {
-#if defined(PROFILE)
-					//sao_stdout("%llu: ",ffic_microtime());
-					sao_stdout("%llu: ",microtime());
-#endif
-					//TODO if "-i"
-					sao_out_expr("=>", rt);
-					sao_stdout("\n");
-				}else{
-#if defined(DEBUG)
-					sao_out_expr("nothing after eval: ",obj);
-#endif
-					sao_stdout("\n");
+					sao_out_expr("=>", rt);//TODO show only -i
+					sao_stdout("\n");//ditto
 				}
 			}else{
 				return obj;
@@ -1023,19 +1008,22 @@ int main(int argc, char **argv)
 	ht_resize(8192-1);
 	if(argc>1){
 		SaoStream * fw = SaoStream_new(argv[1],stream_char);
+		sao_object * arg_expr = sao_load_expr( fw );
+		sao_out_expr("DEBUG car(arg_expr)=>",arg_expr);
 		return 0;
 	}
-	sao_init();//ffic("sao","init");//TODO libsao
+	sao_init();//TODO ffic("libsao","init")
 	libc(setmode)(libc(fileno)(libc(stdin)),0x8000/*O_BINARY*/);
 	SaoStream * fw = SaoStream_new(libc(stdin),stream_file);
 	sao_object * result = sao_parse( fw, 1/*eval*/ );
 	return 0;
 }
 /* TODO (Plan)
- * * _string stream
- * * options in sao
- * * remove "ok" stuff?
+ * * options: interact (REPL)
+ * * options: profiling
  * * redesign context/global
  * * improve: translate logic func (caar...) to officially inline
+ * * remove "ok" stuff?
  * * utf8 support for strings
+ * * fix: bug of ht expand...
  */
