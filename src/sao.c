@@ -114,10 +114,11 @@ typedef struct _FileChar {
 typedef struct {
 	stream_t type;
 	void* fp;
+	char* pos;//for stream_char only
 	FileChar * ptr_start;//TODO for gc(start to head->ptr_prev)
 	FileChar * ptr_head;
 	FileChar * ptr_last;
-	long rest;
+	long rest;//TODO for profiling
 	long total;//TODO for gc()
 } SaoStream;
 SaoStream * SaoStream_new(void*,stream_t);
@@ -467,8 +468,9 @@ sao_object *native_exit(sao_object *args) {
 }
 //TODO merge read/load
 sao_object *native_read(sao_object *args) {
-	SaoStream * fw = SaoStream_new(libc(stdin),stream_file);
-	return sao_load_expr(fw);
+	//SaoStream * fw = SaoStream_new(libc(stdin),stream_file);
+	//return sao_load_expr(fw);
+	return sao_load_expr(SaoStream_new(libc(stdin),stream_file));
 }
 sao_object *native_tget(sao_object *args) {
 	SAO_CHECK_TYPE(car(args), type_table);
@@ -580,6 +582,7 @@ SaoStream * SaoStream_new(void* fp,stream_t type)
 {
 	NEW_OBJECT(SaoStream,fw);
 	fw->fp = fp;
+	if(type==stream_char) fw->pos = fp;
 	fw->type = type;
 	return fw;
 }
@@ -617,23 +620,42 @@ int sao_read_line(SaoStream* fw)
 {
 	ffic_func feof = libc(feof);
 	do{
-		if(feof(fw->fp)){ break; }
+		if(fw->type==stream_file){
+			//sao_stderr("debug fp=%d\n",fw->fp);
+			//sao_error("exit9");
+			if(feof(fw->fp)){ break; }
+		}else{
+			sao_error("exit8");
+			
+			//if(feof(fw->fp)){ break; }
+			if (fw->pos==0) sao_stderr("DEBUG pos?");
+			if (*(fw->pos)==0){
+				sao_stderr("DEBUG end?");
+				break;
+			}
+		}
 		ffic_func fgets  = libc(fgets);
 		ffic_func malloc = libc(malloc);
 		ffic_func memset = libc(memset);
 		ffic_func strlen = libc(strlen);
 		int LINE_LEN = 1024;//TODO
 		NEW_OBJECT(char,line,LINE_LEN);
-		fgets(line,LINE_LEN,fw->fp);
-		long strlen_line = (long) strlen(line);
-		if(strlen_line>0){
-			for(int i=0;i<strlen_line;i++)
-			{
-				if('\n'==sao_enq_c(fw,line[i])){
-					line_num++;
+		if(fw->type==stream_file){
+			fgets(line,LINE_LEN,fw->fp);
+			long strlen_line = (long) strlen(line);
+			if(strlen_line>0){
+				for(int i=0;i<strlen_line;i++)
+				{
+					if('\n'==sao_enq_c(fw,line[i])){ line_num++; }
 				}
+			}else{
+				sao_enq_c(fw,SAO_EOF);
 			}
 		}else{
+			while( *(fw->pos)!=0 ){
+				if('\n'==sao_enq_c(fw,(*(fw->pos)))){ line_num++; }
+				fw->pos++;
+			}
 			sao_enq_c(fw,SAO_EOF);
 		}
 	}while(0);
