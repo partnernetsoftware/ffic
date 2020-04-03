@@ -956,7 +956,7 @@ sao_object * sao_parse( SaoStream * fw, int do_eval )
 {
 	sao_read_line(fw);
 	//CAST_AS(sao_u64(*)(),microtime);
-	//sao_u64 (*microtime)() = ( sao_u64(*)() ) libc(microtime);
+	sao_u64 (*microtime)() = ( sao_u64(*)() ) libc(microtime);
 	sao_object *rt = NIL;
 	for(;;){
 		sao_object *obj = sao_load_expr(fw);
@@ -965,7 +965,8 @@ sao_object * sao_parse( SaoStream * fw, int do_eval )
 		}
 		if (!is_NIL(obj)) {
 #if defined(PROFILE)
-			sao_stdout("%llu: ",ffic_microtime());
+			//sao_stdout("%llu: ",ffic_microtime());
+			sao_stdout("%llu: ",microtime());
 #endif
 			sao_out_expr("<=", obj);
 			sao_stdout("\n");
@@ -974,7 +975,8 @@ sao_object * sao_parse( SaoStream * fw, int do_eval )
 			if (do_eval){
 				if ( !is_NIL(rt)) {
 #if defined(PROFILE)
-					sao_stdout("%llu: ",ffic_microtime());
+					//sao_stdout("%llu: ",ffic_microtime());
+					sao_stdout("%llu: ",microtime());
 #endif
 					//TODO if "-i"
 					sao_out_expr("=>", rt);

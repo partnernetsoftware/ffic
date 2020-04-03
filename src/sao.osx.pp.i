@@ -933,6 +933,7 @@ sao_object * sao_init()
 sao_object * sao_parse( SaoStream * fw, int do_eval )
 {
  sao_read_line(fw);
+ sao_u64 (*microtime)() = ( sao_u64(*)() ) libcbf(libc_microtime,"microtime");
  sao_object *rt = NIL;
  for(;;){
   sao_object *obj = sao_load_expr(fw);
@@ -940,13 +941,13 @@ sao_object * sao_parse( SaoStream * fw, int do_eval )
    break;
   }
   if (!((obj)==0||(obj)==NIL)) {
-   libcbf(libc_printf,"printf")("%llu: ",ffic_microtime());
+   libcbf(libc_printf,"printf")("%llu: ",microtime());
    sao_out_expr("<=", obj);
    libcbf(libc_printf,"printf")("\n");
    sao_object *rt = sao_eval(obj, GLOBAL);
    if (do_eval){
     if ( !((rt)==0||(rt)==NIL)) {
-     libcbf(libc_printf,"printf")("%llu: ",ffic_microtime());
+     libcbf(libc_printf,"printf")("%llu: ",microtime());
      sao_out_expr("=>", rt);
      libcbf(libc_printf,"printf")("\n");
     }else{
