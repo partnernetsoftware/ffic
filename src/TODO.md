@@ -1,22 +1,21 @@
-# scheme.c
-
-* example that using ffi to build a lisp-scheme tiny engin to prove it works
-
-## example
-
-```
-cat fib.scm | ./ffic scheme.c
-
-lisp to sao
-:%s/\((\)\([^) ]\+\)/\2\1/gc 
-```
-
 # TODO
 
-* (call (ffi $lib $func) ...)
-* argv: -DDEBUG -DPROFILE
+```
+/* TODO (Plan)
+ * * options: interact (REPL)
+ * * options: profiling
+ * * redesign context/global
+ * * improve: translate logic func (caar...) to officially inline
+ * * remove "ok" stuff?
+ * * utf8 support for strings
+ * * fix: bug of ht expand...
+ */
+```
+* ctype()
+* ffic()
+* improve: car/cdr
 * compile to binary / load from binary
-* JIT?
+* JIT
 
 # init
 

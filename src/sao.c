@@ -39,12 +39,12 @@
 #define SAO_ITR1(mmm,mm1,qqq,...) SAO_EVAL( SAO_WHILE1( mmm,mm1,qqq,__VA_ARGS__) )
 //////////////////////////////////////////////////////////////////////////////
 #define DEFINE_ENUM_LIBC(n) libc_##n,
-#define LIBC_FUNC_LIST fprintf,stderr,exit,malloc,memset,strdup,strcmp,printf,\
+#define LIBC_FUNC_LIST fprintf,stderr,malloc,memset,strdup,strcmp,printf,\
 	stdin,putc,getc,isalnum,strchr,isdigit,isalpha,fopen,fread,fgets,fclose,feof,\
 	usleep,msleep,sleep,fputc,setmode,fileno,stdout,strlen,\
-	fflush,free,microtime,SAO_NULL
+	fflush,free,microtime,exit
 enum { SAO_ITR(DEFINE_ENUM_LIBC,SAO_EXPAND(LIBC_FUNC_LIST)) };
-void* (*libc_a[libc_SAO_NULL])();//libc buffer
+void* (*libc_a[libc_exit+1])();//buffer for libc
 #define libc(f) libcbf(libc_##f,#f)
 #include "ffic.h" //github.com/partnernetsoftware/ffic/blob/master/src/ffic.h
 ffic_func libcbf(int fi,const char* fn);
@@ -83,7 +83,6 @@ struct _sao_object {
 	union {
 		long _integer;
 		char *_string;
-		//char *_symbol;
 		struct {
 			sao_object **_table;
 			int _tblen;
@@ -92,7 +91,7 @@ struct _sao_object {
 			sao_object *car;
 			sao_object *cdr;
 		};
-		double _double;//TODO
+		double _double;//TODO maths
 		//TODO BigNumber * _bignum;
 		native_t native;
 	};
@@ -1018,12 +1017,3 @@ int main(int argc, char **argv)
 	sao_object * result = sao_parse( fw, 1/*eval*/ );
 	return 0;
 }
-/* TODO (Plan)
- * * options: interact (REPL)
- * * options: profiling
- * * redesign context/global
- * * improve: translate logic func (caar...) to officially inline
- * * remove "ok" stuff?
- * * utf8 support for strings
- * * fix: bug of ht expand...
- */

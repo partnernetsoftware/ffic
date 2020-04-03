@@ -1,5 +1,5 @@
-enum { libc_fprintf, libc_stderr, libc_exit, libc_malloc, libc_memset, libc_strdup, libc_strcmp, libc_printf, libc_stdin, libc_putc, libc_getc, libc_isalnum, libc_strchr, libc_isdigit, libc_isalpha, libc_fopen, libc_fread, libc_fgets, libc_fclose, libc_feof, libc_usleep, libc_msleep, libc_sleep, libc_fputc, libc_setmode, libc_fileno, libc_stdout, libc_strlen, libc_fflush, libc_free, libc_microtime, libc_SAO_NULL, };
-void* (*libc_a[libc_SAO_NULL])();
+enum { libc_fprintf, libc_stderr, libc_malloc, libc_memset, libc_strdup, libc_strcmp, libc_printf, libc_stdin, libc_putc, libc_getc, libc_isalnum, libc_strchr, libc_isdigit, libc_isalpha, libc_fopen, libc_fread, libc_fgets, libc_fclose, libc_feof, libc_usleep, libc_msleep, libc_sleep, libc_fputc, libc_setmode, libc_fileno, libc_stdout, libc_strlen, libc_fflush, libc_free, libc_microtime, libc_exit, };
+void* (*libc_a[libc_exit+1])();
 typedef signed char sao_i8;
 typedef unsigned char sao_u8;
 typedef signed short int sao_i16;
@@ -86,10 +86,6 @@ ffic_ptr(*ffic(const char* libname, const char* funcname, ...))()
  }
  return addr;
 }
-typedef struct _FILETIME {
- unsigned long dwLowDateTime;
- unsigned long dwHighDateTime;
-} FILETIME;
 struct timeval {
  long tv_sec;
  long tv_usec;
@@ -98,9 +94,9 @@ sao_u64 ffic_microtime(void)
 {
  struct timeval tv;
  static ffic_func gettimeofday;
- if(!gettimeofday) gettimeofday = ffic("c","gettimeofday");
+ if (!gettimeofday) gettimeofday = ffic("c","gettimeofday");
  gettimeofday(&tv, 0);
- return (sao_u64)tv.tv_sec*(sao_u64)1000 + ((sao_u64)tv.tv_usec+(sao_u64)500)/(sao_u64)1000;
+ return (sao_u64)tv.tv_sec*(sao_u64)1000 + ((tv.tv_usec)/1000)%1000;
 }
 ffic_func libcbf(int fi,const char* fn);
 ffic_func libcbf(int fi,const char* fn){ return libc_a[fi]?libc_a[fi]:(libc_a[fi]=ffic("c",fn)); }

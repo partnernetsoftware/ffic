@@ -212,10 +212,6 @@ ffic_ptr(*ffic(const char* libname, const char* funcname, ...))()
 	}
 	return addr;
 }
-typedef struct _FILETIME {
-	unsigned long dwLowDateTime;
-	unsigned long dwHighDateTime;
-} FILETIME;
 struct timeval {
 	long tv_sec;
 	long tv_usec;
@@ -225,18 +221,13 @@ sao_u64 ffic_microtime(void)
 	struct timeval tv;
 	static ffic_func gettimeofday;
 #ifdef _WIN32
+	gettimeofday = ffic_raw("kernel32","GetSystemTimePreciseAsFileTime",0);
+	if (!gettimeofday) gettimeofday = ffic_raw("kernel32","GetSystemTimeAsFileTime",0);
 	static const sao_u64 epoch = 116444736000000000;
-	/* (https://github.com/postgres/postgres/blob/master/src/port/gettimeofday.c) */
-	/* (https://github.com/coreutils/gnulib/blob/master/lib/gettimeofday.c) */
-	/* (https://docs.microsoft.com/en-us/windows/desktop/api/sysinfoapi/nf-sysinfoapi-getsystemtimeasfiletime)
-		 (https://docs.microsoft.com/en-us/windows/desktop/api/sysinfoapi/nf-sysinfoapi-getsystemtimepreciseasfiletime)
-		 (http://www.windowstimestamp.com/description)
-		 (https://docs.microsoft.com/en-us/windows/desktop/api/minwinbase/ns-minwinbase-filetime) */
-	if(!gettimeofday)
-	gettimeofday = ffic_raw("kernel32","GetSystemTimePreciseAsFileTime",0);//WIN8+
-	if(!gettimeofday)
-	gettimeofday = ffic_raw("kernel32","GetSystemTimeAsFileTime",0);
-	FILETIME file_time;
+	struct _FILETIME {
+		unsigned long dwLowDateTime;
+		unsigned long dwHighDateTime;
+	} file_time;
 	gettimeofday(&file_time);
 	sao_u64 since_1601 = ( (sao_u64) file_time.dwHighDateTime << 32) | (sao_u64) file_time.dwLowDateTime;
 	sao_u64 since_1970 = ((sao_u64) since_1601 - epoch);
@@ -244,10 +235,11 @@ sao_u64 ffic_microtime(void)
 	tv.tv_sec = (microseconds_since_1970 / (sao_u64) 1000000);
 	tv.tv_usec = microseconds_since_1970 % (sao_u64) 1000000;
 #else
-	if(!gettimeofday) gettimeofday = ffic("c","gettimeofday");
+	gettimeofday = ffic("c","gettimeofday");
 	gettimeofday(&tv, 0);
 #endif
-	return (sao_u64)tv.tv_sec*(sao_u64)1000 + ((sao_u64)tv.tv_usec+(sao_u64)500)/(sao_u64)1000;
+	//return tv.tv_sec*1000 + ((tv.tv_usec+500)/1000)%1000;
+	return (sao_u64) (tv.tv_sec*(sao_u64)1000 + ((tv.tv_usec+500)/1000)%1000);
 }
 #  ifndef libc
 #  define libc(f) ffic("c",#f)
