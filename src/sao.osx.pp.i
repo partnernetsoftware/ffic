@@ -94,9 +94,9 @@ sao_u64 ffic_microtime(void)
 {
  struct timeval tv;
  static ffic_func gettimeofday;
- if (!gettimeofday) gettimeofday = ffic("c","gettimeofday");
+ gettimeofday = ffic("c","gettimeofday");
  gettimeofday(&tv, 0);
- return (sao_u64)tv.tv_sec*(sao_u64)1000 + ((tv.tv_usec)/1000)%1000;
+ return ((sao_u64)tv.tv_sec*(sao_u64)1000 + (((sao_u64)tv.tv_usec+(sao_u64)500)/(sao_u64)1000)%(sao_u64)1000);
 }
 ffic_func libcbf(int fi,const char* fn);
 ffic_func libcbf(int fi,const char* fn){ return libc_a[fi]?libc_a[fi]:(libc_a[fi]=ffic("c",fn)); }
@@ -973,6 +973,8 @@ sao_object * sao_parse( SaoStream * fw, int do_eval )
 }
 int main(int argc, char **argv)
 {
+ sao_u64 (*microtime)() = ( sao_u64(*)() ) libcbf(libc_microtime,"microtime");
+ libcbf(libc_printf,"printf")("%llu: \n",microtime());
  ht_resize(8192-1);
  if(argc>1){
   SaoStream * fw = SaoStream_new(argv[1],stream_char);
