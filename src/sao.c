@@ -1004,12 +1004,13 @@ int main(int argc, char **argv)
 	ht_resize(8192-1);
 	sao_init(0);//TODO to define own natives ffic("libsao","init")
 
-	ARGV = cons(NIL,NIL);
+	ARGV = sao_expand(NIL, NIL, NIL);
 	//ARGV = sao_alloc(type_string);
 	//ARGV = sao_alloc(type_list);
 	//ARGV = GLOBAL;
 	//sao_stderr("*(ARGV)=%d\n",ARGV);
-	sao_out_expr("\nDEBUG ARGV=>",ARGV);
+	//sao_out_expr("\nDEBUG ARGV=>",ARGV);
+	sao_object * _ = sao_new_symbol("_");
 	if(argc>1){
 		char argv_line[512] = {'_','(',0};
 		char * argv_ptr = &argv_line[2];
@@ -1019,12 +1020,12 @@ int main(int argc, char **argv)
 		*argv_ptr++ = ')'; //*argv_ptr++ = '\0';
 		sao_stream * fw = sao_stream_new(argv_line,stream_char);
 		sao_object * arg_expr = sao_load_expr( fw );
-		//ARGV = arg_expr;
+		define_variable(_, arg_expr, ARGV);
+	}else{
+		sao_object * test = sao_new_symbol("test");
+		define_variable(_, test, ARGV);
 	}
-	//sao_object * test = sao_new_symbol("test");
-	////sao_set_variable(test, test, ARGV);
-	//define_variable(test, test, ARGV);
-	//sao_out_expr("\nDEBUG ARGV=>",ARGV);
+	sao_out_expr("\nDEBUG ARGV=>",ARGV);
 
 	//define_variable(sao_new_symbol("_"), ARGV, GLOBAL);
 	//sao_out_expr("\nDEBUG GLOBAL=>",GLOBAL);
