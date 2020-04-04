@@ -94,7 +94,7 @@ struct _sao_object {
 } __attribute__((packed));
 #define define_sao_object(n) sao_object*n=SAO_NULL;
 SAO_ITR(define_sao_object, NIL,ARGV,GLOBAL,TRUE,FALSE,QUOTE,SET,LET,DEFINE,PROCEDURE,IF,LAMBDA,BEGIN,ERROR);
-int SAO_ITR1(SAO_CAT_COMMA, argv_, i,p,d) argv_v;//REPL,PrintResult,DevDebug,Version
+int SAO_ITR1(SAO_CAT_COMMA, argv_, i,p,d,v) argv_h;//REPL,PrintResult,DevDebug,Version,Help
 sao_object *is_tagged(sao_object *cell, sao_object *tag);
 sao_object *cons(sao_object *car, sao_object *cdr);
 sao_object *native_load(sao_object *args);
@@ -279,6 +279,106 @@ sao_object* is_tagged(sao_object *cell, sao_object *tag)
 int sao_list_len(sao_object *expr) {
 	return is_NIL(expr) ? 0 : (1+sao_list_len(cdr(expr)));
 }
+int sao_deq_c(sao_stream *fw)
+{
+	int c = -2;//
+	FileChar * ptr_head = fw->ptr_head;
+	if(ptr_head!=SAO_NULL){
+		c = ptr_head->c;
+		fw->ptr_head=ptr_head->ptr_next;
+	}
+	return c;
+}
+int sao_enq_c(sao_stream* fw,int k){
+	SAO_NEW_OBJECT(FileChar,fc);
+	fc->c = k; 
+	fc->ptr_prev= fw->ptr_last;
+	if(SAO_NULL==fw->ptr_start){
+		fw->ptr_start = fc;
+	}
+	if(SAO_NULL==fw->ptr_head){
+		fw->ptr_head = fc;
+	}
+	if(SAO_NULL!=fw->ptr_last){
+		fw->ptr_last->ptr_next = fc;
+	}
+	fw->ptr_last = fc;
+	return k;
+}
+int sao_read_line(sao_stream* fw) //TODO int * line_num
+{
+	int line_num = 0;
+	ffic_func feof = libc(feof);
+	do{
+		if(fw->type==stream_file){
+			if(feof(fw->fp)){ break; }
+		}else{
+			//if(feof(fw->fp)){ break; }
+			if (fw->pos==0) sao_stderr("DEBUG no pos?");
+			if (*(fw->pos)==0){
+				sao_stderr("DEBUG end?");
+				break;
+			}
+		}
+		ffic_func fgets  = libc(fgets);
+		ffic_func strlen = libc(strlen);
+		int LINE_LEN = 1024;//TODO
+		SAO_NEW_OBJECT(char,line,LINE_LEN);//TODO gc
+		if(fw->type==stream_file){
+			if(argv_i){
+				sao_stdout("> ");
+			}
+			fgets(line,LINE_LEN,fw->fp);
+			long strlen_line = (long) strlen(line);
+			if(strlen_line>0){
+				for(int i=0;i<strlen_line;i++)
+				{
+					if('\n'==sao_enq_c(fw,line[i])){ line_num++; }
+				}
+			}else{
+				sao_enq_c(fw,SAO_EOF);
+			}
+		}else{
+			while( *(fw->pos)!=0 ){
+				if('\n'==sao_enq_c(fw,(*(fw->pos)))){ line_num++; }
+				//sao_stderr(".");
+				fw->pos++;
+			}
+			sao_enq_c(fw,SAO_EOF);
+		}
+	}while(0);
+	return line_num;
+}
+sao_object * sao_parse( sao_stream * fw, int do_eval ) {
+	sao_read_line(fw);
+	sao_u64 (*microtime)() = ( sao_u64(*)() ) libc(microtime);
+	sao_object *rt = NIL;
+	for(;;){
+		sao_object* exp = sao_load_expr(fw);
+		if(exp==SAO_NULL){ break; }
+		if (!is_NIL(exp)) {
+			if(argv_d)
+				sao_stdout("%llu: ",microtime());
+			if(argv_i){
+				sao_out_expr("<=", exp);
+				sao_stdout("\n");
+			}
+			if (do_eval){
+				rt = sao_eval(exp, GLOBAL);
+				if(argv_d) sao_stdout("%llu: ",microtime());
+				if(argv_i){
+					if ( !is_NIL(rt)) {
+						sao_out_expr("=>", rt);
+						sao_stdout("\n");
+					}
+				}
+			}else{
+				rt = exp;
+			}
+		}
+	}
+	return rt;
+}
 sao_object *native_type(sao_object *args) {
 	return sao_new_symbol(type_names[car(args)->type]);
 }
@@ -447,7 +547,7 @@ sao_object *native_read(sao_object *args) {
 }
 sao_object *native_load(sao_object *args) { //TODO merge with native_read() 1!!!
 	sao_object *exp;
-	sao_object *ret = 0;
+	sao_object *ret = NIL;
 	char *filename = car(args)->_string;
 #if defined(DEBUG)
 	sao_stdout("Evaluating file %s\n", filename);
@@ -560,76 +660,6 @@ sao_stream * sao_stream_new(void* fp,stream_t type)
 	if(type==stream_char) fw->pos = fp;
 	fw->type = type;
 	return fw;
-}
-int sao_deq_c(sao_stream *fw)
-{
-	int c = -2;//
-	FileChar * ptr_head = fw->ptr_head;
-	if(ptr_head!=SAO_NULL){
-		c = ptr_head->c;
-		fw->ptr_head=ptr_head->ptr_next;
-	}
-	return c;
-}
-int sao_enq_c(sao_stream* fw,int k){
-	SAO_NEW_OBJECT(FileChar,fc);
-	fc->c = k; 
-	fc->ptr_prev= fw->ptr_last;
-	if(SAO_NULL==fw->ptr_start){
-		fw->ptr_start = fc;
-	}
-	if(SAO_NULL==fw->ptr_head){
-		fw->ptr_head = fc;
-	}
-	if(SAO_NULL!=fw->ptr_last){
-		fw->ptr_last->ptr_next = fc;
-	}
-	fw->ptr_last = fc;
-	return k;
-}
-int line_num = 0;
-int sao_read_line(sao_stream* fw)
-{
-	ffic_func feof = libc(feof);
-	do{
-		if(fw->type==stream_file){
-			if(feof(fw->fp)){ break; }
-		}else{
-			//if(feof(fw->fp)){ break; }
-			if (fw->pos==0) sao_stderr("DEBUG no pos?");
-			if (*(fw->pos)==0){
-				sao_stderr("DEBUG end?");
-				break;
-			}
-		}
-		ffic_func fgets  = libc(fgets);
-		ffic_func strlen = libc(strlen);
-		int LINE_LEN = 1024;//TODO
-		SAO_NEW_OBJECT(char,line,LINE_LEN);//TODO gc
-		if(fw->type==stream_file){
-			if(argv_i){
-				sao_stdout("> ");
-			}
-			fgets(line,LINE_LEN,fw->fp);
-			long strlen_line = (long) strlen(line);
-			if(strlen_line>0){
-				for(int i=0;i<strlen_line;i++)
-				{
-					if('\n'==sao_enq_c(fw,line[i])){ line_num++; }
-				}
-			}else{
-				sao_enq_c(fw,SAO_EOF);
-			}
-		}else{
-			while( *(fw->pos)!=0 ){
-				if('\n'==sao_enq_c(fw,(*(fw->pos)))){ line_num++; }
-				//sao_stderr(".");
-				fw->pos++;
-			}
-			sao_enq_c(fw,SAO_EOF);
-		}
-	}while(0);
-	return line_num;
 }
 sao_object *native_print(sao_object *args) {
 	sao_out_expr(0, car(args));
@@ -949,53 +979,19 @@ sao_object * sao_init(char* langpack /* TODO ffic with own lang*/)
 			);
 	return GLOBAL;
 }
-sao_object * sao_parse( sao_stream * fw, int do_eval ) {
-	sao_read_line(fw);
-	sao_u64 (*microtime)() = ( sao_u64(*)() ) libc(microtime);
-	sao_object *rt = NIL;
-	for(;;){
-		sao_object* exp = sao_load_expr(fw);
-		if(exp==SAO_NULL){ break; }
-		if (!is_NIL(exp)) {
-			if(argv_d)
-				sao_stdout("%llu: ",microtime());
-			if(argv_i){
-				sao_out_expr("<=", exp);
-				sao_stdout("\n");
-			}
-			if (do_eval){
-				rt = sao_eval(exp, GLOBAL);
-				if(argv_d) sao_stdout("%llu: ",microtime());
-				if(argv_i){
-					if ( !is_NIL(rt)) {
-						sao_out_expr("=>", rt);
-						sao_stdout("\n");
-					}
-				}
-			}else{
-				rt = exp;
-			}
-		}
-	}
-	return rt;
-}
 int main(int argc, char **argv) {
 	ffic_func strcmp = libc(strcmp);
 	libc(setmode)(libc(fileno)(libc(stdin)),0x8000/*O_BINARY*/);
 	ht_resize(16384-1);//TODO improve hashtable later
 	sao_init(0);//TODO to define own natives ffic("libsao","init")
 	ARGV = sao_expand(NIL, NIL, NIL);
-	sao_object * _ = sao_new_symbol("_");
 	if(argc>1){
 		char argv_line[512] = {'_','(',0};
 		char * argv_ptr = &argv_line[2];
-		for(int i=1;i<argc;i++){
-			*argv_ptr++=' ';char*wk=argv[i];while(*wk)*argv_ptr++=*wk++;
-		}
+		for(int i=1;i<argc;i++){*argv_ptr++=' ';char*wk=argv[i];while(*wk)*argv_ptr++=*wk++;}
 		*argv_ptr++ = ')'; //*argv_ptr++ = '\0';
 		sao_stream * fw = sao_stream_new(argv_line,stream_char);
 		sao_object * arg_expr = sao_load_expr( fw );
-		//sao_out_expr("\nDEBUG arg_expr=>",arg_expr);
 		sao_object * pos = cdr(arg_expr);
 		while(!is_NIL(pos)){
 			sao_object * _car = car(pos);
@@ -1011,23 +1007,25 @@ int main(int argc, char **argv) {
 				i_val = 1;
 			}
 			//sao_stdout("\nTODO %s=%d\n", string_or_name, i_val);
-			sao_def_var(sao_new_symbol(string_or_name), sao_new_integer(i_val), ARGV);
-			if(!strcmp(string_or_name,"-i")){
-				argv_i = i_val;
-			}else if(!strcmp(string_or_name,"-d")){
-				argv_d = i_val;
-			}else if(!strcmp(string_or_name,"-p")){
-				argv_p = i_val;
-			}else if(!strcmp(string_or_name,"-v")){
-				sao_stderr("SaoLang (R) v0.0.3 - Wanjo Chan (c) 2020\n");
-			}
-			//TODO open interactive mode if stdin nothing
+			sao_def_var(sao_new_symbol(string_or_name), sao_new_integer(i_val), ARGV);//@ref sao_get_var
+			if(!strcmp(string_or_name,"-h")){ argv_v++;argv_h++;
+			}else if(!strcmp(string_or_name,"-i")){ argv_i += i_val;
+			}else if(!strcmp(string_or_name,"-d")){ argv_d += i_val;
+			}else if(!strcmp(string_or_name,"-p")){ argv_p += i_val;
+			}else if(!strcmp(string_or_name,"-v")){ argv_v++; }
 			pos = cdr(pos);
 		}
+		sao_def_var(ARGV,ARGV,GLOBAL);
 	}
-	sao_def_var(ARGV,ARGV,GLOBAL);
-	//sao_out_expr("\nDEBUG ARGV=>",ARGV);
-	//sao_out_expr("\n DEBUG lookup()=>",sao_get_var(sao_new_symbol("i"),ARGV));
+	if(argv_v) sao_stdout("SaoLang (R) v0.0.3 - Wanjo Chan (c) 2020\n");
+	if(argv_h) sao_error("Usage: sao [options] [ script.sao ]\n"
+			"Options:\n"
+			"	-h:	Help\n"
+			"	-v:	Version\n"
+			"	-i:	Interactive (REPL)\n"
+			"	-p:	Print final result\n"
+			"	-d:	Dev debug only\n"
+			);
 	sao_stream * fw = sao_stream_new(libc(stdin),stream_file);
 	sao_object * result = sao_parse( fw, 1/*eval*/ );
 	if(argv_p){ sao_out_expr(0,result);sao_stdout("\n"); }
