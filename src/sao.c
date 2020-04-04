@@ -59,9 +59,9 @@ ffic_func libcbf(int fi,const char* fn){ return libc_a[fi]?libc_a[fi]:(libc_a[fi
 #define define_map(n, ...) define_enum(n,__VA_ARGS__) define_map_arr(n,__VA_ARGS__)
 #define SAO_NEW(t,...) sao_calloc( sizeof(t) SAO_IF(SAO_IS_PAREN(__VA_ARGS__ ()))(SAO_EAT(),*__VA_ARGS__) )
 #define NEW_OBJECT(t,n,...) t*n=SAO_NEW(t,__VA_ARGS__);
-//#define is_NIL(x) (!(x)) //TODO maybe rollback with bracket
 #define is_NIL(x) !x
-#define is_LIST(x) (x&&!(x->type)) //TODO only when x is word, so need to improve
+#define is_LIST(x) (x&&!x->type)
+#define is_ATOM(x) (x&&x->type)
 #define sao_stderr(...) libc(fprintf)(libc(stderr),__VA_ARGS__)
 #define sao_stdout(...) libc(printf)(__VA_ARGS__)
 #define sao_error(x) do{sao_stderr("%s\n",x);libc(exit)(1);}while(0)
@@ -75,11 +75,8 @@ ffic_func libcbf(int fi,const char* fn){ return libc_a[fi]?libc_a[fi]:(libc_a[fi
 #define cdddr(x) (cdr(cdr(cdr((x)))))
 #define cdadr(x) (cdr(car(cdr((x)))))
 #define cadddr(x) (car(cdr(cdr(cdr((x))))))
-//#define atom(x) (!is_NIL(x) && (x)->type != type_list)
-#define atom(x) (x && x->type) //i.e. (x&&!is_LIST(x))
 #define SAO_CHECK_TYPE(x, t) (sao_type_check(__func__, x, t))
-//#define car(x) ((is_NIL(x)||x->type!=type_list)?NIL:x->car)
-//#define car(x) ((x&&x->type)?NIL:x->car)
+//#define car(x) ((x&&!x->type)?x->car:NIL) //not good for macro
 //////////////////////////////////////////////////////////////////////////////
 define_map(stream, file,char);
 //define_map(type,   integer,symbol,string,list,native,vector);
@@ -334,7 +331,7 @@ sao_object *native_is_null(sao_object *args) {
 sao_object *native_pairq(sao_object *args) {
 	if (car(args)->type != type_list)
 		return FALSE;
-	return (atom(caar(args)) && atom(cdar(args))) ? TRUE : FALSE;
+	return (is_ATOM(caar(args)) && is_ATOM(cdar(args))) ? TRUE : FALSE;
 }
 sao_object *native_is_list(sao_object *args) {
 	sao_object *list;
@@ -346,7 +343,7 @@ sao_object *native_is_list(sao_object *args) {
 	return (car(args)->type == type_list && native_pairq(args) != TRUE) ? TRUE : FALSE;
 }
 sao_object *native_atomq(sao_object *sexp) {
-	return atom(car(sexp)) ? TRUE : FALSE;
+	return is_ATOM(car(sexp)) ? TRUE : FALSE;
 }
 
 sao_object *native_cmp(sao_object *args) {
@@ -848,7 +845,7 @@ tail:
 	} else if (is_tagged(exp, LAMBDA)) {
 		return sao_new_procedure(cadr(exp), cddr(exp), ctx);
 	} else if (is_tagged(exp, DEFINE)) {
-		if (atom(cadr(exp)))
+		if (is_ATOM(cadr(exp)))
 			define_variable(cadr(exp), sao_eval(caddr(exp), ctx), ctx);
 		else {
 			sao_object *closure =
@@ -881,7 +878,7 @@ tail:
 		}
 		return NIL;
 	} else if (is_tagged(exp, SET)) {
-		if (atom(cadr(exp))){
+		if (is_ATOM(cadr(exp))){
 			sao_set_variable(cadr(exp), sao_eval(caddr(exp), ctx), ctx);
 		} else {
 			sao_object *closure =
@@ -894,7 +891,7 @@ tail:
 		sao_object *vars = NIL;
 		sao_object *vals = NIL;
 		if (is_NIL(cadr(exp))) return NIL;
-		if (atom(cadr(exp))) {
+		if (is_ATOM(cadr(exp))) {
 			for (tmp = &exp->cdr->cdr->car; !is_NIL(*tmp); tmp = &(*tmp)->cdr) {
 				vars = cons(caar(*tmp), vars);
 				vals = cons(cadar(*tmp), vals);

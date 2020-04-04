@@ -206,10 +206,10 @@ sao_object *cons(sao_object *car, sao_object *cdr) {
  return ret;
 }
 sao_object *car(sao_object *cell) {
- return (cell&&!(cell->type))?cell->car:NIL;
+ return (cell&&!cell->type)?cell->car:NIL;
 }
 sao_object *cdr(sao_object *cell) {
- return (cell&&!(cell->type))?cell->cdr:NIL;
+ return (cell&&!cell->type)?cell->cdr:NIL;
 }
 sao_object *append(sao_object *l1, sao_object *l2) {
  if (!l1) return l2;
@@ -287,7 +287,7 @@ int not_false(sao_object *x) {
 }
 sao_object* is_tagged(sao_object *cell, sao_object *tag)
 {
- return (cell&&!(cell->type)) ? sao_is_eq(car(cell),tag) : NIL;
+ return (cell&&!cell->type) ? sao_is_eq(car(cell),tag) : NIL;
 }
 int sao_list_len(sao_object *expr) {
  return !expr ? 0 : (1+sao_list_len(cdr(expr)));
@@ -326,7 +326,7 @@ sao_object *native_is_null(sao_object *args) {
 sao_object *native_pairq(sao_object *args) {
  if (car(args)->type != type_list)
   return FALSE;
- return (((car(car((args)))) && (car(car((args))))->type) && ((cdr(car((args)))) && (cdr(car((args))))->type)) ? TRUE : FALSE;
+ return (((car(car((args))))&&(car(car((args))))->type) && ((cdr(car((args))))&&(cdr(car((args))))->type)) ? TRUE : FALSE;
 }
 sao_object *native_is_list(sao_object *args) {
  sao_object *list;
@@ -338,7 +338,7 @@ sao_object *native_is_list(sao_object *args) {
  return (car(args)->type == type_list && native_pairq(args) != TRUE) ? TRUE : FALSE;
 }
 sao_object *native_atomq(sao_object *sexp) {
- return (car(sexp) && car(sexp)->type) ? TRUE : FALSE;
+ return (car(sexp)&&car(sexp)->type) ? TRUE : FALSE;
 }
 sao_object *native_cmp(sao_object *args) {
  if ((car(args)->type != type_integer) || ((car(cdr((args))))->type != type_integer))
@@ -816,7 +816,7 @@ tail:
  } else if (is_tagged(exp, LAMBDA)) {
   return sao_new_procedure((car(cdr((exp)))), (cdr(cdr((exp)))), ctx);
  } else if (is_tagged(exp, DEFINE)) {
-  if (((car(cdr((exp)))) && (car(cdr((exp))))->type))
+  if (((car(cdr((exp))))&&(car(cdr((exp))))->type))
    define_variable((car(cdr((exp)))), sao_eval((car(cdr(cdr((exp))))), ctx), ctx);
   else {
    sao_object *closure =
@@ -849,7 +849,7 @@ tail:
   }
   return NIL;
  } else if (is_tagged(exp, SET)) {
-  if (((car(cdr((exp)))) && (car(cdr((exp))))->type)){
+  if (((car(cdr((exp))))&&(car(cdr((exp))))->type)){
    sao_set_variable((car(cdr((exp)))), sao_eval((car(cdr(cdr((exp))))), ctx), ctx);
   } else {
    sao_object *closure =
@@ -862,7 +862,7 @@ tail:
   sao_object *vars = NIL;
   sao_object *vals = NIL;
   if (!(car(cdr((exp))))) return NIL;
-  if (((car(cdr((exp)))) && (car(cdr((exp))))->type)) {
+  if (((car(cdr((exp))))&&(car(cdr((exp))))->type)) {
    for (tmp = &exp->cdr->cdr->car; !!*tmp; tmp = &(*tmp)->cdr) {
     vars = cons((car(car((*tmp)))), vars);
     vals = cons((car(cdr(car((*tmp))))), vals);
