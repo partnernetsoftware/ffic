@@ -1003,7 +1003,14 @@ int main(int argc, char **argv) {
 			}
 			//sao_stdout("\nTODO %s=%d\n", string_or_name, i_val);
 			sao_def_var(sao_new_symbol(string_or_name), sao_new_integer(i_val), ARGV);//@ref sao_get_var
-			//TODO counter mapping macros
+			//int found = 0;
+			//for(int i=0;i<argt_h;i++){
+			//	if(string_or_name[0]=='-'&& (string_or_name[1]==argt_names[i][0])){
+			//		SAO_ARGV(i)++;
+			//		found++;
+			//	}
+			//}
+			//if(!found) script_file = string_or_name;
 			if(!strcmp(string_or_name,"-h")){ SAO_ARGV(v)++;SAO_ARGV(h)++;
 			}else if(!strcmp(string_or_name,"-i")){ SAO_ARGV(i) += i_val;
 			}else if(!strcmp(string_or_name,"-d")){ SAO_ARGV(d) += i_val;
