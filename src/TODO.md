@@ -4,7 +4,8 @@
 /* TODO (Plan)
  * * ffic() C.$sym()
  * * ctype()
- * * type: ERROR
+ * * suggestion: type: ERROR
+ * * double/float and maths
  * * redesign context/global with idea from ES6
  * * improve: route () to ext() ?
  * * remove "ok" stuff?

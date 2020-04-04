@@ -1,4 +1,4 @@
-//WARNING: do not go production before gc() is done!
+//WARNING: do not go production unless gc() is done!
 #define SAO_CAT(a, ...) SAO_PRIMITIVE_CAT(a, __VA_ARGS__)
 #define SAO_PRIMITIVE_CAT(a, ...) a ## __VA_ARGS__
 #define SAO_IIF(c) SAO_PRIMITIVE_CAT(SAO_IIF_, c)
@@ -28,65 +28,55 @@
 #define SAO_EVAL3(...) SAO_EVAL4(SAO_EVAL4(SAO_EVAL4(__VA_ARGS__)))
 #define SAO_EVAL4(...) SAO_EVAL5(SAO_EVAL5(SAO_EVAL5(__VA_ARGS__)))
 #define SAO_EVAL5(...) __VA_ARGS__
-#define SAO_WHILE(macro, value, ...) SAO_WHEN(SAO_NOT(SAO_IS_PAREN(value ())))\
-	( SAO_OBSTRUCT(macro) (value) SAO_OBSTRUCT(SAO_WHILE_INDIRECT) () (macro, __VA_ARGS__) )
+#define SAO_WHILE(m,v, ...) SAO_WHEN(SAO_NOT(SAO_IS_PAREN(v ()))) ( SAO_OBSTRUCT(m) (v) SAO_OBSTRUCT(SAO_WHILE_INDIRECT) () (m, __VA_ARGS__) )
 #define SAO_WHILE_INDIRECT() SAO_WHILE 
-#define SAO_WHILE1(macro, value1,value, ...) \
-	SAO_WHEN(SAO_NOT(SAO_IS_PAREN(value ()))) \
-	( SAO_OBSTRUCT(macro) (value1,value) SAO_OBSTRUCT(SAO_WHILE_INDIRECT1) () (macro, value1,__VA_ARGS__) \
-	)
+#define SAO_WHILE1(m,v1,v, ...) SAO_WHEN(SAO_NOT(SAO_IS_PAREN(v ()))) ( SAO_OBSTRUCT(m) (v1,v) SAO_OBSTRUCT(SAO_WHILE_INDIRECT1) () (m,v1,__VA_ARGS__) )
 #define SAO_WHILE_INDIRECT1() SAO_WHILE1
 #define SAO_ITR(mmm,qqq,...) SAO_EVAL( SAO_WHILE( mmm,qqq,__VA_ARGS__ ) )
 #define SAO_ITR1(mmm,mm1,qqq,...) SAO_EVAL( SAO_WHILE1( mmm,mm1,qqq,__VA_ARGS__) )
 //////////////////////////////////////////////////////////////////////////////
 #define DEFINE_ENUM_LIBC(n) libc_##n,
-#define LIBC_FUNC_LIST fprintf,stderr,malloc,memset,strdup,strcmp,printf,\
-	stdin,putc,getc,isalnum,strchr,isdigit,isalpha,fopen,fread,fgets,fclose,feof,\
-	usleep,msleep,sleep,fputc,setmode,fileno,stdout,strlen,\
-	fflush,free,microtime,exit
-enum { SAO_ITR(DEFINE_ENUM_LIBC,SAO_EXPAND(LIBC_FUNC_LIST)) };
-void* (*libc_a[libc_exit+1])();//buffer for libc
-#define libc(f) libcbf(libc_##f,#f)
+enum { SAO_ITR(DEFINE_ENUM_LIBC,fprintf,malloc,memset,strdup,strcmp,printf,putc,getc,isalnum,strchr,isdigit,isalpha,fopen,fread,fgets,fclose,feof, usleep,msleep,sleep,fputc,strlen,fflush,free,setmode,fileno,stdin,stdout,stderr,microtime,exit) };
+#define libc(f) libc_(libc_##f,#f)
 #include "ffic.h" //github.com/partnernetsoftware/ffic/blob/master/src/ffic.h
-ffic_func libcbf(int fi,const char* fn);
-ffic_func libcbf(int fi,const char* fn){ return libc_a[fi]?libc_a[fi]:(libc_a[fi]=ffic("c",fn)); }
+ffic_func libc_a[libc_exit+1];
+ffic_func libc_(int fi,const char* fn){ return libc_a[fi]?libc_a[fi]:(libc_a[fi]=ffic("c",fn)); }
 #define SAO_NULL 0 // same as ((void*)0)
 #define SAO_EOF (-1)
+#define SAO_CAT_COMMA(a,b) a##b,
 #define define_enum_name(n) #n,
 #define define_enum_item(p,v) p##_##v,
-#define define_enum(n, ...) typedef enum { SAO_ITR1(define_enum_item,n,__VA_ARGS__) } n##_t;
+#define define_enum_t(n, ...) typedef enum { SAO_ITR1(define_enum_item,n,__VA_ARGS__) } n##_t;
 #define define_map_arr(n, ...) char* n##_names[] = { SAO_ITR(define_enum_name,__VA_ARGS__) };
-#define define_map(n, ...) define_enum(n,__VA_ARGS__) define_map_arr(n,__VA_ARGS__)
+#define define_map(n, ...) define_enum_t(n,__VA_ARGS__) define_map_arr(n,__VA_ARGS__)
 #define SAO_NEW(t,...) sao_calloc( sizeof(t) SAO_IF(SAO_IS_PAREN(__VA_ARGS__ ()))(SAO_EAT(),*__VA_ARGS__) )
-#define NEW_OBJECT(t,n,...) t*n=SAO_NEW(t,__VA_ARGS__);
+#define SAO_NEW_OBJECT(t,n,...) t*n=SAO_NEW(t,__VA_ARGS__);
 #define is_NIL(x) !x
 #define is_LIST(x) (x&&!x->type)
 #define is_ATOM(x) (x&&x->type)
 #define sao_stderr(...) libc(fprintf)(libc(stderr),__VA_ARGS__)
 #define sao_stdout(...) libc(printf)(__VA_ARGS__)
 #define sao_error(x) do{sao_stderr("%s\n",x);libc(exit)(1);}while(0)
-#define sao_warn(...) do{sao_stderr(__VA_ARGS__);}while(0)
-#define caar(x) (car(car((x)))) //head of head
-#define cdar(x) (cdr(car((x)))) //rest of head
-#define cadr(x) (car(cdr((x)))) //head of rest
-#define cddr(x) (cdr(cdr((x)))) //rest of rest
+#define sao_warn(...) sao_stderr(__VA_ARGS__);
+#define caar(x) (car(car((x))))
+#define cdar(x) (cdr(car((x))))
+#define cadr(x) (car(cdr((x))))
+#define cddr(x) (cdr(cdr((x))))
 #define cadar(x) (car(cdr(car((x)))))
 #define caddr(x) (car(cdr(cdr((x)))))
 #define cdddr(x) (cdr(cdr(cdr((x)))))
 #define cdadr(x) (cdr(car(cdr((x)))))
 #define cadddr(x) (car(cdr(cdr(cdr((x))))))
 #define SAO_CHECK_TYPE(x, t) (sao_type_check(__func__, x, t))
-//#define car(x) ((x&&!x->type)?x->car:NIL) //not good for macro
 //////////////////////////////////////////////////////////////////////////////
 define_map(stream, file,char);
-//define_map(type,   integer,symbol,string,list,native,vector);
 define_map(type,   list,integer,symbol,string,native,vector);
 define_map(ctype,  long,double,any);
 typedef struct _sao_object sao_object;
 typedef sao_object *(*native_t)(sao_object *);
 struct _sao_object {
 	type_t type;
-	int gc;//TODO
+	//int gc;//TODO
 	union {
 		long _integer;
 		char *_string;
@@ -98,16 +88,13 @@ struct _sao_object {
 			sao_object *car;
 			sao_object *cdr;
 		};
-		double _double;//TODO maths
-		//TODO BigNumber * _bignum;
+		//double _double;//TODO
 		native_t native;
 	};
 } __attribute__((packed));
 #define define_sao_object(n) sao_object*n=SAO_NULL;
-int argv_i = 0;//interactive(REPL)
-int argv_p = 0;//print result
-int argv_d = 0;//dev debug only
 SAO_ITR(define_sao_object, NIL,ARGV,GLOBAL,TRUE,FALSE,QUOTE,SET,LET,DEFINE,PROCEDURE,IF,LAMBDA,BEGIN,ERROR);
+int SAO_ITR1(SAO_CAT_COMMA, argv_, i,p,d) argv_v;//REPL,PrintResult,DevDebug,Version
 sao_object *is_tagged(sao_object *cell, sao_object *tag);
 sao_object *cons(sao_object *car, sao_object *cdr);
 sao_object *native_load(sao_object *args);
@@ -127,7 +114,6 @@ typedef struct {
 	FileChar * ptr_start;
 	FileChar * ptr_head;
 	FileChar * ptr_last;
-	//long _rest;//TODO for profiling
 	//long _total;//TODO for gc()
 } sao_stream;
 sao_stream * sao_stream_new(void*,stream_t);
@@ -195,8 +181,8 @@ sao_object *ht_lookup(char *s) {
 	return gHTable[h].key;
 }
 sao_object *sao_alloc(type_t type) {
-	NEW_OBJECT(sao_object,ret);//TODO gc()
-	//if(ret<0) sao_error("ASSERT: mem full for NEW_OBJECT(sao_object)?\n");
+	SAO_NEW_OBJECT(sao_object,ret);//TODO gc()
+	//if(ret<0) sao_error("ASSERT: mem full for SAO_NEW_OBJECT(sao_object)?\n");
 	ret->type = type;
 	return ret;
 }
@@ -569,7 +555,7 @@ sao_object *eval_sequence(sao_object *exps, sao_object *ctx) {
 #define PROFILE
 sao_stream * sao_stream_new(void* fp,stream_t type)
 {
-	NEW_OBJECT(sao_stream,fw);
+	SAO_NEW_OBJECT(sao_stream,fw);
 	fw->fp = fp;
 	if(type==stream_char) fw->pos = fp;
 	fw->type = type;
@@ -582,12 +568,11 @@ int sao_deq_c(sao_stream *fw)
 	if(ptr_head!=SAO_NULL){
 		c = ptr_head->c;
 		fw->ptr_head=ptr_head->ptr_next;
-		//fw->_rest --;
 	}
 	return c;
 }
 int sao_enq_c(sao_stream* fw,int k){
-	NEW_OBJECT(FileChar,fc);
+	SAO_NEW_OBJECT(FileChar,fc);
 	fc->c = k; 
 	fc->ptr_prev= fw->ptr_last;
 	if(SAO_NULL==fw->ptr_start){
@@ -600,7 +585,6 @@ int sao_enq_c(sao_stream* fw,int k){
 		fw->ptr_last->ptr_next = fc;
 	}
 	fw->ptr_last = fc;
-	//fw->_rest ++;
 	return k;
 }
 int line_num = 0;
@@ -621,7 +605,7 @@ int sao_read_line(sao_stream* fw)
 		ffic_func fgets  = libc(fgets);
 		ffic_func strlen = libc(strlen);
 		int LINE_LEN = 1024;//TODO
-		NEW_OBJECT(char,line,LINE_LEN);//TODO gc
+		SAO_NEW_OBJECT(char,line,LINE_LEN);//TODO gc
 		if(fw->type==stream_file){
 			if(argv_i){
 				sao_stdout("> ");
@@ -723,11 +707,10 @@ void sao_comment(sao_stream * fw)
 		if (c == '\n' || c == SAO_EOF) return;
 	}
 }
-//int depth = 0;
 sao_object *sao_load_expr(sao_stream * fw)
 {
 	int c;
-	//TODO switch(){} for better loop
+	//TODO switch(){} for better loop?
 	for (;;) {
 		sao_object * theSymbol = NIL;
 		c = sao_deq_c(fw);
@@ -760,17 +743,13 @@ sao_object *sao_load_expr(sao_stream * fw)
 			}
 		}
 		if (c == '(') {
-			//depth++;
 			sao_object * list = sao_read_list(fw);
 			if(theSymbol!=NIL){
 				list = cons(theSymbol,list);
 			}
 			return list;
 		}
-		if (c == ')') {
-			//depth--;
-			return NIL;
-		}
+		if (c == ')') { return NIL; }
 		if (sao_is_digit(c)) return sao_new_integer(sao_read_int(fw, c - '0'));
 		if (c == '-' && sao_is_digit(sao_peek(fw)))
 			return sao_new_integer(-1 * sao_read_int(fw, sao_deq_c(fw) - '0'));
@@ -1040,7 +1019,7 @@ int main(int argc, char **argv) {
 			}else if(!strcmp(string_or_name,"-p")){
 				argv_p = i_val;
 			}else if(!strcmp(string_or_name,"-v")){
-				sao_stderr("SaoLang Runtime v0.0.3 - Wanjo Chan (c) 2020\n");
+				sao_stderr("SaoLang (R) v0.0.3 - Wanjo Chan (c) 2020\n");
 			}
 			//TODO open interactive mode if stdin nothing
 			pos = cdr(pos);
