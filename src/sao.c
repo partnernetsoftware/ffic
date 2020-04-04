@@ -1,3 +1,4 @@
+//WARNING: do not go production before gc() is done!
 #define SAO_CAT(a, ...) SAO_PRIMITIVE_CAT(a, __VA_ARGS__)
 #define SAO_PRIMITIVE_CAT(a, ...) a ## __VA_ARGS__
 #define SAO_IIF(c) SAO_PRIMITIVE_CAT(SAO_IIF_, c)
@@ -106,7 +107,7 @@ struct _sao_object {
 	};
 } __attribute__((packed));
 #define define_sao_object(n) sao_object*n=SAO_NULL;
-SAO_ITR(define_sao_object, NIL,GLOBAL,TRUE,FALSE,QUOTE,SET,LET,DEFINE,PROCEDURE,IF,LAMBDA,BEGIN,ERROR);
+SAO_ITR(define_sao_object, NIL,ARGV,GLOBAL,TRUE,FALSE,QUOTE,SET,LET,DEFINE,PROCEDURE,IF,LAMBDA,BEGIN,ERROR);
 sao_object *is_tagged(sao_object *cell, sao_object *tag);
 sao_object *cons(sao_object *car, sao_object *cdr);
 sao_object *native_load(sao_object *args);
@@ -205,11 +206,9 @@ sao_object *cons(sao_object *car, sao_object *cdr) {
 	return ret;
 }
 sao_object *car(sao_object *cell) {
-	//return (is_NIL(cell) || cell->type != type_list) ? NIL : cell->car;
 	return is_LIST(cell)?cell->car:NIL;
 }
 sao_object *cdr(sao_object *cell) {
-	//return (is_NIL(cell) || cell->type != type_list) ? NIL : cell->cdr;
 	return is_LIST(cell)?cell->cdr:NIL;
 }
 sao_object *append(sao_object *l1, sao_object *l2) {
@@ -269,6 +268,8 @@ sao_object * sao_reverse(sao_object *list, sao_object *first) {
 }
 sao_object * sao_is_eq(sao_object *x, sao_object *y)
 {
+	//sao_out_expr("\nsao_is_eq.x=",x);
+	//sao_out_expr("\nsao_is_eq.y=",y);
 	do{
 		if (x == y) return x;
 		if (is_NIL(x) || is_NIL(y)) break;
@@ -276,7 +277,10 @@ sao_object * sao_is_eq(sao_object *x, sao_object *y)
 		switch (x->type) {
 			case type_integer: if(x->_integer == y->_integer) return x;
 			case type_symbol:
-			case type_string: if(!libc(strcmp)(x->_string, y->_string)) return x;
+//	sao_out_expr("\nsao_is_eq.x=",x);
+//	sao_out_expr("\nsao_is_eq.y=",y);
+			case type_string:
+	if(!libc(strcmp)(x->_string, y->_string)) return x;
 			default: break;
 		}
 	}while(0);
@@ -291,9 +295,9 @@ sao_object* is_tagged(sao_object *cell, sao_object *tag)
 {
 	return is_LIST(cell) ? sao_is_eq(car(cell),tag) : NIL;
 }
-int sao_length(sao_object *exp) {
+int sao_list_len(sao_object *exp) {
 	if (is_NIL(exp)) return 0;
-	return 1 + sao_length(cdr(exp));
+	return 1 + sao_list_len(cdr(exp));
 }
 sao_object *native_type(sao_object *args) {
 	return sao_new_symbol(type_names[car(args)->type]);
@@ -308,13 +312,13 @@ sao_object *native_cons(sao_object *args) {
 	return cons(car(args), cadr(args));
 }
 sao_object *native_car(sao_object *args) {
-#ifdef STRICT
+#ifdef STRICT //TODO
 	SAO_CHECK_TYPE(car(args), type_list);
 #endif
 	return caar(args);
 }
 sao_object *native_cdr(sao_object *args) {
-#ifdef STRICT
+#ifdef STRICT //TODO
 	SAO_CHECK_TYPE(car(args), type_list);
 #endif
 	return cdar(args);
@@ -831,7 +835,7 @@ tail:
 		return exp;
 	} else if (exp->type == type_symbol) {
 		sao_object *s = sao_lookup_var(exp, ctx);
-#ifdef STRICT
+#ifdef STRICT //TODO
 		if (is_NIL(s)) {
 			sao_out_expr("Unbound symbol:", exp);
 			sao_stdout("\n");
@@ -912,7 +916,7 @@ tail:
 		sao_object *proc = sao_eval(car(exp), ctx);
 		sao_object *args = eval_list(cdr(exp), ctx);
 		if (is_NIL(proc)) {
-#ifdef STRICT
+#ifdef STRICT //TODO
 			sao_out_expr("Invalid arguments to sao_eval:", exp);
 			sao_stdout("\n");
 #endif
@@ -936,7 +940,7 @@ tail:
 #define add_native(s, c) define_variable(sao_new_symbol(s), sao_new_native(c), GLOBAL)
 #define add_sym(s, c) do{c=sao_new_symbol(s);define_variable(c,c,GLOBAL);}while(0);
 #define add_sym_with(n) add_native(#n, native_##n);
-sao_object * sao_init()
+sao_object * sao_init(char* langpack /* TODO ffic with own lang*/)
 {
 	GLOBAL = sao_expand(NIL, NIL, NIL);
 	add_sym("true", TRUE);
@@ -963,7 +967,6 @@ sao_object * sao_init()
 				));
 	return GLOBAL;
 }
-//TODO upgrade sao_stream to sao_stream to support _string
 sao_object * sao_parse( sao_stream * fw, int do_eval )
 {
 	sao_read_line(fw);
@@ -995,18 +998,27 @@ sao_object * sao_parse( sao_stream * fw, int do_eval )
 }
 int main(int argc, char **argv)
 {
-	//sao_warn("DEBUG type_list=%d\n",type_list);
-
 	libc(setmode)(libc(fileno)(libc(stdin)),0x8000/*O_BINARY*/);
 	ht_resize(8192-1);
+	sao_init(0);//TODO to define own natives ffic("libsao","init")
 	if(argc>1){
-		sao_stream * fw = sao_stream_new(argv[1],stream_char);
+		char argv_line[512] = {'_','(',0};
+		char * argv_ptr = &argv_line[2];
+		for(int i=1;i<argc;i++){
+			*argv_ptr++=' ';char*wk=argv[i];while(*wk)*argv_ptr++=*wk++;
+		}
+		*argv_ptr++ = ')'; //*argv_ptr++ = '\0';
+		sao_stream * fw = sao_stream_new(argv_line,stream_char);
 		sao_object * arg_expr = sao_load_expr( fw );
-		sao_out_expr("DEBUG car(arg_expr)=>",arg_expr);
-		return 0;
+		ARGV = arg_expr;
 	}
-	sao_init();//TODO ffic("libsao","init")
+	sao_out_expr("\nDEBUG ARGV=>",ARGV);
+	sao_out_expr("\nDEBUG lookup(i)=>",sao_lookup_var(sao_new_symbol("i"),ARGV));
 	sao_stream * fw = sao_stream_new(libc(stdin),stream_file);
 	sao_object * result = sao_parse( fw, 1/*eval*/ );
 	return 0;
 }
+
+/*
+ * define_variable() => sao_var()
+ */

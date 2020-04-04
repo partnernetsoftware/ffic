@@ -115,7 +115,7 @@ struct _sao_object {
   native_t native;
  };
 } __attribute__((packed));
-sao_object*NIL=0; sao_object*GLOBAL=0; sao_object*TRUE=0; sao_object*FALSE=0; sao_object*QUOTE=0; sao_object*SET=0; sao_object*LET=0; sao_object*DEFINE=0; sao_object*PROCEDURE=0; sao_object*IF=0; sao_object*LAMBDA=0; sao_object*BEGIN=0; sao_object*ERROR=0;;
+sao_object*NIL=0; sao_object*ARGV=0; sao_object*GLOBAL=0; sao_object*TRUE=0; sao_object*FALSE=0; sao_object*QUOTE=0; sao_object*SET=0; sao_object*LET=0; sao_object*DEFINE=0; sao_object*PROCEDURE=0; sao_object*IF=0; sao_object*LAMBDA=0; sao_object*BEGIN=0; sao_object*ERROR=0;;
 sao_object *is_tagged(sao_object *cell, sao_object *tag);
 sao_object *cons(sao_object *car, sao_object *cdr);
 sao_object *native_load(sao_object *args);
@@ -274,7 +274,8 @@ sao_object * sao_is_eq(sao_object *x, sao_object *y)
   switch (x->type) {
    case type_integer: if(x->_integer == y->_integer) return x;
    case type_symbol:
-   case type_string: if(!libcbf(libc_strcmp,"strcmp")(x->_string, y->_string)) return x;
+   case type_string:
+ if(!libcbf(libc_strcmp,"strcmp")(x->_string, y->_string)) return x;
    default: break;
   }
  }while(0);
@@ -289,9 +290,9 @@ sao_object* is_tagged(sao_object *cell, sao_object *tag)
 {
  return (cell&&!(cell->type)) ? sao_is_eq(car(cell),tag) : NIL;
 }
-int sao_length(sao_object *exp) {
+int sao_list_len(sao_object *exp) {
  if (!exp) return 0;
- return 1 + sao_length(cdr(exp));
+ return 1 + sao_list_len(cdr(exp));
 }
 sao_object *native_type(sao_object *args) {
  return sao_new_symbol(type_names[car(args)->type]);
@@ -898,7 +899,7 @@ tail:
  libcbf(libc_printf,"printf")("\n");
  return NIL;
 }
-sao_object * sao_init()
+sao_object * sao_init(char* langpack )
 {
  GLOBAL = sao_expand(NIL, NIL, NIL);
  do{TRUE=sao_new_symbol("true");define_variable(TRUE,TRUE,GLOBAL);}while(0);;
@@ -948,13 +949,20 @@ int main(int argc, char **argv)
 {
  libcbf(libc_setmode,"setmode")(libcbf(libc_fileno,"fileno")(libcbf(libc_stdin,"stdin")),0x8000 );
  ht_resize(8192-1);
+ sao_init(0);
  if(argc>1){
-  sao_stream * fw = sao_stream_new(argv[1],stream_char);
+  char argv_line[512] = {'_','(',0};
+  char * argv_ptr = &argv_line[2];
+  for(int i=1;i<argc;i++){
+   *argv_ptr++=' ';char*wk=argv[i];while(*wk)*argv_ptr++=*wk++;
+  }
+  *argv_ptr++ = ')';
+  sao_stream * fw = sao_stream_new(argv_line,stream_char);
   sao_object * arg_expr = sao_load_expr( fw );
-  sao_out_expr("DEBUG car(arg_expr)=>",arg_expr);
-  return 0;
+  ARGV = arg_expr;
  }
- sao_init();
+ sao_out_expr("\nDEBUG ARGV=>",ARGV);
+ sao_out_expr("\nDEBUG lookup(i)=>",sao_lookup_var(sao_new_symbol("i"),ARGV));
  sao_stream * fw = sao_stream_new(libcbf(libc_stdin,"stdin"),stream_file);
  sao_object * result = sao_parse( fw, 1 );
  return 0;

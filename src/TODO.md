@@ -3,7 +3,8 @@
 ```
 /* TODO (Plan)
  * * options: interact (REPL)
- * * ffic()
+ * * better varg calling
+ * * ffic() C.$sym()
  * * ctype()
  * * type: ERROR
  * * options: profiling
@@ -15,6 +16,8 @@
  * * fix: bug of ht expand...
  * * feature: compile to binary / load from binary
  * * JIT
+ * * static compile libdl
+ * * remove libc dependency ( so that runnable on almose all arch )
  */
 
 ```
