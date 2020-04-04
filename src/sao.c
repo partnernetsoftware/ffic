@@ -291,9 +291,8 @@ sao_object* is_tagged(sao_object *cell, sao_object *tag)
 {
 	return is_LIST(cell) ? sao_is_eq(car(cell),tag) : NIL;
 }
-int sao_list_len(sao_object *exp) {
-	if (is_NIL(exp)) return 0;
-	return 1 + sao_list_len(cdr(exp));
+int sao_list_len(sao_object *expr) {
+	return is_NIL(expr) ? 0 : (1+sao_list_len(cdr(expr)));
 }
 sao_object *native_type(sao_object *args) {
 	return sao_new_symbol(type_names[car(args)->type]);
@@ -484,13 +483,13 @@ sao_object *native_load(sao_object *args) { //TODO merge with native_read() 1!!!
 	libc(fclose)(fp);
 	return ret;
 }
-sao_object *native_tget(sao_object *args) {
+sao_object *native_vget(sao_object *args) {
 	sao_object * vct = SAO_CHECK_TYPE(car(args), type_vector);
 	sao_object * key = SAO_CHECK_TYPE(cadr(args), type_integer);
 	if (key->_integer >= vct->_len) return NIL;
 	return vct->_vector[key->_integer];
 }
-sao_object *native_tset(sao_object *args){
+sao_object *native_vset(sao_object *args){
 	sao_object * vct = SAO_CHECK_TYPE(car(args), type_vector);
 	sao_object * key = SAO_CHECK_TYPE(cadr(args), type_integer);
 	if (is_NIL(caddr(args))) return NIL;
@@ -958,15 +957,15 @@ sao_object * sao_init(char* langpack /* TODO ffic with own lang*/)
 	add_sym("begin", BEGIN);//TODO remove or add END
 	add_sym("if", IF);
 
-	SAO_ITR(add_sym_with,SAO_EXPAND(
-				exit,ffi,global,//sys
-				type,cons,car,cdr,setcar,setcdr,//lang
-				list,vector,tget,tset,//data
-				add,sub,mul,div,cmp,not,lt,gt,//logic
-				load,print,read,//io
-				is_null,is_list,
-				pairq,atomq,eqq,equalq,
-				));
+	SAO_ITR(add_sym_with,
+			exit,ffi,global,//sys
+			type,cons,car,cdr,setcar,setcdr,//lang
+			list,vector,vget,vset,//data
+			add,sub,mul,div,cmp,not,lt,gt,//logic
+			load,print,read,//io
+			is_null,is_list,
+			pairq,atomq,eqq,equalq,
+			);
 	return GLOBAL;
 }
 sao_object * sao_parse( sao_stream * fw, int do_eval )
@@ -1020,10 +1019,8 @@ int main(int argc, char **argv)
 		*argv_ptr++ = ')'; //*argv_ptr++ = '\0';
 		sao_stream * fw = sao_stream_new(argv_line,stream_char);
 		sao_object * arg_expr = sao_load_expr( fw );
-		define_variable(_, arg_expr, ARGV);
-	}else{
-		sao_object * test = sao_new_symbol("test");
-		define_variable(_, test, ARGV);
+		//define_variable(_, arg_expr, ARGV);
+		//sao_list_len
 	}
 	sao_out_expr("\nDEBUG ARGV=>",ARGV);
 
