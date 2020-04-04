@@ -78,7 +78,7 @@ ffic_func libcbf(int fi,const char* fn){ return libc_a[fi]?libc_a[fi]:(libc_a[fi
 //#define car(x) ((is_NIL(x)||x->type!=type_list)?NIL:x->car)
 //////////////////////////////////////////////////////////////////////////////
 define_map(stream, file,char);
-define_map(type,   integer,symbol,string,list,native,table);
+define_map(type,   integer,symbol,string,list,native,vector);
 define_map(ctype,  long,double,any);
 typedef struct _sao_object sao_object;
 typedef sao_object *(*native_t)(sao_object *);
@@ -89,8 +89,8 @@ struct _sao_object {
 		long _integer;
 		char *_string;
 		struct {
-			sao_object **_table;
-			int _tblen;
+			sao_object **_vector;
+			int _len;
 		};
 		struct {
 			sao_object *car;
@@ -222,11 +222,11 @@ sao_object * sao_type_check(const char *func, sao_object *obj, type_t type)
 	}
 	return obj;
 }
-sao_object *sao_new_table(int size) {
+sao_object *sao_new_vector(int size) {
 	//NEW_OBJECT(sao_object,ret)
-	sao_object *ret = sao_alloc(type_table);
-	ret->_table = SAO_NEW(sao_object,size);
-	ret->_tblen = size;
+	sao_object *ret = sao_alloc(type_vector);
+	ret->_vector = SAO_NEW(sao_object,size);
+	ret->_len = size;
 	return ret;
 }
 sao_object *sao_new_symbol(char *s) {
@@ -276,7 +276,7 @@ int is_equal(sao_object *x, sao_object *y) {
 		case type_symbol:
 		case type_string: return !libc(strcmp)(x->_string, y->_string);
 		case type_native: return 0;
-		case type_table: return 0;
+		case type_vector: return 0;
 	}
 	return 0;
 }
@@ -377,14 +377,14 @@ sao_object *native_equalq(sao_object *args) {
 		}
 		return TRUE;
 	}
-	if ((car(args)->type == type_table) && (cadr(args)->type == type_table)) {
-		if (car(args)->_tblen != cadr(args)->_tblen) {
+	if ((car(args)->type == type_vector) && (cadr(args)->type == type_vector)) {
+		if (car(args)->_len != cadr(args)->_len) {
 			return FALSE;
 		}
-		sao_object **va = car(args)->_table;
-		sao_object **vb = cadr(args)->_table;
+		sao_object **va = car(args)->_vector;
+		sao_object **vb = cadr(args)->_vector;
 		int i = 0;
-		for (i = 0; i < car(args)->_tblen; i++) {
+		for (i = 0; i < car(args)->_len; i++) {
 			if (!is_equal(*(va + i), *(vb + i))) {
 				return FALSE;
 			}
@@ -463,22 +463,22 @@ sao_object *native_read(sao_object *args) {
 	return sao_load_expr(sao_stream_new(libc(stdin),stream_file));
 }
 sao_object *native_tget(sao_object *args) {
-	sao_object * tbl = SAO_CHECK_TYPE(car(args), type_table);
+	sao_object * vct = SAO_CHECK_TYPE(car(args), type_vector);
 	sao_object * key = SAO_CHECK_TYPE(cadr(args), type_integer);
-	if (key->_integer >= tbl->_tblen) return NIL;
-	return tbl->_table[key->_integer];
+	if (key->_integer >= vct->_len) return NIL;
+	return vct->_vector[key->_integer];
 }
 sao_object *native_tset(sao_object *args){
-	sao_object * tbl = SAO_CHECK_TYPE(car(args), type_table);
+	sao_object * vct = SAO_CHECK_TYPE(car(args), type_vector);
 	sao_object * key = SAO_CHECK_TYPE(cadr(args), type_integer);
 	if (is_NIL(caddr(args))) return NIL;
-	if (key->_integer >= tbl->_tblen) return NIL;
-	car(args)->_table[key->_integer] = caddr(args);
+	if (key->_integer >= vct->_len) return NIL;
+	car(args)->_vector[key->_integer] = caddr(args);
 	return sao_new_symbol("ok");
 }
-sao_object *native_table(sao_object *args) {
+sao_object *native_vector(sao_object *args) {
 	sao_object * sym = SAO_CHECK_TYPE(car(args), type_integer);
-	return sao_new_table(sym->_integer);
+	return sao_new_vector(sym->_integer);
 }
 sao_object *sao_expand(sao_object *var, sao_object *val, sao_object *ctx) {
 	return cons(cons(var, val), ctx);
@@ -782,7 +782,7 @@ void sao_out_expr(char *str, sao_object *e)
 		case type_symbol: sao_stdout("%s", e->_string); break;
 		case type_integer: sao_stdout("%ld", e->_integer); break;
 		case type_native: sao_stdout("<function>"); break;
-		case type_table: sao_stdout("<table %d>", e->_tblen); break;
+		case type_vector: sao_stdout("<vector %d>", e->_len); break;
 		case type_list:
 										 if (is_tagged(e, PROCEDURE)) {
 											 sao_stdout("<closure>");
@@ -946,7 +946,7 @@ sao_object * sao_init()
 	SAO_ITR(add_sym_with,SAO_EXPAND(
 				exit,ffi,global,//sys
 				type,cons,car,cdr,setcar,setcdr,//lang
-				list,table,tget,tset,//data
+				list,vector,tget,tset,//data
 				add,sub,mul,div,cmp,not,lt,gt,//logic
 				load,print,read,//io
 				is_null,is_list,
