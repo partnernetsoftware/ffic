@@ -776,43 +776,48 @@ void sao_out_expr(char *str, sao_object *e)
 	//if (is_NIL(e)) { sao_stdout("'()"); return; }
 	if (is_NIL(e)) { return; }
 	switch (e->type) {
-		case type_string: sao_stdout("\"%s\"", e->_string); break;
-		case type_symbol: sao_stdout("%s", e->_string); break;
-		case type_integer: sao_stdout("%ld", e->_integer); break;
-		case type_native: sao_stdout("<function>"); break;
-		case type_vector: sao_stdout("<vector %d>", e->_len); break;
+		case type_string:
+			sao_stdout("\"%s\"", e->_string); break;
+		case type_symbol:
+			sao_stdout("%s", e->_string); break;
+		case type_integer:
+			sao_stdout("%ld", e->_integer); break;
+		case type_native:
+			sao_stdout("<function>"); break;
+		case type_vector:
+			sao_stdout("<vector %d>", e->_len); break;
 		case type_list:
-										 if (is_tagged(e, PROCEDURE)) {
-											 sao_stdout("<closure>");
-											 return;
-										 }
-										 int skip=0;
-										 sao_object **t = &e;
-										 if (!is_NIL(*t)) {
-											 if(type_symbol == e->car->type){
-												 sao_out_expr(0, e->car);
-												 skip=1;
-											 }
-										 }
-										 sao_stdout("(");
-										 while (!is_NIL(*t)) {
-											 if(skip==1){
-												 skip=0;
-											 }else{
-												 sao_stdout(" ");
-												 sao_out_expr(0, (*t)->car);
-											 }
-											 if (!is_NIL((*t)->cdr)) {
-												 if ((*t)->cdr->type == type_list) {
-													 t = &(*t)->cdr;
-												 } else {
-													 sao_out_expr(".", (*t)->cdr);
-													 break;
-												 }
-											 } else
-												 break;
-										 }
-										 sao_stdout(")");
+			if (is_tagged(e, PROCEDURE)) {
+				sao_stdout("<closure>");
+				return;
+			}
+			int skip=0;
+			sao_object **t = &e;
+			if (!is_NIL(*t)) {
+				if(type_symbol == e->car->type){
+					sao_out_expr(0, e->car);
+					skip=1;
+				}
+			}
+			sao_stdout("(");
+			while (!is_NIL(*t)) {
+				if(skip==1){
+					skip=0;
+				}else{
+					sao_stdout(" ");
+					sao_out_expr(0, (*t)->car);
+				}
+				if (!is_NIL((*t)->cdr)) {
+					if ((*t)->cdr->type == type_list) {
+						t = &(*t)->cdr;
+					} else {
+						sao_out_expr(".", (*t)->cdr);
+						break;
+					}
+				} else
+					break;
+			}
+			sao_stdout(")");
 	}
 }
 sao_object *sao_eval(sao_object *exp, sao_object *ctx)

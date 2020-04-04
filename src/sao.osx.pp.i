@@ -757,43 +757,48 @@ void sao_out_expr(char *str, sao_object *e)
  if (str) libcbf(libc_printf,"printf")("%s ", str);
  if ((!e)) { return; }
  switch (e->type) {
-  case type_string: libcbf(libc_printf,"printf")("\"%s\"", e->_string); break;
-  case type_symbol: libcbf(libc_printf,"printf")("%s", e->_string); break;
-  case type_integer: libcbf(libc_printf,"printf")("%ld", e->_integer); break;
-  case type_native: libcbf(libc_printf,"printf")("<function>"); break;
-  case type_vector: libcbf(libc_printf,"printf")("<vector %d>", e->_len); break;
+  case type_string:
+   libcbf(libc_printf,"printf")("\"%s\"", e->_string); break;
+  case type_symbol:
+   libcbf(libc_printf,"printf")("%s", e->_string); break;
+  case type_integer:
+   libcbf(libc_printf,"printf")("%ld", e->_integer); break;
+  case type_native:
+   libcbf(libc_printf,"printf")("<function>"); break;
+  case type_vector:
+   libcbf(libc_printf,"printf")("<vector %d>", e->_len); break;
   case type_list:
-           if (is_tagged(e, PROCEDURE)) {
-            libcbf(libc_printf,"printf")("<closure>");
-            return;
-           }
-           int skip=0;
-           sao_object **t = &e;
-           if (!(!*t)) {
-            if(type_symbol == e->car->type){
-             sao_out_expr(0, e->car);
-             skip=1;
-            }
-           }
-           libcbf(libc_printf,"printf")("(");
-           while (!(!*t)) {
-            if(skip==1){
-             skip=0;
-            }else{
-             libcbf(libc_printf,"printf")(" ");
-             sao_out_expr(0, (*t)->car);
-            }
-            if (!(!(*t)->cdr)) {
-             if ((*t)->cdr->type == type_list) {
-              t = &(*t)->cdr;
-             } else {
-              sao_out_expr(".", (*t)->cdr);
-              break;
-             }
-            } else
-             break;
-           }
-           libcbf(libc_printf,"printf")(")");
+   if (is_tagged(e, PROCEDURE)) {
+    libcbf(libc_printf,"printf")("<closure>");
+    return;
+   }
+   int skip=0;
+   sao_object **t = &e;
+   if (!(!*t)) {
+    if(type_symbol == e->car->type){
+     sao_out_expr(0, e->car);
+     skip=1;
+    }
+   }
+   libcbf(libc_printf,"printf")("(");
+   while (!(!*t)) {
+    if(skip==1){
+     skip=0;
+    }else{
+     libcbf(libc_printf,"printf")(" ");
+     sao_out_expr(0, (*t)->car);
+    }
+    if (!(!(*t)->cdr)) {
+     if ((*t)->cdr->type == type_list) {
+      t = &(*t)->cdr;
+     } else {
+      sao_out_expr(".", (*t)->cdr);
+      break;
+     }
+    } else
+     break;
+   }
+   libcbf(libc_printf,"printf")(")");
  }
 }
 sao_object *sao_eval(sao_object *exp, sao_object *ctx)
