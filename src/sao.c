@@ -72,6 +72,10 @@ ffic_func libc_(int fi,const char* fn){ return libc_a[fi]?libc_a[fi]:(libc_a[fi]
 define_map(stream, file,char);
 define_map(type,   list,integer,symbol,string,native,vector);
 define_map(ctype,  long,double,any);
+//int SAO_ITR1(SAO_CAT_COMMA, argv_, i,p,d,v,e,s) argv_h;
+define_map(argt,   i,p,d,v,e,s,h);
+int argta[argt_h+1];
+#define SAO_ARGV(x) argta[argt_##x]
 typedef struct _sao_object sao_object;
 typedef sao_object *(*native_t)(sao_object *);
 struct _sao_object {
@@ -94,7 +98,6 @@ struct _sao_object {
 } __attribute__((packed));
 #define define_sao_object(n) sao_object*n=SAO_NULL;
 SAO_ITR(define_sao_object, NIL,ARGV,GLOBAL,TRUE,FALSE,QUOTE,SET,LET,DEFINE,PROCEDURE,IF,LAMBDA,BEGIN,ERROR);
-int SAO_ITR1(SAO_CAT_COMMA, argv_, i,p,d,v,e,s) argv_h;
 sao_object *is_tagged(sao_object *cell, sao_object *tag);
 sao_object *cons(sao_object *car, sao_object *cdr);
 sao_object *native_load(sao_object *args);
@@ -325,7 +328,7 @@ int sao_read_line(sao_stream* fw) //TODO int * line_num
 		int LINE_LEN = 1024;//TODO
 		SAO_NEW_OBJECT(char,line,LINE_LEN);//TODO gc
 		if(fw->type==stream_file){
-			if(argv_i || argv_d){
+			if(SAO_ARGV(i) || SAO_ARGV(d)){
 				sao_stdout("> ");
 			}
 			fgets(line,LINE_LEN,fw->fp);
@@ -357,16 +360,16 @@ sao_object * sao_parse( sao_stream * fw, int do_eval ) {
 		sao_object* exp = sao_load_expr(fw);
 		if(exp==SAO_NULL){ break; }
 		if (!is_NIL(exp)) {
-			if(argv_d)
+			if(SAO_ARGV(d))
 				sao_stdout("%llu: ",microtime());
-			if(argv_i || argv_d){
+			if(SAO_ARGV(i)||SAO_ARGV(d)){
 				sao_out_expr("<=", exp);
 				sao_stdout("\n");
 			}
 			if (do_eval){
 				rt = sao_eval(exp, GLOBAL);
-				if(argv_d) sao_stdout("%llu: ",microtime());
-				if(argv_i || argv_d){
+				if(SAO_ARGV(d)) sao_stdout("%llu: ",microtime());
+				if(SAO_ARGV(i)||SAO_ARGV(d)){
 					if ( !is_NIL(rt)) {
 						sao_out_expr("=>", rt);
 						sao_stdout("\n");
@@ -392,11 +395,11 @@ sao_object *native_cons(sao_object *args) {
 	return cons(car(args), cadr(args));
 }
 sao_object *native_car(sao_object *args) {
-	if(argv_s) SAO_CHECK_TYPE(car(args), type_list);
+	if(SAO_ARGV(s)) SAO_CHECK_TYPE(car(args), type_list);
 	return caar(args);
 }
 sao_object *native_cdr(sao_object *args) {
-	if(argv_s) SAO_CHECK_TYPE(car(args), type_list);
+	if(SAO_ARGV(s)) SAO_CHECK_TYPE(car(args), type_list);
 	return cdar(args);
 }
 sao_object *native_setcar(sao_object *args) {
@@ -842,7 +845,7 @@ tail:
 		return exp;
 	} else if (exp->type == type_symbol) {
 		sao_object *s = sao_get_var(exp, ctx);
-		if (argv_s && is_NIL(s)) {
+		if (SAO_ARGV(s) && is_NIL(s)) {
 			sao_out_expr("Unbound symbol:", exp);
 			sao_stdout("\n");
 		}
@@ -921,7 +924,7 @@ tail:
 		sao_object *proc = sao_eval(car(exp), ctx);
 		sao_object *args = eval_list(cdr(exp), ctx);
 		if (is_NIL(proc)) {
-			if(argv_s){
+			if(SAO_ARGV(s)){
 				sao_out_expr("WARNING: Invalid arguments to sao_eval:", exp);
 				sao_stdout("\n");
 			}
@@ -1001,23 +1004,23 @@ int main(int argc, char **argv) {
 			//sao_stdout("\nTODO %s=%d\n", string_or_name, i_val);
 			sao_def_var(sao_new_symbol(string_or_name), sao_new_integer(i_val), ARGV);//@ref sao_get_var
 			//TODO counter mapping macros
-			if(!strcmp(string_or_name,"-h")){ argv_v++;argv_h++;
-			}else if(!strcmp(string_or_name,"-i")){ argv_i += i_val;
-			}else if(!strcmp(string_or_name,"-d")){ argv_d += i_val;
-			}else if(!strcmp(string_or_name,"-p")){ argv_p += i_val;
-			}else if(!strcmp(string_or_name,"-e")){ argv_e += i_val;
-			}else if(!strcmp(string_or_name,"-s")){ argv_s += i_val;
-			}else if(!strcmp(string_or_name,"-v")){ argv_v++; 
+			if(!strcmp(string_or_name,"-h")){ SAO_ARGV(v)++;SAO_ARGV(h)++;
+			}else if(!strcmp(string_or_name,"-i")){ SAO_ARGV(i) += i_val;
+			}else if(!strcmp(string_or_name,"-d")){ SAO_ARGV(d) += i_val;
+			}else if(!strcmp(string_or_name,"-p")){ SAO_ARGV(p) += i_val;
+			}else if(!strcmp(string_or_name,"-e")){ SAO_ARGV(e) += i_val;
+			}else if(!strcmp(string_or_name,"-s")){ SAO_ARGV(s) += i_val;
+			}else if(!strcmp(string_or_name,"-v")){ SAO_ARGV(v)++; 
 			}else {script_file = string_or_name;}
 			pos = cdr(pos);
 		}
 		sao_def_var(ARGV,ARGV,GLOBAL);
 	}
 	sao_stderr("TODO script_file=%s\n",script_file);
-	if(argv_v) sao_stdout("SaoLang (R) v0.0.3 - Wanjo Chan (c) 2020\n");
-	if(argv_h) sao_error(" Usage: sao [options] [ script.sao ]\n Options:\n	-h:	Help\n	-v:	Version\n	-i:	Interactive\n	-p:	Print final result\n	-d:	Dev only\n	-e:	Eval\n	-s:	Strictive");
+	if(SAO_ARGV(v)) sao_stdout("SaoLang (R) v0.0.3 - Wanjo Chan (c) 2020\n");
+	if(SAO_ARGV(h)) sao_error(" Usage: sao [options] [ script.sao ]\n Options:\n	-h:	Help\n	-v:	Version\n	-i:	Interactive\n	-p:	Print final result\n	-d:	Dev only\n	-e:	Eval\n	-s:	Strictive");
 	sao_stream * fw = sao_stream_new(libc(stdin),stream_file);
 	sao_object * result = sao_parse( fw, 1/*eval*/ );
-	if(argv_p){ sao_out_expr(0,result);sao_stdout("\n"); }
+	if(SAO_ARGV(p)){ sao_out_expr(0,result);sao_stdout("\n"); }
 	return 0;
 }
