@@ -34,14 +34,13 @@ pp:
 	${CC} -E ffic.c -I. -I../tinycc/ | sed 's/^#.*//g' | sed "/^$$/d" > ffic.pp.i
 clean:
 	rm -f *.o
-
 ##################################################### lab for sao
 
 run_sao:
 	make osx_sao
-	cat fib.sao | ./ffic sao.c
+	cat test.sao | ./ffic sao.c
 test_sao_osx:
-	echo $$(($$(gdate +'%s * 1000 + %-N / 1000000'))) && cat fib.sao | ./sao_osx
+	echo $$(($$(gdate +'%s * 1000 + %-N / 1000000'))) && cat test.sao | ./sao_osx
 osx_sao:
 	rm -f sao_osx
 	${CC} -E sao.c | sed 's/^#.*//g' | sed "/^$$/d" > sao.osx.pp.i

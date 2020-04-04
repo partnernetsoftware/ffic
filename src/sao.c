@@ -58,8 +58,7 @@ ffic_func libcbf(int fi,const char* fn){ return libc_a[fi]?libc_a[fi]:(libc_a[fi
 #define define_map(n, ...) define_enum(n,__VA_ARGS__) define_map_arr(n,__VA_ARGS__)
 #define SAO_NEW(t,...) sao_calloc( sizeof(t) SAO_IF(SAO_IS_PAREN(__VA_ARGS__ ()))(SAO_EAT(),*__VA_ARGS__) )
 #define NEW_OBJECT(t,n,...) t*n=SAO_NEW(t,__VA_ARGS__);
-//#define is_NIL(x) ((x)==SAO_NULL||(x)==NIL)
-#define is_NIL(x) (!x)
+#define is_NIL(x) (!(x))
 #define sao_stderr(...) libc(fprintf)(libc(stderr),__VA_ARGS__)
 #define sao_stdout(...) libc(printf)(__VA_ARGS__)
 #define sao_error(x) do{sao_stderr("%s\n",x);libc(exit)(1);}while(0)
@@ -73,7 +72,8 @@ ffic_func libcbf(int fi,const char* fn){ return libc_a[fi]?libc_a[fi]:(libc_a[fi
 #define cdddr(x) (cdr(cdr(cdr((x)))))
 #define cdadr(x) (cdr(car(cdr((x)))))
 #define cadddr(x) (car(cdr(cdr(cdr((x))))))
-#define atom(x) (!is_NIL(x) && (x)->type != type_list)
+//#define atom(x) (!is_NIL(x) && (x)->type != type_list)
+#define atom(x) (x && x->type)
 #define SAO_CHECK_TYPE(x, t) (sao_type_check(__func__, x, t))
 //#define car(x) ((is_NIL(x)||x->type!=type_list)?NIL:x->car)
 //////////////////////////////////////////////////////////////////////////////

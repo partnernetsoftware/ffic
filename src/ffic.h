@@ -231,7 +231,8 @@ sao_u64 ffic_microtime(void)
 	gettimeofday = ffic("c","gettimeofday");
 	gettimeofday(&tv, 0);
 #endif
-	return ((sao_u64)tv.tv_sec*(sao_u64)1000 + (((sao_u64)tv.tv_usec+(sao_u64)500)/(sao_u64)1000)%(sao_u64)1000);
+	//return ((sao_u64)tv.tv_sec*(sao_u64)1000 + (((sao_u64)tv.tv_usec+(sao_u64)500)/(sao_u64)1000)%(sao_u64)1000);
+	return ((sao_u64)tv.tv_sec*(sao_u64)1000 + (((sao_u64)tv.tv_usec)/(sao_u64)1000)%(sao_u64)1000);
 }
 #  ifndef libc
 #  define libc(f) ffic("c",#f)
