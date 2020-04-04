@@ -58,7 +58,9 @@ ffic_func libcbf(int fi,const char* fn){ return libc_a[fi]?libc_a[fi]:(libc_a[fi
 #define define_map(n, ...) define_enum(n,__VA_ARGS__) define_map_arr(n,__VA_ARGS__)
 #define SAO_NEW(t,...) sao_calloc( sizeof(t) SAO_IF(SAO_IS_PAREN(__VA_ARGS__ ()))(SAO_EAT(),*__VA_ARGS__) )
 #define NEW_OBJECT(t,n,...) t*n=SAO_NEW(t,__VA_ARGS__);
-#define is_NIL(x) (!(x))
+//#define is_NIL(x) (!(x)) //TODO maybe rollback with bracket
+#define is_NIL(x) !x
+#define is_LIST(x) (x&&!(x->type)) //TODO only when x is word, so need to improve
 #define sao_stderr(...) libc(fprintf)(libc(stderr),__VA_ARGS__)
 #define sao_stdout(...) libc(printf)(__VA_ARGS__)
 #define sao_error(x) do{sao_stderr("%s\n",x);libc(exit)(1);}while(0)
@@ -73,9 +75,10 @@ ffic_func libcbf(int fi,const char* fn){ return libc_a[fi]?libc_a[fi]:(libc_a[fi
 #define cdadr(x) (cdr(car(cdr((x)))))
 #define cadddr(x) (car(cdr(cdr(cdr((x))))))
 //#define atom(x) (!is_NIL(x) && (x)->type != type_list)
-#define atom(x) (x && x->type)
+#define atom(x) (x && x->type) //i.e. (x&&!is_LIST(x))
 #define SAO_CHECK_TYPE(x, t) (sao_type_check(__func__, x, t))
 //#define car(x) ((is_NIL(x)||x->type!=type_list)?NIL:x->car)
+//#define car(x) ((x&&x->type)?NIL:x->car)
 //////////////////////////////////////////////////////////////////////////////
 define_map(stream, file,char);
 //define_map(type,   integer,symbol,string,list,native,vector);
@@ -104,7 +107,7 @@ struct _sao_object {
 } __attribute__((packed));
 #define define_sao_object(n) sao_object*n=SAO_NULL;
 SAO_ITR(define_sao_object, NIL,GLOBAL,TRUE,FALSE,QUOTE,SET,LET,DEFINE,PROCEDURE,IF,LAMBDA,BEGIN,ERROR);
-int is_tagged(sao_object *cell, sao_object *tag);
+sao_object *is_tagged(sao_object *cell, sao_object *tag);
 sao_object *cons(sao_object *car, sao_object *cdr);
 sao_object *native_load(sao_object *args);
 sao_object *cdr(sao_object *);
@@ -202,10 +205,12 @@ sao_object *cons(sao_object *car, sao_object *cdr) {
 	return ret;
 }
 sao_object *car(sao_object *cell) {
-	return (is_NIL(cell) || cell->type != type_list) ? NIL : cell->car;
+	//return (is_NIL(cell) || cell->type != type_list) ? NIL : cell->car;
+	return is_LIST(cell)?cell->car:NIL;
 }
 sao_object *cdr(sao_object *cell) {
-	return (is_NIL(cell) || cell->type != type_list) ? NIL : cell->cdr;
+	//return (is_NIL(cell) || cell->type != type_list) ? NIL : cell->cdr;
+	return is_LIST(cell)?cell->cdr:NIL;
 }
 sao_object *append(sao_object *l1, sao_object *l2) {
 	if (is_NIL(l1)) return l2;
@@ -262,33 +267,32 @@ sao_object * sao_reverse(sao_object *list, sao_object *first) {
 		sao_reverse(cdr(list), cons(car(list), first));
 	return rt;
 }
-
-int is_equal(sao_object *x, sao_object *y) {
-	if (x == y)
-		return 1;
-	if (is_NIL(x) || is_NIL(y))
-		return 0;
-	if (x->type != y->type)
-		return 0;
+sao_object * is_equal(sao_object *x, sao_object *y)
+{
+	if (x == y) return x;
+	if (is_NIL(x) || is_NIL(y)) return NIL;
+	if (x->type != y->type) return NIL;
 	switch (x->type) {
-		case type_list: return 0;
-		case type_integer: return x->_integer == y->_integer;
+		case type_integer: if(x->_integer == y->_integer)return x;
 		case type_symbol:
-		case type_string: return !libc(strcmp)(x->_string, y->_string);
-		case type_native: return 0;
-		case type_vector: return 0;
+		case type_string: if(!libc(strcmp)(x->_string, y->_string)) return x;
+		//case type_list: 
+		//case type_native: 
+		//case type_vector: 
+		default: return NIL;
 	}
-	return 0;
+	return NIL;
 }
 int not_false(sao_object *x) {
 	if (is_NIL(x) || is_equal(x, FALSE)) return 0;
 	if (x->type == type_integer && x->_integer == 0) return 0;
 	return 1;
 }
-int is_tagged(sao_object *cell, sao_object *tag)
+sao_object* is_tagged(sao_object *cell, sao_object *tag)
 {
-	if (is_NIL(cell) || cell->type != type_list) return 0;
-	return is_equal(car(cell), tag);
+	return is_LIST(cell) ? is_equal(car(cell),tag) : NIL;
+	//if (is_NIL(cell) || cell->type != type_list) return 0;
+	//return is_equal(car(cell), tag);
 }
 int sao_length(sao_object *exp) {
 	if (is_NIL(exp)) return 0;
