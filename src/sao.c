@@ -72,7 +72,6 @@ ffic_func libc_(int fi,const char* fn){ return libc_a[fi]?libc_a[fi]:(libc_a[fi]
 define_map(stream, file,char);
 define_map(type,   list,integer,symbol,string,native,vector);
 define_map(ctype,  long,double,any);
-//int SAO_ITR1(SAO_CAT_COMMA, argv_, i,p,d,v,e,s) argv_h;
 define_map(argt,   i,p,d,v,e,s,h);
 int argta[argt_h+1];
 #define SAO_ARGV(x) argta[argt_##x]
@@ -1001,16 +1000,7 @@ int main(int argc, char **argv) {
 				string_or_name = _car->_string;
 				i_val = 1;
 			}
-			//sao_stdout("\nTODO %s=%d\n", string_or_name, i_val);
 			sao_def_var(sao_new_symbol(string_or_name), sao_new_integer(i_val), ARGV);//@ref sao_get_var
-			//int found = 0;
-			//for(int i=0;i<argt_h;i++){
-			//	if(string_or_name[0]=='-'&& (string_or_name[1]==argt_names[i][0])){
-			//		SAO_ARGV(i)++;
-			//		found++;
-			//	}
-			//}
-			//if(!found) script_file = string_or_name;
 			if(!strcmp(string_or_name,"-h")){ SAO_ARGV(v)++;SAO_ARGV(h)++;
 			}else if(!strcmp(string_or_name,"-i")){ SAO_ARGV(i) += i_val;
 			}else if(!strcmp(string_or_name,"-d")){ SAO_ARGV(d) += i_val;
