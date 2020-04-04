@@ -976,6 +976,7 @@ int main(int argc, char **argv) {
 	ht_resize(16384-1);//TODO improve hashtable later
 	sao_init(0);//TODO to define own natives ffic("libsao","init")
 	ARGV = sao_expand(NIL, NIL, NIL);
+	char * script_file = "-";
 	if(argc>1){
 		char argv_line[512] = {'_','(',0};
 		char * argv_ptr = &argv_line[2];
@@ -1006,15 +1007,15 @@ int main(int argc, char **argv) {
 			}else if(!strcmp(string_or_name,"-p")){ argv_p += i_val;
 			}else if(!strcmp(string_or_name,"-e")){ argv_e += i_val;
 			}else if(!strcmp(string_or_name,"-s")){ argv_s += i_val;
-			}else if(!strcmp(string_or_name,"-v")){ argv_v++; }
+			}else if(!strcmp(string_or_name,"-v")){ argv_v++; 
+			}else {script_file = string_or_name;}
 			pos = cdr(pos);
 		}
 		sao_def_var(ARGV,ARGV,GLOBAL);
 	}
+	sao_stderr("TODO script_file=%s\n",script_file);
 	if(argv_v) sao_stdout("SaoLang (R) v0.0.3 - Wanjo Chan (c) 2020\n");
-	if(argv_h) sao_error("Usage: sao [options] [ script.sao ]\n" "Options:\n"
-			"	-h:	Help\n" "	-v:	Version\n" "	-i:	Interactive (REPL)\n" "	-p:	Print final result\n"
-			"	-d:	Dev debug only\n" "	-e:	Eval and exit\n" "	-s: Strict Mode\n");
+	if(argv_h) sao_error(" Usage: sao [options] [ script.sao ]\n Options:\n	-h:	Help\n	-v:	Version\n	-i:	Interactive\n	-p:	Print final result\n	-d:	Dev only\n	-e:	Eval\n	-s:	Strictive");
 	sao_stream * fw = sao_stream_new(libc(stdin),stream_file);
 	sao_object * result = sao_parse( fw, 1/*eval*/ );
 	if(argv_p){ sao_out_expr(0,result);sao_stdout("\n"); }

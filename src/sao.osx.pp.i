@@ -113,7 +113,7 @@ struct _sao_object {
  };
 } __attribute__((packed));
 sao_object*NIL=0; sao_object*ARGV=0; sao_object*GLOBAL=0; sao_object*TRUE=0; sao_object*FALSE=0; sao_object*QUOTE=0; sao_object*SET=0; sao_object*LET=0; sao_object*DEFINE=0; sao_object*PROCEDURE=0; sao_object*IF=0; sao_object*LAMBDA=0; sao_object*BEGIN=0; sao_object*ERROR=0;;
-int argv_i, argv_p, argv_d, argv_v, argv_e, argv_r, argv_h;
+int argv_i, argv_p, argv_d, argv_v, argv_e, argv_s, argv_h;
 sao_object *is_tagged(sao_object *cell, sao_object *tag);
 sao_object *cons(sao_object *car, sao_object *cdr);
 sao_object *native_load(sao_object *args);
@@ -334,7 +334,7 @@ int sao_read_line(sao_stream* fw)
   int LINE_LEN = 1024;
   char*line=sao_calloc( sizeof(char) *LINE_LEN );;
   if(fw->type==stream_file){
-   if(argv_i){
+   if(argv_i || argv_d){
     libc_(libc_printf,"printf")("> ");
    }
    fgets(line,LINE_LEN,fw->fp);
@@ -367,14 +367,14 @@ sao_object * sao_parse( sao_stream * fw, int do_eval ) {
   if (!!exp) {
    if(argv_d)
     libc_(libc_printf,"printf")("%llu: ",microtime());
-   if(argv_i){
+   if(argv_i || argv_d){
     sao_out_expr("<=", exp);
     libc_(libc_printf,"printf")("\n");
    }
    if (do_eval){
     rt = sao_eval(exp, GLOBAL);
     if(argv_d) libc_(libc_printf,"printf")("%llu: ",microtime());
-    if(argv_i){
+    if(argv_i || argv_d){
      if ( !!rt) {
       sao_out_expr("=>", rt);
       libc_(libc_printf,"printf")("\n");
@@ -400,9 +400,11 @@ sao_object *native_cons(sao_object *args) {
  return cons(car(args), (car(cdr((args)))));
 }
 sao_object *native_car(sao_object *args) {
+ if(argv_s) (sao_type_check(__func__, car(args), type_list));
  return (car(car((args))));
 }
 sao_object *native_cdr(sao_object *args) {
+ if(argv_s) (sao_type_check(__func__, car(args), type_list));
  return (cdr(car((args))));
 }
 sao_object *native_setcar(sao_object *args) {
@@ -835,6 +837,10 @@ tail:
   return exp;
  } else if (exp->type == type_symbol) {
   sao_object *s = sao_get_var(exp, ctx);
+  if (argv_s && !s) {
+   sao_out_expr("Unbound symbol:", exp);
+   libc_(libc_printf,"printf")("\n");
+  }
   return s;
  } else if (is_tagged(exp, QUOTE)) {
   return (car(cdr((exp))));
@@ -909,6 +915,10 @@ tail:
   sao_object *proc = sao_eval(car(exp), ctx);
   sao_object *args = eval_list(cdr(exp), ctx);
   if (!proc) {
+   if(argv_s){
+    sao_out_expr("WARNING: Invalid arguments to sao_eval:", exp);
+    libc_(libc_printf,"printf")("\n");
+   }
    return NIL;
   }
   if (proc->type == type_native){
@@ -948,6 +958,7 @@ int main(int argc, char **argv) {
  ht_resize(16384-1);
  sao_init(0);
  ARGV = sao_expand(NIL, NIL, NIL);
+ char * script_file = "-";
  if(argc>1){
   char argv_line[512] = {'_','(',0};
   char * argv_ptr = &argv_line[2];
@@ -974,15 +985,17 @@ int main(int argc, char **argv) {
    }else if(!strcmp(string_or_name,"-i")){ argv_i += i_val;
    }else if(!strcmp(string_or_name,"-d")){ argv_d += i_val;
    }else if(!strcmp(string_or_name,"-p")){ argv_p += i_val;
-   }else if(!strcmp(string_or_name,"-r")){ argv_r += i_val;
    }else if(!strcmp(string_or_name,"-e")){ argv_e += i_val;
-   }else if(!strcmp(string_or_name,"-v")){ argv_v++; }
+   }else if(!strcmp(string_or_name,"-s")){ argv_s += i_val;
+   }else if(!strcmp(string_or_name,"-v")){ argv_v++;
+   }else {script_file = string_or_name;}
    pos = cdr(pos);
   }
   sao_def_var(ARGV,ARGV,GLOBAL);
  }
+ libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"TODO script_file=%s\n",script_file);
  if(argv_v) libc_(libc_printf,"printf")("SaoLang (R) v0.0.3 - Wanjo Chan (c) 2020\n");
- if(argv_h) do{libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"%s\n","Usage: sao [options] [ script.sao ]\n" "Options:\n" "	-h:	Help\n" "	-v:	Version\n" "	-i:	Interactive (REPL)\n" "	-p:	Print final result\n" "	-d:	Dev debug only\n" "	-e:	Eval and exit\n" "	-r: Restrict Mode\n");libc_(libc_exit,"exit")(1);}while(0);
+ if(argv_h) do{libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"%s\n"," Usage: sao [options] [ script.sao ]\n Options:\n	-h:	Help\n	-v:	Version\n	-i:	Interactive\n	-p:	Print final result\n	-d:	Dev only\n	-e:	Eval\n	-s:	Strictive");libc_(libc_exit,"exit")(1);}while(0);
  sao_stream * fw = sao_stream_new(libc_(libc_stdin,"stdin"),stream_file);
  sao_object * result = sao_parse( fw, 1 );
  if(argv_p){ sao_out_expr(0,result);libc_(libc_printf,"printf")("\n"); }
