@@ -1001,13 +1001,21 @@ int main(int argc, char **argv) {
 				i_val = 1;
 			}
 			sao_def_var(sao_new_symbol(string_or_name), sao_new_integer(i_val), ARGV);//@ref sao_get_var
-			if(!strcmp(string_or_name,"-h")){ SAO_ARGV(v)++;SAO_ARGV(h)++;
-			}else if(!strcmp(string_or_name,"-i")){ SAO_ARGV(i) += i_val;
-			}else if(!strcmp(string_or_name,"-d")){ SAO_ARGV(d) += i_val;
-			}else if(!strcmp(string_or_name,"-p")){ SAO_ARGV(p) += i_val;
-			}else if(!strcmp(string_or_name,"-e")){ SAO_ARGV(e) += i_val;
-			}else if(!strcmp(string_or_name,"-s")){ SAO_ARGV(s) += i_val;
-			}else if(!strcmp(string_or_name,"-v")){ SAO_ARGV(v)++; 
+			//int found = 0;
+			//for(int i=0;i<argt_h;i++){
+			//	if(string_or_name[0]=='-'&& (string_or_name[1]==argt_names[i][0])){
+			//		SAO_ARGV(i)++;
+			//		found++;
+			//	}
+			//}
+			//if(!found) script_file = string_or_name;
+			if(!strcmp(string_or_name,"h")){ SAO_ARGV(v)++;SAO_ARGV(h)++;
+			}else if(!strcmp(string_or_name,"i")){ SAO_ARGV(i) += i_val;
+			}else if(!strcmp(string_or_name,"d")){ SAO_ARGV(d) += i_val;
+			}else if(!strcmp(string_or_name,"p")){ SAO_ARGV(p) += i_val;
+			}else if(!strcmp(string_or_name,"e")){ SAO_ARGV(e) += i_val;
+			}else if(!strcmp(string_or_name,"s")){ SAO_ARGV(s) += i_val;
+			}else if(!strcmp(string_or_name,"v")){ SAO_ARGV(v)++; 
 			}else {script_file = string_or_name;}
 			pos = cdr(pos);
 		}
@@ -1015,7 +1023,7 @@ int main(int argc, char **argv) {
 	}
 	sao_stderr("TODO script_file=%s\n",script_file);
 	if(SAO_ARGV(v)) sao_stdout("SaoLang (R) v0.0.3 - Wanjo Chan (c) 2020\n");
-	if(SAO_ARGV(h)) sao_error(" Usage: sao [options] [ script.sao ]\n Options:\n	-h:	Help\n	-v:	Version\n	-i:	Interactive\n	-p:	Print final result\n	-d:	Dev only\n	-e:	Eval\n	-s:	Strictive");
+	if(SAO_ARGV(h)){sao_stdout(" Usage: sao [options] [script.sao | -]]\n Options:\n	h:	Help\n	v:	Version\n	i:	Interactive\n	p:	Print final result\n	d:	Dev only\n	e:	Eval\n	s:	Strictive");libc(exit)(0);}
 	sao_stream * fw = sao_stream_new(libc(stdin),stream_file);
 	sao_object * result = sao_parse( fw, 1/*eval*/ );
 	if(SAO_ARGV(p)){ sao_out_expr(0,result);sao_stdout("\n"); }

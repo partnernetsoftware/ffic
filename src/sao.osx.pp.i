@@ -982,13 +982,13 @@ int main(int argc, char **argv) {
     i_val = 1;
    }
    sao_def_var(sao_new_symbol(string_or_name), sao_new_integer(i_val), ARGV);
-   if(!strcmp(string_or_name,"-h")){ argta[argt_v]++;argta[argt_h]++;
-   }else if(!strcmp(string_or_name,"-i")){ argta[argt_i] += i_val;
-   }else if(!strcmp(string_or_name,"-d")){ argta[argt_d] += i_val;
-   }else if(!strcmp(string_or_name,"-p")){ argta[argt_p] += i_val;
-   }else if(!strcmp(string_or_name,"-e")){ argta[argt_e] += i_val;
-   }else if(!strcmp(string_or_name,"-s")){ argta[argt_s] += i_val;
-   }else if(!strcmp(string_or_name,"-v")){ argta[argt_v]++;
+   if(!strcmp(string_or_name,"h")){ argta[argt_v]++;argta[argt_h]++;
+   }else if(!strcmp(string_or_name,"i")){ argta[argt_i] += i_val;
+   }else if(!strcmp(string_or_name,"d")){ argta[argt_d] += i_val;
+   }else if(!strcmp(string_or_name,"p")){ argta[argt_p] += i_val;
+   }else if(!strcmp(string_or_name,"e")){ argta[argt_e] += i_val;
+   }else if(!strcmp(string_or_name,"s")){ argta[argt_s] += i_val;
+   }else if(!strcmp(string_or_name,"v")){ argta[argt_v]++;
    }else {script_file = string_or_name;}
    pos = cdr(pos);
   }
@@ -996,7 +996,7 @@ int main(int argc, char **argv) {
  }
  libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"TODO script_file=%s\n",script_file);
  if(argta[argt_v]) libc_(libc_printf,"printf")("SaoLang (R) v0.0.3 - Wanjo Chan (c) 2020\n");
- if(argta[argt_h]) do{libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"%s\n"," Usage: sao [options] [ script.sao ]\n Options:\n	-h:	Help\n	-v:	Version\n	-i:	Interactive\n	-p:	Print final result\n	-d:	Dev only\n	-e:	Eval\n	-s:	Strictive");libc_(libc_exit,"exit")(1);}while(0);
+ if(argta[argt_h]){libc_(libc_printf,"printf")(" Usage: sao [options] [script.sao | -]]\n Options:\n	h:	Help\n	v:	Version\n	i:	Interactive\n	p:	Print final result\n	d:	Dev only\n	e:	Eval\n	s:	Strictive");libc_(libc_exit,"exit")(0);}
  sao_stream * fw = sao_stream_new(libc_(libc_stdin,"stdin"),stream_file);
  sao_object * result = sao_parse( fw, 1 );
  if(argta[argt_p]){ sao_out_expr(0,result);libc_(libc_printf,"printf")("\n"); }
