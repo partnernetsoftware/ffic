@@ -93,7 +93,7 @@ sao_u64 ffic_microtime(void)
 ffic_func libcbf(int fi,const char* fn);
 ffic_func libcbf(int fi,const char* fn){ return libc_a[fi]?libc_a[fi]:(libc_a[fi]=ffic("c",fn)); }
 typedef enum { stream_file, stream_char, } stream_t; char* stream_names[] = { "file", "char", };;
-typedef enum { type_integer, type_symbol, type_string, type_list, type_native, type_vector, } type_t; char* type_names[] = { "integer", "symbol", "string", "list", "native", "vector", };;
+typedef enum { type_list, type_integer, type_symbol, type_string, type_native, type_vector, } type_t; char* type_names[] = { "list", "integer", "symbol", "string", "native", "vector", };;
 typedef enum { ctype_long, ctype_double, ctype_any, } ctype_t; char* ctype_names[] = { "long", "double", "any", };;
 typedef struct _sao_object sao_object;
 typedef sao_object *(*native_t)(sao_object *);
@@ -115,7 +115,7 @@ struct _sao_object {
   native_t native;
  };
 } __attribute__((packed));
-sao_object*NIL=0; sao_object*END_LIST=0; sao_object*GLOBAL=0; sao_object*TRUE=0; sao_object*FALSE=0; sao_object*QUOTE=0; sao_object*SET=0; sao_object*LET=0; sao_object*DEFINE=0; sao_object*PROCEDURE=0; sao_object*IF=0; sao_object*LAMBDA=0; sao_object*BEGIN=0; sao_object*ERROR=0;;
+sao_object*NIL=0; sao_object*GLOBAL=0; sao_object*TRUE=0; sao_object*FALSE=0; sao_object*QUOTE=0; sao_object*SET=0; sao_object*LET=0; sao_object*DEFINE=0; sao_object*PROCEDURE=0; sao_object*IF=0; sao_object*LAMBDA=0; sao_object*BEGIN=0; sao_object*ERROR=0;;
 int is_tagged(sao_object *cell, sao_object *tag);
 sao_object *cons(sao_object *car, sao_object *cdr);
 sao_object *native_load(sao_object *args);
@@ -135,8 +135,6 @@ typedef struct {
  FileChar * ptr_start;
  FileChar * ptr_head;
  FileChar * ptr_last;
- long rest;
- long total;
 } sao_stream;
 sao_stream * sao_stream_new(void*,stream_t);
 long sao_is_digit(int c);
@@ -260,7 +258,7 @@ sao_object *sao_new_lambda(sao_object *params, sao_object *body) {
 }
 sao_object *sao_new_procedure(sao_object *params, sao_object *body,
   sao_object *ctx) {
- return cons(PROCEDURE, cons(params, cons(body, cons(ctx, END_LIST))));
+ return cons(PROCEDURE, cons(params, cons(body, cons(ctx, NIL))));
 }
 sao_object * sao_reverse(sao_object *list, sao_object *first) {
  sao_object * rt = ((!list)) ? first :
@@ -327,7 +325,7 @@ sao_object *native_setcdr(sao_object *args) {
  return NIL;
 }
 sao_object *native_is_null(sao_object *args) {
- return ((!(car(args))) || (car(args)) == END_LIST) ? TRUE : FALSE;
+ return (!car(args)) ? TRUE : FALSE;
 }
 sao_object *native_pairq(sao_object *args) {
  if (car(args)->type != type_list)
@@ -392,7 +390,7 @@ sao_object *native_add(sao_object *list) {
  (sao_type_check(__func__, car(list), type_integer));
  long total = car(list)->_integer;
  list = cdr(list);
- while (!((!(car(list))) || (car(list)) == END_LIST))
+ while (!(!car(list)))
  {
   (sao_type_check(__func__, car(list), type_integer));
   total += car(list)->_integer;
@@ -453,6 +451,25 @@ sao_object *native_exit(sao_object *args) {
 }
 sao_object *native_read(sao_object *args) {
  return sao_load_expr(sao_stream_new(libcbf(libc_stdin,"stdin"),stream_file));
+}
+sao_object *native_load(sao_object *args) {
+ sao_object *exp;
+ sao_object *ret = 0;
+ char *filename = car(args)->_string;
+ void*fp = libcbf(libc_fopen,"fopen")(filename, "r");
+ if (fp == 0) {
+  libcbf(libc_printf,"printf")("Error opening file %s\n", filename);
+  return NIL;
+ }
+ sao_stream * fw = sao_stream_new(fp,stream_file);
+ for (;;) {
+  exp = sao_load_expr(fw);
+  if ((!exp))
+   break;
+  ret = sao_eval(exp, GLOBAL);
+ }
+ libcbf(libc_fclose,"fclose")(fp);
+ return ret;
 }
 sao_object *native_tget(sao_object *args) {
  sao_object * vct = (sao_type_check(__func__, car(args), type_vector));
@@ -533,25 +550,6 @@ sao_object *eval_sequence(sao_object *exps, sao_object *ctx) {
  sao_eval(car(exps), ctx);
  return eval_sequence(cdr(exps), ctx);
 }
-sao_object *native_load(sao_object *args) {
- sao_object *exp;
- sao_object *ret = 0;
- char *filename = car(args)->_string;
- void*fp = libcbf(libc_fopen,"fopen")(filename, "r");
- if (fp == 0) {
-  libcbf(libc_printf,"printf")("Error opening file %s\n", filename);
-  return NIL;
- }
- sao_stream * fw = sao_stream_new(fp,stream_file);
- for (;;) {
-  exp = sao_load_expr(fw);
-  if ((!exp))
-   break;
-  ret = sao_eval(exp, GLOBAL);
- }
- libcbf(libc_fclose,"fclose")(fp);
- return ret;
-}
 sao_stream * sao_stream_new(void* fp,stream_t type)
 {
  sao_stream*fw=sao_calloc( sizeof(sao_stream) );;
@@ -567,7 +565,6 @@ int sao_deq_c(sao_stream *fw)
  if(ptr_head!=0){
   c = ptr_head->c;
   fw->ptr_head=ptr_head->ptr_next;
-  fw->rest --;
  }
  return c;
 }
@@ -585,7 +582,6 @@ int sao_enq_c(sao_stream* fw,int k){
   fw->ptr_last->ptr_next = fc;
  }
  fw->ptr_last = fc;
- fw->rest ++;
  return k;
 }
 int depth = 0;
@@ -672,14 +668,14 @@ int sao_read_int(sao_stream * fw, int start)
 sao_object *sao_read_list(sao_stream * fw)
 {
  sao_object *obj;
- sao_object *cell = END_LIST;
+ sao_object *cell = NIL;
  for (;;) {
   obj = sao_load_expr(fw);
-  if (obj == END_LIST)
-   return sao_reverse(cell, END_LIST);
+  if ((!obj))
+   return sao_reverse(cell, NIL);
   cell = cons(obj, cell);
  }
- return END_LIST;
+ return NIL;
 }
 sao_object *sao_load_str(sao_stream * fw)
 {
@@ -748,7 +744,7 @@ sao_object *sao_load_expr(sao_stream * fw)
   }
   if (c == ')') {
    depth--;
-   return END_LIST;
+   return NIL;
   }
   if (sao_is_digit(c)) return sao_new_integer(sao_read_int(fw, c - '0'));
   if (c == '-' && sao_is_digit(sao_peek(fw)))
@@ -759,7 +755,7 @@ sao_object *sao_load_expr(sao_stream * fw)
 void sao_out_expr(char *str, sao_object *e)
 {
  if (str) libcbf(libc_printf,"printf")("%s ", str);
- if ((!e)) { libcbf(libc_printf,"printf")("'()"); return; }
+ if ((!e)) { return; }
  switch (e->type) {
   case type_string: libcbf(libc_printf,"printf")("\"%s\"", e->_string); break;
   case type_symbol: libcbf(libc_printf,"printf")("%s", e->_string); break;
@@ -803,7 +799,8 @@ void sao_out_expr(char *str, sao_object *e)
 sao_object *sao_eval(sao_object *exp, sao_object *ctx)
 {
 tail:
- if ((!exp) || exp == END_LIST) {
+ if ((!exp))
+ {
   return NIL;
  } else if (exp->type == type_integer || exp->type == type_string) {
   return exp;
@@ -885,8 +882,9 @@ tail:
   if ((!proc)) {
    return NIL;
   }
-  if (proc->type == type_native)
+  if (proc->type == type_native){
    return proc->native(args);
+  }
   if (is_tagged(proc, PROCEDURE)) {
    ctx = sao_expand((car(cdr((proc)))), args, (car(cdr(cdr(cdr((proc)))))));
    exp = cons(BEGIN, (car(cdr(cdr((proc))))));
@@ -922,9 +920,7 @@ sao_object * sao_parse( sao_stream * fw, int do_eval )
  sao_object *rt = NIL;
  for(;;){
   sao_object *obj = sao_load_expr(fw);
-  if(obj==0){
-   break;
-  }
+  if(obj==0){ break; }
   if (!(!obj)) {
    libcbf(libc_printf,"printf")("%llu: ",microtime());
    sao_out_expr("<=", obj);
