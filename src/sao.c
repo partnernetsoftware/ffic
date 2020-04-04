@@ -1040,7 +1040,7 @@ int main(int argc, char **argv) {
 			}else if(!strcmp(string_or_name,"-p")){
 				argv_p = i_val;
 			}else if(!strcmp(string_or_name,"-v")){
-				sao_stderr("SaoLang Runtime - Wanjo Chan (c) 2020\n");
+				sao_stderr("SaoLang Runtime v0.0.3 - Wanjo Chan (c) 2020\n");
 			}
 			//TODO open interactive mode if stdin nothing
 			pos = cdr(pos);
