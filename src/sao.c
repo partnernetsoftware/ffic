@@ -110,7 +110,7 @@ sao_object *cons(sao_object *car, sao_object *cdr);
 sao_object *native_load(sao_object *args);
 sao_object *cdr(sao_object *);
 sao_object *car(sao_object *);
-sao_object *sao_lookup_var(sao_object *var, sao_object *ctx);
+sao_object *sao_get_var(sao_object *var, sao_object *ctx);
 sao_object *sao_type_check(const char *func, sao_object *obj, type_t type);
 typedef struct _FileChar {
 	int c;
@@ -480,6 +480,10 @@ sao_object *native_load(sao_object *args) { //TODO merge with native_read() 1!!!
 	libc(fclose)(fp);
 	return ret;
 }
+sao_object *native_vector(sao_object *args) {
+	sao_object * sym = SAO_CHECK_TYPE(car(args), type_integer);
+	return sao_new_vector(sym->_integer);
+}
 sao_object *native_vget(sao_object *args) {
 	sao_object * vct = SAO_CHECK_TYPE(car(args), type_vector);
 	sao_object * key = SAO_CHECK_TYPE(cadr(args), type_integer);
@@ -494,15 +498,10 @@ sao_object *native_vset(sao_object *args){
 	car(args)->_vector[key->_integer] = caddr(args);
 	return sao_new_symbol("ok");
 }
-sao_object *native_vector(sao_object *args) {
-	sao_object * sym = SAO_CHECK_TYPE(car(args), type_integer);
-	return sao_new_vector(sym->_integer);
-}
 sao_object *sao_expand(sao_object *var, sao_object *val, sao_object *ctx) {
 	return cons(cons(var, val), ctx);
 }
-//TODO rename sao_get_var()
-sao_object *sao_lookup_var(sao_object *var, sao_object *ctx) {
+sao_object *sao_get_var(sao_object *var, sao_object *ctx) {
 	while (!is_NIL(ctx)) {
 		sao_object *frame = car(ctx);
 		sao_object *vars = car(frame);
@@ -517,9 +516,8 @@ sao_object *sao_lookup_var(sao_object *var, sao_object *ctx) {
 	}
 	return NIL;
 }
-
-//TODO merge with define_variable():
-sao_object * sao_set_variable(sao_object *var, sao_object *val, sao_object *ctx) {
+//replace var->val when found.
+sao_object * sao_set_var(sao_object *var, sao_object *val, sao_object *ctx) {
 	while (!is_NIL(ctx)) {
 		sao_object *frame = car(ctx);
 		sao_object *vars = car(frame);
@@ -537,9 +535,10 @@ sao_object * sao_set_variable(sao_object *var, sao_object *val, sao_object *ctx)
 	}
 	return val;
 }
-sao_object *define_variable(sao_object *var, sao_object *val, sao_object *ctx)
+//define into:
+sao_object *sao_def_var(sao_object *var, sao_object *val, sao_object *ctx)
 {
-	if(!ctx) sao_error("ASSERT: define_variable need ctx");
+	if(!ctx) sao_error("ASSERT: sao_def_var need ctx");
 	sao_object *frame = car(ctx);
 	sao_object *vars = car(frame);
 	sao_object *vals = cdr(frame);
@@ -832,7 +831,7 @@ tail:
 	} else if (exp->type == type_integer || exp->type == type_string) {
 		return exp;
 	} else if (exp->type == type_symbol) {
-		sao_object *s = sao_lookup_var(exp, ctx);
+		sao_object *s = sao_get_var(exp, ctx);
 #ifdef STRICT //TODO
 		if (is_NIL(s)) {
 			sao_out_expr("Unbound symbol:", exp);
@@ -846,11 +845,11 @@ tail:
 		return sao_new_procedure(cadr(exp), cddr(exp), ctx);
 	} else if (is_tagged(exp, DEFINE)) {
 		if (is_ATOM(cadr(exp)))
-			define_variable(cadr(exp), sao_eval(caddr(exp), ctx), ctx);
+			sao_def_var(cadr(exp), sao_eval(caddr(exp), ctx), ctx);
 		else {
 			sao_object *closure =
 				sao_eval(sao_new_lambda(cdr(cadr(exp)), cddr(exp)), ctx);
-			define_variable(car(cadr(exp)), closure, ctx);
+			sao_def_var(car(cadr(exp)), closure, ctx);
 		}
 		return sao_new_symbol("ok");
 	} else if (is_tagged(exp, BEGIN)) {
@@ -878,12 +877,13 @@ tail:
 		}
 		return NIL;
 	} else if (is_tagged(exp, SET)) {
+		//TODO SET works in current ctx
 		if (is_ATOM(cadr(exp))){
-			sao_set_variable(cadr(exp), sao_eval(caddr(exp), ctx), ctx);
+			sao_set_var(cadr(exp), sao_eval(caddr(exp), ctx), ctx);
 		} else {
 			sao_object *closure =
 				sao_eval(sao_new_lambda(cdr(cadr(exp)), cddr(exp)), ctx);
-			sao_set_variable(car(cadr(exp)), closure, ctx);
+			sao_set_var(car(cadr(exp)), closure, ctx);
 		}
 		return sao_new_symbol("ok");
 	} else if (is_tagged(exp, LET)) { /* transform into a lambda function*/
@@ -896,7 +896,7 @@ tail:
 				vars = cons(caar(*tmp), vars);
 				vals = cons(cadar(*tmp), vals);
 			}
-			define_variable(cadr(exp),
+			sao_def_var(cadr(exp),
 					sao_eval(sao_new_lambda(vars, cdr(cddr(exp))),
 						sao_expand(vars, vals, ctx)),
 					ctx); /* evaluate the lambda function with the starting values */
@@ -935,16 +935,16 @@ tail:
 	sao_stdout("\n");
 	return NIL;
 }
-#define add_native(s, c) define_variable(sao_new_symbol(s), sao_new_native(c), GLOBAL)
-#define add_sym(s, c) do{c=sao_new_symbol(s);define_variable(c,c,GLOBAL);}while(0);
+#define add_native(s, c) sao_def_var(sao_new_symbol(s), sao_new_native(c), GLOBAL)
+#define add_sym(s, c) do{c=sao_new_symbol(s);sao_def_var(c,c,GLOBAL);}while(0);
 #define add_sym_with(n) add_native(#n, native_##n);
 sao_object * sao_init(char* langpack /* TODO ffic with own lang*/)
 {
 	GLOBAL = sao_expand(NIL, NIL, NIL);
 	add_sym("true", TRUE);
 	add_sym("false", FALSE);
-	define_variable(sao_new_symbol("true"), TRUE, GLOBAL);
-	define_variable(sao_new_symbol("false"), FALSE, GLOBAL);
+	sao_def_var(sao_new_symbol("true"), TRUE, GLOBAL);
+	sao_def_var(sao_new_symbol("false"), FALSE, GLOBAL);
 	add_sym("quote", QUOTE);
 	add_sym("lambda", LAMBDA);
 	add_sym("procedure", PROCEDURE);
@@ -1016,20 +1016,23 @@ int main(int argc, char **argv)
 		*argv_ptr++ = ')'; //*argv_ptr++ = '\0';
 		sao_stream * fw = sao_stream_new(argv_line,stream_char);
 		sao_object * arg_expr = sao_load_expr( fw );
-		//define_variable(_, arg_expr, ARGV);
+		sao_def_var(_, arg_expr, ARGV);
+		//sao_set_var(_, _, ARGV);//replace when found
 		//sao_list_len
 	}
 	sao_out_expr("\nDEBUG ARGV=>",ARGV);
+	sao_out_expr("\n DEBUG lookup()=>",sao_get_var(sao_new_symbol("_"),ARGV));
 
-	//define_variable(sao_new_symbol("_"), ARGV, GLOBAL);
+	//sao_def_var(sao_new_symbol("_"), ARGV, GLOBAL);
 	//sao_out_expr("\nDEBUG GLOBAL=>",GLOBAL);
 
-	//sao_out_expr("\n DEBUG lookup()=>",sao_lookup_var(sao_new_symbol("_"),GLOBAL));
+	//sao_out_expr("\n DEBUG lookup()=>",sao_get_var(sao_new_symbol("_"),GLOBAL));
+
 	sao_stream * fw = sao_stream_new(libc(stdin),stream_file);
 	sao_object * result = sao_parse( fw, 1/*eval*/ );
 	return 0;
 }
 
 /*
- * define_variable() => sao_var()
+ * sao_def_var() => sao_var()
  */
