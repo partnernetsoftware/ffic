@@ -113,7 +113,7 @@ struct _sao_object {
  };
 } __attribute__((packed));
 sao_object*NIL=0; sao_object*ARGV=0; sao_object*GLOBAL=0; sao_object*TRUE=0; sao_object*FALSE=0; sao_object*QUOTE=0; sao_object*SET=0; sao_object*LET=0; sao_object*DEFINE=0; sao_object*PROCEDURE=0; sao_object*IF=0; sao_object*LAMBDA=0; sao_object*BEGIN=0; sao_object*ERROR=0;;
-int argv_i, argv_p, argv_d, argv_v, argv_h;
+int argv_i, argv_p, argv_d, argv_v, argv_e, argv_r, argv_h;
 sao_object *is_tagged(sao_object *cell, sao_object *tag);
 sao_object *cons(sao_object *car, sao_object *cdr);
 sao_object *native_load(sao_object *args);
@@ -939,7 +939,7 @@ sao_object * sao_init(char* langpack )
  do{SET=sao_new_symbol("set");sao_def_var(SET,SET,GLOBAL);}while(0);;
  do{BEGIN=sao_new_symbol("begin");sao_def_var(BEGIN,BEGIN,GLOBAL);}while(0);;
  do{IF=sao_new_symbol("if");sao_def_var(IF,IF,GLOBAL);}while(0);;
- sao_def_var(sao_new_symbol("exit"), sao_new_native(native_exit), GLOBAL); sao_def_var(sao_new_symbol("ffi"), sao_new_native(native_ffi), GLOBAL); sao_def_var(sao_new_symbol("global"), sao_new_native(native_global), GLOBAL); sao_def_var(sao_new_symbol("type"), sao_new_native(native_type), GLOBAL); sao_def_var(sao_new_symbol("cons"), sao_new_native(native_cons), GLOBAL); sao_def_var(sao_new_symbol("car"), sao_new_native(native_car), GLOBAL); sao_def_var(sao_new_symbol("cdr"), sao_new_native(native_cdr), GLOBAL); sao_def_var(sao_new_symbol("setcar"), sao_new_native(native_setcar), GLOBAL); sao_def_var(sao_new_symbol("setcdr"), sao_new_native(native_setcdr), GLOBAL); sao_def_var(sao_new_symbol("list"), sao_new_native(native_list), GLOBAL); sao_def_var(sao_new_symbol("vector"), sao_new_native(native_vector), GLOBAL); sao_def_var(sao_new_symbol("vget"), sao_new_native(native_vget), GLOBAL); sao_def_var(sao_new_symbol("vset"), sao_new_native(native_vset), GLOBAL); sao_def_var(sao_new_symbol("add"), sao_new_native(native_add), GLOBAL); sao_def_var(sao_new_symbol("sub"), sao_new_native(native_sub), GLOBAL); sao_def_var(sao_new_symbol("mul"), sao_new_native(native_mul), GLOBAL); sao_def_var(sao_new_symbol("div"), sao_new_native(native_div), GLOBAL); sao_def_var(sao_new_symbol("cmp"), sao_new_native(native_cmp), GLOBAL); sao_def_var(sao_new_symbol("not"), sao_new_native(native_not), GLOBAL); sao_def_var(sao_new_symbol("lt"), sao_new_native(native_lt), GLOBAL); sao_def_var(sao_new_symbol("gt"), sao_new_native(native_gt), GLOBAL); sao_def_var(sao_new_symbol("load"), sao_new_native(native_load), GLOBAL); sao_def_var(sao_new_symbol("print"), sao_new_native(native_print), GLOBAL); sao_def_var(sao_new_symbol("read"), sao_new_native(native_read), GLOBAL); sao_def_var(sao_new_symbol("is_null"), sao_new_native(native_is_null), GLOBAL); sao_def_var(sao_new_symbol("is_list"), sao_new_native(native_is_list), GLOBAL); sao_def_var(sao_new_symbol("pairq"), sao_new_native(native_pairq), GLOBAL); sao_def_var(sao_new_symbol("atomq"), sao_new_native(native_atomq), GLOBAL); sao_def_var(sao_new_symbol("eqq"), sao_new_native(native_eqq), GLOBAL); sao_def_var(sao_new_symbol("equalq"), sao_new_native(native_equalq), GLOBAL);;
+ sao_def_var(sao_new_symbol("exit"), sao_new_native(native_exit), GLOBAL); sao_def_var(sao_new_symbol("ffi"), sao_new_native(native_ffi), GLOBAL); sao_def_var(sao_new_symbol("global"), sao_new_native(native_global), GLOBAL); sao_def_var(sao_new_symbol("type"), sao_new_native(native_type), GLOBAL); sao_def_var(sao_new_symbol("cons"), sao_new_native(native_cons), GLOBAL); sao_def_var(sao_new_symbol("car"), sao_new_native(native_car), GLOBAL); sao_def_var(sao_new_symbol("cdr"), sao_new_native(native_cdr), GLOBAL); sao_def_var(sao_new_symbol("setcar"), sao_new_native(native_setcar), GLOBAL); sao_def_var(sao_new_symbol("setcdr"), sao_new_native(native_setcdr), GLOBAL); sao_def_var(sao_new_symbol("list"), sao_new_native(native_list), GLOBAL); sao_def_var(sao_new_symbol("vector"), sao_new_native(native_vector), GLOBAL); sao_def_var(sao_new_symbol("vget"), sao_new_native(native_vget), GLOBAL); sao_def_var(sao_new_symbol("vset"), sao_new_native(native_vset), GLOBAL); sao_def_var(sao_new_symbol("load"), sao_new_native(native_load), GLOBAL); sao_def_var(sao_new_symbol("print"), sao_new_native(native_print), GLOBAL); sao_def_var(sao_new_symbol("read"), sao_new_native(native_read), GLOBAL); sao_def_var(sao_new_symbol("add"), sao_new_native(native_add), GLOBAL); sao_def_var(sao_new_symbol("sub"), sao_new_native(native_sub), GLOBAL); sao_def_var(sao_new_symbol("mul"), sao_new_native(native_mul), GLOBAL); sao_def_var(sao_new_symbol("div"), sao_new_native(native_div), GLOBAL); sao_def_var(sao_new_symbol("cmp"), sao_new_native(native_cmp), GLOBAL); sao_def_var(sao_new_symbol("not"), sao_new_native(native_not), GLOBAL); sao_def_var(sao_new_symbol("lt"), sao_new_native(native_lt), GLOBAL); sao_def_var(sao_new_symbol("gt"), sao_new_native(native_gt), GLOBAL); sao_def_var(sao_new_symbol("is_null"), sao_new_native(native_is_null), GLOBAL); sao_def_var(sao_new_symbol("is_list"), sao_new_native(native_is_list), GLOBAL); sao_def_var(sao_new_symbol("pairq"), sao_new_native(native_pairq), GLOBAL); sao_def_var(sao_new_symbol("atomq"), sao_new_native(native_atomq), GLOBAL); sao_def_var(sao_new_symbol("eqq"), sao_new_native(native_eqq), GLOBAL); sao_def_var(sao_new_symbol("equalq"), sao_new_native(native_equalq), GLOBAL);;
  return GLOBAL;
 }
 int main(int argc, char **argv) {
@@ -974,13 +974,15 @@ int main(int argc, char **argv) {
    }else if(!strcmp(string_or_name,"-i")){ argv_i += i_val;
    }else if(!strcmp(string_or_name,"-d")){ argv_d += i_val;
    }else if(!strcmp(string_or_name,"-p")){ argv_p += i_val;
+   }else if(!strcmp(string_or_name,"-r")){ argv_r += i_val;
+   }else if(!strcmp(string_or_name,"-e")){ argv_e += i_val;
    }else if(!strcmp(string_or_name,"-v")){ argv_v++; }
    pos = cdr(pos);
   }
   sao_def_var(ARGV,ARGV,GLOBAL);
  }
  if(argv_v) libc_(libc_printf,"printf")("SaoLang (R) v0.0.3 - Wanjo Chan (c) 2020\n");
- if(argv_h) do{libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"%s\n","Usage: sao [options] [ script.sao ]\n" "Options:\n" "	-h:	Help\n" "	-v:	Version\n" "	-i:	Interactive (REPL)\n" "	-p:	Print final result\n" "	-d:	Dev debug only\n");libc_(libc_exit,"exit")(1);}while(0);
+ if(argv_h) do{libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"%s\n","Usage: sao [options] [ script.sao ]\n" "Options:\n" "	-h:	Help\n" "	-v:	Version\n" "	-i:	Interactive (REPL)\n" "	-p:	Print final result\n" "	-d:	Dev debug only\n" "	-e:	Eval and exit\n" "	-r: Restrict Mode\n");libc_(libc_exit,"exit")(1);}while(0);
  sao_stream * fw = sao_stream_new(libc_(libc_stdin,"stdin"),stream_file);
  sao_object * result = sao_parse( fw, 1 );
  if(argv_p){ sao_out_expr(0,result);libc_(libc_printf,"printf")("\n"); }

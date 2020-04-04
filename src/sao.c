@@ -94,7 +94,7 @@ struct _sao_object {
 } __attribute__((packed));
 #define define_sao_object(n) sao_object*n=SAO_NULL;
 SAO_ITR(define_sao_object, NIL,ARGV,GLOBAL,TRUE,FALSE,QUOTE,SET,LET,DEFINE,PROCEDURE,IF,LAMBDA,BEGIN,ERROR);
-int SAO_ITR1(SAO_CAT_COMMA, argv_, i,p,d,v) argv_h;//REPL,PrintResult,DevDebug,Version,Help
+int SAO_ITR1(SAO_CAT_COMMA, argv_, i,p,d,v,e,s) argv_h;
 sao_object *is_tagged(sao_object *cell, sao_object *tag);
 sao_object *cons(sao_object *car, sao_object *cdr);
 sao_object *native_load(sao_object *args);
@@ -325,7 +325,7 @@ int sao_read_line(sao_stream* fw) //TODO int * line_num
 		int LINE_LEN = 1024;//TODO
 		SAO_NEW_OBJECT(char,line,LINE_LEN);//TODO gc
 		if(fw->type==stream_file){
-			if(argv_i){
+			if(argv_i || argv_d){
 				sao_stdout("> ");
 			}
 			fgets(line,LINE_LEN,fw->fp);
@@ -359,14 +359,14 @@ sao_object * sao_parse( sao_stream * fw, int do_eval ) {
 		if (!is_NIL(exp)) {
 			if(argv_d)
 				sao_stdout("%llu: ",microtime());
-			if(argv_i){
+			if(argv_i || argv_d){
 				sao_out_expr("<=", exp);
 				sao_stdout("\n");
 			}
 			if (do_eval){
 				rt = sao_eval(exp, GLOBAL);
 				if(argv_d) sao_stdout("%llu: ",microtime());
-				if(argv_i){
+				if(argv_i || argv_d){
 					if ( !is_NIL(rt)) {
 						sao_out_expr("=>", rt);
 						sao_stdout("\n");
@@ -392,15 +392,11 @@ sao_object *native_cons(sao_object *args) {
 	return cons(car(args), cadr(args));
 }
 sao_object *native_car(sao_object *args) {
-#ifdef STRICT //TODO
-	SAO_CHECK_TYPE(car(args), type_list);
-#endif
+	if(argv_s) SAO_CHECK_TYPE(car(args), type_list);
 	return caar(args);
 }
 sao_object *native_cdr(sao_object *args) {
-#ifdef STRICT //TODO
-	SAO_CHECK_TYPE(car(args), type_list);
-#endif
+	if(argv_s) SAO_CHECK_TYPE(car(args), type_list);
 	return cdar(args);
 }
 sao_object *native_setcar(sao_object *args) {
@@ -846,12 +842,10 @@ tail:
 		return exp;
 	} else if (exp->type == type_symbol) {
 		sao_object *s = sao_get_var(exp, ctx);
-#ifdef STRICT //TODO
-		if (is_NIL(s)) {
+		if (argv_s && is_NIL(s)) {
 			sao_out_expr("Unbound symbol:", exp);
 			sao_stdout("\n");
 		}
-#endif
 		return s;
 	} else if (is_tagged(exp, QUOTE)) {
 		return cadr(exp);
@@ -924,14 +918,13 @@ tail:
 		exp = cons(sao_new_lambda(vars, cddr(exp)), vals);
 		goto tail;
 	} else { /* ('procedure, (parameters), (body), (ctx)) */
-
 		sao_object *proc = sao_eval(car(exp), ctx);
 		sao_object *args = eval_list(cdr(exp), ctx);
 		if (is_NIL(proc)) {
-#ifdef STRICT //TODO
-			sao_out_expr("Invalid arguments to sao_eval:", exp);
-			sao_stdout("\n");
-#endif
+			if(argv_s){
+				sao_out_expr("WARNING: Invalid arguments to sao_eval:", exp);
+				sao_stdout("\n");
+			}
 			return NIL;
 		}
 		if (proc->type == type_native){
@@ -967,15 +960,13 @@ sao_object * sao_init(char* langpack /* TODO ffic with own lang*/)
 	add_sym("set", SET);
 	add_sym("begin", BEGIN);//TODO remove or add END
 	add_sym("if", IF);
-
 	SAO_ITR(add_sym_with,
 			exit,ffi,global,//sys
-			type,cons,car,cdr,setcar,setcdr,//lang
-			list,vector,vget,vset,//data
-			add,sub,mul,div,cmp,not,lt,gt,//logic
+			type,cons,car,cdr,setcar,setcdr,//core
+			list,vector,vget,vset,//data structure
 			load,print,read,//io
-			is_null,is_list,
-			pairq,atomq,eqq,equalq,
+			add,sub,mul,div,cmp,not,lt,gt,//logic
+			is_null,is_list,pairq,atomq,eqq,equalq,//helpers
 			);
 	return GLOBAL;
 }
@@ -1008,24 +999,22 @@ int main(int argc, char **argv) {
 			}
 			//sao_stdout("\nTODO %s=%d\n", string_or_name, i_val);
 			sao_def_var(sao_new_symbol(string_or_name), sao_new_integer(i_val), ARGV);//@ref sao_get_var
+			//TODO counter mapping macros
 			if(!strcmp(string_or_name,"-h")){ argv_v++;argv_h++;
 			}else if(!strcmp(string_or_name,"-i")){ argv_i += i_val;
 			}else if(!strcmp(string_or_name,"-d")){ argv_d += i_val;
 			}else if(!strcmp(string_or_name,"-p")){ argv_p += i_val;
+			}else if(!strcmp(string_or_name,"-e")){ argv_e += i_val;
+			}else if(!strcmp(string_or_name,"-s")){ argv_s += i_val;
 			}else if(!strcmp(string_or_name,"-v")){ argv_v++; }
 			pos = cdr(pos);
 		}
 		sao_def_var(ARGV,ARGV,GLOBAL);
 	}
 	if(argv_v) sao_stdout("SaoLang (R) v0.0.3 - Wanjo Chan (c) 2020\n");
-	if(argv_h) sao_error("Usage: sao [options] [ script.sao ]\n"
-			"Options:\n"
-			"	-h:	Help\n"
-			"	-v:	Version\n"
-			"	-i:	Interactive (REPL)\n"
-			"	-p:	Print final result\n"
-			"	-d:	Dev debug only\n"
-			);
+	if(argv_h) sao_error("Usage: sao [options] [ script.sao ]\n" "Options:\n"
+			"	-h:	Help\n" "	-v:	Version\n" "	-i:	Interactive (REPL)\n" "	-p:	Print final result\n"
+			"	-d:	Dev debug only\n" "	-e:	Eval and exit\n" "	-s: Strict Mode\n");
 	sao_stream * fw = sao_stream_new(libc(stdin),stream_file);
 	sao_object * result = sao_parse( fw, 1/*eval*/ );
 	if(argv_p){ sao_out_expr(0,result);sao_stdout("\n"); }
