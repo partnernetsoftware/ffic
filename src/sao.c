@@ -267,32 +267,29 @@ sao_object * sao_reverse(sao_object *list, sao_object *first) {
 		sao_reverse(cdr(list), cons(car(list), first));
 	return rt;
 }
-sao_object * is_equal(sao_object *x, sao_object *y)
+sao_object * sao_is_eq(sao_object *x, sao_object *y)
 {
-	if (x == y) return x;
-	if (is_NIL(x) || is_NIL(y)) return NIL;
-	if (x->type != y->type) return NIL;
-	switch (x->type) {
-		case type_integer: if(x->_integer == y->_integer)return x;
-		case type_symbol:
-		case type_string: if(!libc(strcmp)(x->_string, y->_string)) return x;
-		//case type_list: 
-		//case type_native: 
-		//case type_vector: 
-		default: return NIL;
-	}
+	do{
+		if (x == y) return x;
+		if (is_NIL(x) || is_NIL(y)) break;
+		if (x->type != y->type) break;
+		switch (x->type) {
+			case type_integer: if(x->_integer == y->_integer) return x;
+			case type_symbol:
+			case type_string: if(!libc(strcmp)(x->_string, y->_string)) return x;
+			default: break;
+		}
+	}while(0);
 	return NIL;
 }
 int not_false(sao_object *x) {
-	if (is_NIL(x) || is_equal(x, FALSE)) return 0;
+	if (is_NIL(x) || sao_is_eq(x, FALSE)) return 0;
 	if (x->type == type_integer && x->_integer == 0) return 0;
 	return 1;
 }
 sao_object* is_tagged(sao_object *cell, sao_object *tag)
 {
-	return is_LIST(cell) ? is_equal(car(cell),tag) : NIL;
-	//if (is_NIL(cell) || cell->type != type_list) return 0;
-	//return is_equal(car(cell), tag);
+	return is_LIST(cell) ? sao_is_eq(car(cell),tag) : NIL;
 }
 int sao_length(sao_object *exp) {
 	if (is_NIL(exp)) return 0;
@@ -364,17 +361,17 @@ sao_object *native_not(sao_object *args) {
 }
 
 sao_object *native_eqq(sao_object *args) {
-	return is_equal(car(args), cadr(args)) ? TRUE : FALSE;
+	return sao_is_eq(car(args), cadr(args)) ? TRUE : FALSE;
 }
 sao_object *native_equalq(sao_object *args) {
-	if (is_equal(car(args), cadr(args)))
+	if (sao_is_eq(car(args), cadr(args)))
 		return TRUE;
 	if ((car(args)->type == type_list) && (cadr(args)->type == type_list)) {
 		sao_object *a, *b;
 		a = car(args);
 		b = cadr(args);
 		while (!is_NIL(a) && !is_NIL(b)) {
-			if (!is_equal(car(a), car(b)))
+			if (!sao_is_eq(car(a), car(b)))
 				return FALSE;
 			a = cdr(a);
 			b = cdr(b);
@@ -389,7 +386,7 @@ sao_object *native_equalq(sao_object *args) {
 		sao_object **vb = cadr(args)->_vector;
 		int i = 0;
 		for (i = 0; i < car(args)->_len; i++) {
-			if (!is_equal(*(va + i), *(vb + i))) {
+			if (!sao_is_eq(*(va + i), *(vb + i))) {
 				return FALSE;
 			}
 		}
@@ -514,7 +511,7 @@ sao_object *sao_lookup_var(sao_object *var, sao_object *ctx) {
 		sao_object *vars = car(frame);
 		sao_object *vals = cdr(frame);
 		while (!is_NIL(vars)) {
-			if (is_equal(car(vars), var))
+			if (sao_is_eq(car(vars), var))
 				return car(vals);
 			vars = cdr(vars);
 			vals = cdr(vals);
@@ -529,7 +526,7 @@ void set_variable(sao_object *var, sao_object *val, sao_object *ctx) {
 		sao_object *vars = car(frame);
 		sao_object *vals = cdr(frame);
 		while (!is_NIL(vars)) {
-			if (is_equal(car(vars), var)) {
+			if (sao_is_eq(car(vars), var)) {
 				vals->car = val;
 				return;
 			}
@@ -545,7 +542,7 @@ sao_object *define_variable(sao_object *var, sao_object *val, sao_object *ctx)
 	sao_object *vars = car(frame);
 	sao_object *vals = cdr(frame);
 	while (!is_NIL(vars)) {
-		if (is_equal(var, car(vars))) {
+		if (sao_is_eq(var, car(vars))) {
 			vals->car = val;
 			return val;
 		}
@@ -777,7 +774,7 @@ sao_object *sao_load_expr(sao_stream * fw)
 void sao_out_expr(char *str, sao_object *e)
 {
 	if (str) sao_stdout("%s ", str);
-	//if (is_NIL(e)) { sao_stdout("'()"); return; }
+	if (is_NIL(e)) { sao_stdout("'()"); return; }//TODO
 	if (is_NIL(e)) { return; }
 	switch (e->type) {
 		case type_string:
