@@ -196,6 +196,7 @@ sao_object *ht_lookup(char *s) {
 }
 sao_object *sao_alloc(type_t type) {
 	NEW_OBJECT(sao_object,ret);//TODO gc()
+	//if(ret<0) sao_error("ASSERT: mem full for NEW_OBJECT(sao_object)?\n");
 	ret->type = type;
 	return ret;
 }
@@ -268,8 +269,6 @@ sao_object * sao_reverse(sao_object *list, sao_object *first) {
 }
 sao_object * sao_is_eq(sao_object *x, sao_object *y)
 {
-	//sao_out_expr("\nsao_is_eq.x=",x);
-	//sao_out_expr("\nsao_is_eq.y=",y);
 	do{
 		if (x == y) return x;
 		if (is_NIL(x) || is_NIL(y)) break;
@@ -277,10 +276,7 @@ sao_object * sao_is_eq(sao_object *x, sao_object *y)
 		switch (x->type) {
 			case type_integer: if(x->_integer == y->_integer) return x;
 			case type_symbol:
-//	sao_out_expr("\nsao_is_eq.x=",x);
-//	sao_out_expr("\nsao_is_eq.y=",y);
-			case type_string:
-	if(!libc(strcmp)(x->_string, y->_string)) return x;
+			case type_string: if(!libc(strcmp)(x->_string, y->_string)) return x;
 			default: break;
 		}
 	}while(0);
@@ -509,6 +505,7 @@ sao_object *native_vector(sao_object *args) {
 sao_object *sao_expand(sao_object *var, sao_object *val, sao_object *ctx) {
 	return cons(cons(var, val), ctx);
 }
+//TODO rename sao_get_var()
 sao_object *sao_lookup_var(sao_object *var, sao_object *ctx) {
 	while (!is_NIL(ctx)) {
 		sao_object *frame = car(ctx);
@@ -524,7 +521,9 @@ sao_object *sao_lookup_var(sao_object *var, sao_object *ctx) {
 	}
 	return NIL;
 }
-void set_variable(sao_object *var, sao_object *val, sao_object *ctx) {
+
+//TODO merge with define_variable():
+sao_object * sao_set_variable(sao_object *var, sao_object *val, sao_object *ctx) {
 	while (!is_NIL(ctx)) {
 		sao_object *frame = car(ctx);
 		sao_object *vars = car(frame);
@@ -532,16 +531,19 @@ void set_variable(sao_object *var, sao_object *val, sao_object *ctx) {
 		while (!is_NIL(vars)) {
 			if (sao_is_eq(car(vars), var)) {
 				vals->car = val;
-				return;
+				return car(vals);
+				//return NIL;
 			}
 			vars = cdr(vars);
 			vals = cdr(vals);
 		}
 		ctx = cdr(ctx);
 	}
+	return val;
 }
 sao_object *define_variable(sao_object *var, sao_object *val, sao_object *ctx)
 {
+	if(!ctx) sao_error("ASSERT: define_variable need ctx");
 	sao_object *frame = car(ctx);
 	sao_object *vars = car(frame);
 	sao_object *vals = cdr(frame);
@@ -799,8 +801,8 @@ void sao_out_expr(char *str, sao_object *e)
 			int skip=0;
 			sao_object **t = &e;
 			if (!is_NIL(*t)) {
-				if(type_symbol == e->car->type){
-					sao_out_expr(0, e->car);
+				if((*t)->car && type_symbol == (*t)->car->type){
+					sao_out_expr(0, (*t)->car);
 					skip=1;
 				}
 			}
@@ -881,11 +883,11 @@ tail:
 		return NIL;
 	} else if (is_tagged(exp, SET)) {
 		if (atom(cadr(exp))){
-			set_variable(cadr(exp), sao_eval(caddr(exp), ctx), ctx);
+			sao_set_variable(cadr(exp), sao_eval(caddr(exp), ctx), ctx);
 		} else {
 			sao_object *closure =
 				sao_eval(sao_new_lambda(cdr(cadr(exp)), cddr(exp)), ctx);
-			set_variable(car(cadr(exp)), closure, ctx);
+			sao_set_variable(car(cadr(exp)), closure, ctx);
 		}
 		return sao_new_symbol("ok");
 	} else if (is_tagged(exp, LET)) { /* transform into a lambda function*/
@@ -1001,6 +1003,13 @@ int main(int argc, char **argv)
 	libc(setmode)(libc(fileno)(libc(stdin)),0x8000/*O_BINARY*/);
 	ht_resize(8192-1);
 	sao_init(0);//TODO to define own natives ffic("libsao","init")
+
+	ARGV = cons(NIL,NIL);
+	//ARGV = sao_alloc(type_string);
+	//ARGV = sao_alloc(type_list);
+	//ARGV = GLOBAL;
+	//sao_stderr("*(ARGV)=%d\n",ARGV);
+	sao_out_expr("\nDEBUG ARGV=>",ARGV);
 	if(argc>1){
 		char argv_line[512] = {'_','(',0};
 		char * argv_ptr = &argv_line[2];
@@ -1010,10 +1019,17 @@ int main(int argc, char **argv)
 		*argv_ptr++ = ')'; //*argv_ptr++ = '\0';
 		sao_stream * fw = sao_stream_new(argv_line,stream_char);
 		sao_object * arg_expr = sao_load_expr( fw );
-		ARGV = arg_expr;
+		//ARGV = arg_expr;
 	}
-	sao_out_expr("\nDEBUG ARGV=>",ARGV);
-	sao_out_expr("\nDEBUG lookup(i)=>",sao_lookup_var(sao_new_symbol("i"),ARGV));
+	//sao_object * test = sao_new_symbol("test");
+	////sao_set_variable(test, test, ARGV);
+	//define_variable(test, test, ARGV);
+	//sao_out_expr("\nDEBUG ARGV=>",ARGV);
+
+	//define_variable(sao_new_symbol("_"), ARGV, GLOBAL);
+	//sao_out_expr("\nDEBUG GLOBAL=>",GLOBAL);
+
+	//sao_out_expr("\n DEBUG lookup()=>",sao_lookup_var(sao_new_symbol("_"),GLOBAL));
 	sao_stream * fw = sao_stream_new(libc(stdin),stream_file);
 	sao_object * result = sao_parse( fw, 1/*eval*/ );
 	return 0;

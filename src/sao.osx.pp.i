@@ -274,8 +274,7 @@ sao_object * sao_is_eq(sao_object *x, sao_object *y)
   switch (x->type) {
    case type_integer: if(x->_integer == y->_integer) return x;
    case type_symbol:
-   case type_string:
- if(!libcbf(libc_strcmp,"strcmp")(x->_string, y->_string)) return x;
+   case type_string: if(!libcbf(libc_strcmp,"strcmp")(x->_string, y->_string)) return x;
    default: break;
   }
  }while(0);
@@ -505,7 +504,7 @@ sao_object *sao_lookup_var(sao_object *var, sao_object *ctx) {
  }
  return NIL;
 }
-void set_variable(sao_object *var, sao_object *val, sao_object *ctx) {
+sao_object * sao_set_variable(sao_object *var, sao_object *val, sao_object *ctx) {
  while (!!ctx) {
   sao_object *frame = car(ctx);
   sao_object *vars = car(frame);
@@ -513,16 +512,18 @@ void set_variable(sao_object *var, sao_object *val, sao_object *ctx) {
   while (!!vars) {
    if (sao_is_eq(car(vars), var)) {
     vals->car = val;
-    return;
+    return car(vals);
    }
    vars = cdr(vars);
    vals = cdr(vals);
   }
   ctx = cdr(ctx);
  }
+ return val;
 }
 sao_object *define_variable(sao_object *var, sao_object *val, sao_object *ctx)
 {
+ if(!ctx) do{libcbf(libc_fprintf,"fprintf")(libcbf(libc_stderr,"stderr"),"%s\n","ASSERT: define_variable need ctx");libcbf(libc_exit,"exit")(1);}while(0);
  sao_object *frame = car(ctx);
  sao_object *vars = car(frame);
  sao_object *vals = cdr(frame);
@@ -774,8 +775,8 @@ void sao_out_expr(char *str, sao_object *e)
    int skip=0;
    sao_object **t = &e;
    if (!!*t) {
-    if(type_symbol == e->car->type){
-     sao_out_expr(0, e->car);
+    if((*t)->car && type_symbol == (*t)->car->type){
+     sao_out_expr(0, (*t)->car);
      skip=1;
     }
    }
@@ -850,11 +851,11 @@ tail:
   return NIL;
  } else if (is_tagged(exp, SET)) {
   if (((car(cdr((exp)))) && (car(cdr((exp))))->type)){
-   set_variable((car(cdr((exp)))), sao_eval((car(cdr(cdr((exp))))), ctx), ctx);
+   sao_set_variable((car(cdr((exp)))), sao_eval((car(cdr(cdr((exp))))), ctx), ctx);
   } else {
    sao_object *closure =
     sao_eval(sao_new_lambda(cdr((car(cdr((exp))))), (cdr(cdr((exp))))), ctx);
-   set_variable(car((car(cdr((exp))))), closure, ctx);
+   sao_set_variable(car((car(cdr((exp))))), closure, ctx);
   }
   return sao_new_symbol("ok");
  } else if (is_tagged(exp, LET)) {
@@ -950,6 +951,8 @@ int main(int argc, char **argv)
  libcbf(libc_setmode,"setmode")(libcbf(libc_fileno,"fileno")(libcbf(libc_stdin,"stdin")),0x8000 );
  ht_resize(8192-1);
  sao_init(0);
+ ARGV = cons(NIL,NIL);
+ sao_out_expr("\nDEBUG ARGV=>",ARGV);
  if(argc>1){
   char argv_line[512] = {'_','(',0};
   char * argv_ptr = &argv_line[2];
@@ -959,10 +962,7 @@ int main(int argc, char **argv)
   *argv_ptr++ = ')';
   sao_stream * fw = sao_stream_new(argv_line,stream_char);
   sao_object * arg_expr = sao_load_expr( fw );
-  ARGV = arg_expr;
  }
- sao_out_expr("\nDEBUG ARGV=>",ARGV);
- sao_out_expr("\nDEBUG lookup(i)=>",sao_lookup_var(sao_new_symbol("i"),ARGV));
  sao_stream * fw = sao_stream_new(libcbf(libc_stdin,"stdin"),stream_file);
  sao_object * result = sao_parse( fw, 1 );
  return 0;
