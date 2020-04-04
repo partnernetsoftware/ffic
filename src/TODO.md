@@ -3,6 +3,8 @@
 ```
 /* TODO (Plan)
  * * options: interact (REPL)
+ * * ffic()
+ * * ctype()
  * * type: ERROR
  * * options: profiling
  * * redesign context/global
@@ -11,13 +13,9 @@
  * * remove "ok" stuff?
  * * utf8 support for strings
  * * fix: bug of ht expand...
+ * * feature: compile to binary / load from binary
+ * * JIT
  */
-```
-* ctype()
-* ffic()
-* improve: car/cdr
-* compile to binary / load from binary
-* JIT
 
 # init
 

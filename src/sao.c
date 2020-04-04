@@ -60,8 +60,6 @@ ffic_func libcbf(int fi,const char* fn){ return libc_a[fi]?libc_a[fi]:(libc_a[fi
 #define NEW_OBJECT(t,n,...) t*n=SAO_NEW(t,__VA_ARGS__);
 //#define is_NIL(x) ((x)==SAO_NULL||(x)==NIL)
 #define is_NIL(x) (!x)
-//#define is_EOL(x) (is_NIL((x)) || (x) == END_LIST)
-#define is_EOL(x) (!x)
 #define sao_stderr(...) libc(fprintf)(libc(stderr),__VA_ARGS__)
 #define sao_stdout(...) libc(printf)(__VA_ARGS__)
 #define sao_error(x) do{sao_stderr("%s\n",x);libc(exit)(1);}while(0)
@@ -105,7 +103,6 @@ struct _sao_object {
 	};
 } __attribute__((packed));
 #define define_sao_object(n) sao_object*n=SAO_NULL;
-//SAO_ITR(define_sao_object, NIL,END_LIST,GLOBAL,TRUE,FALSE,QUOTE,SET,LET,DEFINE,PROCEDURE,IF,LAMBDA,BEGIN,ERROR);
 SAO_ITR(define_sao_object, NIL,GLOBAL,TRUE,FALSE,QUOTE,SET,LET,DEFINE,PROCEDURE,IF,LAMBDA,BEGIN,ERROR);
 int is_tagged(sao_object *cell, sao_object *tag);
 sao_object *cons(sao_object *car, sao_object *cdr);
@@ -258,7 +255,6 @@ sao_object *sao_new_lambda(sao_object *params, sao_object *body) {
 }
 sao_object *sao_new_procedure(sao_object *params, sao_object *body,
 		sao_object *ctx) {
-	//return cons(PROCEDURE, cons(params, cons(body, cons(ctx, END_LIST))));
 	return cons(PROCEDURE, cons(params, cons(body, cons(ctx, NIL))));
 }
 sao_object * sao_reverse(sao_object *list, sao_object *first) {
@@ -333,7 +329,7 @@ sao_object *native_setcdr(sao_object *args) {
 	return NIL;
 }
 sao_object *native_is_null(sao_object *args) {
-	return is_EOL(car(args)) ? TRUE : FALSE;
+	return is_NIL(car(args)) ? TRUE : FALSE;
 }
 sao_object *native_pairq(sao_object *args) {
 	if (car(args)->type != type_list)
@@ -401,7 +397,7 @@ sao_object *native_add(sao_object *list) {
 	SAO_CHECK_TYPE(car(list), type_integer);
 	long total = car(list)->_integer;
 	list = cdr(list);
-	while (!is_EOL(car(list)))
+	while (!is_NIL(car(list)))
 	{
 		SAO_CHECK_TYPE(car(list), type_integer);
 		total += car(list)->_integer;
@@ -689,18 +685,13 @@ int sao_read_int(sao_stream * fw, int start)
 sao_object *sao_read_list(sao_stream * fw)
 {
 	sao_object *obj;
-	//sao_object *cell = END_LIST;
 	sao_object *cell = NIL;
 	for (;;) {
 		obj = sao_load_expr(fw);
-		//if(obj==SAO_NULL) return SAO_NULL;//break the sao_error
-		//if (obj == END_LIST)
-		if (is_EOL(obj))
+		if (is_NIL(obj))
 			return sao_reverse(cell, NIL);
-			//return sao_reverse(cell, END_LIST);
 		cell = cons(obj, cell);
 	}
-	//return END_LIST;
 	return NIL;
 }
 sao_object *sao_load_str(sao_stream * fw)
@@ -771,7 +762,6 @@ sao_object *sao_load_expr(sao_stream * fw)
 		}
 		if (c == ')') {
 			depth--;
-			//return END_LIST;
 			return NIL;
 		}
 		if (sao_is_digit(c)) return sao_new_integer(sao_read_int(fw, c - '0'));
@@ -828,7 +818,7 @@ void sao_out_expr(char *str, sao_object *e)
 sao_object *sao_eval(sao_object *exp, sao_object *ctx)
 {
 tail:
-	if (is_EOL(exp))
+	if (is_NIL(exp))
 	{
 		return NIL;
 	} else if (exp->type == type_integer || exp->type == type_string) {
@@ -942,8 +932,6 @@ tail:
 #define add_sym_with(n) add_native(#n, native_##n);
 sao_object * sao_init()
 {
-	//END_LIST = SAO_NEW(sao_object);//
-	//END_LIST = cons(NIL, NIL);
 	GLOBAL = sao_expand(NIL, NIL, NIL);
 	add_sym("true", TRUE);
 	add_sym("false", FALSE);
