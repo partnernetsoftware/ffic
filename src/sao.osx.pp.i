@@ -141,9 +141,6 @@ typedef struct {
  FileChar * ptr_last;
 } sao_stream;
 sao_stream * sao_stream_new(void*,stream_t);
-long sao_is_digit(int c);
-long sao_is_alpha(int c);
-long sao_is_alphanumber(int c);
 sao_object *sao_eval(sao_object *exp, sao_object *ctx);
 sao_object *sao_load_expr(sao_stream * fw);
 void sao_comment(sao_stream * fw);
@@ -153,6 +150,7 @@ int sao_read_int(sao_stream * fw, int start);
 int sao_peek(sao_stream * fw);
 sao_object *sao_new_integer(int x);
 sao_object *sao_read_symbol(sao_stream * fw, char start);
+sao_object * sao_is_atom(sao_object * x){ return (x&&x->type)?x:NIL; }
 void sao_out_expr(char *str, sao_object *el, char * caller_string);
 long sao_is_digit(int c) { return (long) libc_(libc_isdigit,"isdigit")(c); }
 long sao_is_alpha(int c) { return (long) libc_(libc_isalpha,"isalpha")(c); }
@@ -210,8 +208,8 @@ sao_object * cons(sao_object *car, sao_object *cdr) {
  ret->cdr = cdr;
  return ret;
 }
-sao_object * car(sao_object *x) { return (x&&!x->type)?x->car:NIL; }
-sao_object * cdr(sao_object *x) { return (x&&!x->type)?x->cdr:NIL; }
+sao_object * car(sao_object *x) { return (!x || x->type)? NIL: x->car; }
+sao_object * cdr(sao_object *x) { return (!x || x->type)? NIL: x->cdr; }
 sao_object *caar(sao_object *x) { return (!x || !x->car || x->car->type)? NIL: x->car->car; }
 sao_object *cdar(sao_object *x) { return (!x || !x->car || x->car->type)? NIL: x->car->cdr; }
 sao_object *cadr(sao_object *x) { return (!x || !x->cdr || x->cdr->type)? NIL: x->cdr->car; }
@@ -475,19 +473,19 @@ sao_object *native_is_null(sao_object *args) {
 sao_object *native_pairq(sao_object *args) {
  if (car(args)->type != type_list)
   return FALSE;
- return ((caar(args)&&caar(args)->type) && (cdar(args)&&cdar(args)->type)) ? TRUE : FALSE;
+ return (sao_is_atom(caar(args)) && sao_is_atom(cdar(args))) ? TRUE : FALSE;
 }
 sao_object *native_is_list(sao_object *args) {
  sao_object *list;
  if (car(args)->type != type_list)
   return FALSE;
- for (list = car(args); !!(list); list = list->cdr)
+ for (list = car(args); (list); list = list->cdr)
   if ((list->cdr) && (list->cdr->type != type_list))
    return FALSE;
  return (car(args)->type == type_list && native_pairq(args) != TRUE) ? TRUE : FALSE;
 }
 sao_object *native_atomq(sao_object *sexp) {
- return (car(sexp)&&car(sexp)->type) ? TRUE : FALSE;
+ return sao_is_atom(car(sexp)) ? TRUE : FALSE;
 }
 sao_object *native_cmp(sao_object *args) {
  if ((car(args)->type != type_integer) || (cadr(args)->type != type_integer))
@@ -911,7 +909,7 @@ tail:
  } else if (is_tagged(exp, LAMBDA)) {
   return sao_new_procedure(cadr(exp), cddr(exp), ctx);
  } else if (is_tagged(exp, DEFINE)) {
-  if ((cadr(exp)&&cadr(exp)->type))
+  if (sao_is_atom(cadr(exp)))
    sao_def_var(cadr(exp), sao_eval(caddr(exp), ctx), ctx);
   else {
    sao_object *closure =
@@ -921,7 +919,7 @@ tail:
   return sao_new_symbol("ok");
  } else if (is_tagged(exp, BEGIN)) {
   sao_object *args = cdr(exp);
-  for (; !!(cdr(args)); args = cdr(args))
+  for (; (cdr(args)); args = cdr(args))
    sao_eval(car(args), ctx);
   exp = car(args);
   goto tail;
@@ -935,7 +933,7 @@ tail:
   goto tail;
  } else if (is_tagged(exp, sao_new_symbol("cond"))) {
   sao_object *branch = cdr(exp);
-  for (; !!(branch); branch = cdr(branch)) {
+  for (; (branch); branch = cdr(branch)) {
    if (is_tagged(car(branch), sao_new_symbol("else")) ||
      not_false(sao_eval(caar(branch), ctx))) {
     exp = cons(BEGIN, cdar(branch));
@@ -944,7 +942,7 @@ tail:
   }
   return NIL;
  } else if (is_tagged(exp, SET)) {
-  if ((cadr(exp)&&cadr(exp)->type)){
+  if (sao_is_atom(cadr(exp))){
    sao_set_var(cadr(exp), sao_eval(caddr(exp), ctx), ctx);
   } else {
    sao_object *closure =
@@ -957,8 +955,8 @@ tail:
   sao_object *vars = NIL;
   sao_object *vals = NIL;
   if (!(cadr(exp))) return NIL;
-  if ((cadr(exp)&&cadr(exp)->type)) {
-   for (tmp = &exp->cdr->cdr->car; !!(*tmp); tmp = &(*tmp)->cdr) {
+  if (sao_is_atom(cadr(exp))) {
+   for (tmp = &exp->cdr->cdr->car; (*tmp); tmp = &(*tmp)->cdr) {
     vars = cons(caar(*tmp), vars);
     vals = cons(cadar(*tmp), vals);
    }
@@ -969,7 +967,7 @@ tail:
    exp = cons(cadr(exp), vals);
    goto tail;
   }
-  for (tmp = &exp->cdr->car; !!(*tmp); tmp = &(*tmp)->cdr) {
+  for (tmp = &exp->cdr->car; (*tmp); tmp = &(*tmp)->cdr) {
    vars = cons(caar(*tmp), vars);
    vals = cons(cadar(*tmp), vals);
   }
