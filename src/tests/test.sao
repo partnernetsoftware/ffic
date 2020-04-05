@@ -11,9 +11,9 @@ var( cdadr lambda(a() cdr( car( cdr( a)))))
 var( cadddr lambda(a() car( cdr( cdr( cdr( a))))))
 
 #########################################################################
-var( cmpnot lambda( a( b) if( cmp( a b) false true)))
-var( lteq lambda( a( b) if( lt( a b) false true)))
-var( <= lambda( a( b) if( gt( a b) false true)))
+var( not lambda( a( b) if( cmp( a b) false true)))
+var( gteq lambda( a( b) if( lt( a b) false true)))
+var( lteq lambda( a( b) if( gt( a b) false true)))
 
 # Return the maximum value from a list of integers
 var( max( list-of-numbers)
@@ -199,11 +199,10 @@ var( sum-of-squares( num-list)
   sos-helper( num-list 0))
 
 # Procedure with no args
-# var( new-env() cons( cons( '() '()) '()))
-# # Construct a procedure with macro
-# var( new-func construct-procedure( 'a() 'cons( a 10) get-global-environment()))
-# var( with-macros construct-procedure( 'x() if-zero( 'x 'ZERO) get-global-environment()))
-
+var( new-env() cons( cons( '() '()) '()))
+# Construct a procedure with macro
+var( new-func construct-procedure( 'a() 'cons( a 10) global()))
+var( with-macros construct-procedure( 'x() if-zero( 'x 'ZERO) global()))
 
 var(
 	fib(n),if(lt(n,3),1,add(fib(sub(n,1)),fib(sub(n,2))))
