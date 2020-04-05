@@ -124,7 +124,7 @@ int sao_peek(sao_stream * fw);
 sao_object *sao_new_integer(int x);
 sao_object *sao_read_symbol(sao_stream * fw, char start);
 sao_object * sao_is_atom(sao_object * x){ return (x&&x->type)?x:NIL; }
-void sao_out_expr(char *str, sao_object *el, char * caller_string);
+void sao_out_expr(char *str, sao_object *el);
 long sao_is_digit(int c) { return (long) libc(isdigit)(c); }
 long sao_is_alpha(int c) { return (long) libc(isalpha)(c); }
 long sao_is_alphanumber(int c) { return (long) libc(isalnum)(c); }
@@ -307,14 +307,8 @@ int not_false(sao_object *x) {
 	if (x->type == type_integer && x->_integer == 0) return 0;
 	return 1;
 }
-sao_object* is_tagged(sao_object *cell, sao_object *tag)
-{
-	return (cell&&!cell->type) ? sao_is_eq(car(cell),tag) : NIL;
-}
-int sao_list_len(sao_object *expr) {
-	//return !(expr) ? 0 : (1+sao_list_len(cdr(expr)));
-	return (expr) ? (1+sao_list_len(cdr(expr))):0;
-}
+sao_object* is_tagged(sao_object *cell, sao_object *tag) { return (cell&&!cell->type) ? sao_is_eq(car(cell),tag) : NIL; }
+int sao_list_len(sao_object *expr) { return (expr) ? (1+sao_list_len(cdr(expr))):0; }
 int sao_deq_c(sao_stream *fw)
 {
 	int c = -2;//
@@ -399,7 +393,7 @@ sao_object * sao_parse( sao_stream * fw, int do_eval ) {
 		if ((exp)) {
 			if(SAO_ARGV(d)) sao_stdout("%llu: ",microtime());
 			if(SAO_ARGV(i)||SAO_ARGV(d)){
-				sao_out_expr("<=", exp, GLOBAL->_string);
+				sao_out_expr("<=", exp);
 				sao_stdout("\n");
 			}
 			if (do_eval){
@@ -407,7 +401,7 @@ sao_object * sao_parse( sao_stream * fw, int do_eval ) {
 				if(SAO_ARGV(d)) sao_stdout("%llu: ",microtime());
 				if(SAO_ARGV(i)||SAO_ARGV(d)){
 					if ( (rt)) {
-						sao_out_expr("=>", rt, exp->_string);
+						sao_out_expr("=>", rt);
 						sao_stdout("\n");
 					}
 				}
@@ -567,20 +561,20 @@ sao_object *native_lt(sao_object *sexp) {
 	return (car(sexp)->_integer < cadr(sexp)->_integer) ? TRUE : NIL;
 }
 sao_object * native_shell(sao_object *args) {
-	sao_out_expr("native_shell todo",car(args),args?args->_string:0);
+	sao_out_expr("native_shell todo",car(args));
 	sao_stdout(",len=%d\n",sao_list_len(args));
 	sao_object * _car;
 	sao_object * _cdr = args;
 	while( (_car = car(_cdr)) )
 	{
-		sao_out_expr("\nTMP _car",_car,args?args->_string:0);
+		sao_out_expr("\nTMP _car",_car);
 		_cdr = cdr(_cdr);
 	}
 	//libc(system)("ls");
 	return NIL;
 }
 sao_object * native_ffi(sao_object *args) {
-	sao_out_expr("ffi todo",args,args?args->_string:0);
+	sao_out_expr("ffi todo",args);
 	//libc(system)("ls");
 	return NIL;
 }
@@ -667,6 +661,7 @@ sao_object * sao_set_var(sao_object *var, sao_object *val, sao_object *ctx) {
 	}
 	return val;
 }
+//TODO 
 sao_object *sao_def_var(sao_object *var, sao_object *val, sao_object *ctx)
 {
 	if(!ctx) sao_error("ASSERT: sao_def_var need ctx");
@@ -707,7 +702,7 @@ sao_stream * sao_stream_new(void* fp,stream_t type)
 }
 //sao_stream * sao_stream_delete(sao_stream* fw) //TODO clean up FileChar 1by1
 sao_object *native_print(sao_object *args) {
-	sao_out_expr(0, car(args), args?args->_string:0);
+	sao_out_expr(0, car(args));
 	sao_stdout("\n");
 	return NIL;
 }
@@ -833,7 +828,7 @@ sao_object *sao_load_expr(sao_stream * fw)
 	return NIL;
 }
 //TODO has bug to fix, don't use seriously.
-void sao_out_expr(char *str, sao_object *el, char * caller_string){
+void sao_out_expr(char *str, sao_object *el){
 	if (str) sao_stdout("%s ", str);
 	if (!(el)) { sao_stdout("'()"); return; }//TODO
 	if (!(el)) { return; }
@@ -850,7 +845,7 @@ void sao_out_expr(char *str, sao_object *el, char * caller_string){
 			sao_stdout("<vector %d>", el->_len); break;
 		case type_list:
 			if (is_tagged(el, PROCEDURE)) {
-				sao_stdout("<closure>");
+				sao_stdout("<closure>");//lambda
 				return;
 			}
 			int skip=0;
@@ -862,7 +857,7 @@ void sao_out_expr(char *str, sao_object *el, char * caller_string){
 				//else
 				if ((*t)) {
 					if((*t)->car && type_symbol == (*t)->car->type){
-						sao_out_expr(0, (*t)->car, (el->_string)?el->_string:caller_string);//
+						sao_out_expr(0, (*t)->car);//
 						skip=1;
 					}
 				}
@@ -874,17 +869,17 @@ void sao_out_expr(char *str, sao_object *el, char * caller_string){
 						skip=0;
 					}else{
 						sao_stdout(" ");
-						sao_out_expr(0, (*t)->car, (el->_string)?el->_string:caller_string);
+						sao_out_expr(0, (*t)->car);
 					}
 				}else{
 					sao_stdout(" ");
-					sao_out_expr(0, (*t)->car, (el->_string)?el->_string:caller_string);
+					sao_out_expr(0, (*t)->car);
 				}
 				if (((*t)->cdr)) {
 					if ((*t)->cdr->type == type_list) {
 						t = &(*t)->cdr;
 					} else {
-						sao_out_expr(".", (*t)->cdr, (el->_string)?el->_string:caller_string);
+						sao_out_expr(".", (*t)->cdr);
 						break;
 					}
 				} else
@@ -904,7 +899,7 @@ tail:
 	} else if (exp->type == type_symbol) {
 		sao_object *s = sao_get_var(exp, ctx);
 		if (SAO_ARGV(s) && !(s)) {
-			sao_out_expr("WARNING: Unbound symbol:", exp, ctx?ctx->_string:0);sao_stdout("\n");
+			sao_out_expr("WARNING: Unbound symbol:", exp);sao_stdout("\n");
 		}
 		return s;
 	} else if (is_tagged(exp, QUOTE)) {
@@ -953,7 +948,10 @@ tail:
 			sao_set_var(car(cadr(exp)), closure, ctx);
 		}
 		return sao_new_symbol("ok");
-	} else if (is_tagged(exp, LET)) { /* to lambda */
+	} else if (is_tagged(exp, LET)) { /* to lambda .. */
+		//sao_out_expr("DEBUG LET",exp);
+		//sao_out_expr("ctx",ctx);
+		//sao_stdout("\n");
 		sao_object **tmp;
 		sao_object *vars = NIL;
 		sao_object *vals = NIL;
@@ -981,7 +979,7 @@ tail:
 		sao_object *args = eval_list(cdr(exp), ctx);
 		if (!(proc)) {
 			if(SAO_ARGV(s)){
-				sao_out_expr("WARNING: Invalid arguments to sao_eval:", exp, GLOBAL->_string);
+				sao_out_expr("WARNING: Invalid arguments to sao_eval:", exp);
 				sao_stdout("\n");
 			}
 			return NIL;
@@ -993,7 +991,7 @@ tail:
 			goto tail;
 		}
 	}
-	sao_out_expr("Invalid arguments to sao_eval:", exp, GLOBAL->_string);
+	sao_out_expr("Invalid arguments to sao_eval:", exp);
 	sao_stdout("\n");
 	return NIL;
 }
@@ -1010,7 +1008,8 @@ sao_object * sao_init(char* langpack /* TODO ffic with own lang*/)
 	add_sym("quote", QUOTE);
 	add_sym("lambda", LAMBDA);
 	add_sym("procedure", PROCEDURE);
-	add_sym("var", DEFINE);//TODO to merge three(DEFINE/LET/PROCEDURE ?)
+	//TODO to merge three(DEFINE/LET/PROCEDURE ?)
+	add_sym("var", DEFINE);
 	add_sym("let", LET);
 	add_sym("set", SET);
 	add_sym("begin", BEGIN);//TODO remove or add END
@@ -1081,7 +1080,7 @@ int main(int argc, char **argv) {
 	if(!fp) sao_error("FILE NOT FOUND: %s",script_file);
 	sao_stream * fw = sao_stream_new(fp,stream_file);
 	sao_object * result = sao_parse( fw, 1/*eval*/ );
-	if(SAO_ARGV(p)){ sao_out_expr(0,result,GLOBAL->_string);sao_stdout("\n"); }
+	if(SAO_ARGV(p)){ sao_out_expr(0,result);sao_stdout("\n"); }
 	libc(fclose)(fp);//
 	libc(free)(fw);//
 	return 0;
