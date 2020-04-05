@@ -366,7 +366,9 @@ sao_object * sao_parse( sao_stream * fw, int do_eval ) {
  sao_object *rt = NIL;
  for(;;){
   sao_object* exp = sao_load_expr(fw);
-  if(exp==0){ break; }
+  if(exp==0){
+   break;
+  }
   if (!!exp) {
    if(argta[argt_d])
     libc_(libc_printf,"printf")("%llu: ",microtime());
@@ -644,11 +646,6 @@ sao_object *eval_list(sao_object *exp, sao_object *ctx) {
  if (!exp) return NIL;
  return cons(sao_eval(car(exp), ctx), eval_list(cdr(exp), ctx));
 }
-sao_object *eval_sequence(sao_object *exps, sao_object *ctx) {
- if (!cdr(exps)) return sao_eval(car(exps), ctx);
- sao_eval(car(exps), ctx);
- return eval_sequence(cdr(exps), ctx);
-}
 sao_stream * sao_stream_new(void* fp,stream_t type)
 {
  sao_stream*fw=sao_calloc( sizeof(sao_stream) );;
@@ -773,9 +770,7 @@ sao_object *sao_load_expr(sao_stream * fw)
   }
   if (c == '(') {
    sao_object * list = sao_read_list(fw);
-   if(theSymbol!=NIL){
-    list = cons(theSymbol,list);
-   }
+   list = cons(theSymbol,list);
    return list;
   }
   if (c == ')') { return NIL; }
@@ -852,8 +847,7 @@ tail:
  } else if (exp->type == type_symbol) {
   sao_object *s = sao_get_var(exp, ctx);
   if (argta[argt_s] && !s) {
-   sao_out_expr("Unbound symbol:", exp);
-   libc_(libc_printf,"printf")("\n");
+   sao_out_expr("WARNING: Unbound symbol:", exp);libc_(libc_printf,"printf")("\n");
   }
   return s;
  } else if (is_tagged(exp, QUOTE)) {
@@ -966,6 +960,8 @@ sao_object * sao_init(char* langpack )
  sao_def_var(sao_new_symbol("exit"), sao_new_native(native_exit), GLOBAL); sao_def_var(sao_new_symbol("ffi"), sao_new_native(native_ffi), GLOBAL); sao_def_var(sao_new_symbol("global"), sao_new_native(native_global), GLOBAL); sao_def_var(sao_new_symbol("type"), sao_new_native(native_type), GLOBAL); sao_def_var(sao_new_symbol("cons"), sao_new_native(native_cons), GLOBAL); sao_def_var(sao_new_symbol("car"), sao_new_native(native_car), GLOBAL); sao_def_var(sao_new_symbol("cdr"), sao_new_native(native_cdr), GLOBAL); sao_def_var(sao_new_symbol("setcar"), sao_new_native(native_setcar), GLOBAL); sao_def_var(sao_new_symbol("setcdr"), sao_new_native(native_setcdr), GLOBAL); sao_def_var(sao_new_symbol("list"), sao_new_native(native_list), GLOBAL); sao_def_var(sao_new_symbol("vector"), sao_new_native(native_vector), GLOBAL); sao_def_var(sao_new_symbol("vget"), sao_new_native(native_vget), GLOBAL); sao_def_var(sao_new_symbol("vset"), sao_new_native(native_vset), GLOBAL); sao_def_var(sao_new_symbol("load"), sao_new_native(native_load), GLOBAL); sao_def_var(sao_new_symbol("print"), sao_new_native(native_print), GLOBAL); sao_def_var(sao_new_symbol("read"), sao_new_native(native_read), GLOBAL); sao_def_var(sao_new_symbol("add"), sao_new_native(native_add), GLOBAL); sao_def_var(sao_new_symbol("sub"), sao_new_native(native_sub), GLOBAL); sao_def_var(sao_new_symbol("mul"), sao_new_native(native_mul), GLOBAL); sao_def_var(sao_new_symbol("div"), sao_new_native(native_div), GLOBAL); sao_def_var(sao_new_symbol("cmp"), sao_new_native(native_cmp), GLOBAL); sao_def_var(sao_new_symbol("not"), sao_new_native(native_not), GLOBAL); sao_def_var(sao_new_symbol("lt"), sao_new_native(native_lt), GLOBAL); sao_def_var(sao_new_symbol("gt"), sao_new_native(native_gt), GLOBAL); sao_def_var(sao_new_symbol("is_null"), sao_new_native(native_is_null), GLOBAL); sao_def_var(sao_new_symbol("is_list"), sao_new_native(native_is_list), GLOBAL); sao_def_var(sao_new_symbol("pairq"), sao_new_native(native_pairq), GLOBAL); sao_def_var(sao_new_symbol("atomq"), sao_new_native(native_atomq), GLOBAL); sao_def_var(sao_new_symbol("eqq"), sao_new_native(native_eqq), GLOBAL); sao_def_var(sao_new_symbol("equalq"), sao_new_native(native_equalq), GLOBAL);;
  return GLOBAL;
 }
+void print_version(){ libc_(libc_printf,"printf")(" SaoLang (R) v0.0.5 - Wanjo Chan (c) 2020\n"); }
+void print_help(){ libc_(libc_printf,"printf")("Usage	 : sao [options] [script.sao | -]]\nOptions	 :\n	h:	Help\n	v:	Version\n	i:	Interactive\n	p:	Print final result\n	d:	Dev only\n	e:	Eval\n	s:	Strict mode\n	l:	Lisp syntax\n"); }
 int main(int argc, char **argv) {
  ffic_func strcmp = libc_(libc_strcmp,"strcmp");
  libc_(libc_setmode,"setmode")(libc_(libc_fileno,"fileno")(libc_(libc_stdin,"stdin")),0x8000 );
@@ -1009,9 +1005,9 @@ int main(int argc, char **argv) {
   }
   sao_def_var(ARGV,ARGV,GLOBAL);
  }
- if(!found_any){ argta[argt_i]++; argta[argt_v]++; }
- if(argta[argt_v]){ libc_(libc_printf,"printf")(" SaoLang (R) v0.0.3 - Wanjo Chan (c) 2020\n"); if(found_any==1)libc_(libc_exit,"exit")(0); }
- if(argta[argt_h]){ libc_(libc_printf,"printf")("Usage	 : sao [options] [script.sao | -]]\nOptions	 :\n	h:	Help\n	v:	Version\n	i:	Interactive\n	p:	Print final result\n	d:	Dev only\n	e:	Eval\n	s:	Strict mode\n	l:	Lisp syntax\n");libc_(libc_exit,"exit")(0);}
+ if(!found_any){ print_help();argta[argt_i]++; argta[argt_v]++; }
+ if(argta[argt_v]){ print_version();if(found_any==1)libc_(libc_exit,"exit")(0); }
+ if(argta[argt_h]){ print_help();libc_(libc_exit,"exit")(0);}
  void* fp = ((!strcmp("-",script_file)) ? (void*)libc_(libc_stdin,"stdin") : (void*)libc_(libc_fopen,"fopen")(script_file, "r"));
  if(!fp) do{libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"FILE NOT FOUND: %s",script_file);libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"\n");libc_(libc_exit,"exit")(1);}while(0);
  sao_stream * fw = sao_stream_new(fp,stream_file);

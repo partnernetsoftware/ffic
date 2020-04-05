@@ -358,7 +358,9 @@ sao_object * sao_parse( sao_stream * fw, int do_eval ) {
 	sao_object *rt = NIL;
 	for(;;){
 		sao_object* exp = sao_load_expr(fw);
-		if(exp==SAO_NULL){ break; }
+		if(exp==SAO_NULL){
+			break;
+		}
 		if (!is_NIL(exp)) {
 			if(SAO_ARGV(d))
 				sao_stdout("%llu: ",microtime());
@@ -646,12 +648,12 @@ sao_object *eval_list(sao_object *exp, sao_object *ctx) {
 	if (is_NIL(exp)) return NIL;
 	return cons(sao_eval(car(exp), ctx), eval_list(cdr(exp), ctx));
 }
-sao_object *eval_sequence(sao_object *exps, sao_object *ctx) {
-	if (is_NIL(cdr(exps))) return sao_eval(car(exps), ctx);
-	sao_eval(car(exps), ctx);
-	return eval_sequence(cdr(exps), ctx);
-}
-#define PROFILE
+//TODO
+//sao_object *eval_sequence(sao_object *exps, sao_object *ctx) {
+//	if (is_NIL(cdr(exps))) return sao_eval(car(exps), ctx);
+//	sao_eval(car(exps), ctx);
+//	return eval_sequence(cdr(exps), ctx);
+//}
 sao_stream * sao_stream_new(void* fp,stream_t type)
 {
 	SAO_NEW_OBJECT(sao_stream,fw);
@@ -777,9 +779,12 @@ sao_object *sao_load_expr(sao_stream * fw)
 		}
 		if (c == '(') {
 			sao_object * list = sao_read_list(fw);
-			if(theSymbol!=NIL){
-				list = cons(theSymbol,list);
-			}
+			list = cons(theSymbol,list);
+			//if(theSymbol!=NIL){
+			//	list = cons(theSymbol,list);
+			//}else{
+			//	list = cons(NIL,list);
+			//}
 			return list;
 		}
 		if (c == ')') { return NIL; }
@@ -857,8 +862,7 @@ tail:
 	} else if (exp->type == type_symbol) {
 		sao_object *s = sao_get_var(exp, ctx);
 		if (SAO_ARGV(s) && is_NIL(s)) {
-			sao_out_expr("Unbound symbol:", exp);
-			sao_stdout("\n");
+			sao_out_expr("WARNING: Unbound symbol:", exp);sao_stdout("\n");
 		}
 		return s;
 	} else if (is_tagged(exp, QUOTE)) {
@@ -942,11 +946,15 @@ tail:
 			return NIL;
 		}
 		if (proc->type == type_native){
-			//sao_warn("DEBUG calling native %s\n",proc->_string);
+			//if(SAO_ARGV(d)){
+			//	sao_warn("DEBUG calling native %s\n");
+			//}
 			return proc->native(args);
 		}
 		if (is_tagged(proc, PROCEDURE)) {
+			//if(SAO_ARGV(d)){
 			//sao_warn("DEBUG calling procedure:%s\n",proc->_string);
+			//}
 			ctx = sao_expand(cadr(proc), args, cadddr(proc));
 			exp = cons(BEGIN, caddr(proc)); /* procedure body */
 			goto tail;
