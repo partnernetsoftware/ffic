@@ -2,8 +2,9 @@
 
 ```
 /* TODO (Plan)
- * * ctype()
- * * ffic() C.$sym()
+ * * shell()
+ * * ctype() + ffic() C.$sym()
+ * * rewrite: native(,,sao_object);
  * * suggestion: type: ERROR
  * * double/float and maths
  * * redesign context/global with idea from ES6

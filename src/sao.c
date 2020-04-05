@@ -95,7 +95,7 @@ struct _sao_object {
 		//double _double;//TODO
 		native_t native;
 	};
-} __attribute__((packed));
+};// __attribute__((packed));
 #define define_sao_object(n) sao_object*n=SAO_NULL;
 SAO_ITR(define_sao_object, NIL,ARGV,GLOBAL,TRUE,FALSE,QUOTE,SET,LET,DEFINE,PROCEDURE,IF,LAMBDA,BEGIN,ERROR);
 sao_object *is_tagged(sao_object *cell, sao_object *tag);
@@ -535,8 +535,16 @@ sao_object *native_lt(sao_object *sexp) {
 	return (car(sexp)->_integer < cadr(sexp)->_integer) ? TRUE : NIL;
 }
 sao_object * native_shell(sao_object *args) {
-	//sao_out_expr("ffi todo",args,NIL);
-	libc(system)("ls");
+	sao_out_expr("native_shell todo",car(args),NIL);
+	sao_stdout(",len=%d\n",sao_list_len(args));
+	sao_object * _car;
+	sao_object * _cdr = args;
+	while( (_car = car(_cdr)) )
+	{
+		sao_out_expr("\nTMP _car",_car,NIL);
+		_cdr = cdr(_cdr);
+	}
+	//libc(system)("ls");
 	return NIL;
 }
 sao_object * native_ffi(sao_object *args) {

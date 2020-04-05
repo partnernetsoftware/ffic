@@ -113,7 +113,7 @@ struct _sao_object {
   };
   native_t native;
  };
-} __attribute__((packed));
+};
 sao_object*NIL=0; sao_object*ARGV=0; sao_object*GLOBAL=0; sao_object*TRUE=0; sao_object*FALSE=0; sao_object*QUOTE=0; sao_object*SET=0; sao_object*LET=0; sao_object*DEFINE=0; sao_object*PROCEDURE=0; sao_object*IF=0; sao_object*LAMBDA=0; sao_object*BEGIN=0; sao_object*ERROR=0;;
 sao_object *is_tagged(sao_object *cell, sao_object *tag);
 sao_object *cons(sao_object *car, sao_object *cdr);
@@ -539,7 +539,15 @@ sao_object *native_lt(sao_object *sexp) {
  return (car(sexp)->_integer < (car(cdr((sexp))))->_integer) ? TRUE : NIL;
 }
 sao_object * native_shell(sao_object *args) {
- libc_(libc_system,"system")("ls");
+ sao_out_expr("native_shell todo",car(args),NIL);
+ libc_(libc_printf,"printf")(",len=%d\n",sao_list_len(args));
+ sao_object * _car;
+ sao_object * _cdr = args;
+ while( (_car = car(_cdr)) )
+ {
+  sao_out_expr("\nTMP _car",_car,NIL);
+  _cdr = cdr(_cdr);
+ }
  return NIL;
 }
 sao_object * native_ffi(sao_object *args) {
