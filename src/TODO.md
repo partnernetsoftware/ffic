@@ -7,15 +7,15 @@
  * * suggestion: type: ERROR
  * * double/float and maths
  * * redesign context/global with idea from ES6
- * * improve: route () to ext() ?
- * * remove "ok" stuff?
- * * utf8 support for strings
+ * * utf8 support for string
  * * fix: bug of ht expand...
+ * * remove "ok" stuff?
  * * feature: compile to binary / load from binary
- * * improve: translate logic func (caar...) to officially inline
+ * * improve: translate std func (i.e. caar...) to inline?
+
  * * JIT
  * * static compile libdl
- * * remove libc dependency ( so that runnable on almose all arch )
+ * * remove libc dependency 
  */
 
 ```

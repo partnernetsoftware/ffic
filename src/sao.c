@@ -36,7 +36,8 @@
 #define SAO_ITR1(mmm,mm1,qqq,...) SAO_EVAL( SAO_WHILE1( mmm,mm1,qqq,__VA_ARGS__) )
 //////////////////////////////////////////////////////////////////////////////
 #define DEFINE_ENUM_LIBC(n) libc_##n,
-enum { SAO_ITR(DEFINE_ENUM_LIBC,fprintf,malloc,memset,strdup,strcmp,printf,putc,getc,isalnum,strchr,isdigit,isalpha,fopen,fread,fgets,fclose,feof, usleep,msleep,sleep,fputc,strlen,fflush,free,setmode,fileno,stdin,stdout,stderr,microtime,exit) };
+enum { SAO_ITR(DEFINE_ENUM_LIBC,fprintf,malloc,memset,strdup,strcmp,printf,putc,getc,isalnum,strchr,isdigit,isalpha,fopen,fread,fgets,fclose,feof, usleep,msleep,sleep,fputc,strlen,fflush,free,system,\
+		setmode,fileno,stdin,stdout,stderr,microtime,exit) };
 #define libc(f) libc_(libc_##f,#f)
 #include "ffic.h" //github.com/partnernetsoftware/ffic/blob/master/src/ffic.h
 ffic_func libc_a[libc_exit+1];
@@ -533,8 +534,14 @@ sao_object *native_lt(sao_object *sexp) {
 	SAO_CHECK_TYPE(cadr(sexp), type_integer);
 	return (car(sexp)->_integer < cadr(sexp)->_integer) ? TRUE : NIL;
 }
+sao_object * native_shell(sao_object *args) {
+	//sao_out_expr("ffi todo",args,NIL);
+	libc(system)("ls");
+	return NIL;
+}
 sao_object * native_ffi(sao_object *args) {
 	sao_out_expr("ffi todo",args,NIL);
+	//libc(system)("ls");
 	return NIL;
 }
 sao_object *native_exit(sao_object *args) {
@@ -549,9 +556,6 @@ sao_object *native_load(sao_object *args) { //TODO merge with native_read() 1!!!
 	sao_object *exp;
 	sao_object *ret = NIL;
 	char *filename = car(args)->_string;
-#if defined(DEBUG)
-	sao_stdout("Evaluating file %s\n", filename);
-#endif
 	//TODO
 	void*fp = libc(fopen)(filename, "r");
 	if (fp == 0) {
@@ -604,7 +608,7 @@ sao_object *sao_get_var(sao_object *var, sao_object *ctx) {
 	}
 	return NIL;
 }
-//replace var->val when found.
+//TODO replace var->val when found.
 sao_object * sao_set_var(sao_object *var, sao_object *val, sao_object *ctx) {
 	while (!is_NIL(ctx)) {
 		sao_object *frame = car(ctx);
@@ -740,7 +744,6 @@ void sao_comment(sao_stream * fw)
 sao_object *sao_load_expr(sao_stream * fw)
 {
 	int c;
-	//TODO switch(){} for better loop?
 	for (;;) {
 		sao_object * theSymbol = NIL;
 		c = sao_deq_c(fw);
@@ -765,9 +768,8 @@ sao_object *sao_load_expr(sao_stream * fw)
 		}
 		if (libc(isalpha)(c) || libc(strchr)(type_symbolS, c)){
 			theSymbol = sao_read_symbol(fw,c);
-			if(SAO_ARGV(l)){
-				return theSymbol;
-			}else{
+			if(SAO_ARGV(l)){ return theSymbol; }
+			else{
 				while(' '==sao_peek(fw)) c = sao_deq_c(fw);//TODO support \t later
 				if('('==sao_peek(fw)){
 					c = sao_deq_c(fw);//jump next
@@ -778,9 +780,7 @@ sao_object *sao_load_expr(sao_stream * fw)
 		}
 		if (c == '(') {
 			sao_object * list = sao_read_list(fw);
-			if(SAO_ARGV(l)){
-				return list;
-			}
+			if(SAO_ARGV(l)){ return list; }
 			list = cons(theSymbol,list);
 			return list;
 		}
@@ -946,16 +946,8 @@ tail:
 			}
 			return NIL;
 		}
-		if (proc->type == type_native){
-			//if(SAO_ARGV(d)){
-			//	sao_warn("DEBUG calling native %s\n");
-			//}
-			return proc->native(args);
-		}
+		if (proc->type == type_native){ return proc->native(args); }
 		if (is_tagged(proc, PROCEDURE)) {
-			//if(SAO_ARGV(d)){
-			//sao_warn("DEBUG calling procedure:%s\n",proc->_string);
-			//}
 			ctx = sao_expand(cadr(proc), args, cadddr(proc));
 			exp = cons(BEGIN, caddr(proc)); /* procedure body */
 			goto tail;
@@ -967,7 +959,7 @@ tail:
 }
 #define add_native(s, c) sao_def_var(sao_new_symbol(s), sao_new_native(c), GLOBAL)
 #define add_sym(s, c) do{c=sao_new_symbol(s);sao_def_var(c,c,GLOBAL);}while(0);
-#define add_sym_with(n) add_native(#n, native_##n);
+#define add_sym_list(n) add_native(#n, native_##n);
 sao_object * sao_init(char* langpack /* TODO ffic with own lang*/)
 {
 	GLOBAL = sao_expand(NIL, NIL, NIL);
@@ -983,8 +975,8 @@ sao_object * sao_init(char* langpack /* TODO ffic with own lang*/)
 	add_sym("set", SET);
 	add_sym("begin", BEGIN);//TODO remove or add END
 	add_sym("if", IF);
-	SAO_ITR(add_sym_with,
-			exit,ffi,global,//sys
+	SAO_ITR(add_sym_list,
+			exit,shell,ffi,global,//sys
 			type,cons,car,cdr,setcar,setcdr,//core
 			list,vector,vget,vset,//data structure
 			load,print,read,//io
