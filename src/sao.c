@@ -80,26 +80,30 @@ typedef struct _sao_object sao_object;
 typedef sao_object *(*native_t)(sao_object *);
 struct _sao_object {
 	union {
-		type_t type;
 		void* ptr3[3];
 		struct {
-			void* any;
-			sao_object *car;
-			sao_object *cdr;
+			union{
+				type_t type;
+				void* any;
+			};
+			union {
+				struct {
+					sao_object *car;
+					sao_object *cdr;
+				};
+				struct {
+					sao_object **_vector;
+					int _len;
+				};
+				long _integer;
+				char *_string;
+				//double _double;//TODO
+				native_t native;
+			};
 		};
-	};
-	union {
-		long _integer;
-		char *_string;
-		struct {
-			sao_object **_vector;
-			int _len;
-		};
-		//double _double;//TODO
-		native_t native;
 	};
 	//int gc;//TODO
-};// __attribute__((packed));
+}__attribute__((packed));
 #define define_sao_object(n) sao_object*n=SAO_NULL;
 SAO_ITR(define_sao_object, NIL,ARGV,GLOBAL,TRUE,FALSE,QUOTE,SET,LET,DEFINE,PROCEDURE,IF,LAMBDA,BEGIN,ERROR);
 sao_object *is_tagged(sao_object *cell, sao_object *tag);
