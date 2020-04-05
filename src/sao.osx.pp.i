@@ -982,14 +982,14 @@ int main(int argc, char **argv) {
     i_val = 1;
    }
    sao_def_var(sao_new_symbol(string_or_name), sao_new_integer(i_val), ARGV);
-   if(!strcmp(string_or_name,"h")){ argta[argt_v]++;argta[argt_h]++;
-   }else if(!strcmp(string_or_name,"i")){ argta[argt_i] += i_val;
-   }else if(!strcmp(string_or_name,"d")){ argta[argt_d] += i_val;
-   }else if(!strcmp(string_or_name,"p")){ argta[argt_p] += i_val;
-   }else if(!strcmp(string_or_name,"e")){ argta[argt_e] += i_val;
-   }else if(!strcmp(string_or_name,"s")){ argta[argt_s] += i_val;
-   }else if(!strcmp(string_or_name,"v")){ argta[argt_v]++;
-   }else {script_file = string_or_name;}
+   int found = 0;
+   for(int i=0;i<argt_h;i++){
+    if(string_or_name[0]==argt_names[i][0]){
+     argta[argt_i]++;
+     found++;
+    }
+   }
+   if(!found) script_file = string_or_name;
    pos = cdr(pos);
   }
   sao_def_var(ARGV,ARGV,GLOBAL);

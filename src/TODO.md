@@ -2,8 +2,8 @@
 
 ```
 /* TODO (Plan)
+ * * agrv: LISP syntax
  * * counter mapping for argv
- * * default REPL mode when no stdin data and no -e
  * * ffic() C.$sym()
  * * ctype()
  * * suggestion: type: ERROR

@@ -56,7 +56,7 @@ ffic_func libc_(int fi,const char* fn){ return libc_a[fi]?libc_a[fi]:(libc_a[fi]
 #define is_ATOM(x) (x&&x->type)
 #define sao_stderr(...) libc(fprintf)(libc(stderr),__VA_ARGS__)
 #define sao_stdout(...) libc(printf)(__VA_ARGS__)
-#define sao_error(x) do{sao_stderr("%s\n",x);libc(exit)(1);}while(0)
+#define sao_error(...) do{sao_stderr(__VA_ARGS__);sao_stderr("\n");libc(exit)(1);}while(0)
 #define sao_warn(...) sao_stderr(__VA_ARGS__);
 #define caar(x) (car(car((x))))
 #define cdar(x) (cdr(car((x))))
@@ -313,6 +313,7 @@ int sao_read_line(sao_stream* fw) //TODO int * line_num
 	ffic_func feof = libc(feof);
 	do{
 		if(fw->type==stream_file){
+			if(!fw->fp) sao_error("FILE NOT FOUND?");
 			if(feof(fw->fp)){ break; }
 		}else{
 			//if(feof(fw->fp)){ break; }
@@ -553,7 +554,7 @@ sao_object *native_load(sao_object *args) { //TODO merge with native_read() 1!!!
 	//TODO
 	void*fp = libc(fopen)(filename, "r");
 	if (fp == 0) {
-		sao_stdout("Error opening file %s\n", filename);
+		sao_stderr("Error opening file %s\n", filename);
 		return NIL;
 	}
 	sao_stream * fw = sao_stream_new(fp,stream_file);
@@ -979,6 +980,7 @@ int main(int argc, char **argv) {
 	sao_init(0);//TODO to define own natives ffic("libsao","init")
 	ARGV = sao_expand(NIL, NIL, NIL);
 	char * script_file = "-";
+	int found_any = 0;
 	if(argc>1){
 		char argv_line[512] = {'_','(',0};
 		char * argv_ptr = &argv_line[2];
@@ -1001,30 +1003,26 @@ int main(int argc, char **argv) {
 				i_val = 1;
 			}
 			sao_def_var(sao_new_symbol(string_or_name), sao_new_integer(i_val), ARGV);//@ref sao_get_var
-			//int found = 0;
-			//for(int i=0;i<argt_h;i++){
-			//	if(string_or_name[0]=='-'&& (string_or_name[1]==argt_names[i][0])){
-			//		SAO_ARGV(i)++;
-			//		found++;
-			//	}
-			//}
-			//if(!found) script_file = string_or_name;
-			if(!strcmp(string_or_name,"h")){ SAO_ARGV(v)++;SAO_ARGV(h)++;
-			}else if(!strcmp(string_or_name,"i")){ SAO_ARGV(i) += i_val;
-			}else if(!strcmp(string_or_name,"d")){ SAO_ARGV(d) += i_val;
-			}else if(!strcmp(string_or_name,"p")){ SAO_ARGV(p) += i_val;
-			}else if(!strcmp(string_or_name,"e")){ SAO_ARGV(e) += i_val;
-			}else if(!strcmp(string_or_name,"s")){ SAO_ARGV(s) += i_val;
-			}else if(!strcmp(string_or_name,"v")){ SAO_ARGV(v)++; 
-			}else {script_file = string_or_name;}
+			int found = 0;
+			for(int i=0;i<=argt_h;i++){
+				if(string_or_name[0]==argt_names[i][0]){
+					argta[i]+=i_val;
+					found=1;break;
+				}
+			}
+			if(!found) script_file = string_or_name;
+			else found_any++;
 			pos = cdr(pos);
 		}
-		sao_def_var(ARGV,ARGV,GLOBAL);
+		sao_def_var(ARGV,ARGV,GLOBAL);//for later use
 	}
-	sao_stderr("TODO script_file=%s\n",script_file);
+	if(!found_any){ argta[argt_i]++; argta[argt_v]++; }
 	if(SAO_ARGV(v)) sao_stdout("SaoLang (R) v0.0.3 - Wanjo Chan (c) 2020\n");
-	if(SAO_ARGV(h)){sao_stdout(" Usage: sao [options] [script.sao | -]]\n Options:\n	h:	Help\n	v:	Version\n	i:	Interactive\n	p:	Print final result\n	d:	Dev only\n	e:	Eval\n	s:	Strictive");libc(exit)(0);}
-	sao_stream * fw = sao_stream_new(libc(stdin),stream_file);
+	if(SAO_ARGV(h)){sao_stdout("Usage	 : sao [options] [script.sao | -]]\nOptions	 :\n	h:	Help\n	v:	Version\n	i:	Interactive\n	p:	Print final result\n	d:	Dev only\n	e:	Eval\n	s:	Strict mode\n	l:	Lisp syntax\n");libc(exit)(0);}
+	void* fp = (!strcmp("-",script_file)) ? libc(stdin) : libc(fopen)(script_file, "r");
+	if(!fp) sao_error("FILE NOT FOUND: %s",script_file);
+	sao_stream * fw = sao_stream_new(fp,stream_file);
+	//sao_stream * fw = sao_stream_new(libc(stdin),stream_file);
 	sao_object * result = sao_parse( fw, 1/*eval*/ );
 	if(SAO_ARGV(p)){ sao_out_expr(0,result);sao_stdout("\n"); }
 	return 0;
