@@ -99,17 +99,21 @@ int argta[argt_h+1];
 typedef struct _sao_object sao_object;
 typedef sao_object *(*native_t)(sao_object *);
 struct _sao_object {
- type_t type;
+ union {
+  type_t type;
+  void* ptr3[3];
+  struct {
+   void* any;
+   sao_object *car;
+   sao_object *cdr;
+  };
+ };
  union {
   long _integer;
   char *_string;
   struct {
    sao_object **_vector;
    int _len;
-  };
-  struct {
-   sao_object *car;
-   sao_object *cdr;
   };
   native_t native;
  };

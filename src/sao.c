@@ -79,8 +79,15 @@ int argta[argt_h+1];
 typedef struct _sao_object sao_object;
 typedef sao_object *(*native_t)(sao_object *);
 struct _sao_object {
-	type_t type;
-	//int gc;//TODO
+	union {
+		type_t type;
+		void* ptr3[3];
+		struct {
+			void* any;
+			sao_object *car;
+			sao_object *cdr;
+		};
+	};
 	union {
 		long _integer;
 		char *_string;
@@ -88,13 +95,10 @@ struct _sao_object {
 			sao_object **_vector;
 			int _len;
 		};
-		struct {
-			sao_object *car;
-			sao_object *cdr;
-		};
 		//double _double;//TODO
 		native_t native;
 	};
+	//int gc;//TODO
 };// __attribute__((packed));
 #define define_sao_object(n) sao_object*n=SAO_NULL;
 SAO_ITR(define_sao_object, NIL,ARGV,GLOBAL,TRUE,FALSE,QUOTE,SET,LET,DEFINE,PROCEDURE,IF,LAMBDA,BEGIN,ERROR);
