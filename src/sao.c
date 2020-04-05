@@ -984,12 +984,8 @@ sao_object * sao_init(char* langpack /* TODO ffic with own lang*/)
 			);
 	return GLOBAL;
 }
-void print_version(){
-	sao_stdout(" SaoLang (R) v0.0.3 - Wanjo Chan (c) 2020\n"); 
-}
-void print_help(){
-	sao_stdout("Usage	 : sao [options] [script.sao | -]]\nOptions	 :\n	h:	Help\n	v:	Version\n	i:	Interactive\n	p:	Print final result\n	d:	Dev only\n	e:	Eval\n	s:	Strict mode\n	l:	Lisp syntax\n");
-}
+void print_version(){ sao_stdout(" SaoLang (R) v0.0.5 - Wanjo Chan (c) 2020\n"); }
+void print_help(){ sao_stdout("Usage	 : sao [options] [script.sao | -]]\nOptions	 :\n	h:	Help\n	v:	Version\n	i:	Interactive\n	p:	Print final result\n	d:	Dev only\n	e:	Eval\n	s:	Strict mode\n	l:	Lisp syntax\n"); }
 int main(int argc, char **argv) {
 	ffic_func strcmp = libc(strcmp);
 	libc(setmode)(libc(fileno)(libc(stdin)),0x8000/*O_BINARY*/);
@@ -1036,7 +1032,7 @@ int main(int argc, char **argv) {
 	if(!found_any){ print_help();argta[argt_i]++; argta[argt_v]++; }
 	if(SAO_ARGV(v)){ print_version();if(found_any==1)libc(exit)(0); }
 	if(SAO_ARGV(h)){ print_help();libc(exit)(0);}
-	void* fp =  ((!strcmp("-",script_file)) ? (void*)libc(stdin) : (void*)libc(fopen)(script_file, "r"));
+	void* fp = ((!strcmp("-",script_file)) ? (void*)libc(stdin) : (void*)libc(fopen)(script_file, "r"));
 	if(!fp) sao_error("FILE NOT FOUND: %s",script_file);
 	sao_stream * fw = sao_stream_new(fp,stream_file);
 	sao_object * result = sao_parse( fw, 1/*eval*/ );
