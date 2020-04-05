@@ -53,21 +53,27 @@ ffic_func libc_(int fi,const char* fn){ return libc_a[fi]?libc_a[fi]:(libc_a[fi]
 #define SAO_NEW(t,...) sao_calloc( sizeof(t) SAO_IF(SAO_IS_PAREN(__VA_ARGS__ ()))(SAO_EAT(),*__VA_ARGS__) )
 #define SAO_NEW_OBJECT(t,n,...) t*n=SAO_NEW(t,__VA_ARGS__);
 #define is_NIL(x) !x
+//#define is_LIST(x) ((x)&&!(x)->type)
 #define is_LIST(x) (x&&!x->type)
 #define is_ATOM(x) (x&&x->type)
 #define sao_stderr(...) libc(fprintf)(libc(stderr),__VA_ARGS__)
 #define sao_stdout(...) libc(printf)(__VA_ARGS__)
 #define sao_error(...) do{sao_stderr(__VA_ARGS__);sao_stderr("\n");libc(exit)(1);}while(0)
 #define sao_warn(...) sao_stderr(__VA_ARGS__);
-#define caar(x) (car(car((x))))
-#define cdar(x) (cdr(car((x))))
-#define cadr(x) (car(cdr((x))))
-#define cddr(x) (cdr(cdr((x))))
-#define cadar(x) (car(cdr(car((x)))))
-#define caddr(x) (car(cdr(cdr((x)))))
-#define cdddr(x) (cdr(cdr(cdr((x)))))
-#define cdadr(x) (cdr(car(cdr((x)))))
-#define cadddr(x) (car(cdr(cdr(cdr((x))))))
+//#define caar(x) (car(car((x))))
+//#define cdar(x) (cdr(car((x))))
+//#define cadr(x) (car(cdr((x))))
+//#define cddr(x) (cdr(cdr((x))))
+//#define cadar(x) (car(cdr(car((x)))))
+//#define caddr(x) (car(cdr(cdr((x)))))
+//#define cdddr(x) (cdr(cdr(cdr((x)))))
+//#define cdadr(x) (cdr(car(cdr((x)))))
+//#define cadar(x) (car(cdar((x))))
+//#define caddr(x) (car(cddr((x))))
+//#define cdddr(x) (cdr(cddr((x))))
+//#define cdadr(x) (cdr(cadr((x))))
+//#define cadddr(x) (car(cdr(cdr(cdr((x))))))
+//#define cadddr(x) (cadr(cddr((x))))
 #define SAO_CHECK_TYPE(x, t) (sao_type_check(__func__, x, t))
 //////////////////////////////////////////////////////////////////////////////
 define_map(stream, file,char);
@@ -80,7 +86,7 @@ typedef struct _sao_object sao_object;
 typedef sao_object *(*native_t)(sao_object *);
 struct _sao_object {
 	union {
-		void* ptr3[3];
+		void* ptr3[3];//for special case
 		struct {
 			union{
 				type_t type;
@@ -203,11 +209,61 @@ sao_object *cons(sao_object *car, sao_object *cdr) {
 	ret->cdr = cdr;
 	return ret;
 }
-sao_object *car(sao_object *cell) {
-	return is_LIST(cell)?cell->car:NIL;
+sao_object * car(sao_object *x) { return is_LIST(x)?x->car:NIL; }
+sao_object * cdr(sao_object *x) { return is_LIST(x)?x->cdr:NIL; }
+sao_object *caar(sao_object *x) {
+	return (!x || !x->car || x->car->type)? NIL: x->car->car;
 }
-sao_object *cdr(sao_object *cell) {
-	return is_LIST(cell)?cell->cdr:NIL;
+sao_object *cdar(sao_object *x) {
+	return (!x || !x->car || x->car->type)? NIL: x->car->cdr;
+}
+sao_object *cadr(sao_object *x) {
+	return (!x || !x->cdr || x->cdr->type)? NIL: x->cdr->car;
+}
+sao_object *cddr(sao_object *x) {
+	return (!x || !x->cdr || x->cdr->type)? NIL: x->cdr->cdr;
+}
+sao_object *cadar(sao_object *x) {
+	if(!x)return NIL;
+	if(!x->car)return NIL;
+	if(x->car->type)return NIL;
+	if(!x->car->cdr)return NIL;
+	if(x->car->cdr->type)return NIL;
+	return x->car->cdr->car;
+}
+sao_object *caddr(sao_object *x) {
+	if(!x)return NIL;
+	if(!x->cdr)return NIL;
+	if(x->cdr->type)return NIL;
+	if(!x->cdr->cdr)return NIL;
+	if(x->cdr->cdr->type)return NIL;
+	return x->cdr->cdr->car;
+}
+sao_object *cdddr(sao_object *x) {
+	if(!x)return NIL;
+	if(!x->cdr)return NIL;
+	if(x->cdr->type)return NIL;
+	if(!x->cdr->cdr)return NIL;
+	if(x->cdr->cdr->type)return NIL;
+	return x->cdr->cdr->cdr;
+}
+sao_object *cdadr(sao_object *x) {
+	if(!x)return NIL;
+	if(!x->cdr)return NIL;
+	if(x->cdr->type)return NIL;
+	if(!x->cdr->car)return NIL;
+	if(x->cdr->car->type)return NIL;
+	return x->cdr->car->cdr;
+}
+sao_object *cadddr(sao_object *x) {
+	if(!x)return NIL;
+	if(!x->cdr)return NIL;
+	if(x->cdr->type)return NIL;
+	if(!x->cdr->cdr)return NIL;
+	if(x->cdr->cdr->type)return NIL;
+	if(!x->cdr->cdr->cdr)return NIL;
+	if(x->cdr->cdr->cdr->type)return NIL;
+	return x->cdr->cdr->cdr->car;
 }
 sao_object *append(sao_object *l1, sao_object *l2) {
 	if (is_NIL(l1)) return l2;
