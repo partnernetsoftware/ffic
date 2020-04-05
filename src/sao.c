@@ -1017,7 +1017,10 @@ int main(int argc, char **argv) {
 		sao_def_var(ARGV,ARGV,GLOBAL);//for later use
 	}
 	if(!found_any){ argta[argt_i]++; argta[argt_v]++; }
-	if(SAO_ARGV(v)) sao_stdout("SaoLang (R) v0.0.3 - Wanjo Chan (c) 2020\n");
+	if(SAO_ARGV(v)){
+		sao_stdout("\033[1m\033[45;33m SaoLang (R) v0.0.3 - Wanjo Chan (c) 2020 \033[0m\n");
+		if(found_any==1)libc(exit)(0);
+	}
 	if(SAO_ARGV(h)){sao_stdout("Usage	 : sao [options] [script.sao | -]]\nOptions	 :\n	h:	Help\n	v:	Version\n	i:	Interactive\n	p:	Print final result\n	d:	Dev only\n	e:	Eval\n	s:	Strict mode\n	l:	Lisp syntax\n");libc(exit)(0);}
 	void* fp = (!strcmp("-",script_file)) ? libc(stdin) : libc(fopen)(script_file, "r");
 	if(!fp) sao_error("FILE NOT FOUND: %s",script_file);
