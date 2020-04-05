@@ -195,6 +195,7 @@ sao_object *ht_lookup(char *s) {
 }
 sao_object *sao_alloc(type_t type) {
  sao_object*ret=sao_calloc( sizeof(sao_object) );;
+ if(ret<0) do{libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"ASSERT: mem full when sao_alloc()");libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"\n");libc_(libc_exit,"exit")(1);}while(0);
  ret->type = type;
  return ret;
 }
@@ -322,6 +323,7 @@ int sao_read_line(sao_stream* fw)
  ffic_func feof = libc_(libc_feof,"feof");
  do{
   if(fw->type==stream_file){
+   if(!fw->fp) do{libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"FILE NOT FOUND?");libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"\n");libc_(libc_exit,"exit")(1);}while(0);
    if(feof(fw->fp)){ break; }
   }else{
    if (fw->pos==0) libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"DEBUG no pos?");
@@ -552,7 +554,7 @@ sao_object *native_load(sao_object *args) {
  char *filename = car(args)->_string;
  void*fp = libc_(libc_fopen,"fopen")(filename, "r");
  if (fp == 0) {
-  libc_(libc_printf,"printf")("Error opening file %s\n", filename);
+  libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"Error opening file %s\n", filename);
   return NIL;
  }
  sao_stream * fw = sao_stream_new(fp,stream_file);
@@ -620,9 +622,9 @@ sao_object * sao_set_var(sao_object *var, sao_object *val, sao_object *ctx) {
 }
 sao_object *sao_def_var(sao_object *var, sao_object *val, sao_object *ctx)
 {
- if(!ctx) do{libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"%s\n","ASSERT: sao_def_var need ctx");libc_(libc_exit,"exit")(1);}while(0);
+ if(!ctx) do{libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"ASSERT: sao_def_var need ctx");libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"\n");libc_(libc_exit,"exit")(1);}while(0);
  sao_object *frame = car(ctx);
- if(!frame) do{libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"%s\n","ASSERT: sao_def_var(): found no car in ctx");libc_(libc_exit,"exit")(1);}while(0);
+ if(!frame) do{libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"ASSERT: sao_def_var(): found no car in ctx");libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"\n");libc_(libc_exit,"exit")(1);}while(0);
  sao_object *vars = car(frame);
  sao_object *vals = cdr(frame);
  while (!!vars) {
@@ -669,7 +671,7 @@ sao_object *sao_read_symbol(sao_stream * fw, char start)
    || libc_(libc_strchr,"strchr")(type_symbolS, sao_peek(fw)))
  {
   if (i >= 128)
-   do{libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"%s\n","Symbol name too long - maximum length 128 characters");libc_(libc_exit,"exit")(1);}while(0);
+   do{libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"Symbol name too long - maximum length 128 characters");libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"\n");libc_(libc_exit,"exit")(1);}while(0);
   buf[i++] = sao_deq_c(fw);
  }
  buf[i] = '\0';
@@ -715,7 +717,7 @@ sao_object *sao_load_str(sao_stream * fw)
  int c;
  while ((c = sao_deq_c(fw)) != '\"') {
   if (c == (-1)) return NIL;
-  if (i >= 256) do{libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"%s\n","String too long - maximum length 256 characters");libc_(libc_exit,"exit")(1);}while(0);
+  if (i >= 256) do{libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"String too long - maximum length 256 characters");libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"\n");libc_(libc_exit,"exit")(1);}while(0);
   buf[i++] = (char) c;
  }
  buf[i] = '\0';
@@ -960,6 +962,7 @@ int main(int argc, char **argv) {
  sao_init(0);
  ARGV = sao_expand(NIL, NIL, NIL);
  char * script_file = "-";
+ int found_any = 0;
  if(argc>1){
   char argv_line[512] = {'_','(',0};
   char * argv_ptr = &argv_line[2];
@@ -983,21 +986,27 @@ int main(int argc, char **argv) {
    }
    sao_def_var(sao_new_symbol(string_or_name), sao_new_integer(i_val), ARGV);
    int found = 0;
-   for(int i=0;i<argt_h;i++){
+   for(int i=0;i<=argt_h;i++){
     if(string_or_name[0]==argt_names[i][0]){
-     argta[argt_i]++;
-     found++;
+     argta[i]+=i_val;
+     found=1;break;
     }
    }
    if(!found) script_file = string_or_name;
+   else found_any++;
    pos = cdr(pos);
   }
   sao_def_var(ARGV,ARGV,GLOBAL);
  }
- libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"TODO script_file=%s\n",script_file);
- if(argta[argt_v]) libc_(libc_printf,"printf")("SaoLang (R) v0.0.3 - Wanjo Chan (c) 2020\n");
- if(argta[argt_h]){libc_(libc_printf,"printf")(" Usage: sao [options] [script.sao | -]]\n Options:\n	h:	Help\n	v:	Version\n	i:	Interactive\n	p:	Print final result\n	d:	Dev only\n	e:	Eval\n	s:	Strictive");libc_(libc_exit,"exit")(0);}
- sao_stream * fw = sao_stream_new(libc_(libc_stdin,"stdin"),stream_file);
+ if(!found_any){ argta[argt_i]++; argta[argt_v]++; }
+ if(argta[argt_v]){
+  libc_(libc_printf,"printf")(" SaoLang (R) v0.0.3 - Wanjo Chan (c) 2020\n");
+  if(found_any==1)libc_(libc_exit,"exit")(0);
+ }
+ if(argta[argt_h]){libc_(libc_printf,"printf")("Usage	 : sao [options] [script.sao | -]]\nOptions	 :\n	h:	Help\n	v:	Version\n	i:	Interactive\n	p:	Print final result\n	d:	Dev only\n	e:	Eval\n	s:	Strict mode\n	l:	Lisp syntax\n");libc_(libc_exit,"exit")(0);}
+ void* fp = ((!strcmp("-",script_file)) ? (void*)libc_(libc_stdin,"stdin") : (void*)libc_(libc_fopen,"fopen")(script_file, "r"));
+ if(!fp) do{libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"FILE NOT FOUND: %s",script_file);libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"\n");libc_(libc_exit,"exit")(1);}while(0);
+ sao_stream * fw = sao_stream_new(fp,stream_file);
  sao_object * result = sao_parse( fw, 1 );
  if(argta[argt_p]){ sao_out_expr(0,result);libc_(libc_printf,"printf")("\n"); }
  return 0;

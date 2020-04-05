@@ -184,7 +184,7 @@ sao_object *ht_lookup(char *s) {
 }
 sao_object *sao_alloc(type_t type) {
 	SAO_NEW_OBJECT(sao_object,ret);//TODO gc()
-	//if(ret<0) sao_error("ASSERT: mem full for SAO_NEW_OBJECT(sao_object)?\n");
+	if(ret<0) sao_error("ASSERT: mem full when sao_alloc()");
 	ret->type = type;
 	return ret;
 }
@@ -1026,7 +1026,7 @@ int main(int argc, char **argv) {
 		if(found_any==1)libc(exit)(0);
 	}
 	if(SAO_ARGV(h)){sao_stdout("Usage	 : sao [options] [script.sao | -]]\nOptions	 :\n	h:	Help\n	v:	Version\n	i:	Interactive\n	p:	Print final result\n	d:	Dev only\n	e:	Eval\n	s:	Strict mode\n	l:	Lisp syntax\n");libc(exit)(0);}
-	void* fp = (!strcmp("-",script_file)) ? libc(stdin) : libc(fopen)(script_file, "r");
+	void* fp =  ((!strcmp("-",script_file)) ? (void*)libc(stdin) : (void*)libc(fopen)(script_file, "r"));
 	if(!fp) sao_error("FILE NOT FOUND: %s",script_file);
 	sao_stream * fw = sao_stream_new(fp,stream_file);
 	//sao_stream * fw = sao_stream_new(libc(stdin),stream_file);
