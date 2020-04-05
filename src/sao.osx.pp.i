@@ -404,6 +404,7 @@ int sao_read_line(sao_stream* fw)
    }
    sao_enq_c(fw,(-1));
   }
+  libc_(libc_free,"free")(line);
  }while(0);
  return line_num;
 }
@@ -1056,6 +1057,7 @@ int main(int argc, char **argv) {
    else found_any++;
    pos = cdr(pos);
   }
+  libc_(libc_free,"free")(fw);
   sao_def_var(ARGV,ARGV,GLOBAL);
  }
  if(!found_any){ print_help();argta[argt_i]++; argta[argt_v]++; }
@@ -1069,5 +1071,7 @@ int main(int argc, char **argv) {
  sao_stream * fw = sao_stream_new(fp,stream_file);
  sao_object * result = sao_parse( fw, 1 );
  if(argta[argt_p]){ sao_out_expr(0,result,GLOBAL->_string);libc_(libc_printf,"printf")("\n"); }
+ libc_(libc_fclose,"fclose")(fp);
+ libc_(libc_free,"free")(fw);
  return 0;
 }

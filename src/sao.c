@@ -381,7 +381,7 @@ int sao_read_line(sao_stream* fw) //TODO int * line_num
 		ffic_func fgets  = libc(fgets);
 		ffic_func strlen = libc(strlen);
 		int LINE_LEN = 1024;//TODO
-		SAO_NEW_OBJECT(char,line,LINE_LEN);//TODO gc
+		SAO_NEW_OBJECT(char,line,LINE_LEN);
 		if(fw->type==stream_file){
 			if(SAO_ARGV(i)){
 				sao_stdout("> ");
@@ -404,6 +404,7 @@ int sao_read_line(sao_stream* fw) //TODO int * line_num
 			}
 			sao_enq_c(fw,SAO_EOF);
 		}
+		libc(free)(line);//TODO SAO_DELETE_OBJECT
 	}while(0);
 	return line_num;
 }
@@ -725,6 +726,7 @@ sao_stream * sao_stream_new(void* fp,stream_t type)
 	fw->type = type;
 	return fw;
 }
+//sao_stream * sao_stream_delete(sao_stream* fw) //TODO clean up FileChar 1by1
 sao_object *native_print(sao_object *args) {
 	sao_out_expr(0, car(args), args?args->_string:0);
 	sao_stdout("\n");
@@ -1087,6 +1089,7 @@ int main(int argc, char **argv) {
 			else found_any++;
 			pos = cdr(pos);
 		}
+		libc(free)(fw);//
 		sao_def_var(ARGV,ARGV,GLOBAL);//for later use
 	}
 	if(!found_any){ print_help();argta[argt_i]++; argta[argt_v]++; }
@@ -1100,5 +1103,7 @@ int main(int argc, char **argv) {
 	sao_stream * fw = sao_stream_new(fp,stream_file);
 	sao_object * result = sao_parse( fw, 1/*eval*/ );
 	if(SAO_ARGV(p)){ sao_out_expr(0,result,GLOBAL->_string);sao_stdout("\n"); }
+	libc(fclose)(fp);//
+	libc(free)(fw);//
 	return 0;
 }
