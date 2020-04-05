@@ -148,7 +148,7 @@ int sao_read_int(sao_stream * fw, int start);
 int sao_peek(sao_stream * fw);
 sao_object *sao_new_integer(int x);
 sao_object *sao_read_symbol(sao_stream * fw, char start);
-void sao_out_expr(char *str, sao_object *el);
+void sao_out_expr(char *str, sao_object *el, sao_object * caller);
 long sao_is_digit(int c) { return (long) libc_(libc_isdigit,"isdigit")(c); }
 long sao_is_alpha(int c) { return (long) libc_(libc_isalpha,"isalpha")(c); }
 long sao_is_alphanumber(int c) { return (long) libc_(libc_isalnum,"isalnum")(c); }
@@ -370,10 +370,9 @@ sao_object * sao_parse( sao_stream * fw, int do_eval ) {
    break;
   }
   if (!!exp) {
-   if(argta[argt_d])
-    libc_(libc_printf,"printf")("%llu: ",microtime());
+   if(argta[argt_d]) libc_(libc_printf,"printf")("%llu: ",microtime());
    if(argta[argt_i]||argta[argt_d]){
-    sao_out_expr("<=", exp);
+    sao_out_expr("<=", exp, NIL);
     libc_(libc_printf,"printf")("\n");
    }
    if (do_eval){
@@ -381,7 +380,7 @@ sao_object * sao_parse( sao_stream * fw, int do_eval ) {
     if(argta[argt_d]) libc_(libc_printf,"printf")("%llu: ",microtime());
     if(argta[argt_i]||argta[argt_d]){
      if ( !!rt) {
-      sao_out_expr("=>", rt);
+      sao_out_expr("=>", rt, NIL);
       libc_(libc_printf,"printf")("\n");
      }
     }
@@ -540,7 +539,7 @@ sao_object *native_lt(sao_object *sexp) {
  return (car(sexp)->_integer < (car(cdr((sexp))))->_integer) ? TRUE : NIL;
 }
 sao_object * native_ffi(sao_object *args) {
- sao_out_expr("ffi todo",args);
+ sao_out_expr("ffi todo",args,NIL);
  return NIL;
 }
 sao_object *native_exit(sao_object *args) {
@@ -655,7 +654,7 @@ sao_stream * sao_stream_new(void* fp,stream_t type)
  return fw;
 }
 sao_object *native_print(sao_object *args) {
- sao_out_expr(0, car(args));
+ sao_out_expr(0, car(args), NIL);
  libc_(libc_printf,"printf")("\n");
  return NIL;
 }
@@ -770,6 +769,9 @@ sao_object *sao_load_expr(sao_stream * fw)
   }
   if (c == '(') {
    sao_object * list = sao_read_list(fw);
+   if(argta[argt_l]){
+    return list;
+   }
    list = cons(theSymbol,list);
    return list;
   }
@@ -780,7 +782,7 @@ sao_object *sao_load_expr(sao_stream * fw)
  }
  return NIL;
 }
-void sao_out_expr(char *str, sao_object *el){
+void sao_out_expr(char *str, sao_object *el, sao_object * caller){
  if (str) libc_(libc_printf,"printf")("%s ", str);
  if (!el) { libc_(libc_printf,"printf")("'()"); return; }
  if (!el) { return; }
@@ -803,10 +805,13 @@ void sao_out_expr(char *str, sao_object *el){
    int skip=0;
    sao_object **t = &el;
    if(!argta[argt_l]){
+    if(caller&&caller->type==0){
+    }else{
     if (!!*t) {
-     if((*t)->car && type_symbol == (*t)->car->type){
-      sao_out_expr(0, (*t)->car);
-      skip=1;
+      if((*t)->car && type_symbol == (*t)->car->type){
+       sao_out_expr(0, (*t)->car, caller);
+       skip=1;
+      }
      }
     }
    }
@@ -817,17 +822,17 @@ void sao_out_expr(char *str, sao_object *el){
       skip=0;
      }else{
       libc_(libc_printf,"printf")(" ");
-      sao_out_expr(0, (*t)->car);
+      sao_out_expr(0, (*t)->car, (*t));
      }
     }else{
      libc_(libc_printf,"printf")(" ");
-     sao_out_expr(0, (*t)->car);
+     sao_out_expr(0, (*t)->car, (*t));
     }
     if (!!(*t)->cdr) {
      if ((*t)->cdr->type == type_list) {
       t = &(*t)->cdr;
      } else {
-      sao_out_expr(".", (*t)->cdr);
+      sao_out_expr(".", (*t)->cdr, (*t)->cdr);
       break;
      }
     } else
@@ -847,7 +852,7 @@ tail:
  } else if (exp->type == type_symbol) {
   sao_object *s = sao_get_var(exp, ctx);
   if (argta[argt_s] && !s) {
-   sao_out_expr("WARNING: Unbound symbol:", exp);libc_(libc_printf,"printf")("\n");
+   sao_out_expr("WARNING: Unbound symbol:", exp, ctx);libc_(libc_printf,"printf")("\n");
   }
   return s;
  } else if (is_tagged(exp, QUOTE)) {
@@ -924,7 +929,7 @@ tail:
   sao_object *args = eval_list(cdr(exp), ctx);
   if (!proc) {
    if(argta[argt_s]){
-    sao_out_expr("WARNING: Invalid arguments to sao_eval:", exp);
+    sao_out_expr("WARNING: Invalid arguments to sao_eval:", exp, GLOBAL);
     libc_(libc_printf,"printf")("\n");
    }
    return NIL;
@@ -938,7 +943,7 @@ tail:
    goto tail;
   }
  }
- sao_out_expr("Invalid arguments to sao_eval:", exp);
+ sao_out_expr("Invalid arguments to sao_eval:", exp, GLOBAL);
  libc_(libc_printf,"printf")("\n");
  return NIL;
 }
@@ -1006,12 +1011,15 @@ int main(int argc, char **argv) {
   sao_def_var(ARGV,ARGV,GLOBAL);
  }
  if(!found_any){ print_help();argta[argt_i]++; argta[argt_v]++; }
+ else {
+  if(argta[argt_i]){argta[argt_v]++; found_any++;}
+ }
  if(argta[argt_v]){ print_version();if(found_any==1)libc_(libc_exit,"exit")(0); }
  if(argta[argt_h]){ print_help();libc_(libc_exit,"exit")(0);}
  void* fp = ((!strcmp("-",script_file)) ? (void*)libc_(libc_stdin,"stdin") : (void*)libc_(libc_fopen,"fopen")(script_file, "r"));
  if(!fp) do{libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"FILE NOT FOUND: %s",script_file);libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"\n");libc_(libc_exit,"exit")(1);}while(0);
  sao_stream * fw = sao_stream_new(fp,stream_file);
  sao_object * result = sao_parse( fw, 1 );
- if(argta[argt_p]){ sao_out_expr(0,result);libc_(libc_printf,"printf")("\n"); }
+ if(argta[argt_p]){ sao_out_expr(0,result,GLOBAL);libc_(libc_printf,"printf")("\n"); }
  return 0;
 }

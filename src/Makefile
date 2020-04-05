@@ -38,10 +38,11 @@ clean:
 
 run_sao:
 	make osx_sao
-	cat test.sao | ./ffic sao.c
+	cat tests/test.sao | ./ffic sao.c
 test_sao_osx:
 	./sao_osx h v
-	echo $$(($$(gdate +'%s * 1000 + %-N / 1000000'))) && cat test.sao | ./sao_osx i p d -
+	echo $$(($$(gdate +'%s * 1000 + %-N / 1000000'))) && cat tests/fib.sl | ./sao_osx l i p d -
+	echo $$(($$(gdate +'%s * 1000 + %-N / 1000000'))) && cat tests/test.sao | ./sao_osx i p d - && echo $$(($$(gdate +'%s * 1000 + %-N / 1000000'))) 
 osx_sao:
 	rm -f sao_osx
 	${CC} -E sao.c | sed 's/^#.*//g' | sed "/^$$/d" > sao.osx.pp.i
