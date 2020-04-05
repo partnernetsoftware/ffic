@@ -2,10 +2,8 @@
 
 ```
 /* TODO (Plan)
- * * agrv: LISP syntax
- * * counter mapping for argv
- * * ffic() C.$sym()
  * * ctype()
+ * * ffic() C.$sym()
  * * suggestion: type: ERROR
  * * double/float and maths
  * * redesign context/global with idea from ES6

@@ -72,7 +72,7 @@ ffic_func libc_(int fi,const char* fn){ return libc_a[fi]?libc_a[fi]:(libc_a[fi]
 define_map(stream, file,char);
 define_map(type,   list,integer,symbol,string,native,vector);
 define_map(ctype,  long,double,any);
-define_map(argt,   i,p,d,v,e,s,h);
+define_map(argt,   i,p,d,v,e,s,l,h);
 int argta[argt_h+1];
 #define SAO_ARGV(x) argta[argt_##x]
 typedef struct _sao_object sao_object;
@@ -764,11 +764,15 @@ sao_object *sao_load_expr(sao_stream * fw)
 		}
 		if (libc(isalpha)(c) || libc(strchr)(type_symbolS, c)){
 			theSymbol = sao_read_symbol(fw,c);
-			while(' '==sao_peek(fw)) c = sao_deq_c(fw);//TODO support \t later
-			if('('==sao_peek(fw)){
-				c = sao_deq_c(fw);//jump next
-			}else{
+			if(SAO_ARGV(l)){
 				return theSymbol;
+			}else{
+				while(' '==sao_peek(fw)) c = sao_deq_c(fw);//TODO support \t later
+				if('('==sao_peek(fw)){
+					c = sao_deq_c(fw);//jump next
+				}else{
+					return theSymbol;
+				}
 			}
 		}
 		if (c == '(') {
@@ -808,16 +812,23 @@ void sao_out_expr(char *str, sao_object *el){
 			}
 			int skip=0;
 			sao_object **t = &el;
-			if (!is_NIL(*t)) {
-				if((*t)->car && type_symbol == (*t)->car->type){
-					sao_out_expr(0, (*t)->car);
-					skip=1;
+			if(!SAO_ARGV(l)){
+				if (!is_NIL(*t)) {
+					if((*t)->car && type_symbol == (*t)->car->type){
+						sao_out_expr(0, (*t)->car);
+						skip=1;
+					}
 				}
 			}
 			sao_stdout("(");
 			while (!is_NIL(*t)) {
-				if(skip==1){
-					skip=0;
+				if(!SAO_ARGV(l)){
+					if(skip==1){
+						skip=0;
+					}else{
+						sao_stdout(" ");
+						sao_out_expr(0, (*t)->car);
+					}
 				}else{
 					sao_stdout(" ");
 					sao_out_expr(0, (*t)->car);
@@ -973,6 +984,12 @@ sao_object * sao_init(char* langpack /* TODO ffic with own lang*/)
 			);
 	return GLOBAL;
 }
+void print_version(){
+	sao_stdout(" SaoLang (R) v0.0.3 - Wanjo Chan (c) 2020\n"); 
+}
+void print_help(){
+	sao_stdout("Usage	 : sao [options] [script.sao | -]]\nOptions	 :\n	h:	Help\n	v:	Version\n	i:	Interactive\n	p:	Print final result\n	d:	Dev only\n	e:	Eval\n	s:	Strict mode\n	l:	Lisp syntax\n");
+}
 int main(int argc, char **argv) {
 	ffic_func strcmp = libc(strcmp);
 	libc(setmode)(libc(fileno)(libc(stdin)),0x8000/*O_BINARY*/);
@@ -1016,20 +1033,12 @@ int main(int argc, char **argv) {
 		}
 		sao_def_var(ARGV,ARGV,GLOBAL);//for later use
 	}
-	if(!found_any){ argta[argt_i]++; argta[argt_v]++; }
-	if(SAO_ARGV(v)){
-//#ifdef _WIN32
-		sao_stdout(" SaoLang (R) v0.0.3 - Wanjo Chan (c) 2020\n");
-//#else
-//		sao_stdout("\033[1m\033[45;33m SaoLang (R) v0.0.3 - Wanjo Chan (c) 2020 \033[0m\n");
-//#endif
-		if(found_any==1)libc(exit)(0);
-	}
-	if(SAO_ARGV(h)){sao_stdout("Usage	 : sao [options] [script.sao | -]]\nOptions	 :\n	h:	Help\n	v:	Version\n	i:	Interactive\n	p:	Print final result\n	d:	Dev only\n	e:	Eval\n	s:	Strict mode\n	l:	Lisp syntax\n");libc(exit)(0);}
+	if(!found_any){ print_help();argta[argt_i]++; argta[argt_v]++; }
+	if(SAO_ARGV(v)){ print_version();if(found_any==1)libc(exit)(0); }
+	if(SAO_ARGV(h)){ print_help();libc(exit)(0);}
 	void* fp =  ((!strcmp("-",script_file)) ? (void*)libc(stdin) : (void*)libc(fopen)(script_file, "r"));
 	if(!fp) sao_error("FILE NOT FOUND: %s",script_file);
 	sao_stream * fw = sao_stream_new(fp,stream_file);
-	//sao_stream * fw = sao_stream_new(libc(stdin),stream_file);
 	sao_object * result = sao_parse( fw, 1/*eval*/ );
 	if(SAO_ARGV(p)){ sao_out_expr(0,result);sao_stdout("\n"); }
 	return 0;

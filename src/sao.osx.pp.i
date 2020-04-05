@@ -94,7 +94,7 @@ ffic_func libc_(int fi,const char* fn){ return libc_a[fi]?libc_a[fi]:(libc_a[fi]
 typedef enum { stream_file, stream_char, } stream_t; char* stream_names[] = { "file", "char", };;
 typedef enum { type_list, type_integer, type_symbol, type_string, type_native, type_vector, } type_t; char* type_names[] = { "list", "integer", "symbol", "string", "native", "vector", };;
 typedef enum { ctype_long, ctype_double, ctype_any, } ctype_t; char* ctype_names[] = { "long", "double", "any", };;
-typedef enum { argt_i, argt_p, argt_d, argt_v, argt_e, argt_s, argt_h, } argt_t; char* argt_names[] = { "i", "p", "d", "v", "e", "s", "h", };;
+typedef enum { argt_i, argt_p, argt_d, argt_v, argt_e, argt_s, argt_l, argt_h, } argt_t; char* argt_names[] = { "i", "p", "d", "v", "e", "s", "l", "h", };;
 int argta[argt_h+1];
 typedef struct _sao_object sao_object;
 typedef sao_object *(*native_t)(sao_object *);
@@ -760,11 +760,15 @@ sao_object *sao_load_expr(sao_stream * fw)
   }
   if (libc_(libc_isalpha,"isalpha")(c) || libc_(libc_strchr,"strchr")(type_symbolS, c)){
    theSymbol = sao_read_symbol(fw,c);
-   while(' '==sao_peek(fw)) c = sao_deq_c(fw);
-   if('('==sao_peek(fw)){
-    c = sao_deq_c(fw);
-   }else{
+   if(argta[argt_l]){
     return theSymbol;
+   }else{
+    while(' '==sao_peek(fw)) c = sao_deq_c(fw);
+    if('('==sao_peek(fw)){
+     c = sao_deq_c(fw);
+    }else{
+     return theSymbol;
+    }
    }
   }
   if (c == '(') {
@@ -803,16 +807,23 @@ void sao_out_expr(char *str, sao_object *el){
    }
    int skip=0;
    sao_object **t = &el;
-   if (!!*t) {
-    if((*t)->car && type_symbol == (*t)->car->type){
-     sao_out_expr(0, (*t)->car);
-     skip=1;
+   if(!argta[argt_l]){
+    if (!!*t) {
+     if((*t)->car && type_symbol == (*t)->car->type){
+      sao_out_expr(0, (*t)->car);
+      skip=1;
+     }
     }
    }
    libc_(libc_printf,"printf")("(");
    while (!!*t) {
-    if(skip==1){
-     skip=0;
+    if(!argta[argt_l]){
+     if(skip==1){
+      skip=0;
+     }else{
+      libc_(libc_printf,"printf")(" ");
+      sao_out_expr(0, (*t)->car);
+     }
     }else{
      libc_(libc_printf,"printf")(" ");
      sao_out_expr(0, (*t)->car);
@@ -999,11 +1010,8 @@ int main(int argc, char **argv) {
   sao_def_var(ARGV,ARGV,GLOBAL);
  }
  if(!found_any){ argta[argt_i]++; argta[argt_v]++; }
- if(argta[argt_v]){
-  libc_(libc_printf,"printf")(" SaoLang (R) v0.0.3 - Wanjo Chan (c) 2020\n");
-  if(found_any==1)libc_(libc_exit,"exit")(0);
- }
- if(argta[argt_h]){libc_(libc_printf,"printf")("Usage	 : sao [options] [script.sao | -]]\nOptions	 :\n	h:	Help\n	v:	Version\n	i:	Interactive\n	p:	Print final result\n	d:	Dev only\n	e:	Eval\n	s:	Strict mode\n	l:	Lisp syntax\n");libc_(libc_exit,"exit")(0);}
+ if(argta[argt_v]){ libc_(libc_printf,"printf")(" SaoLang (R) v0.0.3 - Wanjo Chan (c) 2020\n"); if(found_any==1)libc_(libc_exit,"exit")(0); }
+ if(argta[argt_h]){ libc_(libc_printf,"printf")("Usage	 : sao [options] [script.sao | -]]\nOptions	 :\n	h:	Help\n	v:	Version\n	i:	Interactive\n	p:	Print final result\n	d:	Dev only\n	e:	Eval\n	s:	Strict mode\n	l:	Lisp syntax\n");libc_(libc_exit,"exit")(0);}
  void* fp = ((!strcmp("-",script_file)) ? (void*)libc_(libc_stdin,"stdin") : (void*)libc_(libc_fopen,"fopen")(script_file, "r"));
  if(!fp) do{libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"FILE NOT FOUND: %s",script_file);libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"\n");libc_(libc_exit,"exit")(1);}while(0);
  sao_stream * fw = sao_stream_new(fp,stream_file);

@@ -47,6 +47,6 @@ osx_sao:
 	${CC} -E sao.c | sed 's/^#.*//g' | sed "/^$$/d" > sao.osx.pp.i
 	${CC} sao.osx.pp.i -L. -o sao_osx
 	#./upx_osx ./sao_osx
-	ls -al sao*
 	make test_sao_osx
+	ls -al sao*
 
