@@ -184,17 +184,22 @@ sao_object *native_print(sao_object *args) {
 sao_object * saolang_init()
 {
 	SAO_ITR(add_sym_list, print,lt,add,sub,exit);//minimum for fib.sao
-	SAO_ITR(add_sym_list, global,print,lt,add,sub,exit,cmp,cons,setcar);//for test.sao
-
-	//return SAO_TAG_global;
 	SAO_ITR(add_sym_list,
-			exit,shell,ffi,global,//sys
-			type,cons,car,cdr,setcar,setcdr,//core
-			list,vector,vget,vset,//data structure
-			load,print,read,//io
-			add,sub,mul,div,cmp,lt,gt,//logic,
-			is_null,is_list,pairq,atomq,eqq,equalq,//helpers
-			);
+			exit,global,
+			print,
+			lt,add,sub,cmp,
+			cons,setcar,cdr,
+			list);//for test.sao
+
 	return SAO_TAG_global;
+//	SAO_ITR(add_sym_list,
+//			exit,shell,ffi,global,//sys
+//			type,cons,car,cdr,setcar,setcdr,//core
+//			list,vector,vget,vset,//data structure
+//			load,print,read,//io
+//			add,sub,mul,div,cmp,lt,gt,//logic,
+//			is_null,is_list,pairq,atomq,eqq,equalq,//helpers
+//			);
+//	return SAO_TAG_global;
 }
 

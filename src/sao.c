@@ -67,7 +67,7 @@ typedef struct _sao_object sao_object;
 typedef sao_object *(*native_t)(sao_object *);
 struct _sao_object {
 	union {
-		void* ptr3[3];//for special case later
+		//void* ptr3[3];//for special case later
 		struct {
 			union {
 				struct {
@@ -87,14 +87,11 @@ struct _sao_object {
 			type_t _type;
 		};
 	};
-	//int gc;//TODO
-};//__attribute__((packed));
-//#define define_sao_object(n) sao_object*n=SAO_NULL;
-#define define_sao_object(n) sao_object * SAO_TAG_##n=SAO_NULL;
+};
+#define define_sao_tag(n) sao_object * SAO_TAG_##n=SAO_NULL;
 #define LIST_SAO_TAG true,false,quote,set,let,var,procedure,if,lambda,begin,or,ok,else,cond,error
-//SAO_ITR(define_sao_object, NIL,ARGV,GLOBAL,TRUE,FALSE,QUOTE,SET,LET,VAR,PROCEDURE,IF,LAMBDA,BEGIN,OR,OK,ELSE,COND,ERROR);
-SAO_ITR(define_sao_object, nil,argv,global);
-SAO_ITR(define_sao_object, SAO_EXPAND(LIST_SAO_TAG));
+SAO_ITR(define_sao_tag, nil,argv,global);
+SAO_ITR(define_sao_tag, SAO_EXPAND(LIST_SAO_TAG));
 typedef struct _FileChar {
 	int c;
 	struct _FileChar * ptr_prev;
@@ -759,20 +756,8 @@ sao_object * sao_type_check(const char *func, sao_object *obj, type_t type)
 	}
 	return obj;
 }
-
-#include "libsaolang.c" //
-
-//#define add_sym(s, c) do{c=sao_new_symbol(s);sao_def_var(c,c,SAO_TAG_global);}while(0);
-
+#include "libsaolang.c" //saolang_init()
 #define add_sym_x(x) do{SAO_TAG_##x=sao_new_symbol(#x);sao_def_var(SAO_TAG_##x,SAO_TAG_##x,SAO_TAG_global);}while(0);
-sao_object * sao_init() {
-
-	SAO_TAG_global = sao_expand(SAO_TAG_nil, SAO_TAG_nil, SAO_TAG_nil);
-	SAO_TAG_argv = sao_expand(SAO_TAG_nil, SAO_TAG_nil, SAO_TAG_nil);
-	SAO_ITR(add_sym_x, SAO_EXPAND(LIST_SAO_TAG));
-	
-	return SAO_TAG_global;
-}
 //////////////////////////////////////////////////////////////////////////////
 void print_version(){ sao_stdout(" SaoLang (R) v0.0.5 - Wanjo Chan (c) 2020\n"); }
 void print_help(){ sao_stdout("Usage	 : sao [options] [script.sao | -]]\nOptions	 :\n	h:	Help\n	v:	Version\n	i:	Interactive\n	p:	Print final result\n	d:	Dev only\n	e:	Eval\n	s:	Strict mode\n	l:	Lisp syntax\n"); }
@@ -780,7 +765,9 @@ int main(int argc, char **argv) {
 	ffic_func strcmp = libc(strcmp);
 	libc(setmode)(libc(fileno)(libc(stdin)),0x8000/*O_BINARY*/);
 	ht_resize(16384-1);//TODO improve hashtable later
-	sao_init();
+	SAO_TAG_global = sao_expand(SAO_TAG_nil, SAO_TAG_nil, SAO_TAG_nil);
+	SAO_TAG_argv = sao_expand(SAO_TAG_nil, SAO_TAG_nil, SAO_TAG_nil);
+	SAO_ITR(add_sym_x, SAO_EXPAND(LIST_SAO_TAG));
 	saolang_init();
 	char * script_file = "-";
 	int found_any = 0;
