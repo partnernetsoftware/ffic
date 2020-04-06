@@ -57,43 +57,41 @@ void* sao_calloc(long _sizeof){return libc(memset)(libc(malloc)(_sizeof),0,_size
 #define sao_error(...) do{sao_stderr(__VA_ARGS__);sao_stderr("\n");libc(exit)(1);}while(0)
 #define sao_warn(...) sao_stderr(__VA_ARGS__);
 
-define_map(stream, file,char);
-define_map(type, list,integer,double,symbol,string,native,vector,table);
-define_map(ctype, long,double,any);
 define_map(argt, i,p,d,v,e,s,l,h);
 int argta[argt_h+1];
 #define SAO_ARGV(x) argta[argt_##x]
+
+define_map(ctype, long,double,any);
+define_map(stream, file,char);
+define_map(type, list,integer,double,symbol,string,native,vector,table);
+
 typedef struct _sao_obj sao_obj,*p_sao_obj;
 typedef p_sao_obj (*native_t)(p_sao_obj );
 struct _sao_obj {
 	union {
-		//void* ptr3[3];//for special case later
+		void* ptr3[3];//for future speed improving
 		struct {
+			union{
+				void* ptr;
+				type_t _type;
+			};
 			union {
 				struct {
 					p_sao_obj car;
 					p_sao_obj cdr;
-					p_sao_obj upr;//TODO upper link for context 
+					//p_sao_obj upr;//TODO (maybe) upper link for context 
 				};
-				struct {
-					//p_sao_obj *_vector;
-					 p_sao_obj* _vector;
-					long _len;
-				};
-				struct {
-					//p_sao_obj *_table;
-					 p_sao_obj* _table;
-					long _size;
-				};
+				struct { p_sao_obj* _vector; long _len; };
+				struct { p_sao_obj* _table; long _size; };
 				char *_string;
 				long _integer;
-				double _double;//TODO
+				double _double;//TODO with basic math.
 				native_t _native;
 			};
-			type_t _type;
 		};
 	};
 };
+
 #define define_sao_tag(n) p_sao_obj SAO_TAG_##n=SAO_NULL;
 #define LIST_SAO_TAG true,false,quote,set,let,var,procedure,if,lambda,begin,or,ok,else,cond,error
 SAO_ITR(define_sao_tag, nil,argv,global);
@@ -120,41 +118,17 @@ long sao_is_digit(int c) { return (long) libc(isdigit)(c); }
 long sao_is_alpha(int c) { return (long) libc(isalpha)(c); }
 long sao_is_alphanumber(int c) { return (long) libc(isalnum)(c); }
 
-//struct htable { p_sao_obj key; };
-//static struct htable *gHTable = 0;
+//TODO see merge with type_table !!
 p_sao_obj * gHTable = SAO_NULL;
-//static int gHTable_len = 0;//default
 long gHTable_len = 0;
-//static long ht_hash(const char *s, int ht_len) {
-//	long h = 0;
-//	char *u = (char *) s;
-//	while (*u) { h = (h * 256 + (*u)) % ht_len; u++; }
-//	return h;
-//}
 long ht_hash(const char *s, int ht_len) {
 	long h = 0;
 	char *u = (char *) s;
 	while (*u) { h = (h * 256 + (*u)) % ht_len; u++; }
 	return h;
 }
-//int ht_resize(int newsize){
-//	struct htable * newTable = SAO_NEW(struct htable,newsize);
-//	for(int i=0;i<gHTable_len;i++){
-//		if (SAO_NULL!=gHTable[i].key) {
-//			int h = ht_hash(gHTable[i].key->_string, newsize);
-//			if(SAO_NULL != newTable[h].key){
-//				sao_stdout("DEBUG: newTable(%d) still full ??\n", newsize);
-//			}
-//			newTable[h].key = gHTable[i].key;
-//			//libc(free)(gHTable[i]);//TODO
-//		}
-//	}
-//	//libc(free)(gHTable);//TODO
-//	gHTable = newTable;
-//	gHTable_len = newsize;
-//	return newsize;
-//}
 int ht_resize(int newsize){
+	//if (gHTable)
 	p_sao_obj * newTable = SAO_NEW(p_sao_obj,newsize);
 	for(int i=0;i<gHTable_len;i++){
 		if (SAO_NULL!=gHTable[i]) {
@@ -169,17 +143,6 @@ int ht_resize(int newsize){
 	gHTable_len = newsize;
 	return newsize;
 }
-//void ht_insert(p_sao_obj key_obj) {
-//	long h = ht_hash(key_obj->_string, gHTable_len);
-//	if(SAO_NULL != gHTable[h].key && SAO_NULL!=gHTable[h].key->_string){
-//		int newsize = 2*(gHTable_len+1)-1 ;
-//		ht_resize( newsize );
-//		ht_insert( key_obj );
-//		//gHTable[h].key = key_obj;
-//		return;
-//	}
-//	gHTable[h].key = key_obj;
-//}
 void ht_insert(p_sao_obj key_obj) {
 	long h = ht_hash(key_obj->_string, gHTable_len);
 	if(SAO_NULL != gHTable[h] && SAO_NULL!=gHTable[h]->_string){
@@ -190,10 +153,6 @@ void ht_insert(p_sao_obj key_obj) {
 	}
 	gHTable[h]= key_obj;
 }
-//p_sao_obj ht_lookup(char *s) {
-//	long h = ht_hash(s, gHTable_len);
-//	return gHTable[h].key;
-//}
 p_sao_obj ht_lookup(char *s) {
 	long h = ht_hash(s, gHTable_len);
 	return gHTable[h];
@@ -258,13 +217,55 @@ p_sao_obj cadddr(p_sao_obj x) {
 	if(x->cdr->cdr->cdr->_type)return SAO_TAG_nil;
 	return x->cdr->cdr->cdr->car;
 }
+//p_sao_obj sao_new_table(p_sao_obj);
+p_sao_obj sao_new_table(int size) {
+	p_sao_obj ret = sao_alloc(type_table);
+	ret->_table = SAO_NEW(p_sao_obj,size);//
+	ret->_size = size;
+	return ret;
+}
+p_sao_obj sao_tbl_resize(p_sao_obj holder,int size){
+	//if(!holder)
+	if(!holder)
+		holder = sao_new_table(size);
+	//TMP...(fake resize first) TODO to implement the real resize soon
+	else{
+		holder->_table = SAO_NEW(p_sao_obj,size);//TMP
+		holder->_size = size;
+	}
+	return holder;
+}
+long sao_tbl_hash(const char *s, int ht_len) {
+	long h = 0;
+	char *u = (char *) s;
+	while (*u) { h = (h * 256 + (*u)) % ht_len; u++; }
+	return h;
+}
+p_sao_obj sao_tbl_insert(p_sao_obj holder,p_sao_obj key_obj){
+	if(!holder) sao_error("sao_tbl_insert(holder)\n");
+
+	p_sao_obj* the_table = holder->_table;
+	if(!the_table) sao_error("empty _table?");
+	long h = sao_tbl_hash(key_obj->_string, holder->_size);
+	if(the_table[h]){
+		sao_warn("TODO sao_tbl_insert table need to resize?\n");
+	}
+	//if(!the_table || (SAO_NULL != the_table[h] && SAO_NULL!=the_table[h]->_string)){
+	//	int size = 2*(holder->size+1)-1 ;
+	//	sao_tbl_resize(holder, size);
+	//	the_table = sao_tbl_resize(holder, key_obj);//again
+	//}
+	the_table[h]= key_obj;
+	return holder;
+}
+
 //p_sao_obj append(p_sao_obj l1, p_sao_obj l2) {
 //	if (!(l1)) return l2;
 //	return cons(car(l1), append(cdr(l1), l2));
 //}
 p_sao_obj sao_new_vector(int size) {
 	p_sao_obj ret = sao_alloc(type_vector);
-	ret->_vector = SAO_NEW(sao_obj,size);
+	ret->_vector = SAO_NEW(p_sao_obj,size);//
 	ret->_len = size;
 	return ret;
 }

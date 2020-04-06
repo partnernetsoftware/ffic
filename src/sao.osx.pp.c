@@ -92,36 +92,33 @@ sao_u64 ffic_microtime(void)
 ffic_func libc_a[libc_exit+1];
 ffic_func libc_(int fi,const char* fn){ return libc_a[fi]?libc_a[fi]:(libc_a[fi]=ffic("c",fn)); }
 void* sao_calloc(long _sizeof){return libc_(libc_memset,"memset")(libc_(libc_malloc,"malloc")(_sizeof),0,_sizeof);}
-typedef enum { stream_file, stream_char, } stream_t; char* stream_names[] = { "file", "char", };;
-typedef enum { type_list, type_integer, type_double, type_symbol, type_string, type_native, type_vector, type_table, } type_t; char* type_names[] = { "list", "integer", "double", "symbol", "string", "native", "vector", "table", };;
-typedef enum { ctype_long, ctype_double, ctype_any, } ctype_t; char* ctype_names[] = { "long", "double", "any", };;
 typedef enum { argt_i, argt_p, argt_d, argt_v, argt_e, argt_s, argt_l, argt_h, } argt_t; char* argt_names[] = { "i", "p", "d", "v", "e", "s", "l", "h", };;
 int argta[argt_h+1];
+typedef enum { ctype_long, ctype_double, ctype_any, } ctype_t; char* ctype_names[] = { "long", "double", "any", };;
+typedef enum { stream_file, stream_char, } stream_t; char* stream_names[] = { "file", "char", };;
+typedef enum { type_list, type_integer, type_double, type_symbol, type_string, type_native, type_vector, type_table, } type_t; char* type_names[] = { "list", "integer", "double", "symbol", "string", "native", "vector", "table", };;
 typedef struct _sao_obj sao_obj,*p_sao_obj;
 typedef p_sao_obj (*native_t)(p_sao_obj );
 struct _sao_obj {
  union {
+  void* ptr3[3];
   struct {
+   union{
+    void* ptr;
+    type_t _type;
+   };
    union {
     struct {
      p_sao_obj car;
      p_sao_obj cdr;
-     p_sao_obj upr;
     };
-    struct {
-      p_sao_obj* _vector;
-     long _len;
-    };
-    struct {
-      p_sao_obj* _table;
-     long _size;
-    };
+    struct { p_sao_obj* _vector; long _len; };
+    struct { p_sao_obj* _table; long _size; };
     char *_string;
     long _integer;
     double _double;
     native_t _native;
    };
-   type_t _type;
   };
  };
 };
@@ -243,9 +240,41 @@ p_sao_obj cadddr(p_sao_obj x) {
  if(x->cdr->cdr->cdr->_type)return SAO_TAG_nil;
  return x->cdr->cdr->cdr->car;
 }
+p_sao_obj sao_new_table(int size) {
+ p_sao_obj ret = sao_alloc(type_table);
+ ret->_table = sao_calloc( sizeof(p_sao_obj) *(size) );
+ ret->_size = size;
+ return ret;
+}
+p_sao_obj sao_tbl_resize(p_sao_obj holder,int size){
+ if(!holder)
+  holder = sao_new_table(size);
+ else{
+  holder->_table = sao_calloc( sizeof(p_sao_obj) *(size) );
+  holder->_size = size;
+ }
+ return holder;
+}
+long sao_tbl_hash(const char *s, int ht_len) {
+ long h = 0;
+ char *u = (char *) s;
+ while (*u) { h = (h * 256 + (*u)) % ht_len; u++; }
+ return h;
+}
+p_sao_obj sao_tbl_insert(p_sao_obj holder,p_sao_obj key_obj){
+ if(!holder) do{libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"sao_tbl_insert(holder)\n");libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"\n");libc_(libc_exit,"exit")(1);}while(0);
+ p_sao_obj* the_table = holder->_table;
+ if(!the_table) do{libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"empty _table?");libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"\n");libc_(libc_exit,"exit")(1);}while(0);
+ long h = sao_tbl_hash(key_obj->_string, holder->_size);
+ if(the_table[h]){
+  libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"TODO sao_tbl_insert table need to resize?\n");;
+ }
+ the_table[h]= key_obj;
+ return holder;
+}
 p_sao_obj sao_new_vector(int size) {
  p_sao_obj ret = sao_alloc(type_vector);
- ret->_vector = sao_calloc( sizeof(sao_obj) *(size) );
+ ret->_vector = sao_calloc( sizeof(p_sao_obj) *(size) );
  ret->_len = size;
  return ret;
 }
