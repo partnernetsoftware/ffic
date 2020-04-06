@@ -135,23 +135,13 @@ typedef struct {
  FileChar * ptr_head;
  FileChar * ptr_last;
 } sao_stream;
-sao_stream * sao_stream_new(void*,stream_t);
 sao_object *sao_eval(sao_object *exp, sao_object *ctx);
 sao_object *sao_load_expr(sao_stream * fw);
-void sao_comment(sao_stream * fw);
-sao_object *sao_load_str(sao_stream * fw);
-sao_object *sao_read_list(sao_stream * fw);
-int sao_read_int(sao_stream * fw, int start);
-int sao_peek(sao_stream * fw);
-sao_object *sao_new_integer(int x);
-sao_object *sao_read_symbol(sao_stream * fw, char start);
 sao_object * sao_is_atom(sao_object * x){ return (x&&x->type)?x:NIL; }
-void sao_out_expr(char *str, sao_object *el);
 long sao_is_digit(int c) { return (long) libc_(libc_isdigit,"isdigit")(c); }
 long sao_is_alpha(int c) { return (long) libc_(libc_isalpha,"isalpha")(c); }
 long sao_is_alphanumber(int c) { return (long) libc_(libc_isalnum,"isalnum")(c); }
 void* sao_calloc(long _sizeof){return libc_(libc_memset,"memset")(libc_(libc_malloc,"malloc")(_sizeof),0,_sizeof);}
-void ht_insert(sao_object *key_obj);
 struct htable { sao_object *key; };
 static struct htable *gHTable = 0;
 static int gHTable_len = 0;
@@ -255,21 +245,6 @@ sao_object *cadddr(sao_object *x) {
  if(!x->cdr->cdr->cdr)return NIL;
  if(x->cdr->cdr->cdr->type)return NIL;
  return x->cdr->cdr->cdr->car;
-}
-sao_object *append(sao_object *l1, sao_object *l2) {
- if (!(l1)) return l2;
- return cons(car(l1), append(cdr(l1), l2));
-}
-sao_object * sao_type_check(const char *func, sao_object *obj, type_t type)
-{
- if (!(obj)) {
-  libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"Invalid argument to function %s: NIL\n", func);
-  libc_(libc_exit,"exit")(1);
- } else if (obj->type != type) {
-  libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"ERR: function %s. expected %s got %s\n", func, type_names[type], type_names[obj->type]);
-  libc_(libc_exit,"exit")(1);
- }
- return obj;
 }
 sao_object *sao_new_vector(int size) {
  sao_object *ret = sao_alloc(type_vector);
@@ -401,211 +376,6 @@ int sao_read_line(sao_stream* fw)
  }while(0);
  return line_num;
 }
-sao_object * sao_parse( sao_stream * fw, int do_eval ) {
- sao_read_line(fw);
- sao_u64 (*microtime)() = ( sao_u64(*)() ) libc_(libc_microtime,"microtime");
- sao_object *rt = NIL;
- for(;;){
-  sao_object* exp = sao_load_expr(fw);
-  if(exp==((void*)0)){
-   break;
-  }
-  if ((exp)) {
-   if(argta[argt_d]) libc_(libc_printf,"printf")("%llu: ",microtime());
-   if(argta[argt_i]||argta[argt_d]){
-    sao_out_expr("<=", exp);
-    libc_(libc_printf,"printf")("\n");
-   }
-   if (do_eval){
-    rt = sao_eval(exp, GLOBAL);
-    if(argta[argt_d]) libc_(libc_printf,"printf")("%llu: ",microtime());
-    if(argta[argt_i]||argta[argt_d]){
-     if ( (rt)) {
-      sao_out_expr("=>", rt);
-      libc_(libc_printf,"printf")("\n");
-     }
-    }
-   }else{
-    rt = exp;
-   }
-  }
- }
- return rt;
-}
-sao_object *native_type(sao_object *args) { return sao_new_symbol(type_names[car(args)->type]); }
-sao_object *native_global(sao_object *args) { return GLOBAL; }
-sao_object *native_list(sao_object *args) { return (args); }
-sao_object *native_cons(sao_object *args) { return cons(car(args), cadr(args)); }
-sao_object *native_car(sao_object *args) { if(argta[argt_s]) (sao_type_check(__func__, car(args), type_list)); return caar(args); }
-sao_object *native_cdr(sao_object *args) { if(argta[argt_s]) (sao_type_check(__func__, car(args), type_list)); return cdar(args); }
-sao_object *native_setcar(sao_object *args) { (sao_type_check(__func__, car(args), type_list)); (args->car->car = (cadr(args))); return NIL; }
-sao_object *native_setcdr(sao_object *args) { (sao_type_check(__func__, car(args), type_list)); (args->car->cdr = (cadr(args))); return NIL; }
-sao_object *native_is_null(sao_object *args) { return !(car(args)) ? TRUE : FALSE; }
-sao_object *native_pairq(sao_object *args) { if (car(args)->type != type_list) return FALSE;
- return (sao_is_atom(caar(args)) && sao_is_atom(cdar(args))) ? TRUE : FALSE;
-}
-sao_object *native_is_list(sao_object *args) {
- sao_object *list;
- if (car(args)->type != type_list)
-  return FALSE;
- for (list = car(args); (list); list = list->cdr)
-  if ((list->cdr) && (list->cdr->type != type_list))
-   return FALSE;
- return (car(args)->type == type_list && native_pairq(args) != TRUE) ? TRUE : FALSE;
-}
-sao_object *native_atomq(sao_object *sexp) { return sao_is_atom(car(sexp)) ? TRUE : FALSE; }
-sao_object *native_cmp(sao_object *args) {
- if ((car(args)->type != type_integer) || (cadr(args)->type != type_integer))
-  return FALSE;
- return (car(args)->_integer == cadr(args)->_integer) ? TRUE : FALSE;
-}
-sao_object *native_eqq(sao_object *args) { return sao_is_eq(car(args), cadr(args)) ? TRUE : FALSE; }
-sao_object *native_equalq(sao_object *args) {
- if (sao_is_eq(car(args), cadr(args)))
-  return TRUE;
- if ((car(args)->type == type_list) && (cadr(args)->type == type_list)) {
-  sao_object *a, *b;
-  a = car(args);
-  b = cadr(args);
-  while ((a) && (b)) {
-   if (!sao_is_eq(car(a), car(b)))
-    return FALSE;
-   a = cdr(a);
-   b = cdr(b);
-  }
-  return TRUE;
- }
- if ((car(args)->type == type_vector) && (cadr(args)->type == type_vector)) {
-  if (car(args)->_len != cadr(args)->_len) {
-   return FALSE;
-  }
-  sao_object **va = car(args)->_vector;
-  sao_object **vb = cadr(args)->_vector;
-  int i = 0;
-  for (i = 0; i < car(args)->_len; i++) {
-   if (!sao_is_eq(*(va + i), *(vb + i))) {
-    return FALSE;
-   }
-  }
-  return TRUE;
- }
- return FALSE;
-}
-sao_object *native_add(sao_object *list) {
- (sao_type_check(__func__, car(list), type_integer));
- long total = car(list)->_integer;
- list = cdr(list);
- while ((car(list)))
- {
-  (sao_type_check(__func__, car(list), type_integer));
-  total += car(list)->_integer;
-  list = cdr(list);
- }
- return sao_new_integer(total);
-}
-sao_object *native_sub(sao_object *list) {
- (sao_type_check(__func__, car(list), type_integer));
- long total = car(list)->_integer;
- list = cdr(list);
- while ((list)) {
-  (sao_type_check(__func__, car(list), type_integer));
-  total -= car(list)->_integer;
-  list = cdr(list);
- }
- return sao_new_integer(total);
-}
-sao_object *native_div(sao_object *list) {
- (sao_type_check(__func__, car(list), type_integer));
- long total = car(list)->_integer;
- list = cdr(list);
- while ((list)) {
-  (sao_type_check(__func__, car(list), type_integer));
-  total /= car(list)->_integer;
-  list = cdr(list);
- }
- return sao_new_integer(total);
-}
-sao_object *native_mul(sao_object *list) {
- (sao_type_check(__func__, car(list), type_integer));
- long total = car(list)->_integer;
- list = cdr(list);
- while ((list)) {
-  (sao_type_check(__func__, car(list), type_integer));
-  total *= car(list)->_integer;
-  list = cdr(list);
- }
- return sao_new_integer(total);
-}
-sao_object *native_gt(sao_object *sexp) {
- (sao_type_check(__func__, car(sexp), type_integer));
- (sao_type_check(__func__, cadr(sexp), type_integer));
- return (car(sexp)->_integer > cadr(sexp)->_integer) ? TRUE : NIL;
-}
-sao_object *native_lt(sao_object *sexp) {
- (sao_type_check(__func__, car(sexp), type_integer));
- (sao_type_check(__func__, cadr(sexp), type_integer));
- return (car(sexp)->_integer < cadr(sexp)->_integer) ? TRUE : NIL;
-}
-sao_object * native_shell(sao_object *args) {
- sao_out_expr("native_shell todo",car(args));
- libc_(libc_printf,"printf")(",len=%d\n",sao_list_len(args));
- sao_object * _car;
- sao_object * _cdr = args;
- while( (_car = car(_cdr)) )
- {
-  sao_out_expr("\nTMP _car",_car);
-  _cdr = cdr(_cdr);
- }
- return NIL;
-}
-sao_object * native_ffi(sao_object *args) {
- sao_out_expr("ffi todo",args);
- return NIL;
-}
-sao_object *native_exit(sao_object *args) { libc_(libc_exit,"exit")(0); return NIL; }
-sao_object *native_read(sao_object *args) { return sao_load_expr(sao_stream_new(libc_(libc_stdin,"stdin"),stream_file)); }
-sao_object *native_load(sao_object *args) {
- sao_object *exp;
- sao_object *ret = NIL;
- char *filename = car(args)->_string;
- void*fp = libc_(libc_fopen,"fopen")(filename, "r");
- if (fp == 0) {
-  libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"Error opening file %s\n", filename);
-  return NIL;
- }
- sao_stream * fw = sao_stream_new(fp,stream_file);
- for (;;) {
-  exp = sao_load_expr(fw);
-  if (!(exp))
-   break;
-  ret = sao_eval(exp, GLOBAL);
- }
- libc_(libc_fclose,"fclose")(fp);
- return ret;
-}
-sao_object *native_vector(sao_object *args) {
- sao_object * sym = (sao_type_check(__func__, car(args), type_integer));
- return sao_new_vector(sym->_integer);
-}
-sao_object *native_vget(sao_object *args) {
- sao_object * vct = (sao_type_check(__func__, car(args), type_vector));
- sao_object * key = (sao_type_check(__func__, cadr(args), type_integer));
- if (key->_integer >= vct->_len) return NIL;
- return vct->_vector[key->_integer];
-}
-sao_object *native_vset(sao_object *args){
- sao_object * vct = (sao_type_check(__func__, car(args), type_vector));
- sao_object * key = (sao_type_check(__func__, cadr(args), type_integer));
- if (!(caddr(args))) return NIL;
- if (key->_integer >= vct->_len) return NIL;
- car(args)->_vector[key->_integer] = caddr(args);
- return sao_new_symbol("ok");
-}
-sao_object *native_print(sao_object *args) {
- sao_out_expr(0, car(args));
- libc_(libc_printf,"printf")("\n");
- return NIL;
-}
 sao_object *sao_expand(sao_object *var, sao_object *val, sao_object *ctx) {
  return cons(cons(var, val), ctx);
 }
@@ -673,6 +443,15 @@ sao_stream * sao_stream_new(void* fp,stream_t type)
  fw->type = type;
  return fw;
 }
+int sao_peek(sao_stream * fw)
+{
+ int c = 0;
+ FileChar * ptr_head = fw->ptr_head;
+ if(ptr_head!=0){
+  c = ptr_head->c;
+ }
+ return c;
+}
 sao_object *sao_read_symbol(sao_stream * fw, char start)
 {
  char buf[128];
@@ -693,15 +472,6 @@ sao_object *sao_new_integer(int x)
  sao_object *ret = sao_alloc(type_integer);
  ret->_integer = x;
  return ret;
-}
-int sao_peek(sao_stream * fw)
-{
- int c = 0;
- FileChar * ptr_head = fw->ptr_head;
- if(ptr_head!=0){
-  c = ptr_head->c;
- }
- return c;
 }
 int sao_read_int(sao_stream * fw, int start)
 {
@@ -736,14 +506,7 @@ sao_object *sao_load_str(sao_stream * fw)
  s->type = type_string;
  return s;
 }
-void sao_comment(sao_stream * fw)
-{
- int c;
- for (;;) {
-  c = sao_deq_c(fw);
-  if (c == '\n' || c == (-1)) return;
- }
-}
+void sao_comment(sao_stream * fw) { int c; for (;;) { c = sao_deq_c(fw); if (c == '\n' || c == (-1)) return; } }
 sao_object *sao_load_expr(sao_stream * fw)
 {
  int c;
@@ -952,6 +715,223 @@ tail:
   }
  }
  sao_out_expr("Invalid arguments to sao_eval:", exp);
+ libc_(libc_printf,"printf")("\n");
+ return NIL;
+}
+sao_object * sao_parse( sao_stream * fw, int do_eval ) {
+ sao_read_line(fw);
+ sao_u64 (*microtime)() = ( sao_u64(*)() ) libc_(libc_microtime,"microtime");
+ sao_object *rt = NIL;
+ for(;;){
+  sao_object* exp = sao_load_expr(fw);
+  if(exp==((void*)0)){
+   break;
+  }
+  if ((exp)) {
+   if(argta[argt_d]) libc_(libc_printf,"printf")("%llu: ",microtime());
+   if(argta[argt_i]||argta[argt_d]){
+    sao_out_expr("<=", exp);
+    libc_(libc_printf,"printf")("\n");
+   }
+   if (do_eval){
+    rt = sao_eval(exp, GLOBAL);
+    if(argta[argt_d]) libc_(libc_printf,"printf")("%llu: ",microtime());
+    if(argta[argt_i]||argta[argt_d]){
+     if ( (rt)) {
+      sao_out_expr("=>", rt);
+      libc_(libc_printf,"printf")("\n");
+     }
+    }
+   }else{
+    rt = exp;
+   }
+  }
+ }
+ return rt;
+}
+sao_object * sao_type_check(const char *func, sao_object *obj, type_t type)
+{
+ if (!(obj)) {
+  libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"Invalid argument to function %s: NIL\n", func);
+  libc_(libc_exit,"exit")(1);
+ } else if (obj->type != type) {
+  libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"ERR: function %s. expected %s got %s\n", func, type_names[type], type_names[obj->type]);
+  libc_(libc_exit,"exit")(1);
+ }
+ return obj;
+}
+sao_object *native_type(sao_object *args) { return sao_new_symbol(type_names[car(args)->type]); }
+sao_object *native_global(sao_object *args) { return GLOBAL; }
+sao_object *native_list(sao_object *args) { return (args); }
+sao_object *native_cons(sao_object *args) { return cons(car(args), cadr(args)); }
+sao_object *native_car(sao_object *args) { if(argta[argt_s]) (sao_type_check(__func__, car(args), type_list)); return caar(args); }
+sao_object *native_cdr(sao_object *args) { if(argta[argt_s]) (sao_type_check(__func__, car(args), type_list)); return cdar(args); }
+sao_object *native_setcar(sao_object *args) { (sao_type_check(__func__, car(args), type_list)); (args->car->car = (cadr(args))); return NIL; }
+sao_object *native_setcdr(sao_object *args) { (sao_type_check(__func__, car(args), type_list)); (args->car->cdr = (cadr(args))); return NIL; }
+sao_object *native_is_null(sao_object *args) { return !(car(args)) ? TRUE : FALSE; }
+sao_object *native_pairq(sao_object *args) {
+ if (car(args)->type != type_list) return FALSE;
+ return (sao_is_atom(caar(args)) && sao_is_atom(cdar(args))) ? TRUE : FALSE;
+}
+sao_object *native_is_list(sao_object *args) {
+ sao_object *list;
+ if (car(args)->type != type_list)
+  return FALSE;
+ for (list = car(args); (list); list = list->cdr)
+  if ((list->cdr) && (list->cdr->type != type_list))
+   return FALSE;
+ return (car(args)->type == type_list && native_pairq(args) != TRUE) ? TRUE : FALSE;
+}
+sao_object *native_atomq(sao_object *sexp) { return sao_is_atom(car(sexp)) ? TRUE : FALSE; }
+sao_object *native_cmp(sao_object *args) {
+ if ((car(args)->type != type_integer) || (cadr(args)->type != type_integer))
+  return FALSE;
+ return (car(args)->_integer == cadr(args)->_integer) ? TRUE : FALSE;
+}
+sao_object *native_eqq(sao_object *args) { return sao_is_eq(car(args), cadr(args)) ? TRUE : FALSE; }
+sao_object *native_equalq(sao_object *args) {
+ if (sao_is_eq(car(args), cadr(args)))
+  return TRUE;
+ if ((car(args)->type == type_list) && (cadr(args)->type == type_list)) {
+  sao_object *a, *b;
+  a = car(args);
+  b = cadr(args);
+  while ((a) && (b)) {
+   if (!sao_is_eq(car(a), car(b)))
+    return FALSE;
+   a = cdr(a);
+   b = cdr(b);
+  }
+  return TRUE;
+ }
+ if ((car(args)->type == type_vector) && (cadr(args)->type == type_vector)) {
+  if (car(args)->_len != cadr(args)->_len) {
+   return FALSE;
+  }
+  sao_object **va = car(args)->_vector;
+  sao_object **vb = cadr(args)->_vector;
+  int i = 0;
+  for (i = 0; i < car(args)->_len; i++) {
+   if (!sao_is_eq(*(va + i), *(vb + i))) {
+    return FALSE;
+   }
+  }
+  return TRUE;
+ }
+ return FALSE;
+}
+sao_object *native_add(sao_object *list) {
+ (sao_type_check(__func__, car(list), type_integer));
+ long total = car(list)->_integer;
+ list = cdr(list);
+ while ((car(list)))
+ {
+  (sao_type_check(__func__, car(list), type_integer));
+  total += car(list)->_integer;
+  list = cdr(list);
+ }
+ return sao_new_integer(total);
+}
+sao_object *native_sub(sao_object *list) {
+ (sao_type_check(__func__, car(list), type_integer));
+ long total = car(list)->_integer;
+ list = cdr(list);
+ while ((list)) {
+  (sao_type_check(__func__, car(list), type_integer));
+  total -= car(list)->_integer;
+  list = cdr(list);
+ }
+ return sao_new_integer(total);
+}
+sao_object *native_div(sao_object *list) {
+ (sao_type_check(__func__, car(list), type_integer));
+ long total = car(list)->_integer;
+ list = cdr(list);
+ while ((list)) {
+  (sao_type_check(__func__, car(list), type_integer));
+  total /= car(list)->_integer;
+  list = cdr(list);
+ }
+ return sao_new_integer(total);
+}
+sao_object *native_mul(sao_object *list) {
+ (sao_type_check(__func__, car(list), type_integer));
+ long total = car(list)->_integer;
+ list = cdr(list);
+ while ((list)) {
+  (sao_type_check(__func__, car(list), type_integer));
+  total *= car(list)->_integer;
+  list = cdr(list);
+ }
+ return sao_new_integer(total);
+}
+sao_object *native_gt(sao_object *sexp) {
+ (sao_type_check(__func__, car(sexp), type_integer));
+ (sao_type_check(__func__, cadr(sexp), type_integer));
+ return (car(sexp)->_integer > cadr(sexp)->_integer) ? TRUE : NIL;
+}
+sao_object *native_lt(sao_object *sexp) {
+ (sao_type_check(__func__, car(sexp), type_integer));
+ (sao_type_check(__func__, cadr(sexp), type_integer));
+ return (car(sexp)->_integer < cadr(sexp)->_integer) ? TRUE : NIL;
+}
+sao_object * native_shell(sao_object *args) {
+ sao_out_expr("native_shell todo",car(args));
+ libc_(libc_printf,"printf")(",len=%d\n",sao_list_len(args));
+ sao_object * _car;
+ sao_object * _cdr = args;
+ while( (_car = car(_cdr)) )
+ {
+  sao_out_expr("\nTMP _car",_car);
+  _cdr = cdr(_cdr);
+ }
+ return NIL;
+}
+sao_object * native_ffi(sao_object *args) {
+ sao_out_expr("ffi todo",args);
+ return NIL;
+}
+sao_object *native_exit(sao_object *args) { libc_(libc_exit,"exit")(0); return NIL; }
+sao_object *native_read(sao_object *args) { return sao_load_expr(sao_stream_new(libc_(libc_stdin,"stdin"),stream_file)); }
+sao_object *native_load(sao_object *args) {
+ sao_object *exp;
+ sao_object *ret = NIL;
+ char *filename = car(args)->_string;
+ void*fp = libc_(libc_fopen,"fopen")(filename, "r");
+ if (fp == 0) {
+  libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"Error opening file %s\n", filename);
+  return NIL;
+ }
+ sao_stream * fw = sao_stream_new(fp,stream_file);
+ for (;;) {
+  exp = sao_load_expr(fw);
+  if (!(exp))
+   break;
+  ret = sao_eval(exp, GLOBAL);
+ }
+ libc_(libc_fclose,"fclose")(fp);
+ return ret;
+}
+sao_object *native_vector(sao_object *args) {
+ sao_object * sym = (sao_type_check(__func__, car(args), type_integer));
+ return sao_new_vector(sym->_integer);
+}
+sao_object *native_vget(sao_object *args) {
+ sao_object * vct = (sao_type_check(__func__, car(args), type_vector));
+ sao_object * key = (sao_type_check(__func__, cadr(args), type_integer));
+ if (key->_integer >= vct->_len) return NIL;
+ return vct->_vector[key->_integer];
+}
+sao_object *native_vset(sao_object *args){
+ sao_object * vct = (sao_type_check(__func__, car(args), type_vector));
+ sao_object * key = (sao_type_check(__func__, cadr(args), type_integer));
+ if (!(caddr(args))) return NIL;
+ if (key->_integer >= vct->_len) return NIL;
+ car(args)->_vector[key->_integer] = caddr(args);
+ return sao_new_symbol("ok");
+}
+sao_object *native_print(sao_object *args) {
+ sao_out_expr(0, car(args));
  libc_(libc_printf,"printf")("\n");
  return NIL;
 }
