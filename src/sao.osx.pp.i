@@ -122,12 +122,6 @@ struct _sao_object {
  };
 };
 sao_object*NIL=((void*)0); sao_object*ARGV=((void*)0); sao_object*GLOBAL=((void*)0); sao_object*TRUE=((void*)0); sao_object*FALSE=((void*)0); sao_object*QUOTE=((void*)0); sao_object*SET=((void*)0); sao_object*LET=((void*)0); sao_object*DEFINE=((void*)0); sao_object*PROCEDURE=((void*)0); sao_object*IF=((void*)0); sao_object*LAMBDA=((void*)0); sao_object*BEGIN=((void*)0); sao_object*ERROR=((void*)0);;
-sao_object *is_tagged(sao_object *cell, sao_object *tag);
-sao_object *cons(sao_object *car, sao_object *cdr);
-sao_object *cdr(sao_object *);
-sao_object *car(sao_object *);
-sao_object *sao_get_var(sao_object *var, sao_object *ctx);
-sao_object *sao_type_check(const char *func, sao_object *obj, type_t type);
 typedef struct _FileChar {
  int c;
  struct _FileChar * ptr_prev;

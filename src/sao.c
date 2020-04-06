@@ -93,12 +93,12 @@ struct _sao_object {
 };//__attribute__((packed));
 #define define_sao_object(n) sao_object*n=SAO_NULL;
 SAO_ITR(define_sao_object, NIL,ARGV,GLOBAL,TRUE,FALSE,QUOTE,SET,LET,DEFINE,PROCEDURE,IF,LAMBDA,BEGIN,ERROR);
-sao_object *is_tagged(sao_object *cell, sao_object *tag);
-sao_object *cons(sao_object *car, sao_object *cdr);
-sao_object *cdr(sao_object *);
-sao_object *car(sao_object *);
-sao_object *sao_get_var(sao_object *var, sao_object *ctx);
-sao_object *sao_type_check(const char *func, sao_object *obj, type_t type);
+//sao_object *is_tagged(sao_object *cell, sao_object *tag);
+//sao_object *cons(sao_object *car, sao_object *cdr);
+//sao_object *cdr(sao_object *);
+//sao_object *car(sao_object *);
+//sao_object *sao_get_var(sao_object *var, sao_object *ctx);
+//sao_object *sao_type_check(const char *func, sao_object *obj, type_t type);
 typedef struct _FileChar {
 	int c;
 	struct _FileChar * ptr_prev;
