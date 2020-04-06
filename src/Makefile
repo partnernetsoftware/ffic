@@ -36,6 +36,10 @@ clean:
 	rm -f *.o
 ##################################################### lab for sao
 
+pp_sao:
+	${CC} -E sao.c | sed 's/^#.*//g' | sed "/^$$/d" > sao.osx.pp.c
+	${CC} -E -DTCC_TARGET_PE -DTCC_TARGET_I386 -D_WIN32 sao.c | sed 's/^#.*//g' | sed "/^$$/d" > sao.win32.pp.c
+	${CC} -E -DTCC_TARGET_PE -DTCC_TARGET_I386 -D_WIN32 -D_WIN64 sao.c | sed 's/^#.*//g' | sed "/^$$/d" > sao.win64.pp.c
 run_sao:
 	make osx_sao
 	cat tests/test.sao | ./ffic sao.c
@@ -44,8 +48,8 @@ test_sao_osx:
 	echo $$(($$(gdate +'%s * 1000 + %-N / 1000000'))) && cat tests/fib.sl | ./sao_osx l i p d -
 	echo $$(($$(gdate +'%s * 1000 + %-N / 1000000'))) && cat tests/test.sao | ./sao_osx i p d - && echo $$(($$(gdate +'%s * 1000 + %-N / 1000000'))) 
 osx_sao:
-	rm -f sao_osx
-	${CC} -E sao.c | sed 's/^#.*//g' | sed "/^$$/d" > sao.osx.pp.c
+	#rm -f sao_osx
+	make pp_sao
 	${CC} sao.osx.pp.c -L. -o sao_osx
 	#./upx_osx ./sao_osx
 	make test_sao_osx

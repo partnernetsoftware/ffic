@@ -5,19 +5,26 @@ typedef signed short int sao_i16;
 typedef unsigned short int sao_u16;
 typedef signed int sao_i32;
 typedef unsigned int sao_u32;
-typedef signed long int sao_i64;
-typedef unsigned long int sao_u64;
-typedef struct __FILE FILE;
-extern FILE *__stdinp;
-extern FILE *__stdoutp;
-extern FILE *__stderrp;
+typedef signed long long int sao_i64;
+typedef unsigned long long int sao_u64;
+typedef struct _iobuf {
+ char *_ptr;
+ int _cnt;
+ char *_base;
+ int _flag;
+ int _file;
+ int _charbuf;
+ int _bufsiz;
+ char *_tmpfname;
+} FILE;
+extern FILE (*_imp___iob)[];
 typedef void* ffic_ptr;
 typedef ffic_ptr(*ffic_func)();
 extern int fprintf(FILE *stream, const char *format, ...);
 extern int fflush(FILE *stream);
 extern int strcmp(const char*,const char*);
-extern ffic_ptr dlopen(const char *,int);
-extern ffic_ptr dlsym(ffic_ptr, const char *);
+extern ffic_ptr LoadLibraryA(const char*);
+extern ffic_ptr GetProcAddress(ffic_ptr,const char*);
 void ffic_strcat(char *buffer, const char *source, const char* append) {
  while (*source) *(buffer++) = *(source++);
  while (*append) *(buffer++) = *(append++);
@@ -32,21 +39,21 @@ ffic_ptr(*ffic_raw(const char* part1, const char* funcname, const char* part2))(
    ".dylib"
    :part2
    );
- return dlsym(dlopen(libfilename,1 ), funcname);
+ return GetProcAddress(LoadLibraryA(libfilename), funcname);
 }
 ffic_ptr ffic_usleep(int nano_seconds)
 {
- ffic_raw("libc","usleep",0)(nano_seconds);
+ ffic_raw("kernel32","Sleep",0)(nano_seconds/1000);
  return 0;
 };
 ffic_ptr ffic_msleep(int microseconds)
 {
- ffic_raw("libc","usleep",0)(microseconds*1000);
+ ffic_raw("kernel32","Sleep",0)(microseconds);
  return 0;
 };
 ffic_ptr ffic_sleep(int seconds)
 {
- ffic_raw("libc","usleep",0)(seconds*1000000);
+ ffic_raw("kernel32","Sleep",0)(seconds*1000);
  return 0;
 }
 sao_u64 ffic_microtime(void);
@@ -54,9 +61,9 @@ ffic_ptr(*ffic(const char* libname, const char* funcname, ...))()
 {
  ffic_ptr addr = 0;
  if(!strcmp("c",libname)){
-  if(!strcmp("stderr",funcname)){ addr = __stderrp; }
-  else if(!strcmp("stdout",funcname)){ addr = __stdoutp; }
-  else if(!strcmp("stdin",funcname)){ addr = __stdinp; }
+  if(!strcmp("stderr",funcname)){ addr = (&(*_imp___iob)[2]); }
+  else if(!strcmp("stdout",funcname)){ addr = (&(*_imp___iob)[1]); }
+  else if(!strcmp("stdin",funcname)){ addr = (&(*_imp___iob)[0]); }
   else{
    libname =
     "libc"
@@ -65,14 +72,16 @@ ffic_ptr(*ffic(const char* libname, const char* funcname, ...))()
    else if(!strcmp("usleep",funcname)){ return ffic_usleep; }
    else if(!strcmp("sleep",funcname)){ return ffic_sleep; }
    else if(!strcmp("msleep",funcname)){ return ffic_msleep; }
+   else if(!strcmp("fileno",funcname)){ funcname = "_fileno"; }
    else if(!strcmp("setmode",funcname)){
-    addr = ffic_void;
+    funcname = "_setmode";
    }
+   else if(!strcmp("strdup",funcname)){ funcname = "_strdup"; }
   }
  }
  if(addr==0) addr = ffic_raw(libname,funcname,0);
  if(0==addr){
-  fprintf(__stderrp,"ERR: Not found %s.%s\n", libname, funcname);fflush(__stderrp);
+  fprintf((&(*_imp___iob)[2]),"ERR: Not found %s.%s\n", libname, funcname);fflush((&(*_imp___iob)[2]));
   return ffic_void;
  }
  return addr;
@@ -85,8 +94,19 @@ sao_u64 ffic_microtime(void)
 {
  struct timeval tv;
  static ffic_func gettimeofday;
- gettimeofday = ffic("c","gettimeofday");
- gettimeofday(&tv, 0);
+ gettimeofday = ffic_raw("kernel32","GetSystemTimePreciseAsFileTime",0);
+ if (!gettimeofday) gettimeofday = ffic_raw("kernel32","GetSystemTimeAsFileTime",0);
+ static const sao_u64 epoch = 116444736000000000;
+ struct _FILETIME {
+  unsigned long dwLowDateTime;
+  unsigned long dwHighDateTime;
+ } file_time;
+ gettimeofday(&file_time);
+ sao_u64 since_1601 = ( (sao_u64) file_time.dwHighDateTime << 32) | (sao_u64) file_time.dwLowDateTime;
+ sao_u64 since_1970 = ((sao_u64) since_1601 - epoch);
+ sao_u64 microseconds_since_1970 = since_1970 / 10;
+ tv.tv_sec = (microseconds_since_1970 / (sao_u64) 1000000);
+ tv.tv_usec = microseconds_since_1970 % (sao_u64) 1000000;
  return ((sao_u64)tv.tv_sec*(sao_u64)1000 + (((sao_u64)tv.tv_usec)/(sao_u64)1000)%(sao_u64)1000);
 }
 ffic_func libc_a[libc_exit+1];
