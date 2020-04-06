@@ -181,7 +181,9 @@ sao_object *native_print(sao_object *args) {
 #define add_sym_list(n) sao_def_var(sao_new_symbol(#n), sao_new_native(native_##n), GLOBAL);
 sao_object * saolang_init()
 {
-	//SAO_ITR(add_sym_list, print);
+	SAO_ITR(add_sym_list, print,lt,add,sub,exit);//minimum for fib.sao
+	SAO_ITR(add_sym_list, global,print,lt,add,sub,exit,cmp,cons,setcar);//for test.sao
+
 	//return GLOBAL;
 	SAO_ITR(add_sym_list,
 			exit,shell,ffi,global,//sys

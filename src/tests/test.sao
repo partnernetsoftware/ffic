@@ -149,9 +149,9 @@ var( mod( a b)
 # Because this is LISP and we can...
 var( procedure-body lambda( proc() caddr( proc)))
 var( procedure-args lambda( proc() cadr( proc)))
-var( mutate-procedure-env( name new-env) set-car!( cdddr( name) new-env))
-var( mutate-procedure-body( name new-body) set-car!( cddr( name) list( new-body)))
-var( mutate-procedure-args( name new-args) set-car!( cdr( name) new-args))
+var( mutate-procedure-env( name new-env) setcar( cdddr( name) new-env))
+var( mutate-procedure-body( name new-body) setcar( cddr( name) list( new-body)))
+var( mutate-procedure-args( name new-args) setcar( cdr( name) new-args))
 
 var( construct-procedure( args body env)
   let( (new-proc( cons( 'procedure cons( '() cons( '() cons( '()))))))
