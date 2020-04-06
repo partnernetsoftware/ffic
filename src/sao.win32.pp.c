@@ -207,12 +207,7 @@ sao_object *sao_alloc(type_t type) {
  ret->_type = type;
  return ret;
 }
-sao_object * cons(sao_object *car, sao_object *cdr) {
- sao_object *ret = sao_alloc(type_list);
- ret->car = car;
- ret->cdr = cdr;
- return ret;
-}
+sao_object * cons(sao_object *car, sao_object *cdr) { sao_object *ret = sao_alloc(type_list); ret->car = car; ret->cdr = cdr; return ret; }
 sao_object * car(sao_object *x) { return (!x || x->_type)? NIL: x->car; }
 sao_object * cdr(sao_object *x) { return (!x || x->_type)? NIL: x->cdr; }
 sao_object *caar(sao_object *x) { return (!x || x->_type || !x->car || x->car->_type)? NIL: x->car->car; }
@@ -967,6 +962,7 @@ sao_object * saolang_init()
 }
 sao_object * sao_init() {
  GLOBAL = sao_expand(NIL, NIL, NIL);
+ ARGV = sao_expand(NIL, NIL, NIL);
  do{TRUE=sao_new_symbol("true");sao_def_var(TRUE,TRUE,GLOBAL);}while(0);;
  do{FALSE=sao_new_symbol("false");sao_def_var(FALSE,FALSE,GLOBAL);}while(0);;
  do{QUOTE=sao_new_symbol("quote");sao_def_var(QUOTE,QUOTE,GLOBAL);}while(0);;
@@ -991,7 +987,6 @@ int main(int argc, char **argv) {
  ht_resize(16384-1);
  sao_init();
  saolang_init();
- ARGV = sao_expand(NIL, NIL, NIL);
  char * script_file = "-";
  int found_any = 0;
  if(argc>1){

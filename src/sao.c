@@ -162,12 +162,7 @@ sao_object *sao_alloc(type_t type) {
 	ret->_type = type;
 	return ret;
 }
-sao_object * cons(sao_object *car, sao_object *cdr) {
-	sao_object *ret = sao_alloc(type_list);
-	ret->car = car;
-	ret->cdr = cdr;
-	return ret;
-}
+sao_object * cons(sao_object *car, sao_object *cdr) { sao_object *ret = sao_alloc(type_list); ret->car = car; ret->cdr = cdr; return ret; }
 sao_object * car(sao_object *x) { return (!x || x->_type)? NIL: x->car; }
 sao_object * cdr(sao_object *x) { return (!x || x->_type)? NIL: x->cdr; }
 sao_object *caar(sao_object *x) { return (!x || x->_type || !x->car || x->car->_type)? NIL: x->car->car; }
@@ -766,6 +761,7 @@ sao_object * sao_type_check(const char *func, sao_object *obj, type_t type)
 #define add_sym(s, c) do{c=sao_new_symbol(s);sao_def_var(c,c,GLOBAL);}while(0);
 sao_object * sao_init() {
 	GLOBAL = sao_expand(NIL, NIL, NIL);
+	ARGV = sao_expand(NIL, NIL, NIL);
 	add_sym("true", TRUE);
 	add_sym("false", FALSE);
 	add_sym("quote", QUOTE);
@@ -796,8 +792,6 @@ int main(int argc, char **argv) {
 	ht_resize(16384-1);//TODO improve hashtable later
 	sao_init();
 	saolang_init();
-	//ARGV = cons(NIL,NIL);
-	ARGV = sao_expand(NIL, NIL, NIL);
 	char * script_file = "-";
 	int found_any = 0;
 	if(argc>1){
