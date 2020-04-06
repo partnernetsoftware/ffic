@@ -42,7 +42,8 @@ enum { SAO_ITR(DEFINE_ENUM_LIBC,fprintf,malloc,memset,strdup,strcmp,printf,putc,
 #include "ffic.h" //github.com/partnernetsoftware/ffic/blob/master/src/ffic.h
 ffic_func libc_a[libc_exit+1];
 ffic_func libc_(int fi,const char* fn){ return libc_a[fi]?libc_a[fi]:(libc_a[fi]=ffic("c",fn)); }
-#define SAO_NULL 0 // same as ((void*)0)
+//#define SAO_NULL 0
+#define SAO_NULL ((void*)0)
 #define SAO_EOF (-1)
 #define SAO_CAT_COMMA(a,b) a##b,
 #define define_enum_name(n) #n,
@@ -89,7 +90,7 @@ struct _sao_object {
 		};
 	};
 	//int gc;//TODO
-};//__attribute__((packed));
+}__attribute__((packed));
 #define define_sao_object(n) sao_object*n=SAO_NULL;
 SAO_ITR(define_sao_object, NIL,ARGV,GLOBAL,TRUE,FALSE,QUOTE,SET,LET,DEFINE,PROCEDURE,IF,LAMBDA,BEGIN,ERROR);
 sao_object *is_tagged(sao_object *cell, sao_object *tag);
@@ -187,12 +188,13 @@ sao_object * cons(sao_object *car, sao_object *cdr) {
 }
 sao_object * car(sao_object *x) { return (!x || x->type)? NIL: x->car; }
 sao_object * cdr(sao_object *x) { return (!x || x->type)? NIL: x->cdr; }
-sao_object *caar(sao_object *x) { return (!x || !x->car || x->car->type)? NIL: x->car->car; }
-sao_object *cdar(sao_object *x) { return (!x || !x->car || x->car->type)? NIL: x->car->cdr; }
-sao_object *cadr(sao_object *x) { return (!x || !x->cdr || x->cdr->type)? NIL: x->cdr->car; }
-sao_object *cddr(sao_object *x) { return (!x || !x->cdr || x->cdr->type)? NIL: x->cdr->cdr; }
+sao_object *caar(sao_object *x) { return (!x || x->type || !x->car || x->car->type)? NIL: x->car->car; }
+sao_object *cdar(sao_object *x) { return (!x || x->type || !x->car || x->car->type)? NIL: x->car->cdr; }
+sao_object *cadr(sao_object *x) { return (!x || x->type || !x->cdr || x->cdr->type)? NIL: x->cdr->car; }
+sao_object *cddr(sao_object *x) { return (!x || x->type || !x->cdr || x->cdr->type)? NIL: x->cdr->cdr; }
 sao_object *cadar(sao_object *x) {
-	if(!x)return NIL;
+	if(!x) return NIL;
+	if(x->type) return NIL;
 	if(!x->car)return NIL;
 	if(x->car->type)return NIL;
 	if(!x->car->cdr)return NIL;
@@ -201,6 +203,7 @@ sao_object *cadar(sao_object *x) {
 }
 sao_object *caddr(sao_object *x) {
 	if(!x)return NIL;
+	if(x->type) return NIL;
 	if(!x->cdr)return NIL;
 	if(x->cdr->type)return NIL;
 	if(!x->cdr->cdr)return NIL;
@@ -209,6 +212,7 @@ sao_object *caddr(sao_object *x) {
 }
 sao_object *cdddr(sao_object *x) {
 	if(!x)return NIL;
+	if(x->type) return NIL;
 	if(!x->cdr)return NIL;
 	if(x->cdr->type)return NIL;
 	if(!x->cdr->cdr)return NIL;
@@ -217,6 +221,7 @@ sao_object *cdddr(sao_object *x) {
 }
 sao_object *cdadr(sao_object *x) {
 	if(!x)return NIL;
+	if(x->type) return NIL;
 	if(!x->cdr)return NIL;
 	if(x->cdr->type)return NIL;
 	if(!x->cdr->car)return NIL;
@@ -225,6 +230,7 @@ sao_object *cdadr(sao_object *x) {
 }
 sao_object *cadddr(sao_object *x) {
 	if(!x)return NIL;
+	if(x->type) return NIL;
 	if(!x->cdr)return NIL;
 	if(x->cdr->type)return NIL;
 	if(!x->cdr->cdr)return NIL;
@@ -949,17 +955,22 @@ tail:
 		}
 		return sao_new_symbol("ok");
 	} else if (is_tagged(exp, LET)) { /* to lambda .. */
-		//sao_out_expr("DEBUG LET",exp);
-		//sao_out_expr("ctx",ctx);
-		//sao_stdout("\n");
-		sao_object **tmp;
+		sao_object **tmp;//
 		sao_object *vars = NIL;
 		sao_object *vals = NIL;
 		if (!(cadr(exp))) return NIL;
 		if (sao_is_atom(cadr(exp))) {
-			for (tmp = &exp->cdr->cdr->car; (*tmp); tmp = &(*tmp)->cdr) {
-				vars = cons(caar(*tmp), vars);
-				vals = cons(cadar(*tmp), vals);
+			for (tmp = caddr(exp)?&exp->cdr->cdr->car:SAO_NULL; tmp&&(*tmp); tmp = cdr(*tmp)?&(*tmp)->cdr:SAO_NULL)
+				//for (tmp = &exp->cdr->cdr->car; (*tmp); tmp = &(*tmp)->cdr)
+			{
+				if(SAO_NULL!=tmp){
+					sao_object * tmp3 = caar(*tmp);
+					vars = cons(tmp3, vars);
+					sao_object * tmp2 = cadar(*tmp);
+					vals = cons(tmp2, vals);
+				}else{
+					sao_stdout("DEBUG 112\n");
+				}
 			}
 			sao_def_var(cadr(exp),
 					sao_eval(sao_new_lambda(vars, cdr(cddr(exp))),
@@ -1031,6 +1042,7 @@ int main(int argc, char **argv) {
 	libc(setmode)(libc(fileno)(libc(stdin)),0x8000/*O_BINARY*/);
 	ht_resize(16384-1);//TODO improve hashtable later
 	sao_init(0);//TODO to define own natives ffic("libsao","init")
+	//ARGV = cons(NIL,NIL);
 	ARGV = sao_expand(NIL, NIL, NIL);
 	char * script_file = "-";
 	int found_any = 0;
@@ -1070,9 +1082,9 @@ int main(int argc, char **argv) {
 		libc(free)(fw);//
 		sao_def_var(ARGV,ARGV,GLOBAL);//for later use
 	}
-	if(!found_any){ print_help();argta[argt_i]++; argta[argt_v]++; }
+	if(!found_any){ print_help();SAO_ARGV(i)++; SAO_ARGV(v)++; }
 	else {
-		if(SAO_ARGV(i)){argta[argt_v]++; found_any++;}
+		if(SAO_ARGV(i)){SAO_ARGV(v)++; found_any++;}
 	}
 	if(SAO_ARGV(v)){ print_version();if(found_any==1)libc(exit)(0); }
 	if(SAO_ARGV(h)){ print_help();libc(exit)(0);}
