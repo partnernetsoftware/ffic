@@ -120,47 +120,83 @@ long sao_is_digit(int c) { return (long) libc(isdigit)(c); }
 long sao_is_alpha(int c) { return (long) libc(isalpha)(c); }
 long sao_is_alphanumber(int c) { return (long) libc(isalnum)(c); }
 
-struct htable { p_sao_obj key; };
-static struct htable *gHTable = 0;
-static int gHTable_len = 0;//default
-static long ht_hash(const char *s, int ht_len) {
+//struct htable { p_sao_obj key; };
+//static struct htable *gHTable = 0;
+p_sao_obj * gHTable = SAO_NULL;
+//static int gHTable_len = 0;//default
+long gHTable_len = 0;
+//static long ht_hash(const char *s, int ht_len) {
+//	long h = 0;
+//	char *u = (char *) s;
+//	while (*u) { h = (h * 256 + (*u)) % ht_len; u++; }
+//	return h;
+//}
+long ht_hash(const char *s, int ht_len) {
 	long h = 0;
 	char *u = (char *) s;
 	while (*u) { h = (h * 256 + (*u)) % ht_len; u++; }
 	return h;
 }
+//int ht_resize(int newsize){
+//	struct htable * newTable = SAO_NEW(struct htable,newsize);
+//	for(int i=0;i<gHTable_len;i++){
+//		if (SAO_NULL!=gHTable[i].key) {
+//			int h = ht_hash(gHTable[i].key->_string, newsize);
+//			if(SAO_NULL != newTable[h].key){
+//				sao_stdout("DEBUG: newTable(%d) still full ??\n", newsize);
+//			}
+//			newTable[h].key = gHTable[i].key;
+//			//libc(free)(gHTable[i]);//TODO
+//		}
+//	}
+//	//libc(free)(gHTable);//TODO
+//	gHTable = newTable;
+//	gHTable_len = newsize;
+//	return newsize;
+//}
 int ht_resize(int newsize){
-	struct htable * newTable = SAO_NEW(struct htable,newsize);
+	p_sao_obj * newTable = SAO_NEW(p_sao_obj,newsize);
 	for(int i=0;i<gHTable_len;i++){
-		if (SAO_NULL!=gHTable[i].key) {
-			int h = ht_hash(gHTable[i].key->_string, newsize);
-			if(SAO_NULL != newTable[h].key){
+		if (SAO_NULL!=gHTable[i]) {
+			int h = ht_hash(gHTable[i]->_string, newsize);
+			if(SAO_NULL != newTable[h]){
 				sao_stdout("DEBUG: newTable(%d) still full ??\n", newsize);
 			}
-			newTable[h].key = gHTable[i].key;
-			//libc(free)(gHTable[i]);//TODO
+			newTable[h]= gHTable[i];
 		}
 	}
-	//libc(free)(gHTable);//TODO
 	gHTable = newTable;
 	gHTable_len = newsize;
 	return newsize;
 }
-void ht_insert(p_sao_obj key_obj)
-{
+//void ht_insert(p_sao_obj key_obj) {
+//	long h = ht_hash(key_obj->_string, gHTable_len);
+//	if(SAO_NULL != gHTable[h].key && SAO_NULL!=gHTable[h].key->_string){
+//		int newsize = 2*(gHTable_len+1)-1 ;
+//		ht_resize( newsize );
+//		ht_insert( key_obj );
+//		//gHTable[h].key = key_obj;
+//		return;
+//	}
+//	gHTable[h].key = key_obj;
+//}
+void ht_insert(p_sao_obj key_obj) {
 	long h = ht_hash(key_obj->_string, gHTable_len);
-	if(SAO_NULL != gHTable[h].key && SAO_NULL!=gHTable[h].key->_string){
+	if(SAO_NULL != gHTable[h] && SAO_NULL!=gHTable[h]->_string){
 		int newsize = 2*(gHTable_len+1)-1 ;
 		ht_resize( newsize );
 		ht_insert( key_obj );
-		//gHTable[h].key = key_obj;
 		return;
 	}
-	gHTable[h].key = key_obj;
+	gHTable[h]= key_obj;
 }
+//p_sao_obj ht_lookup(char *s) {
+//	long h = ht_hash(s, gHTable_len);
+//	return gHTable[h].key;
+//}
 p_sao_obj ht_lookup(char *s) {
 	long h = ht_hash(s, gHTable_len);
-	return gHTable[h].key;
+	return gHTable[h];
 }
 p_sao_obj sao_alloc(type_t type) {
 	SAO_NEW_OBJECT(sao_obj,ret);//TODO gc()
@@ -753,7 +789,7 @@ p_sao_obj sao_parse( sao_stream * fw, int do_eval ) {
 }
 #include "libsaolang.c" //saolang_init()
 #define add_sym_x(x) do{SAO_TAG_##x=sao_new_symbol(#x);sao_def_var(SAO_TAG_##x,SAO_TAG_##x,SAO_TAG_global);}while(0);
-void print_version(){ sao_stdout(" SaoLang (R) v0.0.5 - Wanjo Chan (c) 2020\n"); }
+void print_version(){ sao_stdout(" SaoLang (R) v0.0.6 - Wanjo Chan (c) 2020\n"); }
 void print_help(){ sao_stdout("Usage	 : sao [options] [script.sao | -]]\nOptions	 :\n	h:	Help\n	v:	Version\n	i:	Interactive\n	p:	Print final result\n	d:	Dev only\n	e:	Eval\n	s:	Strict mode\n	l:	Lisp syntax\n"); }
 int main(int argc, char **argv) {
 	ffic_func strcmp = libc(strcmp);

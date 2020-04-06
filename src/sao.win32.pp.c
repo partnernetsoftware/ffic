@@ -166,44 +166,42 @@ p_sao_obj sao_is_atom(p_sao_obj x){ return (x&&x->_type)?x:SAO_TAG_nil; }
 long sao_is_digit(int c) { return (long) libc_(libc_isdigit,"isdigit")(c); }
 long sao_is_alpha(int c) { return (long) libc_(libc_isalpha,"isalpha")(c); }
 long sao_is_alphanumber(int c) { return (long) libc_(libc_isalnum,"isalnum")(c); }
-struct htable { p_sao_obj key; };
-static struct htable *gHTable = 0;
-static int gHTable_len = 0;
-static long ht_hash(const char *s, int ht_len) {
+p_sao_obj * gHTable = ((void*)0);
+long gHTable_len = 0;
+long ht_hash(const char *s, int ht_len) {
  long h = 0;
  char *u = (char *) s;
  while (*u) { h = (h * 256 + (*u)) % ht_len; u++; }
  return h;
 }
 int ht_resize(int newsize){
- struct htable * newTable = sao_calloc( sizeof(struct htable) *(newsize) );
+ p_sao_obj * newTable = sao_calloc( sizeof(p_sao_obj) *(newsize) );
  for(int i=0;i<gHTable_len;i++){
-  if (((void*)0)!=gHTable[i].key) {
-   int h = ht_hash(gHTable[i].key->_string, newsize);
-   if(((void*)0) != newTable[h].key){
+  if (((void*)0)!=gHTable[i]) {
+   int h = ht_hash(gHTable[i]->_string, newsize);
+   if(((void*)0) != newTable[h]){
     libc_(libc_printf,"printf")("DEBUG: newTable(%d) still full ??\n", newsize);
    }
-   newTable[h].key = gHTable[i].key;
+   newTable[h]= gHTable[i];
   }
  }
  gHTable = newTable;
  gHTable_len = newsize;
  return newsize;
 }
-void ht_insert(p_sao_obj key_obj)
-{
+void ht_insert(p_sao_obj key_obj) {
  long h = ht_hash(key_obj->_string, gHTable_len);
- if(((void*)0) != gHTable[h].key && ((void*)0)!=gHTable[h].key->_string){
+ if(((void*)0) != gHTable[h] && ((void*)0)!=gHTable[h]->_string){
   int newsize = 2*(gHTable_len+1)-1 ;
   ht_resize( newsize );
   ht_insert( key_obj );
   return;
  }
- gHTable[h].key = key_obj;
+ gHTable[h]= key_obj;
 }
 p_sao_obj ht_lookup(char *s) {
  long h = ht_hash(s, gHTable_len);
- return gHTable[h].key;
+ return gHTable[h];
 }
 p_sao_obj sao_alloc(type_t type) {
  sao_obj*ret=sao_calloc( sizeof(sao_obj) );;
@@ -964,7 +962,7 @@ p_sao_obj saolang_init()
  sao_def_var(sao_new_symbol("exit"), sao_new_native(native_exit), SAO_TAG_global); sao_def_var(sao_new_symbol("global"), sao_new_native(native_global), SAO_TAG_global); sao_def_var(sao_new_symbol("print"), sao_new_native(native_print), SAO_TAG_global); sao_def_var(sao_new_symbol("lt"), sao_new_native(native_lt), SAO_TAG_global); sao_def_var(sao_new_symbol("add"), sao_new_native(native_add), SAO_TAG_global); sao_def_var(sao_new_symbol("sub"), sao_new_native(native_sub), SAO_TAG_global); sao_def_var(sao_new_symbol("cmp"), sao_new_native(native_cmp), SAO_TAG_global); sao_def_var(sao_new_symbol("cons"), sao_new_native(native_cons), SAO_TAG_global); sao_def_var(sao_new_symbol("setcar"), sao_new_native(native_setcar), SAO_TAG_global); sao_def_var(sao_new_symbol("cdr"), sao_new_native(native_cdr), SAO_TAG_global); sao_def_var(sao_new_symbol("list"), sao_new_native(native_list), SAO_TAG_global);;
  return SAO_TAG_global;
 }
-void print_version(){ libc_(libc_printf,"printf")(" SaoLang (R) v0.0.5 - Wanjo Chan (c) 2020\n"); }
+void print_version(){ libc_(libc_printf,"printf")(" SaoLang (R) v0.0.6 - Wanjo Chan (c) 2020\n"); }
 void print_help(){ libc_(libc_printf,"printf")("Usage	 : sao [options] [script.sao | -]]\nOptions	 :\n	h:	Help\n	v:	Version\n	i:	Interactive\n	p:	Print final result\n	d:	Dev only\n	e:	Eval\n	s:	Strict mode\n	l:	Lisp syntax\n"); }
 int main(int argc, char **argv) {
  ffic_func strcmp = libc_(libc_strcmp,"strcmp");
