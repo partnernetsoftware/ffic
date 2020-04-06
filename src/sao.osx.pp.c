@@ -91,8 +91,9 @@ sao_u64 ffic_microtime(void)
 }
 ffic_func libc_a[libc_exit+1];
 ffic_func libc_(int fi,const char* fn){ return libc_a[fi]?libc_a[fi]:(libc_a[fi]=ffic("c",fn)); }
+void* sao_calloc(long _sizeof){return libc_(libc_memset,"memset")(libc_(libc_malloc,"malloc")(_sizeof),0,_sizeof);}
 typedef enum { stream_file, stream_char, } stream_t; char* stream_names[] = { "file", "char", };;
-typedef enum { type_list, type_integer, type_symbol, type_string, type_native, type_vector, } type_t; char* type_names[] = { "list", "integer", "symbol", "string", "native", "vector", };;
+typedef enum { type_list, type_integer, type_double, type_symbol, type_string, type_native, type_vector, type_table, } type_t; char* type_names[] = { "list", "integer", "double", "symbol", "string", "native", "vector", "table", };;
 typedef enum { ctype_long, ctype_double, ctype_any, } ctype_t; char* ctype_names[] = { "long", "double", "any", };;
 typedef enum { argt_i, argt_p, argt_d, argt_v, argt_e, argt_s, argt_l, argt_h, } argt_t; char* argt_names[] = { "i", "p", "d", "v", "e", "s", "l", "h", };;
 int argta[argt_h+1];
@@ -109,7 +110,11 @@ struct _sao_object {
     };
     struct {
      sao_object **_vector;
-     int _len;
+     long _len;
+    };
+    struct {
+     sao_object **_table;
+     long _size;
     };
     char *_string;
     long _integer;
@@ -141,7 +146,6 @@ sao_object * sao_is_atom(sao_object * x){ return (x&&x->_type)?x:SAO_TAG_nil; }
 long sao_is_digit(int c) { return (long) libc_(libc_isdigit,"isdigit")(c); }
 long sao_is_alpha(int c) { return (long) libc_(libc_isalpha,"isalpha")(c); }
 long sao_is_alphanumber(int c) { return (long) libc_(libc_isalnum,"isalnum")(c); }
-void* sao_calloc(long _sizeof){return libc_(libc_memset,"memset")(libc_(libc_malloc,"malloc")(_sizeof),0,_sizeof);}
 struct htable { sao_object *key; };
 static struct htable *gHTable = 0;
 static int gHTable_len = 0;
@@ -152,7 +156,7 @@ static long ht_hash(const char *s, int ht_len) {
  return h;
 }
 int ht_resize(int newsize){
- struct htable * newTable = sao_calloc( sizeof(struct htable) *newsize );
+ struct htable * newTable = sao_calloc( sizeof(struct htable) *(newsize) );
  for(int i=0;i<gHTable_len;i++){
   if (((void*)0)!=gHTable[i].key) {
    int h = ht_hash(gHTable[i].key->_string, newsize);
@@ -183,7 +187,7 @@ sao_object *ht_lookup(char *s) {
 }
 sao_object *sao_alloc(type_t type) {
  sao_object*ret=sao_calloc( sizeof(sao_object) );;
- if(ret<0) do{libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"ASSERT: mem full when sao_alloc()");libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"\n");libc_(libc_exit,"exit")(1);}while(0);
+ if(ret<0) do{libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"ASSERT: mem full when sao_alloc(%d)",ret);libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"\n");libc_(libc_exit,"exit")(1);}while(0);
  ret->_type = type;
  return ret;
 }
@@ -243,7 +247,7 @@ sao_object *cadddr(sao_object *x) {
 }
 sao_object *sao_new_vector(int size) {
  sao_object *ret = sao_alloc(type_vector);
- ret->_vector = sao_calloc( sizeof(sao_object) *size );
+ ret->_vector = sao_calloc( sizeof(sao_object) *(size) );
  ret->_len = size;
  return ret;
 }
@@ -345,7 +349,7 @@ int sao_read_line(sao_stream* fw)
   ffic_func fgets = libc_(libc_fgets,"fgets");
   ffic_func strlen = libc_(libc_strlen,"strlen");
   int LINE_LEN = 1024;
-  char*line=sao_calloc( sizeof(char) *LINE_LEN );;
+  char*line=sao_calloc( sizeof(char) *(LINE_LEN) );;
   if(fw->_type==stream_file){
    if(argta[argt_i]){
     libc_(libc_printf,"printf")("> ");
@@ -426,9 +430,9 @@ sao_object *sao_def_var(sao_object *var, sao_object *val, sao_object *ctx)
  return val;
 }
 char type_symbolS[] = "~!@#$%^&*_-+\\:.<>|{}[]?=/";
-sao_object *eval_list(sao_object *exp, sao_object *ctx) {
+sao_object *sao_eval_list(sao_object *exp, sao_object *ctx) {
  if (!(exp)) return SAO_TAG_nil;
- return cons(sao_eval(car(exp), ctx), eval_list(cdr(exp), ctx));
+ return cons(sao_eval(car(exp), ctx), sao_eval_list(cdr(exp), ctx));
 }
 sao_stream * sao_stream_new(void* fp,stream_t type)
 {
@@ -519,10 +523,7 @@ sao_object *sao_load_expr(sao_stream * fw)
    case ',': continue;
    case '\"': return sao_load_str(fw);
   }
-  if (c == ';' || c=='#' || (c=='/'&&'/'==sao_peek(fw))){
-   sao_comment(fw);
-   continue;
-  }
+  if (c == ';' || c=='#' || (c=='/'&&'/'==sao_peek(fw))){ sao_comment(fw); continue; }
   if (c == '\''){
    sao_object * child = sao_load_expr(fw);
    return cons(SAO_TAG_quote, cons(child, SAO_TAG_nil));
@@ -563,10 +564,14 @@ void sao_out_expr(char *str, sao_object *el){
    libc_(libc_printf,"printf")("%s", el->_string); break;
   case type_integer:
    libc_(libc_printf,"printf")("%ld", el->_integer); break;
+  case type_double:
+   libc_(libc_printf,"printf")("%f", el->_double); break;
   case type_native:
    libc_(libc_printf,"printf")("<function>"); break;
   case type_vector:
    libc_(libc_printf,"printf")("<vector %d>", el->_len); break;
+  case type_table:
+   libc_(libc_printf,"printf")("<table %d>", el->_size); break;
   case type_list:
    if (sao_is_tagged(el, SAO_TAG_procedure)) {
     libc_(libc_printf,"printf")("<closure>");
@@ -694,7 +699,7 @@ tail:
   goto tail;
  } else {
   sao_object *proc = sao_eval(car(exp), ctx);
-  sao_object *args = eval_list(cdr(exp), ctx);
+  sao_object *args = sao_eval_list(cdr(exp), ctx);
   if (!(proc)) {
    if(argta[argt_s]){
     sao_out_expr("WARNING: Invalid arguments to sao_eval:", exp);

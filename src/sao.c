@@ -41,7 +41,6 @@ enum { SAO_ITR(DEFINE_ENUM_LIBC,fprintf,malloc,memset,strdup,strcmp,printf,putc,
 #include "ffic.h" //github.com/partnernetsoftware/ffic/blob/master/src/ffic.h
 ffic_func libc_a[libc_exit+1];
 ffic_func libc_(int fi,const char* fn){ return libc_a[fi]?libc_a[fi]:(libc_a[fi]=ffic("c",fn)); }
-//#define SAO_NULL 0
 #define SAO_NULL ((void*)0)
 #define SAO_EOF (-1)
 #define SAO_CAT_COMMA(a,b) a##b,
@@ -50,7 +49,8 @@ ffic_func libc_(int fi,const char* fn){ return libc_a[fi]?libc_a[fi]:(libc_a[fi]
 #define define_enum_t(n, ...) typedef enum { SAO_ITR1(define_enum_item,n,__VA_ARGS__) } n##_t;
 #define define_map_arr(n, ...) char* n##_names[] = { SAO_ITR(define_enum_name,__VA_ARGS__) };
 #define define_map(n, ...) define_enum_t(n,__VA_ARGS__) define_map_arr(n,__VA_ARGS__)
-#define SAO_NEW(t,...) sao_calloc( sizeof(t) SAO_IF(SAO_IS_PAREN(__VA_ARGS__ ()))(SAO_EAT(),*__VA_ARGS__) )
+void* sao_calloc(long _sizeof){return libc(memset)(libc(malloc)(_sizeof),0,_sizeof);}
+#define SAO_NEW(t,...) sao_calloc( sizeof(t) SAO_IF(SAO_IS_PAREN(__VA_ARGS__ ()))(SAO_EAT(),*(__VA_ARGS__)) )
 #define SAO_NEW_OBJECT(t,n,...) t*n=SAO_NEW(t,__VA_ARGS__);
 #define sao_stderr(...) libc(fprintf)(libc(stderr),__VA_ARGS__)
 #define sao_stdout(...) libc(printf)(__VA_ARGS__)
@@ -58,7 +58,7 @@ ffic_func libc_(int fi,const char* fn){ return libc_a[fi]?libc_a[fi]:(libc_a[fi]
 #define sao_warn(...) sao_stderr(__VA_ARGS__);
 
 define_map(stream, file,char);
-define_map(type,   list,integer,symbol,string,native,vector);
+define_map(type,   list,integer,double,symbol,string,native,vector,table);
 define_map(ctype,  long,double,any);
 define_map(argt,   i,p,d,v,e,s,l,h);
 int argta[argt_h+1];
@@ -77,7 +77,11 @@ struct _sao_object {
 				};
 				struct {
 					sao_object **_vector;
-					int _len;
+					long _len;
+				};
+				struct {
+					sao_object **_table;
+					long _size;
 				};
 				char *_string;
 				long _integer;
@@ -113,7 +117,6 @@ sao_object * sao_is_atom(sao_object * x){ return (x&&x->_type)?x:SAO_TAG_nil; }
 long sao_is_digit(int c) { return (long) libc(isdigit)(c); }
 long sao_is_alpha(int c) { return (long) libc(isalpha)(c); }
 long sao_is_alphanumber(int c) { return (long) libc(isalnum)(c); }
-void* sao_calloc(long _sizeof){return libc(memset)(libc(malloc)(_sizeof),0,_sizeof);}
 
 struct htable { sao_object *key; };
 static struct htable *gHTable = 0;
@@ -159,7 +162,7 @@ sao_object *ht_lookup(char *s) {
 }
 sao_object *sao_alloc(type_t type) {
 	SAO_NEW_OBJECT(sao_object,ret);//TODO gc()
-	if(ret<0) sao_error("ASSERT: mem full when sao_alloc()");
+	if(ret<0) sao_error("ASSERT: mem full when sao_alloc(%d)",ret);
 	ret->_type = type;
 	return ret;
 }
@@ -411,15 +414,15 @@ sao_object *sao_def_var(sao_object *var, sao_object *val, sao_object *ctx)
 	return val;
 }
 char type_symbolS[] = "~!@#$%^&*_-+\\:.<>|{}[]?=/";
-sao_object *eval_list(sao_object *exp, sao_object *ctx) {
+sao_object *sao_eval_list(sao_object *exp, sao_object *ctx) {
 	if (!(exp)) return SAO_TAG_nil;
-	return cons(sao_eval(car(exp), ctx), eval_list(cdr(exp), ctx));
+	return cons(sao_eval(car(exp), ctx), sao_eval_list(cdr(exp), ctx));
 }
 //TODO
-//sao_object *eval_sequence(sao_object *exps, sao_object *ctx) {
+//sao_object *sao_eval_sequence(sao_object *exps, sao_object *ctx) {
 //	if (!(cdr(exps))) return sao_eval(car(exps), ctx);
 //	sao_eval(car(exps), ctx);
-//	return eval_sequence(cdr(exps), ctx);
+//	return sao_eval_sequence(cdr(exps), ctx);
 //}
 sao_stream * sao_stream_new(void* fp,stream_t type)
 {
@@ -460,6 +463,7 @@ sao_object *sao_new_integer(int x)
 	ret->_integer = x;
 	return ret;
 }
+// TODO read number
 int sao_read_int(sao_stream * fw, int start)
 {
 	while ( sao_is_digit(sao_peek(fw)) )
@@ -511,10 +515,7 @@ sao_object *sao_load_expr(sao_stream * fw)
 			case ',': continue;
 			case '\"': return sao_load_str(fw);
 		}
-		if (c == ';' || c=='#' || (c=='/'&&'/'==sao_peek(fw))){
-			sao_comment(fw);
-			continue;
-		}
+		if (c == ';' || c=='#' || (c=='/'&&'/'==sao_peek(fw))){ sao_comment(fw); continue; }
 		if (c == '\''){
 			sao_object * child = sao_load_expr(fw);
 			return cons(SAO_TAG_quote, cons(child, SAO_TAG_nil));
@@ -556,10 +557,14 @@ void sao_out_expr(char *str, sao_object *el){
 			sao_stdout("%s", el->_string); break;
 		case type_integer:
 			sao_stdout("%ld", el->_integer); break;
+		case type_double:
+			sao_stdout("%f", el->_double); break;
 		case type_native:
 			sao_stdout("<function>"); break;
 		case type_vector:
 			sao_stdout("<vector %d>", el->_len); break;
+		case type_table:
+			sao_stdout("<table %d>", el->_size); break;
 		case type_list:
 			if (sao_is_tagged(el, SAO_TAG_procedure)) {
 				sao_stdout("<closure>");//lambda
@@ -691,7 +696,7 @@ tail:
 		goto tail;
 	} else { /* procedure, parameters, body expr, ctx */
 		sao_object *proc = sao_eval(car(exp), ctx);
-		sao_object *args = eval_list(cdr(exp), ctx);
+		sao_object *args = sao_eval_list(cdr(exp), ctx);
 		if (!(proc)) {
 			if(SAO_ARGV(s)){
 				sao_out_expr("WARNING: Invalid arguments to sao_eval:", exp);
@@ -744,21 +749,8 @@ sao_object * sao_parse( sao_stream * fw, int do_eval ) {
 	}
 	return rt;
 }
-sao_object * sao_type_check(const char *func, sao_object *obj, type_t type)
-{
-	if (!(obj)) {
-		sao_stderr("Invalid argument to function %s: SAO_TAG_nil\n", func);
-		libc(exit)(1);
-	} else if (obj->_type != type) {
-		sao_stderr( "ERR: function %s. expected %s got %s\n",
-				func, type_names[type], type_names[obj->_type]);
-		libc(exit)(1);
-	}
-	return obj;
-}
 #include "libsaolang.c" //saolang_init()
 #define add_sym_x(x) do{SAO_TAG_##x=sao_new_symbol(#x);sao_def_var(SAO_TAG_##x,SAO_TAG_##x,SAO_TAG_global);}while(0);
-//////////////////////////////////////////////////////////////////////////////
 void print_version(){ sao_stdout(" SaoLang (R) v0.0.5 - Wanjo Chan (c) 2020\n"); }
 void print_help(){ sao_stdout("Usage	 : sao [options] [script.sao | -]]\nOptions	 :\n	h:	Help\n	v:	Version\n	i:	Interactive\n	p:	Print final result\n	d:	Dev only\n	e:	Eval\n	s:	Strict mode\n	l:	Lisp syntax\n"); }
 int main(int argc, char **argv) {

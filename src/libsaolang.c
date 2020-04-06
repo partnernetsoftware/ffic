@@ -1,5 +1,18 @@
 #define SAO_CHECK_TYPE(x, t) (sao_type_check(__func__, x, t))
 
+sao_object * sao_type_check(const char *func, sao_object *obj, type_t type)
+{
+	if (!(obj)) {
+		sao_stderr("Invalid argument to function %s: SAO_TAG_nil\n", func);
+		libc(exit)(1);
+	} else if (obj->_type != type) {
+		sao_stderr( "ERR: function %s. expected %s got %s\n",
+				func, type_names[type], type_names[obj->_type]);
+		libc(exit)(1);
+	}
+	return obj;
+}
+
 sao_object *native_type(sao_object *args) { return sao_new_symbol(type_names[car(args)->_type]); }
 sao_object *native_global(sao_object *args) { return SAO_TAG_global; }
 sao_object *native_list(sao_object *args) { return (args); }
