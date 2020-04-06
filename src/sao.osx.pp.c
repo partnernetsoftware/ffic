@@ -299,10 +299,10 @@ sao_object * sao_is_eq(sao_object *x, sao_object *y) {
  }while(0);
  return NIL;
 }
-int not_false(sao_object *x) {
- if (!(x) || sao_is_eq(x, FALSE)) return 0;
- if (x->type == type_integer && x->_integer == 0) return 0;
- return 1;
+sao_object * sao_not_false(sao_object *x) {
+ if (!(x) || sao_is_eq(x, FALSE)) return NIL;
+ if (x->type == type_integer && x->_integer == 0) return NIL;
+ return x;
 }
 sao_object* is_tagged(sao_object *cell, sao_object *tag) { return (cell&&!cell->type) ? sao_is_eq(car(cell),tag) : NIL; }
 int sao_list_len(sao_object *expr) { return (expr) ? (1+sao_list_len(cdr(expr))):0; }
@@ -648,17 +648,17 @@ tail:
   goto tail;
  } else if (is_tagged(exp, IF)) {
   sao_object *predicate = sao_eval(cadr(exp), ctx);
-  exp = (not_false(predicate)) ? caddr(exp) : cadddr(exp);
+  exp = (sao_not_false(predicate)) ? caddr(exp) : cadddr(exp);
   goto tail;
  } else if (is_tagged(exp, sao_new_symbol("or"))) {
   sao_object *predicate = sao_eval(cadr(exp), ctx);
-  exp = (not_false(predicate)) ? caddr(exp) : cadddr(exp);
+  exp = (sao_not_false(predicate)) ? caddr(exp) : cadddr(exp);
   goto tail;
  } else if (is_tagged(exp, sao_new_symbol("cond"))) {
   sao_object *branch = cdr(exp);
   for (; (branch); branch = cdr(branch)) {
    if (is_tagged(car(branch), sao_new_symbol("else")) ||
-     not_false(sao_eval(caar(branch), ctx))) {
+     sao_not_false(sao_eval(caar(branch), ctx))) {
     exp = cons(BEGIN, cdar(branch));
     goto tail;
    }
@@ -1000,9 +1000,7 @@ int main(int argc, char **argv) {
   sao_def_var(ARGV,ARGV,GLOBAL);
  }
  if(!found_any){ print_help();argta[argt_i]++; argta[argt_v]++; }
- else {
-  if(argta[argt_i]){argta[argt_v]++; found_any++;}
- }
+ else { if(argta[argt_i]){argta[argt_v]++; found_any++;} }
  if(argta[argt_v]){ print_version();if(found_any==1)libc_(libc_exit,"exit")(0); }
  if(argta[argt_h]){ print_help();libc_(libc_exit,"exit")(0);}
  void* fp = ((!strcmp("-",script_file)) ? (void*)libc_(libc_stdin,"stdin") : (void*)libc_(libc_fopen,"fopen")(script_file, "r"));

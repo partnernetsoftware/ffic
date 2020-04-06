@@ -7,7 +7,7 @@ default:
 	#echo "#define TCC_VERSION \"`head ../tinycc/VERSION`\"" > config.h
 	make pp
 	#cc ffic.c -I ../tinycc/ -o ffic
-	${CC} ffic.pp.i -L. -ltcc -o ffic
+	${CC} ffic.pp.c -L. -ltcc -o ffic
 	ls -al ffic*
 	make test
 osx:
@@ -27,11 +27,11 @@ test:
 #
 tcc:
 	tcc -I. -I../tinycc/ -run -nostdlib ffic.c 
-	#tcc -nostdlib -E ffic.c -I ../tinycc/ -o ffic.i
+	#tcc -nostdlib -E ffic.c -I ../tinycc/ -o ffic.pp.c
 pp:
-	${CC} -E ffic.c -I. -I../tinycc/ -o ffic.i
-	#${CC} -E ffic.c -I. -I../tinycc/ | sed 's/^#.*//g' > ffic.pp.i
-	${CC} -E ffic.c -I. -I../tinycc/ | sed 's/^#.*//g' | sed "/^$$/d" > ffic.pp.i
+	${CC} -E ffic.c -I. -I../tinycc/ -o ffic.pp.c
+	#${CC} -E ffic.c -I. -I../tinycc/ | sed 's/^#.*//g' > ffic.pp.c
+	${CC} -E ffic.c -I. -I../tinycc/ | sed 's/^#.*//g' | sed "/^$$/d" > ffic.pp.c
 clean:
 	rm -f *.o
 ##################################################### lab for sao
@@ -45,8 +45,8 @@ test_sao_osx:
 	echo $$(($$(gdate +'%s * 1000 + %-N / 1000000'))) && cat tests/test.sao | ./sao_osx i p d - && echo $$(($$(gdate +'%s * 1000 + %-N / 1000000'))) 
 osx_sao:
 	rm -f sao_osx
-	${CC} -E sao.c | sed 's/^#.*//g' | sed "/^$$/d" > sao.osx.pp.i
-	${CC} sao.osx.pp.i -L. -o sao_osx
+	${CC} -E sao.c | sed 's/^#.*//g' | sed "/^$$/d" > sao.osx.pp.c
+	${CC} sao.osx.pp.c -L. -o sao_osx
 	#./upx_osx ./sao_osx
 	make test_sao_osx
 	ls -al sao*
