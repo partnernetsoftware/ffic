@@ -28,16 +28,15 @@
 #define SAO_EVAL3(...) SAO_EVAL4(SAO_EVAL4(SAO_EVAL4(__VA_ARGS__)))
 #define SAO_EVAL4(...) SAO_EVAL5(SAO_EVAL5(SAO_EVAL5(__VA_ARGS__)))
 #define SAO_EVAL5(...) __VA_ARGS__
-#define SAO_WHILE(m,v, ...) SAO_WHEN(SAO_NOT(SAO_IS_PAREN(v ()))) ( SAO_OBSTRUCT(m) (v) SAO_OBSTRUCT(SAO_WHILE_INDIRECT) () (m, __VA_ARGS__) )
+#define SAO_WHILE(m,v, ...) SAO_WHEN(SAO_NOT(SAO_IS_PAREN(v ()))) (SAO_OBSTRUCT(m) (v) SAO_OBSTRUCT(SAO_WHILE_INDIRECT) () (m, __VA_ARGS__))
 #define SAO_WHILE_INDIRECT() SAO_WHILE 
-#define SAO_WHILE1(m,v1,v, ...) SAO_WHEN(SAO_NOT(SAO_IS_PAREN(v ()))) ( SAO_OBSTRUCT(m) (v1,v) SAO_OBSTRUCT(SAO_WHILE_INDIRECT1) () (m,v1,__VA_ARGS__) )
+#define SAO_WHILE1(m,v1,v, ...) SAO_WHEN(SAO_NOT(SAO_IS_PAREN(v ()))) (SAO_OBSTRUCT(m) (v1,v) SAO_OBSTRUCT(SAO_WHILE_INDIRECT1) () (m,v1,__VA_ARGS__))
 #define SAO_WHILE_INDIRECT1() SAO_WHILE1
 #define SAO_ITR(mmm,qqq,...) SAO_EVAL( SAO_WHILE( mmm,qqq,__VA_ARGS__ ) )
 #define SAO_ITR1(mmm,mm1,qqq,...) SAO_EVAL( SAO_WHILE1( mmm,mm1,qqq,__VA_ARGS__) )
 //////////////////////////////////////////////////////////////////////////////
 #define DEFINE_ENUM_LIBC(n) libc_##n,
-enum { SAO_ITR(DEFINE_ENUM_LIBC,fprintf,malloc,memset,strdup,strcmp,printf,putc,getc,isalnum,strchr,isdigit,isalpha,fopen,fread,fgets,fclose,feof, usleep,msleep,sleep,fputc,strlen,fflush,free,system,\
-		setmode,fileno,stdin,stdout,stderr,microtime,exit) };
+enum { SAO_ITR(DEFINE_ENUM_LIBC,fprintf,malloc,memset,strdup,strcmp,printf,putc,getc,isalnum,strchr,isdigit,isalpha,fopen,fread,fgets,fclose,feof, usleep,msleep,sleep,fputc,strlen,fflush,free,system,     setmode,fileno,stdin,stdout,stderr,microtime,exit) };
 #define libc(f) libc_(libc_##f,#f)
 #include "ffic.h" //github.com/partnernetsoftware/ffic/blob/master/src/ffic.h
 ffic_func libc_a[libc_exit+1];
@@ -91,7 +90,7 @@ struct _sao_object {
 	//int gc;//TODO
 };//__attribute__((packed));
 #define define_sao_object(n) sao_object*n=SAO_NULL;
-SAO_ITR(define_sao_object, NIL,ARGV,GLOBAL,TRUE,FALSE,QUOTE,SET,LET,DEFINE,PROCEDURE,IF,LAMBDA,BEGIN,OR,OK,ELSE,COND,ERROR);
+SAO_ITR(define_sao_object, NIL,ARGV,GLOBAL,TRUE,FALSE,QUOTE,SET,LET,VAR,PROCEDURE,IF,LAMBDA,BEGIN,OR,OK,ELSE,COND,ERROR);
 typedef struct _FileChar {
 	int c;
 	struct _FileChar * ptr_prev;
@@ -104,7 +103,6 @@ typedef struct {
 	FileChar * ptr_start;
 	FileChar * ptr_head;
 	FileChar * ptr_last;
-	//long _total;//TODO for gc()
 } sao_stream;
 
 sao_object *sao_eval(sao_object *exp, sao_object *ctx);
@@ -116,11 +114,9 @@ long sao_is_alpha(int c) { return (long) libc(isalpha)(c); }
 long sao_is_alphanumber(int c) { return (long) libc(isalnum)(c); }
 void* sao_calloc(long _sizeof){return libc(memset)(libc(malloc)(_sizeof),0,_sizeof);}
 
-//void ht_insert(sao_object *key_obj);
 struct htable { sao_object *key; };
 static struct htable *gHTable = 0;
 static int gHTable_len = 0;//default
-//#define TOK_HASH_FUNC(h, c) ((h) + ((h) << 5) + ((h) >> 27) + (c))
 static long ht_hash(const char *s, int ht_len) {
 	long h = 0;
 	char *u = (char *) s;
@@ -631,7 +627,7 @@ tail:
 		return cadr(exp);
 	} else if (sao_is_tagged(exp, LAMBDA)) {
 		return sao_new_procedure(cadr(exp), cddr(exp), ctx);
-	} else if (sao_is_tagged(exp, DEFINE)) {
+	} else if (sao_is_tagged(exp, VAR)) {
 		if (sao_is_atom(cadr(exp)))
 			sao_def_var(cadr(exp), sao_eval(caddr(exp), ctx), ctx);
 		else {
@@ -776,11 +772,12 @@ sao_object * sao_init() {
 	add_sym("lambda", LAMBDA);
 	add_sym("procedure", PROCEDURE);
 
-	//TODO to merge three(DEFINE/LET/PROCEDURE ?)
-	add_sym("var", DEFINE);
+	//TODO to merge three:
+	add_sym("var", VAR);
 	add_sym("let", LET);
 	add_sym("set", SET);
-	add_sym("begin", BEGIN);//TODO remove or add END
+
+	add_sym("begin", BEGIN);//TODO END
 	add_sym("if", IF);
 
 	add_sym("else", ELSE);
@@ -788,14 +785,6 @@ sao_object * sao_init() {
 	add_sym("or", OR);
 	add_sym("ok", OK);
 
-//	SAO_ITR(add_sym_list,
-//			load,print,read,//io
-//			exit,shell,ffi,global,//sys
-//			type,cons,car,cdr,setcar,setcdr,//core
-//			list,vector,vget,vset,//data structure
-//			add,sub,mul,div,cmp,lt,gt,//logic,
-//			is_null,is_list,pairq,atomq,eqq,equalq,//helpers
-//			);
 	return GLOBAL;
 }
 //////////////////////////////////////////////////////////////////////////////

@@ -121,7 +121,7 @@ struct _sao_object {
   };
  };
 };
-sao_object*NIL=((void*)0); sao_object*ARGV=((void*)0); sao_object*GLOBAL=((void*)0); sao_object*TRUE=((void*)0); sao_object*FALSE=((void*)0); sao_object*QUOTE=((void*)0); sao_object*SET=((void*)0); sao_object*LET=((void*)0); sao_object*DEFINE=((void*)0); sao_object*PROCEDURE=((void*)0); sao_object*IF=((void*)0); sao_object*LAMBDA=((void*)0); sao_object*BEGIN=((void*)0); sao_object*OR=((void*)0); sao_object*OK=((void*)0); sao_object*ELSE=((void*)0); sao_object*COND=((void*)0); sao_object*ERROR=((void*)0);;
+sao_object*NIL=((void*)0); sao_object*ARGV=((void*)0); sao_object*GLOBAL=((void*)0); sao_object*TRUE=((void*)0); sao_object*FALSE=((void*)0); sao_object*QUOTE=((void*)0); sao_object*SET=((void*)0); sao_object*LET=((void*)0); sao_object*VAR=((void*)0); sao_object*PROCEDURE=((void*)0); sao_object*IF=((void*)0); sao_object*LAMBDA=((void*)0); sao_object*BEGIN=((void*)0); sao_object*OR=((void*)0); sao_object*OK=((void*)0); sao_object*ELSE=((void*)0); sao_object*COND=((void*)0); sao_object*ERROR=((void*)0);;
 typedef struct _FileChar {
  int c;
  struct _FileChar * ptr_prev;
@@ -631,7 +631,7 @@ tail:
   return cadr(exp);
  } else if (sao_is_tagged(exp, LAMBDA)) {
   return sao_new_procedure(cadr(exp), cddr(exp), ctx);
- } else if (sao_is_tagged(exp, DEFINE)) {
+ } else if (sao_is_tagged(exp, VAR)) {
   if (sao_is_atom(cadr(exp)))
    sao_def_var(cadr(exp), sao_eval(caddr(exp), ctx), ctx);
   else {
@@ -952,7 +952,7 @@ sao_object * sao_init() {
  do{QUOTE=sao_new_symbol("quote");sao_def_var(QUOTE,QUOTE,GLOBAL);}while(0);;
  do{LAMBDA=sao_new_symbol("lambda");sao_def_var(LAMBDA,LAMBDA,GLOBAL);}while(0);;
  do{PROCEDURE=sao_new_symbol("procedure");sao_def_var(PROCEDURE,PROCEDURE,GLOBAL);}while(0);;
- do{DEFINE=sao_new_symbol("var");sao_def_var(DEFINE,DEFINE,GLOBAL);}while(0);;
+ do{VAR=sao_new_symbol("var");sao_def_var(VAR,VAR,GLOBAL);}while(0);;
  do{LET=sao_new_symbol("let");sao_def_var(LET,LET,GLOBAL);}while(0);;
  do{SET=sao_new_symbol("set");sao_def_var(SET,SET,GLOBAL);}while(0);;
  do{BEGIN=sao_new_symbol("begin");sao_def_var(BEGIN,BEGIN,GLOBAL);}while(0);;
