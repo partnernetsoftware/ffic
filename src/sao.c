@@ -83,7 +83,7 @@ struct _sao_object {
 				};
 				char *_string;
 				long _integer;
-				//double _double;//TODO
+				double _double;
 				native_t native;
 			};
 			type_t type;
@@ -954,23 +954,27 @@ tail:
 			sao_set_var(car(cadr(exp)), closure, ctx);
 		}
 		return sao_new_symbol("ok");
-	} else if (is_tagged(exp, LET)) { /* to lambda .. */
-		sao_object **tmp;//
+	} else if (is_tagged(exp, LET)) { /* convert to lambda .. */
+		//sao_object **tmp;//
+		sao_object *pointer;//
 		sao_object *vars = NIL;
 		sao_object *vals = NIL;
 		if (!(cadr(exp))) return NIL;
 		if (sao_is_atom(cadr(exp))) {
-			for (tmp = caddr(exp)?&exp->cdr->cdr->car:SAO_NULL; tmp&&(*tmp); tmp = cdr(*tmp)?&(*tmp)->cdr:SAO_NULL)
+			for (pointer = caddr(exp); (pointer); pointer = cdr(pointer))
+			//for (tmp = caddr(exp)?&exp->cdr->cdr->car:SAO_NULL; tmp&&(*tmp); tmp = cdr(*tmp)?&(*tmp)->cdr:SAO_NULL)
 				//for (tmp = &exp->cdr->cdr->car; (*tmp); tmp = &(*tmp)->cdr)
 			{
-				if(SAO_NULL!=tmp){
-					sao_object * tmp3 = caar(*tmp);
-					vars = cons(tmp3, vars);
-					sao_object * tmp2 = cadar(*tmp);
-					vals = cons(tmp2, vals);
-				}else{
-					sao_stdout("DEBUG 112\n");
-				}
+				vars = cons(caar(pointer), vars);
+				vals = cons(cadar(pointer), vals);
+				//if(SAO_NULL!=tmp){
+				//	sao_object * tmp3 = caar(*tmp);
+				//	vars = cons(tmp3, vars);
+				//	sao_object * tmp2 = cadar(*tmp);
+				//	vals = cons(tmp2, vals);
+				//}else{
+				//	sao_stdout("DEBUG 112\n");
+				//}
 			}
 			sao_def_var(cadr(exp),
 					sao_eval(sao_new_lambda(vars, cdr(cddr(exp))),
@@ -979,10 +983,14 @@ tail:
 			exp = cons(cadr(exp), vals);
 			goto tail;
 		}
-		for (tmp = &exp->cdr->car; (*tmp); tmp = &(*tmp)->cdr) {
-			vars = cons(caar(*tmp), vars);
-			vals = cons(cadar(*tmp), vals);
+		for (pointer = cadr(exp); (pointer); pointer = cdr(pointer)) {
+			vars = cons(caar(pointer), vars);
+			vals = cons(cadar(pointer), vals);
 		}
+		//for (tmp = &exp->cdr->car; (*tmp); tmp = &(*tmp)->cdr) {
+		//	vars = cons(caar(*tmp), vars);
+		//	vals = cons(cadar(*tmp), vals);
+		//}
 		exp = cons(sao_new_lambda(vars, cddr(exp)), vals);
 		goto tail;
 	} else { /* procedure, parameters, body expr, ctx */

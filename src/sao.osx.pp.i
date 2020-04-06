@@ -113,6 +113,7 @@ struct _sao_object {
     };
     char *_string;
     long _integer;
+    double _double;
     native_t native;
    };
    type_t type;
@@ -951,21 +952,15 @@ tail:
   }
   return sao_new_symbol("ok");
  } else if (is_tagged(exp, LET)) {
-  sao_object **tmp;
+  sao_object *pointer;
   sao_object *vars = NIL;
   sao_object *vals = NIL;
   if (!(cadr(exp))) return NIL;
   if (sao_is_atom(cadr(exp))) {
-   for (tmp = caddr(exp)?&exp->cdr->cdr->car:((void*)0); tmp&&(*tmp); tmp = cdr(*tmp)?&(*tmp)->cdr:((void*)0))
+   for (pointer = caddr(exp); (pointer); pointer = cdr(pointer))
    {
-    if(((void*)0)!=tmp){
-     sao_object * tmp3 = caar(*tmp);
-     vars = cons(tmp3, vars);
-     sao_object * tmp2 = cadar(*tmp);
-     vals = cons(tmp2, vals);
-    }else{
-     libc_(libc_printf,"printf")("DEBUG 112\n");
-    }
+    vars = cons(caar(pointer), vars);
+    vals = cons(cadar(pointer), vals);
    }
    sao_def_var(cadr(exp),
      sao_eval(sao_new_lambda(vars, cdr(cddr(exp))),
@@ -974,9 +969,9 @@ tail:
    exp = cons(cadr(exp), vals);
    goto tail;
   }
-  for (tmp = &exp->cdr->car; (*tmp); tmp = &(*tmp)->cdr) {
-   vars = cons(caar(*tmp), vars);
-   vals = cons(cadar(*tmp), vals);
+  for (pointer = cadr(exp); (pointer); pointer = cdr(pointer)) {
+   vars = cons(caar(pointer), vars);
+   vals = cons(cadar(pointer), vals);
   }
   exp = cons(sao_new_lambda(vars, cddr(exp)), vals);
   goto tail;
