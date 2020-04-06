@@ -761,7 +761,9 @@ sao_object * sao_type_check(const char *func, sao_object *obj, type_t type)
 }
 
 #include "libsaolang.c" //
-#define add_sym(s, c) do{c=sao_new_symbol(s);sao_def_var(c,c,SAO_TAG_global);}while(0);
+
+//#define add_sym(s, c) do{c=sao_new_symbol(s);sao_def_var(c,c,SAO_TAG_global);}while(0);
+
 #define add_sym_x(x) do{SAO_TAG_##x=sao_new_symbol(#x);sao_def_var(SAO_TAG_##x,SAO_TAG_##x,SAO_TAG_global);}while(0);
 sao_object * sao_init() {
 
