@@ -118,45 +118,48 @@ long sao_is_digit(int c) { return (long) libc(isdigit)(c); }
 long sao_is_alpha(int c) { return (long) libc(isalpha)(c); }
 long sao_is_alphanumber(int c) { return (long) libc(isalnum)(c); }
 
+p_sao_obj g_symbol_holder = SAO_NULL;
+
 //TODO see merge with type_table !!
-p_sao_obj * gHTable = SAO_NULL;
-long gHTable_len = 0;
-long ht_hash(const char *s, int ht_len) {
-	long h = 0;
-	char *u = (char *) s;
-	while (*u) { h = (h * 256 + (*u)) % ht_len; u++; }
-	return h;
-}
-int ht_resize(int newsize){
-	//if (gHTable)
-	p_sao_obj * newTable = SAO_NEW(p_sao_obj,newsize);
-	for(int i=0;i<gHTable_len;i++){
-		if (SAO_NULL!=gHTable[i]) {
-			int h = ht_hash(gHTable[i]->_string, newsize);
-			if(SAO_NULL != newTable[h]){
-				sao_stdout("DEBUG: newTable(%d) still full ??\n", newsize);
-			}
-			newTable[h]= gHTable[i];
-		}
-	}
-	gHTable = newTable;
-	gHTable_len = newsize;
-	return newsize;
-}
-void ht_insert(p_sao_obj key_obj) {
-	long h = ht_hash(key_obj->_string, gHTable_len);
-	if(SAO_NULL != gHTable[h] && SAO_NULL!=gHTable[h]->_string){
-		int newsize = 2*(gHTable_len+1)-1 ;
-		ht_resize( newsize );
-		ht_insert( key_obj );
-		return;
-	}
-	gHTable[h]= key_obj;
-}
-p_sao_obj ht_lookup(char *s) {
-	long h = ht_hash(s, gHTable_len);
-	return gHTable[h];
-}
+//p_sao_obj * gHTable = SAO_NULL;
+//long gHTable_len = 0;
+//long ht_hash(const char *s, int ht_len) {
+//	long h = 0;
+//	char *u = (char *) s;
+//	while (*u) { h = (h * 256 + (*u)) % ht_len; u++; }
+//	return h;
+//}
+//int ht_resize(int newsize){
+//	//if (gHTable)
+//	p_sao_obj * newTable = SAO_NEW(p_sao_obj,newsize);
+//	for(int i=0;i<gHTable_len;i++){
+//		if (SAO_NULL!=gHTable[i]) {
+//			int h = ht_hash(gHTable[i]->_string, newsize);
+//			if(SAO_NULL != newTable[h]){
+//				sao_stdout("DEBUG: newTable(%d) still full ??\n", newsize);
+//			}
+//			newTable[h]= gHTable[i];
+//		}
+//	}
+//	gHTable = newTable;
+//	gHTable_len = newsize;
+//	return newsize;
+//}
+//void ht_insert(p_sao_obj key_obj) {
+//	long h = ht_hash(key_obj->_string, gHTable_len);
+//	if(SAO_NULL != gHTable[h] && SAO_NULL!=gHTable[h]->_string){
+//		int newsize = 2*(gHTable_len+1)-1 ;
+//		ht_resize( newsize );
+//		ht_insert( key_obj );
+//		return;
+//	}
+//	gHTable[h]= key_obj;
+//}
+//p_sao_obj ht_lookup(char *s) {
+//	long h = ht_hash(s, gHTable_len);
+//	return gHTable[h];
+//}
+
 p_sao_obj sao_alloc(type_t type) {
 	SAO_NEW_OBJECT(sao_obj,ret);//TODO gc()
 	if(ret<0) sao_error("ASSERT: mem full when sao_alloc(%d)",ret);
@@ -235,20 +238,22 @@ p_sao_obj sao_tbl_resize(p_sao_obj holder,int size){
 	}
 	return holder;
 }
-long sao_tbl_hash(const char *s, int ht_len) {
+long sao_table_hash(const char *s, int ht_len) {
 	long h = 0;
 	char *u = (char *) s;
 	while (*u) { h = (h * 256 + (*u)) % ht_len; u++; }
 	return h;
 }
-p_sao_obj sao_tbl_insert(p_sao_obj holder,p_sao_obj key_obj){
-	if(!holder) sao_error("sao_tbl_insert(holder)\n");
+p_sao_obj sao_table_insert(p_sao_obj holder,p_sao_obj key_obj){
+	if(!holder) sao_error("sao_table_insert(holder)\n");
+	if(!key_obj) sao_error("sao_table_insert(key_obj)\n");
 
 	p_sao_obj* the_table = holder->_table;
 	if(!the_table) sao_error("empty _table?");
-	long h = sao_tbl_hash(key_obj->_string, holder->_size);
+	if(!holder->_size) sao_error("empty _table.size?");
+	long h = sao_table_hash(key_obj->_string, holder->_size);
 	if(the_table[h]){
-		sao_warn("TODO sao_tbl_insert table need to resize?\n");
+		//sao_warn("TODO sao_table_insert table need to resize (%d,%s)?\n",h,key_obj->_string);
 	}
 	//if(!the_table || (SAO_NULL != the_table[h] && SAO_NULL!=the_table[h]->_string)){
 	//	int size = 2*(holder->size+1)-1 ;
@@ -257,6 +262,15 @@ p_sao_obj sao_tbl_insert(p_sao_obj holder,p_sao_obj key_obj){
 	//}
 	the_table[h]= key_obj;
 	return holder;
+}
+
+p_sao_obj sao_table_lookup(p_sao_obj holder,char *s) {
+	if(!holder) sao_error("sao_table_lookup(holder)\n");
+	p_sao_obj* the_table = holder->_table;
+	if(!the_table) sao_error("empty _table?");
+	if(!holder->_size) sao_error("empty _table.size?");
+	long h = sao_table_hash(s, holder->_size);
+	return the_table[h];
 }
 
 //p_sao_obj append(p_sao_obj l1, p_sao_obj l2) {
@@ -270,17 +284,23 @@ p_sao_obj sao_new_vector(int size) {
 	return ret;
 }
 p_sao_obj sao_new_symbol(char *s) {
-	p_sao_obj ret = ht_lookup(s);
+	//p_sao_obj ret = ht_lookup(s);
+	p_sao_obj ret = sao_table_lookup(g_symbol_holder,s);
 	if (!(ret)) {
 		ret = sao_alloc(type_symbol);
 		ret->_string = libc(strdup)(s);
-		ht_insert(ret);
+		//ht_insert(ret);
+		sao_table_insert(g_symbol_holder,ret);
 	}else{
+		//TODO need using depth also?
 		if(!libc(strcmp)(ret->_string,s)){
+			//sao_warn("sao_table_insert again same for (%s)?\n",s);
+			//sao_table_insert(g_symbol_holder,ret);
 		}else{
-			int newsize = 2*(gHTable_len+1)-1 ;
-			ht_resize( newsize );
-			return sao_new_symbol(s);
+			sao_error("g_symbol_holder full? (%s,%s)\n",ret->_string,s);
+		//	int newsize = 2*(gHTable_len+1)-1 ;
+		//	ht_resize( newsize );
+		//	return sao_new_symbol(s);
 		}
 	}
 	return ret;
@@ -795,7 +815,9 @@ void print_help(){ sao_stdout("Usage	 : sao [options] [script.sao | -]]\nOptions
 int main(int argc, char **argv) {
 	ffic_func strcmp = libc(strcmp);
 	libc(setmode)(libc(fileno)(libc(stdin)),0x8000/*O_BINARY*/);
-	ht_resize(16384-1);//TODO improve hashtable later
+	//ht_resize(16384-1);//TODO improve hashtable later
+	//g_symbol_holder = sao_new_table(16384-1);
+	g_symbol_holder = sao_new_table(65536-1);//TODO...
 	SAO_TAG_global = sao_expand(SAO_TAG_nil, SAO_TAG_nil, SAO_TAG_nil);
 	SAO_TAG_argv = sao_expand(SAO_TAG_nil, SAO_TAG_nil, SAO_TAG_nil);
 	SAO_ITR(add_sym_x, SAO_EXPAND(LIST_SAO_TAG));

@@ -163,43 +163,7 @@ p_sao_obj sao_is_atom(p_sao_obj x){ return (x&&x->_type)?x:SAO_TAG_nil; }
 long sao_is_digit(int c) { return (long) libc_(libc_isdigit,"isdigit")(c); }
 long sao_is_alpha(int c) { return (long) libc_(libc_isalpha,"isalpha")(c); }
 long sao_is_alphanumber(int c) { return (long) libc_(libc_isalnum,"isalnum")(c); }
-p_sao_obj * gHTable = ((void*)0);
-long gHTable_len = 0;
-long ht_hash(const char *s, int ht_len) {
- long h = 0;
- char *u = (char *) s;
- while (*u) { h = (h * 256 + (*u)) % ht_len; u++; }
- return h;
-}
-int ht_resize(int newsize){
- p_sao_obj * newTable = sao_calloc( sizeof(p_sao_obj) *(newsize) );
- for(int i=0;i<gHTable_len;i++){
-  if (((void*)0)!=gHTable[i]) {
-   int h = ht_hash(gHTable[i]->_string, newsize);
-   if(((void*)0) != newTable[h]){
-    libc_(libc_printf,"printf")("DEBUG: newTable(%d) still full ??\n", newsize);
-   }
-   newTable[h]= gHTable[i];
-  }
- }
- gHTable = newTable;
- gHTable_len = newsize;
- return newsize;
-}
-void ht_insert(p_sao_obj key_obj) {
- long h = ht_hash(key_obj->_string, gHTable_len);
- if(((void*)0) != gHTable[h] && ((void*)0)!=gHTable[h]->_string){
-  int newsize = 2*(gHTable_len+1)-1 ;
-  ht_resize( newsize );
-  ht_insert( key_obj );
-  return;
- }
- gHTable[h]= key_obj;
-}
-p_sao_obj ht_lookup(char *s) {
- long h = ht_hash(s, gHTable_len);
- return gHTable[h];
-}
+p_sao_obj g_symbol_holder = ((void*)0);
 p_sao_obj sao_alloc(type_t type) {
  sao_obj*ret=sao_calloc( sizeof(sao_obj) );;
  if(ret<0) do{libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"ASSERT: mem full when sao_alloc(%d)",ret);libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"\n");libc_(libc_exit,"exit")(1);}while(0);
@@ -275,22 +239,31 @@ p_sao_obj sao_tbl_resize(p_sao_obj holder,int size){
  }
  return holder;
 }
-long sao_tbl_hash(const char *s, int ht_len) {
+long sao_table_hash(const char *s, int ht_len) {
  long h = 0;
  char *u = (char *) s;
  while (*u) { h = (h * 256 + (*u)) % ht_len; u++; }
  return h;
 }
-p_sao_obj sao_tbl_insert(p_sao_obj holder,p_sao_obj key_obj){
- if(!holder) do{libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"sao_tbl_insert(holder)\n");libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"\n");libc_(libc_exit,"exit")(1);}while(0);
+p_sao_obj sao_table_insert(p_sao_obj holder,p_sao_obj key_obj){
+ if(!holder) do{libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"sao_table_insert(holder)\n");libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"\n");libc_(libc_exit,"exit")(1);}while(0);
+ if(!key_obj) do{libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"sao_table_insert(key_obj)\n");libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"\n");libc_(libc_exit,"exit")(1);}while(0);
  p_sao_obj* the_table = holder->_table;
  if(!the_table) do{libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"empty _table?");libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"\n");libc_(libc_exit,"exit")(1);}while(0);
- long h = sao_tbl_hash(key_obj->_string, holder->_size);
+ if(!holder->_size) do{libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"empty _table.size?");libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"\n");libc_(libc_exit,"exit")(1);}while(0);
+ long h = sao_table_hash(key_obj->_string, holder->_size);
  if(the_table[h]){
-  libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"TODO sao_tbl_insert table need to resize?\n");;
  }
  the_table[h]= key_obj;
  return holder;
+}
+p_sao_obj sao_table_lookup(p_sao_obj holder,char *s) {
+ if(!holder) do{libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"sao_table_lookup(holder)\n");libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"\n");libc_(libc_exit,"exit")(1);}while(0);
+ p_sao_obj* the_table = holder->_table;
+ if(!the_table) do{libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"empty _table?");libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"\n");libc_(libc_exit,"exit")(1);}while(0);
+ if(!holder->_size) do{libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"empty _table.size?");libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"\n");libc_(libc_exit,"exit")(1);}while(0);
+ long h = sao_table_hash(s, holder->_size);
+ return the_table[h];
 }
 p_sao_obj sao_new_vector(int size) {
  p_sao_obj ret = sao_alloc(type_vector);
@@ -299,17 +272,17 @@ p_sao_obj sao_new_vector(int size) {
  return ret;
 }
 p_sao_obj sao_new_symbol(char *s) {
- p_sao_obj ret = ht_lookup(s);
+ p_sao_obj ret = sao_table_lookup(g_symbol_holder,s);
  if (!(ret)) {
   ret = sao_alloc(type_symbol);
   ret->_string = libc_(libc_strdup,"strdup")(s);
-  ht_insert(ret);
+  sao_table_insert(g_symbol_holder,ret);
  }else{
   if(!libc_(libc_strcmp,"strcmp")(ret->_string,s)){
+   libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"sao_table_insert again same for (%s)?\n",s);;
+   sao_table_insert(g_symbol_holder,ret);
   }else{
-   int newsize = 2*(gHTable_len+1)-1 ;
-   ht_resize( newsize );
-   return sao_new_symbol(s);
+   do{libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"g_symbol_holder full? (%s,%s)\n",ret->_string,s);libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"\n");libc_(libc_exit,"exit")(1);}while(0);
   }
  }
  return ret;
@@ -996,7 +969,7 @@ void print_help(){ libc_(libc_printf,"printf")("Usage	 : sao [options] [script.s
 int main(int argc, char **argv) {
  ffic_func strcmp = libc_(libc_strcmp,"strcmp");
  libc_(libc_setmode,"setmode")(libc_(libc_fileno,"fileno")(libc_(libc_stdin,"stdin")),0x8000 );
- ht_resize(16384-1);
+ g_symbol_holder = sao_new_table(16384-1);
  SAO_TAG_global = sao_expand(SAO_TAG_nil, SAO_TAG_nil, SAO_TAG_nil);
  SAO_TAG_argv = sao_expand(SAO_TAG_nil, SAO_TAG_nil, SAO_TAG_nil);
  do{SAO_TAG_true=sao_new_symbol("true");sao_def_var(SAO_TAG_true,SAO_TAG_true,SAO_TAG_global);}while(0); do{SAO_TAG_false=sao_new_symbol("false");sao_def_var(SAO_TAG_false,SAO_TAG_false,SAO_TAG_global);}while(0); do{SAO_TAG_quote=sao_new_symbol("quote");sao_def_var(SAO_TAG_quote,SAO_TAG_quote,SAO_TAG_global);}while(0); do{SAO_TAG_set=sao_new_symbol("set");sao_def_var(SAO_TAG_set,SAO_TAG_set,SAO_TAG_global);}while(0); do{SAO_TAG_let=sao_new_symbol("let");sao_def_var(SAO_TAG_let,SAO_TAG_let,SAO_TAG_global);}while(0); do{SAO_TAG_var=sao_new_symbol("var");sao_def_var(SAO_TAG_var,SAO_TAG_var,SAO_TAG_global);}while(0); do{SAO_TAG_procedure=sao_new_symbol("procedure");sao_def_var(SAO_TAG_procedure,SAO_TAG_procedure,SAO_TAG_global);}while(0); do{SAO_TAG_if=sao_new_symbol("if");sao_def_var(SAO_TAG_if,SAO_TAG_if,SAO_TAG_global);}while(0); do{SAO_TAG_lambda=sao_new_symbol("lambda");sao_def_var(SAO_TAG_lambda,SAO_TAG_lambda,SAO_TAG_global);}while(0); do{SAO_TAG_begin=sao_new_symbol("begin");sao_def_var(SAO_TAG_begin,SAO_TAG_begin,SAO_TAG_global);}while(0); do{SAO_TAG_or=sao_new_symbol("or");sao_def_var(SAO_TAG_or,SAO_TAG_or,SAO_TAG_global);}while(0); do{SAO_TAG_ok=sao_new_symbol("ok");sao_def_var(SAO_TAG_ok,SAO_TAG_ok,SAO_TAG_global);}while(0); do{SAO_TAG_else=sao_new_symbol("else");sao_def_var(SAO_TAG_else,SAO_TAG_else,SAO_TAG_global);}while(0); do{SAO_TAG_cond=sao_new_symbol("cond");sao_def_var(SAO_TAG_cond,SAO_TAG_cond,SAO_TAG_global);}while(0); do{SAO_TAG_error=sao_new_symbol("error");sao_def_var(SAO_TAG_error,SAO_TAG_error,SAO_TAG_global);}while(0);;
