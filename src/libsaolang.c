@@ -1,4 +1,4 @@
-sao_object *native_type(sao_object *args) { return sao_new_symbol(type_names[car(args)->type]); }
+sao_object *native_type(sao_object *args) { return sao_new_symbol(type_names[car(args)->_type]); }
 sao_object *native_global(sao_object *args) { return GLOBAL; }
 sao_object *native_list(sao_object *args) { return (args); }
 sao_object *native_cons(sao_object *args) { return cons(car(args), cadr(args)); }
@@ -8,21 +8,21 @@ sao_object *native_setcar(sao_object *args) { SAO_CHECK_TYPE(car(args), type_lis
 sao_object *native_setcdr(sao_object *args) { SAO_CHECK_TYPE(car(args), type_list); (args->car->cdr = (cadr(args))); return NIL; }
 sao_object *native_is_null(sao_object *args) { return !(car(args)) ? TRUE : FALSE; }
 sao_object *native_pairq(sao_object *args) {
-	if (car(args)->type != type_list) return FALSE;
+	if (car(args)->_type != type_list) return FALSE;
 	return (sao_is_atom(caar(args)) && sao_is_atom(cdar(args))) ? TRUE : FALSE;
 }
 sao_object *native_is_list(sao_object *args) {
 	sao_object *list;
-	if (car(args)->type != type_list)
+	if (car(args)->_type != type_list)
 		return FALSE;
 	for (list = car(args); (list); list = list->cdr)
-		if ((list->cdr) && (list->cdr->type != type_list))
+		if ((list->cdr) && (list->cdr->_type != type_list))
 			return FALSE;
-	return (car(args)->type == type_list && native_pairq(args) != TRUE) ? TRUE : FALSE;
+	return (car(args)->_type == type_list && native_pairq(args) != TRUE) ? TRUE : FALSE;
 }
 sao_object *native_atomq(sao_object *sexp) { return sao_is_atom(car(sexp)) ? TRUE : FALSE; }
 sao_object *native_cmp(sao_object *args) {
-	if ((car(args)->type != type_integer) || (cadr(args)->type != type_integer))
+	if ((car(args)->_type != type_integer) || (cadr(args)->_type != type_integer))
 		return FALSE;
 	return (car(args)->_integer == cadr(args)->_integer) ? TRUE : FALSE;
 }
@@ -31,7 +31,7 @@ sao_object *native_eqq(sao_object *args) { return sao_is_eq(car(args), cadr(args
 sao_object *native_equalq(sao_object *args) {
 	if (sao_is_eq(car(args), cadr(args)))
 		return TRUE;
-	if ((car(args)->type == type_list) && (cadr(args)->type == type_list)) {
+	if ((car(args)->_type == type_list) && (cadr(args)->_type == type_list)) {
 		sao_object *a, *b;
 		a = car(args);
 		b = cadr(args);
@@ -43,7 +43,7 @@ sao_object *native_equalq(sao_object *args) {
 		}
 		return TRUE;
 	}
-	if ((car(args)->type == type_vector) && (cadr(args)->type == type_vector)) {
+	if ((car(args)->_type == type_vector) && (cadr(args)->_type == type_vector)) {
 		if (car(args)->_len != cadr(args)->_len) {
 			return FALSE;
 		}
