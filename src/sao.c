@@ -64,8 +64,12 @@ int argta[argt_h+1];
 
 define_map(ctype, long,double,any);
 define_map(stream, file,char);
-define_map(type, list,integer,double,symbol,string,native,vector,table);
-//#define feature_table //[0.0.10]
+#define feature_table //[0.0.10]+
+define_map(type, list,integer,double,symbol,string,native,vector,
+#ifdef feature_table
+		table
+#endif
+		);
 
 typedef struct _sao_obj sao_obj,*p_sao_obj;
 typedef p_sao_obj (*native_t)(p_sao_obj );
@@ -116,8 +120,10 @@ p_sao_obj sao_new(sao_obj tpl) {
 			ret->_string=libc(strdup)(ret->_string);break;
 		case type_vector:
 			ret->_vector = SAO_NEW_C(p_sao_obj,ret->_len);break;//
+#ifdef feature_table
 		case type_table:
 			ret->_table = SAO_NEW_C(p_sao_obj,ret->_size);break;//
+#endif
 		case type_native:
 			//TODO
 			break;
@@ -218,10 +224,16 @@ p_sao_obj cadddr(p_sao_obj x) {
 	if(x->cdr->cdr->cdr->_type)return SAO_TAG_nil;
 	return x->cdr->cdr->cdr->car;
 }
+#define sao_new_symbol(s) sao_new((sao_obj){._type=type_symbol,._string=s})
+//p_sao_obj sao_new_symbol(ffic_string s) { return sao_new( (sao_obj) {._type=type_symbol, ._string=s} ); } //save 4k size...
+p_sao_obj sao_new_lambda(p_sao_obj params, p_sao_obj body) { return cons(SAO_TAG_lambda, cons(params, body)); }
+p_sao_obj sao_new_procedure(p_sao_obj params, p_sao_obj body, p_sao_obj ctx) {
+	return cons(SAO_TAG_procedure, cons(params, cons(body, cons(ctx, SAO_TAG_nil))));
+}
 #ifdef feature_table //TODO building table next minor.version
 long sao_table_hash(const ffic_string s, int ht_len) {
 	long h = 0;
-	ffic_string u = ffic_string s;
+	ffic_string u = s;
 	while (*u) { h = (h * 256 + (*u)) % ht_len; u++; }
 	return h;
 }
@@ -253,15 +265,8 @@ p_sao_obj sao_table_insert(p_sao_obj holder,p_sao_obj key_obj){
 	return holder;
 }
 #endif
-//#define sao_new_symbol(s) sao_new((sao_obj){._type=type_symbol,._string=s})
-p_sao_obj sao_new_symbol(ffic_string s) { return sao_new( (sao_obj) {._type=type_symbol, ._string=s} ); } //save 4k size...
-p_sao_obj sao_new_lambda(p_sao_obj params, p_sao_obj body) { return cons(SAO_TAG_lambda, cons(params, body)); }
-p_sao_obj sao_new_procedure(p_sao_obj params, p_sao_obj body, p_sao_obj ctx) {
-	return cons(SAO_TAG_procedure, cons(params, cons(body, cons(ctx, SAO_TAG_nil))));
-}
 #ifdef feature_table
 #define sao_new_table(s) sao_new((sao_obj){._type=type_table, ._size=s})
-//p_sao_obj sao_new_table(int size) { return sao_new((sao_obj){._type=type_table,._size=size}); }
 p_sao_obj sao_tbl_resize(p_sao_obj holder,int size){
 	//if(!holder)
 	if(!holder)
@@ -576,8 +581,10 @@ void sao_out_expr(ffic_string str, p_sao_obj el){
 			sao_stdout("<function>"); break;
 		case type_vector:
 			sao_stdout("<vector %d>", el->_len); break;
+#ifdef feature_table
 		case type_table:
 			sao_stdout("<table %d>", el->_size); break;
+#endif
 		case type_list:
 			if (sao_is_tagged(el, SAO_TAG_procedure)) {
 				sao_stdout("<closure>");//lambda
