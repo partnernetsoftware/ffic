@@ -175,7 +175,7 @@ typedef struct {
 p_sao_obj sao_eval(p_sao_obj exp, p_sao_obj ctx);
 p_sao_obj sao_load_expr(sao_stream * fw);
 p_sao_obj g_symbol_holder = ((void*)0);
-p_sao_obj cons(p_sao_obj car, p_sao_obj cdr) { p_sao_obj ret = sao_new((sao_obj){._type=type_list,}); ret->car = car; ret->cdr = cdr; return ret; }
+p_sao_obj cons(p_sao_obj car, p_sao_obj cdr) { p_sao_obj ret = sao_new((sao_obj){._type=type_list,.car=car,.cdr=cdr});return ret; }
 p_sao_obj car(p_sao_obj x) { return (!x || x->_type)? SAO_TAG_nil: x->car; }
 p_sao_obj cdr(p_sao_obj x) { return (!x || x->_type)? SAO_TAG_nil: x->cdr; }
 p_sao_obj caar(p_sao_obj x) { return (!x || x->_type || !x->car || x->car->_type)? SAO_TAG_nil: x->car->car; }

@@ -164,7 +164,10 @@ p_sao_obj sao_load_expr(sao_stream * fw);
 p_sao_obj g_symbol_holder = SAO_NULL;
 #endif
 
-p_sao_obj cons(p_sao_obj car, p_sao_obj cdr) { p_sao_obj ret = sao_new_x(list); ret->car = car; ret->cdr = cdr; return ret; }
+//p_sao_obj cons(p_sao_obj car, p_sao_obj cdr) { p_sao_obj ret = sao_new_x(list); ret->car = car; ret->cdr = cdr; return ret; }
+//#define cons(a,d) sao_new_x(list,._car=(a),._cdr=(d))//ko...
+//#define cons(a,d) sao_new((sao_obj){._type=type_list, ._car=(a), ._cdr=(d)})//ko
+p_sao_obj cons(p_sao_obj car, p_sao_obj cdr) { p_sao_obj ret = sao_new_x(list,.car=car,.cdr=cdr);return ret; }
 p_sao_obj car(p_sao_obj x) { return (!x || x->_type)? SAO_TAG_nil: x->car; }
 p_sao_obj cdr(p_sao_obj x) { return (!x || x->_type)? SAO_TAG_nil: x->cdr; }
 p_sao_obj caar(p_sao_obj x) { return (!x || x->_type || !x->car || x->car->_type)? SAO_TAG_nil: x->car->car; }
