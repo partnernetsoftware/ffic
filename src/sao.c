@@ -76,7 +76,7 @@ struct _sao_obj {
 				struct { p_sao_obj car; p_sao_obj cdr; /* p_sao_obj upr; upper link for contexting */}; 
 				struct { p_sao_obj* _vector; long _len; };
 				struct { p_sao_obj* _table; long _size; };
-				char *_string;
+				struct { char *_string; long _depth;};
 				long _integer;
 				double _double;//TODO with basic math.
 				struct { native_t _native; char *_ffi;/* $sharelib.$method */ };
@@ -88,6 +88,9 @@ struct _sao_obj {
 p_sao_obj sao_new(sao_obj tpl) {
 	sao_obj * ret = libc(malloc)(sizeof(sao_obj));
 	libc(memcpy)(ret,&tpl,sizeof(sao_obj));
+	if(type_string==ret->_type){
+		ret->_string=libc(strdup)(ret->_string);
+	}
 	return ret;
 }
 #define define_sao_tag(n) p_sao_obj SAO_TAG_##n=SAO_NULL;
@@ -499,20 +502,15 @@ p_sao_obj sao_read_list(sao_stream * fw)
 	}
 	return SAO_TAG_nil;
 }
-p_sao_obj sao_load_str(sao_stream * fw)
-{
-	char buf[256];
-	int i = 0;
-	int c;
+p_sao_obj sao_read_str(sao_stream * fw) {
+	char buf[256]; int i = 0; int c;
 	while ((c = sao_deq_c(fw)) != '\"') {
 		if (c == SAO_EOF) return SAO_TAG_nil;
 		if (i >= 256) sao_error("String too long - maximum length 256 characters");
 		buf[i++] = (char) c;
 	}
 	buf[i] = '\0';
-	p_sao_obj s = sao_new_symbol(buf);
-	s->_type = type_string;
-	return s;
+	return sao_new((sao_obj){._type=type_string,._string=buf});
 }
 void sao_comment(sao_stream * fw) { int c; for (;;) { c = sao_deq_c(fw); if (c == '\n' || c == SAO_EOF) return; } }
 p_sao_obj sao_load_expr(sao_stream * fw)
@@ -530,7 +528,7 @@ p_sao_obj sao_load_expr(sao_stream * fw)
 			case '\t':
 			case 0:
 			case ',': continue;
-			case '\"': return sao_load_str(fw);
+			case '\"': return sao_read_str(fw);
 		}
 		if (c == ';' || c=='#' || (c=='/'&&'/'==sao_peek(fw))){ sao_comment(fw); continue; }
 		if (c == '\''){
