@@ -175,13 +175,7 @@ typedef struct {
 p_sao_obj sao_eval(p_sao_obj exp, p_sao_obj ctx);
 p_sao_obj sao_load_expr(sao_stream * fw);
 p_sao_obj g_symbol_holder = ((void*)0);
-p_sao_obj sao_alloc(type_t type) {
- sao_obj*ret=sao_calloc( sizeof(sao_obj) );;
- if(ret<0) do{libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"ASSERT: mem full when sao_alloc(%d)",ret);libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"\n");libc_(libc_exit,"exit")(1);}while(0);
- ret->_type = type;
- return ret;
-}
-p_sao_obj cons(p_sao_obj car, p_sao_obj cdr) { p_sao_obj ret = sao_alloc(type_list); ret->car = car; ret->cdr = cdr; return ret; }
+p_sao_obj cons(p_sao_obj car, p_sao_obj cdr) { p_sao_obj ret = sao_new((sao_obj){._type=type_list,}); ret->car = car; ret->cdr = cdr; return ret; }
 p_sao_obj car(p_sao_obj x) { return (!x || x->_type)? SAO_TAG_nil: x->car; }
 p_sao_obj cdr(p_sao_obj x) { return (!x || x->_type)? SAO_TAG_nil: x->cdr; }
 p_sao_obj caar(p_sao_obj x) { return (!x || x->_type || !x->car || x->car->_type)? SAO_TAG_nil: x->car->car; }

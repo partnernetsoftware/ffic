@@ -45,14 +45,14 @@ ffic_func libc_(int fi,const ffic_string fn){ return libc_a[fi]?libc_a[fi]:(libc
 #define SAO_NULL ((void*)0)
 #define SAO_EOF (-1)
 #define SAO_CAT_COMMA(a,b) a##b,
+void* sao_calloc(long _sizeof){return libc(memset)(libc(malloc)(_sizeof),0,_sizeof);}
+#define SAO_NEW_C(t,...) sao_calloc( sizeof(t) SAO_IF(SAO_IS_PAREN(__VA_ARGS__ ()))(SAO_EAT(),*(__VA_ARGS__)) )
+#define SAO_NEW_OBJECT(t,n,...) t*n=SAO_NEW_C(t,__VA_ARGS__);
 #define define_enum_name(n) #n,
 #define define_enum_item(p,v) p##_##v,
 #define define_enum_t(n, ...) typedef enum { SAO_ITR1(define_enum_item,n,__VA_ARGS__) } n##_t;
 #define define_map_arr(n, ...) ffic_string n##_names[] = { SAO_ITR(define_enum_name,__VA_ARGS__) };
 #define define_map(n, ...) define_enum_t(n,__VA_ARGS__) define_map_arr(n,__VA_ARGS__)
-void* sao_calloc(long _sizeof){return libc(memset)(libc(malloc)(_sizeof),0,_sizeof);}
-#define SAO_NEW_C(t,...) sao_calloc( sizeof(t) SAO_IF(SAO_IS_PAREN(__VA_ARGS__ ()))(SAO_EAT(),*(__VA_ARGS__)) )
-#define SAO_NEW_OBJECT(t,n,...) t*n=SAO_NEW_C(t,__VA_ARGS__);
 #define sao_stderr(...) libc(fprintf)(libc(stderr),__VA_ARGS__)
 #define sao_stdout(...) libc(printf)(__VA_ARGS__)
 #define sao_error(...) do{sao_stderr(__VA_ARGS__);sao_stderr("\n");libc(exit)(1);}while(0)
@@ -90,7 +90,7 @@ struct _sao_obj {
 		};
 	};
 };
-//TODO to replace/remove the sao_alloc()!
+#define sao_new_x(t,...) sao_new((sao_obj){._type=type_##t,__VA_ARGS__})
 //TODO gc()
 p_sao_obj sao_new(sao_obj tpl) {
 	sao_obj * ret = libc(malloc)(sizeof(sao_obj));
@@ -164,13 +164,7 @@ p_sao_obj sao_load_expr(sao_stream * fw);
 p_sao_obj g_symbol_holder = SAO_NULL;
 #endif
 
-p_sao_obj sao_alloc(type_t type) {
-	SAO_NEW_OBJECT(sao_obj,ret);//TODO gc()
-	if(ret<0) sao_error("ASSERT: mem full when sao_alloc(%d)",ret);
-	ret->_type = type;
-	return ret;
-}
-p_sao_obj cons(p_sao_obj car, p_sao_obj cdr) { p_sao_obj ret = sao_alloc(type_list); ret->car = car; ret->cdr = cdr; return ret; }
+p_sao_obj cons(p_sao_obj car, p_sao_obj cdr) { p_sao_obj ret = sao_new_x(list); ret->car = car; ret->cdr = cdr; return ret; }
 p_sao_obj car(p_sao_obj x) { return (!x || x->_type)? SAO_TAG_nil: x->car; }
 p_sao_obj cdr(p_sao_obj x) { return (!x || x->_type)? SAO_TAG_nil: x->cdr; }
 p_sao_obj caar(p_sao_obj x) { return (!x || x->_type || !x->car || x->car->_type)? SAO_TAG_nil: x->car->car; }
