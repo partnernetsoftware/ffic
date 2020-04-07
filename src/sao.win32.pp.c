@@ -149,7 +149,11 @@ p_sao_obj sao_new(sao_obj tpl) {
   case type_table:
    ret->_table = sao_calloc( sizeof(p_sao_obj) *(ret->_size) );break;
   case type_native:
-  default: break;
+   break;
+  case type_double:
+  case type_integer:
+  case type_list:
+   break;
  }
  return ret;
 }
@@ -170,7 +174,6 @@ typedef struct {
 } sao_stream;
 p_sao_obj sao_eval(p_sao_obj exp, p_sao_obj ctx);
 p_sao_obj sao_load_expr(sao_stream * fw);
-p_sao_obj g_symbol_holder = ((void*)0);
 p_sao_obj sao_alloc(type_t type) {
  sao_obj*ret=sao_calloc( sizeof(sao_obj) );;
  if(ret<0) do{libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"ASSERT: mem full when sao_alloc(%d)",ret);libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"\n");libc_(libc_exit,"exit")(1);}while(0);

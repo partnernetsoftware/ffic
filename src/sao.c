@@ -93,25 +93,25 @@ p_sao_obj sao_new(sao_obj tpl) {
 	libc(memcpy)(ret,&tpl,sizeof(sao_obj));
 	switch(ret->_type){
 		case type_symbol:
-	//TODO jot the symbol depth
-//	p_sao_obj ret = sao_table_lookup(g_symbol_holder,s);
-//	if (!(ret)) {
-//		ret = sao_alloc(type_symbol);
-//		ret->_string = libc(strdup)(s);
-//		//ht_insert(ret);
-//		sao_table_insert(g_symbol_holder,ret);
-//	}else{
-//		//TODO need using depth also?
-//		if(!libc(strcmp)(ret->_string,s)){
-//			//sao_warn("sao_table_insert again same for (%s)?\n",s);
-//			//sao_table_insert(g_symbol_holder,ret);
-//		}else{
-//			sao_error("g_symbol_holder full? (%s,%s)\n",ret->_string,s);
-//		//	int newsize = 2*(gHTable_len+1)-1 ;
-//		//	ht_resize( newsize );
-//		//	return sao_new_symbol(s);
-//		}
-//	}
+			//TODO jot the symbol depth
+			//	p_sao_obj ret = sao_table_lookup(g_symbol_holder,s);
+			//	if (!(ret)) {
+			//		ret = sao_alloc(type_symbol);
+			//		ret->_string = libc(strdup)(s);
+			//		//ht_insert(ret);
+			//		sao_table_insert(g_symbol_holder,ret);
+			//	}else{
+			//		//TODO need using depth also?
+			//		if(!libc(strcmp)(ret->_string,s)){
+			//			//sao_warn("sao_table_insert again same for (%s)?\n",s);
+			//			//sao_table_insert(g_symbol_holder,ret);
+			//		}else{
+			//			sao_error("g_symbol_holder full? (%s,%s)\n",ret->_string,s);
+			//		//	int newsize = 2*(gHTable_len+1)-1 ;
+			//		//	ht_resize( newsize );
+			//		//	return sao_new_symbol(s);
+			//		}
+			//	}
 		case type_string:
 			ret->_string=libc(strdup)(ret->_string);break;
 		case type_vector:
@@ -120,7 +120,11 @@ p_sao_obj sao_new(sao_obj tpl) {
 			ret->_table = SAO_NEW_C(p_sao_obj,ret->_size);break;//
 		case type_native:
 			//TODO
-		default: break;
+			break;
+		case type_double:
+		case type_integer:
+		case type_list:
+			break;//TODO
 	}
 	return ret;
 }
@@ -150,7 +154,9 @@ p_sao_obj sao_load_expr(sao_stream * fw);
 #define sao_is_alpha(c) ((long)libc(isalpha)(c))
 #define sao_is_alphanumber(c) ((long)libc(isalnum)(c))
 
+#ifdef feature_table
 p_sao_obj g_symbol_holder = SAO_NULL;
+#endif
 
 p_sao_obj sao_alloc(type_t type) {
 	SAO_NEW_OBJECT(sao_obj,ret);//TODO gc()
@@ -247,8 +253,8 @@ p_sao_obj sao_table_insert(p_sao_obj holder,p_sao_obj key_obj){
 	return holder;
 }
 #endif
-//#define sao_new_symbol(s) sao_new((sao_obj){._type=type_symbol,._string=(s)})
-p_sao_obj sao_new_symbol(ffic_string s) { return sao_new( (sao_obj) {._type=type_symbol, ._string=s} ); }
+//#define sao_new_symbol(s) sao_new((sao_obj){._type=type_symbol,._string=s})
+p_sao_obj sao_new_symbol(ffic_string s) { return sao_new( (sao_obj) {._type=type_symbol, ._string=s} ); } //save 4k size...
 p_sao_obj sao_new_lambda(p_sao_obj params, p_sao_obj body) { return cons(SAO_TAG_lambda, cons(params, body)); }
 p_sao_obj sao_new_procedure(p_sao_obj params, p_sao_obj body, p_sao_obj ctx) {
 	return cons(SAO_TAG_procedure, cons(params, cons(body, cons(ctx, SAO_TAG_nil))));
