@@ -182,53 +182,11 @@ p_sao_obj caar(p_sao_obj x) { return (!x || x->_type || !x->car || x->car->_type
 p_sao_obj cdar(p_sao_obj x) { return (!x || x->_type || !x->car || x->car->_type)? SAO_TAG_nil: x->car->cdr; }
 p_sao_obj cadr(p_sao_obj x) { return (!x || x->_type || !x->cdr || x->cdr->_type)? SAO_TAG_nil: x->cdr->car; }
 p_sao_obj cddr(p_sao_obj x) { return (!x || x->_type || !x->cdr || x->cdr->_type)? SAO_TAG_nil: x->cdr->cdr; }
-p_sao_obj cadar(p_sao_obj x) {
- if(!x) return SAO_TAG_nil;
- if(x->_type) return SAO_TAG_nil;
- if(!x->car)return SAO_TAG_nil;
- if(x->car->_type)return SAO_TAG_nil;
- if(!x->car->cdr)return SAO_TAG_nil;
- if(x->car->cdr->_type)return SAO_TAG_nil;
- return x->car->cdr->car;
-}
-p_sao_obj caddr(p_sao_obj x) {
- if(!x)return SAO_TAG_nil;
- if(x->_type) return SAO_TAG_nil;
- if(!x->cdr)return SAO_TAG_nil;
- if(x->cdr->_type)return SAO_TAG_nil;
- if(!x->cdr->cdr)return SAO_TAG_nil;
- if(x->cdr->cdr->_type)return SAO_TAG_nil;
- return x->cdr->cdr->car;
-}
-p_sao_obj cdddr(p_sao_obj x) {
- if(!x)return SAO_TAG_nil;
- if(x->_type) return SAO_TAG_nil;
- if(!x->cdr)return SAO_TAG_nil;
- if(x->cdr->_type)return SAO_TAG_nil;
- if(!x->cdr->cdr)return SAO_TAG_nil;
- if(x->cdr->cdr->_type)return SAO_TAG_nil;
- return x->cdr->cdr->cdr;
-}
-p_sao_obj cdadr(p_sao_obj x) {
- if(!x)return SAO_TAG_nil;
- if(x->_type) return SAO_TAG_nil;
- if(!x->cdr)return SAO_TAG_nil;
- if(x->cdr->_type)return SAO_TAG_nil;
- if(!x->cdr->car)return SAO_TAG_nil;
- if(x->cdr->car->_type)return SAO_TAG_nil;
- return x->cdr->car->cdr;
-}
-p_sao_obj cadddr(p_sao_obj x) {
- if(!x)return SAO_TAG_nil;
- if(x->_type) return SAO_TAG_nil;
- if(!x->cdr)return SAO_TAG_nil;
- if(x->cdr->_type)return SAO_TAG_nil;
- if(!x->cdr->cdr)return SAO_TAG_nil;
- if(x->cdr->cdr->_type)return SAO_TAG_nil;
- if(!x->cdr->cdr->cdr)return SAO_TAG_nil;
- if(x->cdr->cdr->cdr->_type)return SAO_TAG_nil;
- return x->cdr->cdr->cdr->car;
-}
+p_sao_obj cadar(p_sao_obj x) { return (!x || x->_type || !x->car || x->car->_type || !x->car->cdr || x->car->cdr->_type)? SAO_TAG_nil: x->car->cdr->car; }
+p_sao_obj caddr(p_sao_obj x) { return (!x || x->_type || !x->cdr || x->cdr->_type || !x->cdr->cdr || x->cdr->cdr->_type)? SAO_TAG_nil: x->cdr->cdr->car; }
+p_sao_obj cdddr(p_sao_obj x) { return (!x || x->_type || !x->cdr || x->cdr->_type || !x->cdr->cdr || x->cdr->cdr->_type)? SAO_TAG_nil: x->cdr->cdr->cdr; }
+p_sao_obj cdadr(p_sao_obj x) { return (!x || x->_type || !x->cdr || x->cdr->_type || !x->cdr->car || x->cdr->car->_type)? SAO_TAG_nil: x->cdr->car->cdr; }
+p_sao_obj cadddr(p_sao_obj x) { return (!x || x->_type || !x->cdr || x->cdr->_type || !x->cdr->cdr || x->cdr->cdr->_type || !x->cdr->cdr->cdr || x->cdr->cdr->cdr->_type)? SAO_TAG_nil: x->cdr->cdr->cdr->car; }
 p_sao_obj sao_new_lambda(p_sao_obj params, p_sao_obj body) { return cons(SAO_TAG_lambda, cons(params, body)); }
 p_sao_obj sao_new_procedure(p_sao_obj params, p_sao_obj body, p_sao_obj ctx) {
  return cons(SAO_TAG_procedure, cons(params, cons(body, cons(ctx, SAO_TAG_nil))));

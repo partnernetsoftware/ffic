@@ -1,5 +1,3 @@
-#define SAO_CHECK_TYPE(x, t) (sao_type_check((ffic_string)__func__, x, t))
-
 p_sao_obj sao_type_check(const ffic_string func, p_sao_obj obj, type_t type)
 {
 	if (!(obj)) {
@@ -12,6 +10,7 @@ p_sao_obj sao_type_check(const ffic_string func, p_sao_obj obj, type_t type)
 	}
 	return obj;
 }
+#define SAO_CHECK_TYPE(x, t) (sao_type_check((ffic_string)__func__, x, t))
 
 p_sao_obj native_type(p_sao_obj args) { return sao_new_symbol(type_names[car(args)->_type]); }
 p_sao_obj native_global(p_sao_obj args) { return SAO_TAG_global; }
@@ -210,14 +209,14 @@ p_sao_obj saolang_init()
 			list);//for test.sao
 
 	return SAO_TAG_global;
-//	SAO_ITR(add_sym_list,
-//			exit,shell,ffi,global,//sys
-//			type,cons,car,cdr,setcar,setcdr,//core
-//			list,vector,vget,vset,//data structure
-//			load,print,read,//io
-//			add,sub,mul,div,cmp,lt,gt,//logic,
-//			is_null,is_list,pairq,atomq,eqq,equalq,//helpers
-//			);
-//	return SAO_TAG_global;
+	//	SAO_ITR(add_sym_list,
+	//			exit,shell,ffi,global,//sys
+	//			type,cons,car,cdr,setcar,setcdr,//core
+	//			list,vector,vget,vset,//data structure
+	//			load,print,read,//io
+	//			add,sub,mul,div,cmp,lt,gt,//logic,
+	//			is_null,is_list,pairq,atomq,eqq,equalq,//helpers
+	//			);
+	//	return SAO_TAG_global;
 }
 
