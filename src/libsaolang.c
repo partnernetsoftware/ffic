@@ -197,7 +197,8 @@ p_sao_obj native_print(p_sao_obj args) {
 	sao_stdout("\n");
 	return SAO_TAG_nil;
 }
-#define add_sym_list(n) sao_def_var(sao_new_symbol(#n), sao_new_native(native_##n), SAO_TAG_global);
+#define sao_new_native(x,n) sao_new((sao_obj){._type=type_native, ._native=x,._ffi=n})
+#define add_sym_list(n) sao_def_var(sao_new_symbol(#n), sao_new_native(native_##n,#n), SAO_TAG_global);
 p_sao_obj saolang_init()
 {
 	SAO_ITR(add_sym_list, print,lt,add,sub,exit);//minimum for fib.sao

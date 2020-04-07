@@ -115,7 +115,11 @@ p_sao_obj sao_new(sao_obj tpl) {
 		case type_string:
 			ret->_string=libc(strdup)(ret->_string);break;
 		case type_vector:
-			ret->_vector = SAO_NEW_C(p_sao_obj,ret->_len);break;//TODO
+			ret->_vector = SAO_NEW_C(p_sao_obj,ret->_len);break;//
+		case type_table:
+			ret->_table = SAO_NEW_C(p_sao_obj,ret->_size);break;//
+		case type_native:
+			//TODO
 		default: break;
 	}
 	return ret;
@@ -245,32 +249,13 @@ p_sao_obj sao_table_insert(p_sao_obj holder,p_sao_obj key_obj){
 #endif
 //#define sao_new_symbol(s) sao_new((sao_obj){._type=type_symbol,._string=(s)})
 p_sao_obj sao_new_symbol(ffic_string s) { return sao_new( (sao_obj) {._type=type_symbol, ._string=s} ); }
-p_sao_obj sao_new_native(native_t x) {
-	p_sao_obj ret = sao_alloc(type_native);
-	ret->_native = x;
-	return ret;
-}
-p_sao_obj sao_new_lambda(p_sao_obj params, p_sao_obj body) {
-	return cons(SAO_TAG_lambda, cons(params, body));
-}
-p_sao_obj sao_new_procedure(p_sao_obj params, p_sao_obj body,
-		p_sao_obj ctx) {
+p_sao_obj sao_new_lambda(p_sao_obj params, p_sao_obj body) { return cons(SAO_TAG_lambda, cons(params, body)); }
+p_sao_obj sao_new_procedure(p_sao_obj params, p_sao_obj body, p_sao_obj ctx) {
 	return cons(SAO_TAG_procedure, cons(params, cons(body, cons(ctx, SAO_TAG_nil))));
 }
 #ifdef feature_table
-//p_sao_obj sao_new_integer(int x)
-//{
-//	return sao_new( (sao_obj) {._type=type_integer, ._integer=x} );
-////	p_sao_obj ret = sao_alloc(type_integer);
-////	ret->_integer = x;
-////	return ret;
-//}
-p_sao_obj sao_new_table(int size) {
-	p_sao_obj ret = sao_alloc(type_table);
-	ret->_table = SAO_NEW_C(p_sao_obj,size);//
-	ret->_size = size;
-	return ret;
-}
+#define sao_new_table(s) sao_new((sao_obj){._type=type_table, ._size=s})
+//p_sao_obj sao_new_table(int size) { return sao_new((sao_obj){._type=type_table,._size=size}); }
 p_sao_obj sao_tbl_resize(p_sao_obj holder,int size){
 	//if(!holder)
 	if(!holder)
