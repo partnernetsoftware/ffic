@@ -36,7 +36,7 @@
 #define SAO_ITR1(mmm,mm1,qqq,...) SAO_EVAL( SAO_WHILE1( mmm,mm1,qqq,__VA_ARGS__) )
 //////////////////////////////////////////////////////////////////////////////
 #define DEFINE_ENUM_LIBC(n) libc_##n,
-enum { SAO_ITR(DEFINE_ENUM_LIBC,fprintf,malloc,memset,strdup,strcmp,printf,putc,getc,isalnum,strchr,isdigit,isalpha,fopen,fread,fgets,fclose,feof, usleep,msleep,sleep,fputc,strlen,fflush,free,system, setmode,fileno,stdin,stdout,stderr,microtime,exit) };
+enum { SAO_ITR(DEFINE_ENUM_LIBC,fprintf,malloc,memset,strdup,strcmp,printf,putc,getc,isalnum,strchr,isdigit,isalpha,fopen,fread,fgets,fclose,feof,fputc,strlen,fflush,free,system,  usleep,msleep,sleep,setmode,fileno,stdin,stdout,stderr,microtime,exit) };
 #define libc(f) libc_(libc_##f,#f)
 #include "ffic.h" //github.com/partnernetsoftware/ffic/blob/master/src/ffic.h
 ffic_func libc_a[libc_exit+1];
@@ -113,52 +113,12 @@ typedef struct {
 p_sao_obj sao_eval(p_sao_obj exp, p_sao_obj ctx);
 p_sao_obj sao_load_expr(sao_stream * fw);
 
-p_sao_obj sao_is_atom(p_sao_obj x){ return (x&&x->_type)?x:SAO_TAG_nil; }
-long sao_is_digit(int c) { return (long) libc(isdigit)(c); }
-long sao_is_alpha(int c) { return (long) libc(isalpha)(c); }
-long sao_is_alphanumber(int c) { return (long) libc(isalnum)(c); }
+#define sao_is_atom(x) ((x&&x->_type)?x:SAO_TAG_nil)
+#define sao_is_digit(c) ((long)libc(isdigit)(c))
+#define sao_is_alpha(c) ((long)libc(isalpha)(c))
+#define sao_is_alphanumber(c) ((long)libc(isalnum)(c))
 
 p_sao_obj g_symbol_holder = SAO_NULL;
-
-//TODO see merge with type_table !!
-//p_sao_obj * gHTable = SAO_NULL;
-//long gHTable_len = 0;
-//long ht_hash(const char *s, int ht_len) {
-//	long h = 0;
-//	char *u = (char *) s;
-//	while (*u) { h = (h * 256 + (*u)) % ht_len; u++; }
-//	return h;
-//}
-//int ht_resize(int newsize){
-//	//if (gHTable)
-//	p_sao_obj * newTable = SAO_NEW(p_sao_obj,newsize);
-//	for(int i=0;i<gHTable_len;i++){
-//		if (SAO_NULL!=gHTable[i]) {
-//			int h = ht_hash(gHTable[i]->_string, newsize);
-//			if(SAO_NULL != newTable[h]){
-//				sao_stdout("DEBUG: newTable(%d) still full ??\n", newsize);
-//			}
-//			newTable[h]= gHTable[i];
-//		}
-//	}
-//	gHTable = newTable;
-//	gHTable_len = newsize;
-//	return newsize;
-//}
-//void ht_insert(p_sao_obj key_obj) {
-//	long h = ht_hash(key_obj->_string, gHTable_len);
-//	if(SAO_NULL != gHTable[h] && SAO_NULL!=gHTable[h]->_string){
-//		int newsize = 2*(gHTable_len+1)-1 ;
-//		ht_resize( newsize );
-//		ht_insert( key_obj );
-//		return;
-//	}
-//	gHTable[h]= key_obj;
-//}
-//p_sao_obj ht_lookup(char *s) {
-//	long h = ht_hash(s, gHTable_len);
-//	return gHTable[h];
-//}
 
 p_sao_obj sao_alloc(type_t type) {
 	SAO_NEW_OBJECT(sao_obj,ret);//TODO gc()
