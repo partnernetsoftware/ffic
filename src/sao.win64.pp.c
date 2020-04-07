@@ -1,4 +1,4 @@
-enum { libc_fprintf, libc_malloc, libc_memset, libc_strdup, libc_strcmp, libc_printf, libc_putc, libc_getc, libc_isalnum, libc_strchr, libc_isdigit, libc_isalpha, libc_fopen, libc_fread, libc_fgets, libc_fclose, libc_feof, libc_fputc, libc_strlen, libc_fflush, libc_free, libc_system, libc_usleep, libc_msleep, libc_sleep, libc_setmode, libc_fileno, libc_stdin, libc_stdout, libc_stderr, libc_microtime, libc_exit, };
+enum { libc_fprintf, libc_malloc, libc_memset, libc_memcpy, libc_strdup, libc_strcmp, libc_printf, libc_putc, libc_getc, libc_isalnum, libc_strchr, libc_isdigit, libc_isalpha, libc_fopen, libc_fread, libc_fgets, libc_fclose, libc_feof, libc_fputc, libc_strlen, libc_fflush, libc_free, libc_system, libc_usleep, libc_msleep, libc_sleep, libc_setmode, libc_fileno, libc_stdin, libc_stdout, libc_stderr, libc_microtime, libc_exit, };
 typedef signed char sao_i8;
 typedef unsigned char sao_u8;
 typedef signed short int sao_i16;
@@ -123,25 +123,24 @@ struct _sao_obj {
  union {
   void* ptr3[3];
   struct {
-   union{
-    void* ptr;
-    type_t _type;
-   };
+   union{ void* ptr; type_t _type; };
    union {
-    struct {
-     p_sao_obj car;
-     p_sao_obj cdr;
-    };
+    struct { p_sao_obj car; p_sao_obj cdr; };
     struct { p_sao_obj* _vector; long _len; };
     struct { p_sao_obj* _table; long _size; };
     char *_string;
     long _integer;
     double _double;
-    native_t _native;
+    struct { native_t _native; char *_ffi; };
    };
   };
  };
 };
+p_sao_obj sao_new(sao_obj tpl) {
+ sao_obj * ret = libc_(libc_malloc,"malloc")(sizeof(sao_obj));
+ libc_(libc_memcpy,"memcpy")(ret,&tpl,sizeof(sao_obj));
+ return ret;
+}
 p_sao_obj SAO_TAG_nil=((void*)0); p_sao_obj SAO_TAG_argv=((void*)0); p_sao_obj SAO_TAG_global=((void*)0);;
 p_sao_obj SAO_TAG_true=((void*)0); p_sao_obj SAO_TAG_false=((void*)0); p_sao_obj SAO_TAG_quote=((void*)0); p_sao_obj SAO_TAG_set=((void*)0); p_sao_obj SAO_TAG_let=((void*)0); p_sao_obj SAO_TAG_var=((void*)0); p_sao_obj SAO_TAG_procedure=((void*)0); p_sao_obj SAO_TAG_if=((void*)0); p_sao_obj SAO_TAG_lambda=((void*)0); p_sao_obj SAO_TAG_begin=((void*)0); p_sao_obj SAO_TAG_or=((void*)0); p_sao_obj SAO_TAG_ok=((void*)0); p_sao_obj SAO_TAG_else=((void*)0); p_sao_obj SAO_TAG_cond=((void*)0); p_sao_obj SAO_TAG_error=((void*)0);;
 typedef struct _FileChar {
@@ -220,26 +219,19 @@ p_sao_obj cadddr(p_sao_obj x) {
  if(x->cdr->cdr->cdr->_type)return SAO_TAG_nil;
  return x->cdr->cdr->cdr->car;
 }
-p_sao_obj sao_new_table(int size) {
- p_sao_obj ret = sao_alloc(type_table);
- ret->_table = sao_calloc( sizeof(p_sao_obj) *(size) );
- ret->_size = size;
- return ret;
-}
-p_sao_obj sao_tbl_resize(p_sao_obj holder,int size){
- if(!holder)
-  holder = sao_new_table(size);
- else{
-  holder->_table = sao_calloc( sizeof(p_sao_obj) *(size) );
-  holder->_size = size;
- }
- return holder;
-}
 long sao_table_hash(const char *s, int ht_len) {
  long h = 0;
  char *u = (char *) s;
  while (*u) { h = (h * 256 + (*u)) % ht_len; u++; }
  return h;
+}
+p_sao_obj sao_table_lookup(p_sao_obj holder,char *s) {
+ if(!holder) do{libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"sao_table_lookup(holder)\n");libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"\n");libc_(libc_exit,"exit")(1);}while(0);
+ p_sao_obj* the_table = holder->_table;
+ if(!the_table) do{libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"empty _table?");libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"\n");libc_(libc_exit,"exit")(1);}while(0);
+ if(!holder->_size) do{libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"empty _table.size?");libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"\n");libc_(libc_exit,"exit")(1);}while(0);
+ long h = sao_table_hash(s, holder->_size);
+ return the_table[h];
 }
 p_sao_obj sao_table_insert(p_sao_obj holder,p_sao_obj key_obj){
  if(!holder) do{libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"sao_table_insert(holder)\n");libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"\n");libc_(libc_exit,"exit")(1);}while(0);
@@ -252,14 +244,6 @@ p_sao_obj sao_table_insert(p_sao_obj holder,p_sao_obj key_obj){
  }
  the_table[h]= key_obj;
  return holder;
-}
-p_sao_obj sao_table_lookup(p_sao_obj holder,char *s) {
- if(!holder) do{libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"sao_table_lookup(holder)\n");libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"\n");libc_(libc_exit,"exit")(1);}while(0);
- p_sao_obj* the_table = holder->_table;
- if(!the_table) do{libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"empty _table?");libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"\n");libc_(libc_exit,"exit")(1);}while(0);
- if(!holder->_size) do{libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"empty _table.size?");libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"\n");libc_(libc_exit,"exit")(1);}while(0);
- long h = sao_table_hash(s, holder->_size);
- return the_table[h];
 }
 p_sao_obj sao_new_vector(int size) {
  p_sao_obj ret = sao_alloc(type_vector);
@@ -292,6 +276,21 @@ p_sao_obj sao_new_lambda(p_sao_obj params, p_sao_obj body) {
 p_sao_obj sao_new_procedure(p_sao_obj params, p_sao_obj body,
   p_sao_obj ctx) {
  return cons(SAO_TAG_procedure, cons(params, cons(body, cons(ctx, SAO_TAG_nil))));
+}
+p_sao_obj sao_new_table(int size) {
+ p_sao_obj ret = sao_alloc(type_table);
+ ret->_table = sao_calloc( sizeof(p_sao_obj) *(size) );
+ ret->_size = size;
+ return ret;
+}
+p_sao_obj sao_tbl_resize(p_sao_obj holder,int size){
+ if(!holder)
+  holder = sao_new_table(size);
+ else{
+  holder->_table = sao_calloc( sizeof(p_sao_obj) *(size) );
+  holder->_size = size;
+ }
+ return holder;
 }
 p_sao_obj sao_reverse(p_sao_obj list, p_sao_obj first) {
  p_sao_obj rt = (!(list)) ? first :
@@ -480,12 +479,6 @@ p_sao_obj sao_read_symbol(sao_stream * fw, char start)
  buf[i] = '\0';
  return sao_new_symbol(buf);
 }
-p_sao_obj sao_new_integer(int x)
-{
- p_sao_obj ret = sao_alloc(type_integer);
- ret->_integer = x;
- return ret;
-}
 int sao_read_int(sao_stream * fw, int start)
 {
  while ( ((long)libc_(libc_isdigit,"isdigit")(sao_peek(fw))) )
@@ -561,9 +554,9 @@ p_sao_obj sao_load_expr(sao_stream * fw)
    return list;
   }
   if (c == ')') { return SAO_TAG_nil; }
-  if (((long)libc_(libc_isdigit,"isdigit")(c))) return sao_new_integer(sao_read_int(fw, c - '0'));
+  if (((long)libc_(libc_isdigit,"isdigit")(c))) return sao_new( (sao_obj) {._type=type_integer, ._integer=sao_read_int(fw, c - '0')} );
   if (c == '-' && ((long)libc_(libc_isdigit,"isdigit")(sao_peek(fw))))
-   return sao_new_integer(-1 * sao_read_int(fw, sao_deq_c(fw) - '0'));
+   return sao_new( (sao_obj) {._type=type_integer, ._integer=-1*sao_read_int(fw, c - '0')} );
  }
  return SAO_TAG_nil;
 }
@@ -847,7 +840,7 @@ p_sao_obj native_add(p_sao_obj list) {
   total += car(list)->_integer;
   list = cdr(list);
  }
- return sao_new_integer(total);
+ return sao_new((sao_obj) {._type=type_integer, ._integer=(total)} );
 }
 p_sao_obj native_sub(p_sao_obj list) {
  (sao_type_check(__func__, car(list), type_integer));
@@ -858,7 +851,7 @@ p_sao_obj native_sub(p_sao_obj list) {
   total -= car(list)->_integer;
   list = cdr(list);
  }
- return sao_new_integer(total);
+ return sao_new((sao_obj) {._type=type_integer, ._integer=(total)} );
 }
 p_sao_obj native_div(p_sao_obj list) {
  (sao_type_check(__func__, car(list), type_integer));
@@ -869,7 +862,7 @@ p_sao_obj native_div(p_sao_obj list) {
   total /= car(list)->_integer;
   list = cdr(list);
  }
- return sao_new_integer(total);
+ return sao_new((sao_obj) {._type=type_integer, ._integer=(total)} );
 }
 p_sao_obj native_mul(p_sao_obj list) {
  (sao_type_check(__func__, car(list), type_integer));
@@ -880,7 +873,7 @@ p_sao_obj native_mul(p_sao_obj list) {
   total *= car(list)->_integer;
   list = cdr(list);
  }
- return sao_new_integer(total);
+ return sao_new((sao_obj) {._type=type_integer, ._integer=(total)} );
 }
 p_sao_obj native_gt(p_sao_obj sexp) {
  (sao_type_check(__func__, car(sexp), type_integer));
@@ -991,7 +984,7 @@ int main(int argc, char **argv) {
     string_or_name = _car->_string;
     i_val = 1;
    }
-   sao_def_var(sao_new_symbol(string_or_name), sao_new_integer(i_val), SAO_TAG_argv);
+   sao_def_var(sao_new_symbol(string_or_name), sao_new((sao_obj) {._type=type_integer, ._integer=(i_val)} ), SAO_TAG_argv);
    int found = 0;
    for(int i=0;i<=argt_h;i++){
     if(string_or_name[0]==argt_names[i][0]){

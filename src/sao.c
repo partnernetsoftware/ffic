@@ -36,7 +36,7 @@
 #define SAO_ITR1(mmm,mm1,qqq,...) SAO_EVAL( SAO_WHILE1( mmm,mm1,qqq,__VA_ARGS__) )
 //////////////////////////////////////////////////////////////////////////////
 #define DEFINE_ENUM_LIBC(n) libc_##n,
-enum { SAO_ITR(DEFINE_ENUM_LIBC,fprintf,malloc,memset,strdup,strcmp,printf,putc,getc,isalnum,strchr,isdigit,isalpha,fopen,fread,fgets,fclose,feof,fputc,strlen,fflush,free,system,  usleep,msleep,sleep,setmode,fileno,stdin,stdout,stderr,microtime,exit) };
+enum { SAO_ITR(DEFINE_ENUM_LIBC,fprintf,malloc,memset,memcpy,strdup,strcmp,printf,putc,getc,isalnum,strchr,isdigit,isalpha,fopen,fread,fgets,fclose,feof,fputc,strlen,fflush,free,system,  usleep,msleep,sleep,setmode,fileno,stdin,stdout,stderr,microtime,exit) };
 #define libc(f) libc_(libc_##f,#f)
 #include "ffic.h" //github.com/partnernetsoftware/ffic/blob/master/src/ffic.h
 ffic_func libc_a[libc_exit+1];
@@ -71,27 +71,25 @@ struct _sao_obj {
 	union {
 		void* ptr3[3];//for future speed improving
 		struct {
-			union{
-				void* ptr;
-				type_t _type;
-			};
+			union{ void* ptr; type_t _type; };
 			union {
-				struct {
-					p_sao_obj car;
-					p_sao_obj cdr;
-					//p_sao_obj upr;//TODO (maybe) upper link for context 
-				};
+				struct { p_sao_obj car; p_sao_obj cdr; /* p_sao_obj upr; upper link for contexting */}; 
 				struct { p_sao_obj* _vector; long _len; };
 				struct { p_sao_obj* _table; long _size; };
 				char *_string;
 				long _integer;
 				double _double;//TODO with basic math.
-				native_t _native;
+				struct { native_t _native; char *_ffi;/* $sharelib.$method */ };
 			};
 		};
 	};
 };
-
+//TODO to replace/remove the sao_alloc()!
+p_sao_obj sao_new(sao_obj tpl) {
+	sao_obj * ret = libc(malloc)(sizeof(sao_obj));
+	libc(memcpy)(ret,&tpl,sizeof(sao_obj));
+	return ret;
+}
 #define define_sao_tag(n) p_sao_obj SAO_TAG_##n=SAO_NULL;
 #define LIST_SAO_TAG true,false,quote,set,let,var,procedure,if,lambda,begin,or,ok,else,cond,error
 SAO_ITR(define_sao_tag, nil,argv,global);
@@ -180,29 +178,19 @@ p_sao_obj cadddr(p_sao_obj x) {
 	if(x->cdr->cdr->cdr->_type)return SAO_TAG_nil;
 	return x->cdr->cdr->cdr->car;
 }
-//p_sao_obj sao_new_table(p_sao_obj);
-p_sao_obj sao_new_table(int size) {
-	p_sao_obj ret = sao_alloc(type_table);
-	ret->_table = SAO_NEW(p_sao_obj,size);//
-	ret->_size = size;
-	return ret;
-}
-p_sao_obj sao_tbl_resize(p_sao_obj holder,int size){
-	//if(!holder)
-	if(!holder)
-		holder = sao_new_table(size);
-	//TMP...(fake resize first) TODO to implement the real resize soon
-	else{
-		holder->_table = SAO_NEW(p_sao_obj,size);//TMP
-		holder->_size = size;
-	}
-	return holder;
-}
 long sao_table_hash(const char *s, int ht_len) {
 	long h = 0;
 	char *u = (char *) s;
 	while (*u) { h = (h * 256 + (*u)) % ht_len; u++; }
 	return h;
+}
+p_sao_obj sao_table_lookup(p_sao_obj holder,char *s) {
+	if(!holder) sao_error("sao_table_lookup(holder)\n");
+	p_sao_obj* the_table = holder->_table;
+	if(!the_table) sao_error("empty _table?");
+	if(!holder->_size) sao_error("empty _table.size?");
+	long h = sao_table_hash(s, holder->_size);
+	return the_table[h];
 }
 p_sao_obj sao_table_insert(p_sao_obj holder,p_sao_obj key_obj){
 	if(!holder) sao_error("sao_table_insert(holder)\n");
@@ -224,19 +212,6 @@ p_sao_obj sao_table_insert(p_sao_obj holder,p_sao_obj key_obj){
 	return holder;
 }
 
-p_sao_obj sao_table_lookup(p_sao_obj holder,char *s) {
-	if(!holder) sao_error("sao_table_lookup(holder)\n");
-	p_sao_obj* the_table = holder->_table;
-	if(!the_table) sao_error("empty _table?");
-	if(!holder->_size) sao_error("empty _table.size?");
-	long h = sao_table_hash(s, holder->_size);
-	return the_table[h];
-}
-
-//p_sao_obj append(p_sao_obj l1, p_sao_obj l2) {
-//	if (!(l1)) return l2;
-//	return cons(car(l1), append(cdr(l1), l2));
-//}
 p_sao_obj sao_new_vector(int size) {
 	p_sao_obj ret = sao_alloc(type_vector);
 	ret->_vector = SAO_NEW(p_sao_obj,size);//
@@ -277,6 +252,35 @@ p_sao_obj sao_new_procedure(p_sao_obj params, p_sao_obj body,
 		p_sao_obj ctx) {
 	return cons(SAO_TAG_procedure, cons(params, cons(body, cons(ctx, SAO_TAG_nil))));
 }
+//p_sao_obj sao_new_integer(int x)
+//{
+//	return sao_new( (sao_obj) {._type=type_integer, ._integer=x} );
+////	p_sao_obj ret = sao_alloc(type_integer);
+////	ret->_integer = x;
+////	return ret;
+//}
+p_sao_obj sao_new_table(int size) {
+	p_sao_obj ret = sao_alloc(type_table);
+	ret->_table = SAO_NEW(p_sao_obj,size);//
+	ret->_size = size;
+	return ret;
+}
+p_sao_obj sao_tbl_resize(p_sao_obj holder,int size){
+	//if(!holder)
+	if(!holder)
+		holder = sao_new_table(size);
+	//TMP...(fake resize first) TODO to implement the real resize soon
+	else{
+		holder->_table = SAO_NEW(p_sao_obj,size);//TMP
+		holder->_size = size;
+	}
+	return holder;
+}
+
+//p_sao_obj append(p_sao_obj l1, p_sao_obj l2) {
+//	if (!(l1)) return l2;
+//	return cons(car(l1), append(cdr(l1), l2));
+//}
 p_sao_obj sao_reverse(p_sao_obj list, p_sao_obj first) {
 	p_sao_obj rt = (!(list)) ? first :
 		sao_reverse(cdr(list), cons(car(list), first));
@@ -476,12 +480,6 @@ p_sao_obj sao_read_symbol(sao_stream * fw, char start)
 	buf[i] = '\0';
 	return sao_new_symbol(buf);
 }
-p_sao_obj sao_new_integer(int x)
-{
-	p_sao_obj ret = sao_alloc(type_integer);
-	ret->_integer = x;
-	return ret;
-}
 // TODO read number
 int sao_read_int(sao_stream * fw, int start)
 {
@@ -558,9 +556,12 @@ p_sao_obj sao_load_expr(sao_stream * fw)
 			return list;
 		}
 		if (c == ')') { return SAO_TAG_nil; }
-		if (sao_is_digit(c)) return sao_new_integer(sao_read_int(fw, c - '0'));
+		//TODO parsing interger/number need upgrade algo soon:
+		//if (sao_is_digit(c)) return sao_new_integer(sao_read_int(fw, c - '0'));
+		if (sao_is_digit(c)) return sao_new( (sao_obj) {._type=type_integer, ._integer=sao_read_int(fw, c - '0')} );
 		if (c == '-' && sao_is_digit(sao_peek(fw)))
-			return sao_new_integer(-1 * sao_read_int(fw, sao_deq_c(fw) - '0'));
+			//return sao_new_integer(-1 * sao_read_int(fw, sao_deq_c(fw) - '0'));
+			return sao_new( (sao_obj) {._type=type_integer, ._integer=-1*sao_read_int(fw, c - '0')} );
 	}
 	return SAO_TAG_nil;
 }
@@ -805,7 +806,8 @@ int main(int argc, char **argv) {
 				string_or_name = _car->_string;
 				i_val = 1;
 			}
-			sao_def_var(sao_new_symbol(string_or_name), sao_new_integer(i_val), SAO_TAG_argv);//@ref sao_get_var
+			//sao_def_var(sao_new_symbol(string_or_name), sao_new_integer(i_val), SAO_TAG_argv);//@ref sao_get_var
+			sao_def_var(sao_new_symbol(string_or_name), sao_new((sao_obj) {._type=type_integer, ._integer=(i_val)} ), SAO_TAG_argv);//@ref sao_get_var
 			int found = 0;
 			for(int i=0;i<=argt_h;i++){
 				if(string_or_name[0]==argt_names[i][0]){

@@ -84,7 +84,8 @@ p_sao_obj native_add(p_sao_obj list) {
 		total += car(list)->_integer;
 		list = cdr(list);
 	}
-	return sao_new_integer(total);
+	//return sao_new_integer(total);
+	return sao_new((sao_obj) {._type=type_integer, ._integer=(total)} );
 }
 p_sao_obj native_sub(p_sao_obj list) {
 	SAO_CHECK_TYPE(car(list), type_integer);
@@ -95,7 +96,8 @@ p_sao_obj native_sub(p_sao_obj list) {
 		total -= car(list)->_integer;
 		list = cdr(list);
 	}
-	return sao_new_integer(total);
+	return sao_new((sao_obj) {._type=type_integer, ._integer=(total)} );
+	//return sao_new_integer(total);
 }
 p_sao_obj native_div(p_sao_obj list) {
 	SAO_CHECK_TYPE(car(list), type_integer);
@@ -106,7 +108,8 @@ p_sao_obj native_div(p_sao_obj list) {
 		total /= car(list)->_integer;
 		list = cdr(list);
 	}
-	return sao_new_integer(total);
+	//return sao_new_integer(total);
+	return sao_new((sao_obj) {._type=type_integer, ._integer=(total)} );
 }
 p_sao_obj native_mul(p_sao_obj list) {
 	SAO_CHECK_TYPE(car(list), type_integer);
@@ -117,7 +120,8 @@ p_sao_obj native_mul(p_sao_obj list) {
 		total *= car(list)->_integer;
 		list = cdr(list);
 	}
-	return sao_new_integer(total);
+	//return sao_new_integer(total);
+	return sao_new((sao_obj) {._type=type_integer, ._integer=(total)} );
 }
 p_sao_obj native_gt(p_sao_obj sexp) {
 	SAO_CHECK_TYPE(car(sexp), type_integer);
