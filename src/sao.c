@@ -1,4 +1,5 @@
 //WARNING: do not go production unless gc() is done!
+#define SAO_VERSION "0.0.6"
 #define SAO_CAT(a, ...) SAO_PRIMITIVE_CAT(a, __VA_ARGS__)
 #define SAO_PRIMITIVE_CAT(a, ...) a ## __VA_ARGS__
 #define SAO_IIF(c) SAO_PRIMITIVE_CAT(SAO_IIF_, c)
@@ -40,18 +41,18 @@ enum { SAO_ITR(DEFINE_ENUM_LIBC,fprintf,malloc,memset,memcpy,strdup,strcmp,print
 #define libc(f) libc_(libc_##f,#f)
 #include "ffic.h" //github.com/partnernetsoftware/ffic/blob/master/src/ffic.h
 ffic_func libc_a[libc_exit+1];
-ffic_func libc_(int fi,const char* fn){ return libc_a[fi]?libc_a[fi]:(libc_a[fi]=ffic("c",fn)); }
+ffic_func libc_(int fi,const ffic_string fn){ return libc_a[fi]?libc_a[fi]:(libc_a[fi]=ffic("c",fn)); }
 #define SAO_NULL ((void*)0)
 #define SAO_EOF (-1)
 #define SAO_CAT_COMMA(a,b) a##b,
 #define define_enum_name(n) #n,
 #define define_enum_item(p,v) p##_##v,
 #define define_enum_t(n, ...) typedef enum { SAO_ITR1(define_enum_item,n,__VA_ARGS__) } n##_t;
-#define define_map_arr(n, ...) char* n##_names[] = { SAO_ITR(define_enum_name,__VA_ARGS__) };
+#define define_map_arr(n, ...) ffic_string n##_names[] = { SAO_ITR(define_enum_name,__VA_ARGS__) };
 #define define_map(n, ...) define_enum_t(n,__VA_ARGS__) define_map_arr(n,__VA_ARGS__)
 void* sao_calloc(long _sizeof){return libc(memset)(libc(malloc)(_sizeof),0,_sizeof);}
-#define SAO_NEW(t,...) sao_calloc( sizeof(t) SAO_IF(SAO_IS_PAREN(__VA_ARGS__ ()))(SAO_EAT(),*(__VA_ARGS__)) )
-#define SAO_NEW_OBJECT(t,n,...) t*n=SAO_NEW(t,__VA_ARGS__);
+#define SAO_NEW_C(t,...) sao_calloc( sizeof(t) SAO_IF(SAO_IS_PAREN(__VA_ARGS__ ()))(SAO_EAT(),*(__VA_ARGS__)) )
+#define SAO_NEW_OBJECT(t,n,...) t*n=SAO_NEW_C(t,__VA_ARGS__);
 #define sao_stderr(...) libc(fprintf)(libc(stderr),__VA_ARGS__)
 #define sao_stdout(...) libc(printf)(__VA_ARGS__)
 #define sao_error(...) do{sao_stderr(__VA_ARGS__);sao_stderr("\n");libc(exit)(1);}while(0)
@@ -64,6 +65,7 @@ int argta[argt_h+1];
 define_map(ctype, long,double,any);
 define_map(stream, file,char);
 define_map(type, list,integer,double,symbol,string,native,vector,table);
+//#define feature_table //[0.0.10]
 
 typedef struct _sao_obj sao_obj,*p_sao_obj;
 typedef p_sao_obj (*native_t)(p_sao_obj );
@@ -76,20 +78,45 @@ struct _sao_obj {
 				struct { p_sao_obj car; p_sao_obj cdr; /* p_sao_obj upr; upper link for contexting */}; 
 				struct { p_sao_obj* _vector; long _len; };
 				struct { p_sao_obj* _table; long _size; };
-				struct { char *_string; long _depth;};
+				struct { ffic_string _string; long _depth;};
 				long _integer;
 				double _double;//TODO with basic math.
-				struct { native_t _native; char *_ffi;/* $sharelib.$method */ };
+				struct { native_t _native; ffic_string _ffi;/* $sharelib.$method */ };
 			};
 		};
 	};
 };
 //TODO to replace/remove the sao_alloc()!
+//TODO gc()
 p_sao_obj sao_new(sao_obj tpl) {
 	sao_obj * ret = libc(malloc)(sizeof(sao_obj));
 	libc(memcpy)(ret,&tpl,sizeof(sao_obj));
-	if(type_string==ret->_type){
-		ret->_string=libc(strdup)(ret->_string);
+	switch(ret->_type){
+		case type_symbol:
+	//TODO jot the symbol depth
+//	p_sao_obj ret = sao_table_lookup(g_symbol_holder,s);
+//	if (!(ret)) {
+//		ret = sao_alloc(type_symbol);
+//		ret->_string = libc(strdup)(s);
+//		//ht_insert(ret);
+//		sao_table_insert(g_symbol_holder,ret);
+//	}else{
+//		//TODO need using depth also?
+//		if(!libc(strcmp)(ret->_string,s)){
+//			//sao_warn("sao_table_insert again same for (%s)?\n",s);
+//			//sao_table_insert(g_symbol_holder,ret);
+//		}else{
+//			sao_error("g_symbol_holder full? (%s,%s)\n",ret->_string,s);
+//		//	int newsize = 2*(gHTable_len+1)-1 ;
+//		//	ht_resize( newsize );
+//		//	return sao_new_symbol(s);
+//		}
+//	}
+		case type_string:
+			ret->_string=libc(strdup)(ret->_string);break;
+		case type_vector:
+			ret->_vector = SAO_NEW_C(p_sao_obj,ret->_len);break;//TODO
+		default: break;
 	}
 	return ret;
 }
@@ -105,7 +132,7 @@ typedef struct _FileChar {
 typedef struct {
 	stream_t _type;
 	void* fp;
-	char* pos;//for stream_char only
+	ffic_string pos;//for stream_char only
 	FileChar * ptr_start;
 	FileChar * ptr_head;
 	FileChar * ptr_last;
@@ -181,13 +208,14 @@ p_sao_obj cadddr(p_sao_obj x) {
 	if(x->cdr->cdr->cdr->_type)return SAO_TAG_nil;
 	return x->cdr->cdr->cdr->car;
 }
-long sao_table_hash(const char *s, int ht_len) {
+#ifdef feature_table //TODO building table next minor.version
+long sao_table_hash(const ffic_string s, int ht_len) {
 	long h = 0;
-	char *u = (char *) s;
+	ffic_string u = ffic_string s;
 	while (*u) { h = (h * 256 + (*u)) % ht_len; u++; }
 	return h;
 }
-p_sao_obj sao_table_lookup(p_sao_obj holder,char *s) {
+p_sao_obj sao_table_lookup(p_sao_obj holder,ffic_string s) {
 	if(!holder) sao_error("sao_table_lookup(holder)\n");
 	p_sao_obj* the_table = holder->_table;
 	if(!the_table) sao_error("empty _table?");
@@ -214,35 +242,9 @@ p_sao_obj sao_table_insert(p_sao_obj holder,p_sao_obj key_obj){
 	the_table[h]= key_obj;
 	return holder;
 }
-
-p_sao_obj sao_new_vector(int size) {
-	p_sao_obj ret = sao_alloc(type_vector);
-	ret->_vector = SAO_NEW(p_sao_obj,size);//
-	ret->_len = size;
-	return ret;
-}
-p_sao_obj sao_new_symbol(char *s) {
-	//p_sao_obj ret = ht_lookup(s);
-	p_sao_obj ret = sao_table_lookup(g_symbol_holder,s);
-	if (!(ret)) {
-		ret = sao_alloc(type_symbol);
-		ret->_string = libc(strdup)(s);
-		//ht_insert(ret);
-		sao_table_insert(g_symbol_holder,ret);
-	}else{
-		//TODO need using depth also?
-		if(!libc(strcmp)(ret->_string,s)){
-			//sao_warn("sao_table_insert again same for (%s)?\n",s);
-			//sao_table_insert(g_symbol_holder,ret);
-		}else{
-			sao_error("g_symbol_holder full? (%s,%s)\n",ret->_string,s);
-		//	int newsize = 2*(gHTable_len+1)-1 ;
-		//	ht_resize( newsize );
-		//	return sao_new_symbol(s);
-		}
-	}
-	return ret;
-}
+#endif
+//#define sao_new_symbol(s) sao_new((sao_obj){._type=type_symbol,._string=(s)})
+p_sao_obj sao_new_symbol(ffic_string s) { return sao_new( (sao_obj) {._type=type_symbol, ._string=s} ); }
 p_sao_obj sao_new_native(native_t x) {
 	p_sao_obj ret = sao_alloc(type_native);
 	ret->_native = x;
@@ -255,6 +257,7 @@ p_sao_obj sao_new_procedure(p_sao_obj params, p_sao_obj body,
 		p_sao_obj ctx) {
 	return cons(SAO_TAG_procedure, cons(params, cons(body, cons(ctx, SAO_TAG_nil))));
 }
+#ifdef feature_table
 //p_sao_obj sao_new_integer(int x)
 //{
 //	return sao_new( (sao_obj) {._type=type_integer, ._integer=x} );
@@ -264,7 +267,7 @@ p_sao_obj sao_new_procedure(p_sao_obj params, p_sao_obj body,
 //}
 p_sao_obj sao_new_table(int size) {
 	p_sao_obj ret = sao_alloc(type_table);
-	ret->_table = SAO_NEW(p_sao_obj,size);//
+	ret->_table = SAO_NEW_C(p_sao_obj,size);//
 	ret->_size = size;
 	return ret;
 }
@@ -274,12 +277,12 @@ p_sao_obj sao_tbl_resize(p_sao_obj holder,int size){
 		holder = sao_new_table(size);
 	//TMP...(fake resize first) TODO to implement the real resize soon
 	else{
-		holder->_table = SAO_NEW(p_sao_obj,size);//TMP
+		holder->_table = SAO_NEW_C(p_sao_obj,size);//TMP
 		holder->_size = size;
 	}
 	return holder;
 }
-
+#endif
 //p_sao_obj append(p_sao_obj l1, p_sao_obj l2) {
 //	if (!(l1)) return l2;
 //	return cons(car(l1), append(cdr(l1), l2));
@@ -385,6 +388,7 @@ int sao_read_line(sao_stream* fw) //TODO int * line_num
 p_sao_obj sao_expand(p_sao_obj var, p_sao_obj val, p_sao_obj ctx) {
 	return cons(cons(var, val), ctx);
 }
+//TODO should using g_symbol_holder later
 p_sao_obj sao_get_var(p_sao_obj var, p_sao_obj ctx) {
 	while ((ctx)) {
 		p_sao_obj frame = car(ctx);
@@ -564,7 +568,7 @@ p_sao_obj sao_load_expr(sao_stream * fw)
 	return SAO_TAG_nil;
 }
 //TODO has bug to fix, don't use seriously.
-void sao_out_expr(char *str, p_sao_obj el){
+void sao_out_expr(ffic_string str, p_sao_obj el){
 	if (str) sao_stdout("%s ", str);
 	if (!(el)) { sao_stdout("'()"); return; }//TODO
 	if (!(el)) { return; }
@@ -769,31 +773,33 @@ p_sao_obj sao_parse( sao_stream * fw, int do_eval ) {
 }
 #include "libsaolang.c" //saolang_init()
 #define add_sym_x(x) do{SAO_TAG_##x=sao_new_symbol(#x);sao_def_var(SAO_TAG_##x,SAO_TAG_##x,SAO_TAG_global);}while(0);
-void print_version(){ sao_stdout(" SaoLang (R) v0.0.6 - Wanjo Chan (c) 2020\n"); }
+void print_version(){ sao_stdout(" SaoLang (R) v" SAO_VERSION " - Wanjo Chan (c) 2020\n"); }
 void print_help(){ sao_stdout("Usage	 : sao [options] [script.sao | -]]\nOptions	 :\n	h:	Help\n	v:	Version\n	i:	Interactive\n	p:	Print final result\n	d:	Dev only\n	e:	Eval\n	s:	Strict mode\n	l:	Lisp syntax\n"); }
-int main(int argc, char **argv) {
+int main(int argc, ffic_string *argv) {
 	ffic_func strcmp = libc(strcmp);
 	libc(setmode)(libc(fileno)(libc(stdin)),0x8000/*O_BINARY*/);
 	//ht_resize(16384-1);//TODO improve hashtable later
 	//g_symbol_holder = sao_new_table(16384-1);
+#ifdef feature_table
 	g_symbol_holder = sao_new_table(65536-1);//TODO...
+#endif
 	SAO_TAG_global = sao_expand(SAO_TAG_nil, SAO_TAG_nil, SAO_TAG_nil);
 	SAO_TAG_argv = sao_expand(SAO_TAG_nil, SAO_TAG_nil, SAO_TAG_nil);
 	SAO_ITR(add_sym_x, SAO_EXPAND(LIST_SAO_TAG));
 	saolang_init();
-	char * script_file = "-";
+	ffic_string script_file = "-";
 	int found_any = 0;
 	if(argc>1){
 		char argv_line[512] = {'_','(',0};
-		char * argv_ptr = &argv_line[2];
-		for(int i=1;i<argc;i++){*argv_ptr++=' ';char*wk=argv[i];while(*wk)*argv_ptr++=*wk++;}
+		ffic_string argv_ptr = &argv_line[2];
+		for(int i=1;i<argc;i++){*argv_ptr++=' ';ffic_string wk=argv[i];while(*wk)*argv_ptr++=*wk++;}
 		*argv_ptr++ = ')'; //*argv_ptr++ = '\0';
 		sao_stream * fw = sao_stream_new(argv_line,stream_char);
 		p_sao_obj arg_expr = sao_load_expr( fw );
 		p_sao_obj pos = cdr(arg_expr);
 		while(pos){
 			p_sao_obj _car = car(pos);
-			char * string_or_name;
+			ffic_string string_or_name;
 			int i_val = 0;
 			if( (_car&&!_car->_type) ){
 				p_sao_obj _caar = car(_car);

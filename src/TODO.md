@@ -1,5 +1,9 @@
 # TODO
 
+## sao
+
+autonomy, paradigm, ...
+
 ```
 /* TODO (Plan)
  * * paradigm: sao_new_##type

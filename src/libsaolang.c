@@ -1,6 +1,6 @@
-#define SAO_CHECK_TYPE(x, t) (sao_type_check(__func__, x, t))
+#define SAO_CHECK_TYPE(x, t) (sao_type_check((ffic_string)__func__, x, t))
 
-p_sao_obj sao_type_check(const char *func, p_sao_obj obj, type_t type)
+p_sao_obj sao_type_check(const ffic_string func, p_sao_obj obj, type_t type)
 {
 	if (!(obj)) {
 		sao_stderr("Invalid argument to function %s: SAO_TAG_nil\n", func);
@@ -157,7 +157,7 @@ p_sao_obj native_read(p_sao_obj args) { return sao_load_expr(sao_stream_new(libc
 p_sao_obj native_load(p_sao_obj args) { //TODO merge with native_read() 1!
 	p_sao_obj exp;
 	p_sao_obj ret = SAO_TAG_nil;
-	char *filename = car(args)->_string;
+	ffic_string filename = car(args)->_string;
 	//TODO
 	void*fp = libc(fopen)(filename, "r");
 	if (fp == 0) {
@@ -176,7 +176,7 @@ p_sao_obj native_load(p_sao_obj args) { //TODO merge with native_read() 1!
 }
 p_sao_obj native_vector(p_sao_obj args) {
 	p_sao_obj sym = SAO_CHECK_TYPE(car(args), type_integer);
-	return sao_new_vector(sym->_integer);
+	return sao_new((sao_obj){._type=type_symbol,._len=sym->_integer});
 }
 p_sao_obj native_vget(p_sao_obj args) {
 	p_sao_obj vct = SAO_CHECK_TYPE(car(args), type_vector);

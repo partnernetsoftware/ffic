@@ -12,6 +12,7 @@ extern FILE *__stdoutp;
 extern FILE *__stderrp;
 typedef void* ffic_ptr;
 typedef ffic_ptr(*ffic_func)();
+typedef char* ffic_string;
 extern int fprintf(FILE *stream, const char *format, ...);
 extern int fflush(FILE *stream);
 extern int strcmp(const char*,const char*);

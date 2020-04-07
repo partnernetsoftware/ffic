@@ -76,6 +76,7 @@ extern FILE *stderr;
 
 typedef void* ffic_ptr;
 typedef ffic_ptr(*ffic_func)();
+typedef char* ffic_string;
 
 #ifndef FFIC
 #define FFIC 1
