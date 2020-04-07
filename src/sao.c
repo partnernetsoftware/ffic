@@ -685,7 +685,7 @@ tail:
 }
 p_sao_obj sao_parse( sao_stream * fw, int do_eval ) {
 	sao_read_line(fw);
-	sao_u64 (*microtime)() = ( sao_u64(*)() ) libc(microtime);
+	ffic_u64 (*microtime)() = ( ffic_u64(*)() ) libc(microtime);
 	p_sao_obj rt = SAO_TAG_nil;
 	for(;;){
 		p_sao_obj exp = sao_load_expr(fw);

@@ -9,18 +9,18 @@
 # define SIZEOF_POINTER 8 //64 as default...
 # endif
 #endif
-typedef signed char sao_i8;
-typedef unsigned char sao_u8;
-typedef signed short int sao_i16;
-typedef unsigned short int sao_u16;
-typedef signed int sao_i32;
-typedef unsigned int sao_u32;
+typedef signed char ffic_i8;
+typedef unsigned char ffic_u8;
+typedef signed short int ffic_i16;
+typedef unsigned short int ffic_u16;
+typedef signed int ffic_i32;
+typedef unsigned int ffic_u32;
 #if SIZEOF_POINTER==8
-typedef signed long int sao_i64;
-typedef unsigned long int sao_u64;
+typedef signed long int ffic_i64;
+typedef unsigned long int ffic_u64;
 #elif SIZEOF_POINTER==4
-typedef signed long long int sao_i64;
-typedef unsigned long long int sao_u64;
+typedef signed long long int ffic_i64;
+typedef unsigned long long int ffic_u64;
 #elif SIZEOF_POINTER==16
 #error TODO SIZEOF_POINTER 16(128bit)
 #else
@@ -160,7 +160,7 @@ ffic_ptr ffic_sleep(int seconds)
 #endif
 	return 0;
 }
-sao_u64 ffic_microtime(void);
+ffic_u64 ffic_microtime(void);
 ffic_ptr(*ffic(const char* libname, const char* funcname, ...))()
 {
 	ffic_ptr addr = 0;
@@ -180,7 +180,7 @@ ffic_ptr(*ffic(const char* libname, const char* funcname, ...))()
 				"libc"
 #endif
 				;				
-			if(!strcmp("microtime",funcname)){ return (ffic_ptr) ffic_microtime; }//sao_u64 (*microtime)() = libc(microtime);
+			if(!strcmp("microtime",funcname)){ return (ffic_ptr) ffic_microtime; }//ffic_u64 (*microtime)() = libc(microtime);
 			else if(!strcmp("usleep",funcname)){ return ffic_usleep; }
 			else if(!strcmp("sleep",funcname)){ return ffic_sleep; }
 			else if(!strcmp("msleep",funcname)){ return ffic_msleep; }
@@ -210,30 +210,30 @@ struct timeval {
 	long tv_sec;
 	long tv_usec;
 };
-sao_u64 ffic_microtime(void)
+ffic_u64 ffic_microtime(void)
 {
 	struct timeval tv;
 	static ffic_func gettimeofday;
 #ifdef _WIN32
 	gettimeofday = ffic_raw("kernel32","GetSystemTimePreciseAsFileTime",0);
 	if (!gettimeofday) gettimeofday = ffic_raw("kernel32","GetSystemTimeAsFileTime",0);
-	static const sao_u64 epoch = 116444736000000000;
+	static const ffic_u64 epoch = 116444736000000000;
 	struct _FILETIME {
 		unsigned long dwLowDateTime;
 		unsigned long dwHighDateTime;
 	} file_time;
 	gettimeofday(&file_time);
-	sao_u64 since_1601 = ( (sao_u64) file_time.dwHighDateTime << 32) | (sao_u64) file_time.dwLowDateTime;
-	sao_u64 since_1970 = ((sao_u64) since_1601 - epoch);
-	sao_u64 microseconds_since_1970 = since_1970 / 10;
-	tv.tv_sec = (microseconds_since_1970 / (sao_u64) 1000000);
-	tv.tv_usec = microseconds_since_1970 % (sao_u64) 1000000;
+	ffic_u64 since_1601 = ( (ffic_u64) file_time.dwHighDateTime << 32) | (ffic_u64) file_time.dwLowDateTime;
+	ffic_u64 since_1970 = ((ffic_u64) since_1601 - epoch);
+	ffic_u64 microseconds_since_1970 = since_1970 / 10;
+	tv.tv_sec = (microseconds_since_1970 / (ffic_u64) 1000000);
+	tv.tv_usec = microseconds_since_1970 % (ffic_u64) 1000000;
 #else
 	gettimeofday = ffic("c","gettimeofday");
 	gettimeofday(&tv, 0);
 #endif
-	//return ((sao_u64)tv.tv_sec*(sao_u64)1000 + (((sao_u64)tv.tv_usec+(sao_u64)500)/(sao_u64)1000)%(sao_u64)1000);
-	return ((sao_u64)tv.tv_sec*(sao_u64)1000 + (((sao_u64)tv.tv_usec)/(sao_u64)1000)%(sao_u64)1000);
+	//return ((ffic_u64)tv.tv_sec*(ffic_u64)1000 + (((ffic_u64)tv.tv_usec+(ffic_u64)500)/(ffic_u64)1000)%(ffic_u64)1000);
+	return ((ffic_u64)tv.tv_sec*(ffic_u64)1000 + (((ffic_u64)tv.tv_usec)/(ffic_u64)1000)%(ffic_u64)1000);
 }
 #  ifndef libc
 #  define libc(f) ffic("c",#f)

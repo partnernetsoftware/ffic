@@ -1,11 +1,11 @@
-typedef signed char sao_i8;
-typedef unsigned char sao_u8;
-typedef signed short int sao_i16;
-typedef unsigned short int sao_u16;
-typedef signed int sao_i32;
-typedef unsigned int sao_u32;
-typedef signed long int sao_i64;
-typedef unsigned long int sao_u64;
+typedef signed char ffic_i8;
+typedef unsigned char ffic_u8;
+typedef signed short int ffic_i16;
+typedef unsigned short int ffic_u16;
+typedef signed int ffic_i32;
+typedef unsigned int ffic_u32;
+typedef signed long int ffic_i64;
+typedef unsigned long int ffic_u64;
 typedef struct __FILE FILE;
 extern FILE *__stdinp;
 extern FILE *__stdoutp;
@@ -49,7 +49,7 @@ ffic_ptr ffic_sleep(int seconds)
  ffic_raw("libc","usleep",0)(seconds*1000000);
  return 0;
 }
-sao_u64 ffic_microtime(void);
+ffic_u64 ffic_microtime(void);
 ffic_ptr(*ffic(const char* libname, const char* funcname, ...))()
 {
  ffic_ptr addr = 0;
@@ -81,13 +81,13 @@ struct timeval {
  long tv_sec;
  long tv_usec;
 };
-sao_u64 ffic_microtime(void)
+ffic_u64 ffic_microtime(void)
 {
  struct timeval tv;
  static ffic_func gettimeofday;
  gettimeofday = ffic("c","gettimeofday");
  gettimeofday(&tv, 0);
- return ((sao_u64)tv.tv_sec*(sao_u64)1000 + (((sao_u64)tv.tv_usec)/(sao_u64)1000)%(sao_u64)1000);
+ return ((ffic_u64)tv.tv_sec*(ffic_u64)1000 + (((ffic_u64)tv.tv_usec)/(ffic_u64)1000)%(ffic_u64)1000);
 }
 int main(int argc, char **argv){
  void* tcc_ptr = ffic("libtcc","tcc_new")();

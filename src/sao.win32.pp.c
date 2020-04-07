@@ -1,12 +1,12 @@
 enum { libc_fprintf, libc_malloc, libc_memset, libc_memcpy, libc_strdup, libc_strcmp, libc_printf, libc_putc, libc_getc, libc_isalnum, libc_strchr, libc_isdigit, libc_isalpha, libc_fopen, libc_fread, libc_fgets, libc_fclose, libc_feof, libc_fputc, libc_strlen, libc_fflush, libc_free, libc_system, libc_usleep, libc_msleep, libc_sleep, libc_setmode, libc_fileno, libc_stdin, libc_stdout, libc_stderr, libc_microtime, libc_exit, };
-typedef signed char sao_i8;
-typedef unsigned char sao_u8;
-typedef signed short int sao_i16;
-typedef unsigned short int sao_u16;
-typedef signed int sao_i32;
-typedef unsigned int sao_u32;
-typedef signed long long int sao_i64;
-typedef unsigned long long int sao_u64;
+typedef signed char ffic_i8;
+typedef unsigned char ffic_u8;
+typedef signed short int ffic_i16;
+typedef unsigned short int ffic_u16;
+typedef signed int ffic_i32;
+typedef unsigned int ffic_u32;
+typedef signed long long int ffic_i64;
+typedef unsigned long long int ffic_u64;
 typedef struct _iobuf {
  char *_ptr;
  int _cnt;
@@ -57,7 +57,7 @@ ffic_ptr ffic_sleep(int seconds)
  ffic_raw("kernel32","Sleep",0)(seconds*1000);
  return 0;
 }
-sao_u64 ffic_microtime(void);
+ffic_u64 ffic_microtime(void);
 ffic_ptr(*ffic(const char* libname, const char* funcname, ...))()
 {
  ffic_ptr addr = 0;
@@ -91,24 +91,24 @@ struct timeval {
  long tv_sec;
  long tv_usec;
 };
-sao_u64 ffic_microtime(void)
+ffic_u64 ffic_microtime(void)
 {
  struct timeval tv;
  static ffic_func gettimeofday;
  gettimeofday = ffic_raw("kernel32","GetSystemTimePreciseAsFileTime",0);
  if (!gettimeofday) gettimeofday = ffic_raw("kernel32","GetSystemTimeAsFileTime",0);
- static const sao_u64 epoch = 116444736000000000;
+ static const ffic_u64 epoch = 116444736000000000;
  struct _FILETIME {
   unsigned long dwLowDateTime;
   unsigned long dwHighDateTime;
  } file_time;
  gettimeofday(&file_time);
- sao_u64 since_1601 = ( (sao_u64) file_time.dwHighDateTime << 32) | (sao_u64) file_time.dwLowDateTime;
- sao_u64 since_1970 = ((sao_u64) since_1601 - epoch);
- sao_u64 microseconds_since_1970 = since_1970 / 10;
- tv.tv_sec = (microseconds_since_1970 / (sao_u64) 1000000);
- tv.tv_usec = microseconds_since_1970 % (sao_u64) 1000000;
- return ((sao_u64)tv.tv_sec*(sao_u64)1000 + (((sao_u64)tv.tv_usec)/(sao_u64)1000)%(sao_u64)1000);
+ ffic_u64 since_1601 = ( (ffic_u64) file_time.dwHighDateTime << 32) | (ffic_u64) file_time.dwLowDateTime;
+ ffic_u64 since_1970 = ((ffic_u64) since_1601 - epoch);
+ ffic_u64 microseconds_since_1970 = since_1970 / 10;
+ tv.tv_sec = (microseconds_since_1970 / (ffic_u64) 1000000);
+ tv.tv_usec = microseconds_since_1970 % (ffic_u64) 1000000;
+ return ((ffic_u64)tv.tv_sec*(ffic_u64)1000 + (((ffic_u64)tv.tv_usec)/(ffic_u64)1000)%(ffic_u64)1000);
 }
 ffic_func libc_a[libc_exit+1];
 ffic_func libc_(int fi,const ffic_string fn){ return libc_a[fi]?libc_a[fi]:(libc_a[fi]=ffic("c",fn)); }
@@ -659,7 +659,7 @@ tail:
 }
 p_sao_obj sao_parse( sao_stream * fw, int do_eval ) {
  sao_read_line(fw);
- sao_u64 (*microtime)() = ( sao_u64(*)() ) libc_(libc_microtime,"microtime");
+ ffic_u64 (*microtime)() = ( ffic_u64(*)() ) libc_(libc_microtime,"microtime");
  p_sao_obj rt = SAO_TAG_nil;
  for(;;){
   p_sao_obj exp = sao_load_expr(fw);
