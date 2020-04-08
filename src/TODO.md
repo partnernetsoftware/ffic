@@ -6,6 +6,7 @@ autonomy, paradigm, ...
 
 ```
 /* TODO (Plan)
+ * * ffic_setup(envpp) => ffic_os_, then make all *.pp.c same...
  * * ctype() + ffic() C.$sym() [0.0.7]
  * * shell [0.0.8]
  * * improve: table hash table size (refer to lua/jerryscript) [0.0.11]
@@ -18,6 +19,7 @@ autonomy, paradigm, ...
  * * remove "ok" stuff? (change to true or else?)
  * * feature: compile to binary / load from binary [0.6]
  * * improve: translate std func (i.e. caar...) to inline? [1.5]
+ * * [LIEF](https://lief.quarkslab.com/doc/latest/Intro.html) [1.5.1]
  * * JIT [1.8]
  * * static compile libdl [1.9]
  * * remove libc dependency [2.0]

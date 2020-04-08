@@ -5,15 +5,15 @@ typedef enum {
 	ffic_os_osx,
 	ffic_os_unx,
 } ffic_os_t;
-ffic_os_t ffic_os =
-#ifdef _WIN32
-ffic_os_win
-#elif defined(__APPLE__)
-ffic_os_osx
-#else
-ffic_os_unx
-#endif
-;
+ffic_os_t ffic_os = ffic_os_unknown;
+//#ifdef _WIN32
+//ffic_os_win
+//#elif defined(__APPLE__)
+//ffic_os_osx
+//#else
+//ffic_os_unx
+//#endif
+//;
 #ifndef SIZEOF_POINTER
 # if defined(_WIN64)
 # define SIZEOF_POINTER 8 //WIN 64
@@ -49,17 +49,17 @@ typedef struct _c_types_64 {
 		unsigned long long int ffic_u64;
 	};
 } c_types_64;
-//typedef struct _iobuf_win {
-//	char *_ptr;
-//	int _cnt;
-//	char *_base;
-//	int _flag;
-//	int _file;
-//	int _charbuf;
-//	int _bufsiz;
-//	char *_tmpfname;
-//} FILE_win;
-//typedef struct __FILE FILE;
+typedef struct _iobuf_win {
+	char *_ptr;
+	int _cnt;
+	char *_base;
+	int _flag;
+	int _file;
+	int _charbuf;
+	int _bufsiz;
+	char *_tmpfname;
+} FILE_win;
+typedef struct __FILE FILE;
 typedef signed char ffic_i8;
 typedef unsigned char ffic_u8;
 typedef signed short int ffic_i16;
@@ -78,13 +78,7 @@ typedef unsigned long long int ffic_u64;
 #error Unknown SIZEOF_POINTER ?
 #endif
 
-//#define stdin __stdinp
-//#define stdout __stdoutp
-//#define stderr __stderrp
-//extern FILE *stdin;	
-//extern FILE *stdout;
-//extern FILE *stderr;
-
+#if 0
 #  if defined(_WIN32) || defined(_WIN64)
 typedef struct _iobuf {
 	char *_ptr;
@@ -132,70 +126,23 @@ extern FILE *stdin;
 extern FILE *stdout;
 extern FILE *stderr;
 #   endif
-//char **envp_store;
-//void ffic_os_check(char **envp){
-//	envp_store = envp;//
-//	ffic_func strcmp = ffic_raw("libc","strcmp",0);
-//	//ffic_func printf = ffic_raw("libc","printf",0);
-//	for(char**env=envp;env && (*env);env++) {
-//		//printf("%s (%d)\n",*env,strcmp(*env,"OS=Windows"));
-//		if(strcmp(*env,"OS=Windows_NT")==0){ ffic_os = ffic_os_win;break; }
-//		//if(strcmp(*env,"COMMAND_MODE=unix2003")==0){ ffic_os = ffic_os_osx;break; }
-//	}
-//}
-void* ffic_os_std(int t){
-	if(t==0){ return stdin ;}
-	if(t==1){ return stdout;}
-	if(t==2){ return stderr;}
-//	void* tmp;
-//	switch(ffic_os){
-//#if defined(__APPLE__)
-//		case ffic_os_osx: 
-//			//if(t==0){ return ffic_raw("libc","__stdinp",0); }
-//			//if(t==1){ return ffic_raw("libc","__stdoutp",0);}
-//			//if(t==2){ return ffic_raw("libc","__stderrp",0);}
-//			if(t==0){ return __stdinp ;}
-//			if(t==1){ return __stdoutp;}
-//			if(t==2){ return __stderrp;}
-//			break;
-//#endif
-//		case ffic_os_unx: 
-//			if(t==0){ tmp = ffic_raw("libc","stdin",0); if(!tmp) return ffic_raw("libc","__stdinp",0); return tmp; }
-//			if(t==1){ tmp = ffic_raw("libc","stdout",0); if(!tmp) return ffic_raw("libc","__stdoutp",0); return tmp; }
-//			if(t==2){ tmp = ffic_raw("libc","stderr",0); if(!tmp) return ffic_raw("libc","__stderrp",0); return tmp; }
-//		case ffic_os_win:
-//			if(t==0) return (&(_iob)[0]);
-//			if(t==1) return (&(_iob)[1]);
-//			if(t==2) return (&(_iob)[2]);
-//			//tmp = ffic_raw("libc","_imp___iob",0);
-//			//if(tmp){ FILE_win (*_imp___iob)[]; _imp___iob= tmp; return (&(*_imp___iob)[t]);
-//			//}else{
-//			//	tmp = ffic_raw("libc","_iob",0);
-//			//	if(tmp){
-//			//		FILE_win *_iob = tmp;
-//			//		return (&(_iob)[t]);//TODO test later...
-//			//		//extern FILE _iob[];
-//			//		//			if(t==0) return (&(_iob)[0]);
-//			//		//			if(t==1) return (&(_iob)[1]);
-//			//		//			if(t==2) return (&(_iob)[2]);
-//			//	}else{
-//			//		printf("ERROR: win not found _imp___iob or _iob");exit(1);
-//			//	}
-//			//}
-//			break;
-//		case ffic_os_unknown:
-//		default:
-//			//for(char**env=envp_store;env && (*env);env++) { printf("%s\n",*env); }
-//			printf("ERROR: unknown ffic_os\n");exit(1);
-//			break;
-//	}
-//	//return ffic_void;
-	return (void*)0;
-}
+#endif
 ///////////////////////////////////////////////
 typedef void* ffic_ptr;
 typedef ffic_ptr(*ffic_func)();
 typedef char* ffic_string;
+
+char **envp_store;
+void ffic_setup(char **envp){
+	envp_store = envp;//
+	//ffic_func strcmp = ffic_raw("libc","strcmp",0);//TODO
+	//ffic_func printf = ffic_raw("libc","printf",0);
+	for(char**env=envp;env && (*env);env++) {
+		//printf("DEBUG: %s\n",*env);
+		if(strcmp(*env,"OS=Windows_NT")==0){ ffic_os = ffic_os_win;break; }
+		if(strcmp(*env,"COMMAND_MODE=unix2003")==0){ ffic_os = ffic_os_osx;break; }
+	}
+}
 
 #ifndef FFIC
 #define FFIC 1
@@ -211,7 +158,7 @@ extern void*(*ffic(const char*, const char*, ...))();
 //extern int fprintf(FILE *stream, const char *format, ...);
 //extern int fflush(FILE *stream);
 //extern int strcmp(const char*,const char*);
-extern void exit();
+extern void exit(int);
 extern int printf(const char*,...);
 extern int fprintf(FILE*,const char*,...);
 extern int fflush(void*);
@@ -238,28 +185,40 @@ void ffic_strcat(char *buffer, const char *source, const char* append) {
 	while (*append)  *(buffer++) = *(append++); 
 	*buffer = '\0';
 }
+
 ffic_ptr ffic_void(){return 0;};
 ffic_ptr(*ffic_raw(const char* part1, const char* funcname, const char* part2))()
 {
-	//if(!part1){
-	//	return ffic_dlsym(ffic_dlopen("libc.dylib",0x100 | 0x1 /*RTLD_GLOBAL | RTLD_LAZY*/), funcname);
-	//	//return dlsym(0/*RTLD_DEFAULT*/, funcname);
-	//}
+	if(ffic_os==ffic_os_unknown){ printf("ERROR: need to call ffic_setup() first\n");exit(1); }
 	char libfilename[512] = {0};
 	ffic_strcat(libfilename,part1,
-			(part2==0)?
-#if defined(__APPLE__)
-			".dylib"
-#elif defined(_WIN32) || defined(_WIN64)
-			".dll"
-#else
-			".so"
-#endif
-			:part2
-			);
+			(part2==0)?( (ffic_os == ffic_os_osx)?".dylib": (ffic_os==ffic_os_win)?".dll":".so"):part2);
 	ffic_ptr rt = ffic_dlsym(ffic_dlopen(libfilename,0x100 | 0x1/*RTLD_LAZY*/), funcname);
 	return rt;
-	//return ffic_dlsym(ffic_dlopen(libfilename,1/*RTLD_LAZY*/), funcname);
+}
+void* ffic_os_std(int t){
+	if(ffic_os==ffic_os_win){
+	ffic_func fdopen = ffic_raw("msvcrt",(ffic_os==ffic_os_win)?"_fdopen":"fdopen",0);
+		return fdopen(
+				ffic_raw("msvcrt",(ffic_os==ffic_os_win)?"_dup":"dup",0)(t),
+				(t==0)?"r":"w");
+#define STD_INPUT_HANDLE (-10)
+#define STD_OUTPUT_HANDLE (-11)
+#define STD_ERROR_HANDLE (-12)
+		ffic_func GetStdHandle = ffic_raw("kernel32","GetStdHandle",0);
+		void* tmp= GetStdHandle(
+				(t==0)?STD_INPUT_HANDLE:(t==1)?STD_OUTPUT_HANDLE:STD_ERROR_HANDLE);
+		FILE_win * rt = fdopen(ffic_raw("msvcrt","_open_osfhandle",0)(tmp),(t==0)?"r":"w");
+		printf("rt=%d\n",rt);
+		return rt;
+	}
+	else{
+	ffic_func fdopen = ffic_raw("libc",(ffic_os==ffic_os_win)?"_fdopen":"fdopen",0);
+		return fdopen(
+				ffic_raw("libc",(ffic_os==ffic_os_win)?"_dup":"dup",0)(t),
+				(t==0)?"r":"w");
+	}
+	return (void*)0;
 }
 ffic_ptr ffic_usleep(int nano_seconds)
 {
@@ -289,50 +248,25 @@ ffic_ptr ffic_sleep(int seconds)
 	return 0;
 }
 ffic_u64 ffic_microtime(void);
-const char *libcname[] = {"libc","msvcrt","libc","libc"};
-const char *libsuffix[]= {"libc","msvcrt","libc","libc"};
 ffic_ptr(*ffic(const char* libname, const char* funcname, ...))()
 {
 	ffic_ptr addr = 0;
 	if(!strcmp("c",libname)){
-		//if(!strcmp("stderr",funcname)){ addr = stderr; }
-		//else if(!strcmp("stdout",funcname)){ addr = stdout; }
-		//else if(!strcmp("stdin",funcname)){ addr = stdin; }
 		if(!strcmp("stderr",funcname)){ return ffic_os_std(2); }
 		else if(!strcmp("stdout",funcname)){ return ffic_os_std(1); }
 		else if(!strcmp("stdin",funcname)){ return ffic_os_std(0); }
 		else{
-			libname = libcname[ ffic_os ];
-//#if defined(__APPLE__)
-//				"libc"
-//#elif defined(_WIN64)
-//				"msvcrt"
-//#elif defined(_WIN32) || defined(_WIN64)
-//				"msvcrt"
-//#else
-//				"libc"
-//#endif
-//				;				
+			libname = (ffic_os == ffic_os_win)?"msvcrt":"libc";
 			if(!strcmp("microtime",funcname)){ return (ffic_ptr) ffic_microtime; }//ffic_u64 (*microtime)() = libc(microtime);
 			else if(!strcmp("usleep",funcname)){ return ffic_usleep; }
 			else if(!strcmp("sleep",funcname)){ return ffic_sleep; }
 			else if(!strcmp("msleep",funcname)){ return ffic_msleep; }
-//#ifdef _WIN32
 			else if(ffic_os == ffic_os_win && !strcmp("fileno",funcname)){ funcname = "_fileno"; }
-//#endif
 			else if(!strcmp("setmode",funcname)){
-				if(ffic_os == ffic_os_win){
-//#ifdef _WIN32
-				funcname = "_setmode";
-				}else{
-//#else
-				addr = ffic_void;
-//#endif
-				}
+				if(ffic_os == ffic_os_win){ funcname = "_setmode";
+				}else{ addr = ffic_void; }
 			}
-//#if defined(_WIN32)
 			else if(ffic_os == ffic_os_win && !strcmp("strdup",funcname)){ funcname = "_strdup"; }
-//#endif
 		}
 	}
 	if(addr==0) addr = ffic_raw(libname,funcname,0);

@@ -7,7 +7,7 @@ default:
 	#echo "#define TCC_VERSION \"`head ../tinycc/VERSION`\"" > config.h
 	make pp
 	#cc ffic.c -I ../tinycc/ -o ffic
-	${CC} ffic.pp.c -L. -ltcc -o ffic
+	${CC} ffic.pp.c -L. -ldl -ltcc -o ffic
 	ls -al ffic*
 	make test
 osx:

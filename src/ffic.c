@@ -4,7 +4,11 @@
 #include "ffic.h"
 #define tcc(f) ffic("libtcc",#f)
 #define anyptr void*
-int main(int argc, char **argv){
+
+int main(int argc, char **argv, char **envp){
+
+	ffic_setup(envp);
+
 	anyptr tcc_ptr = tcc(tcc_new)();
 	if (!tcc_ptr) {
 		//tcc_error("Unable new tcc, memory full?")
@@ -32,10 +36,10 @@ int main(int argc, char **argv){
 	//tcc(tcc_set_options)(tcc_ptr, "-run");
 
 	if(0==tcc(tcc_get_symbol)(tcc_ptr, "ffic"))
-	tcc(tcc_add_symbol)(tcc_ptr, "ffic", ffic);
+		tcc(tcc_add_symbol)(tcc_ptr, "ffic", ffic);
 
 	if(0==tcc(tcc_get_symbol)(tcc_ptr, "ffic_raw"))
-	tcc(tcc_add_symbol)(tcc_ptr, "ffic_raw", ffic_raw);
+		tcc(tcc_add_symbol)(tcc_ptr, "ffic_raw", ffic_raw);
 
 	tcc(tcc_add_file)(tcc_ptr,(argc>1) ? argv[1] : "-");
 
