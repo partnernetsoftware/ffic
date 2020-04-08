@@ -49,17 +49,17 @@ typedef struct _c_types_64 {
 		unsigned long long int ffic_u64;
 	};
 } c_types_64;
-typedef struct _iobuf_win {
-	char *_ptr;
-	int _cnt;
-	char *_base;
-	int _flag;
-	int _file;
-	int _charbuf;
-	int _bufsiz;
-	char *_tmpfname;
-} FILE_win;
-typedef struct __FILE FILE;
+//typedef struct _iobuf_win {
+//	char *_ptr;
+//	int _cnt;
+//	char *_base;
+//	int _flag;
+//	int _file;
+//	int _charbuf;
+//	int _bufsiz;
+//	char *_tmpfname;
+//} FILE_win;
+//typedef struct __FILE FILE;
 typedef signed char ffic_i8;
 typedef unsigned char ffic_u8;
 typedef signed short int ffic_i16;
@@ -85,18 +85,17 @@ typedef unsigned long long int ffic_u64;
 //extern FILE *stdout;
 //extern FILE *stderr;
 
-//#if 0
 #  if defined(_WIN32) || defined(_WIN64)
-//typedef struct _iobuf {
-//	char *_ptr;
-//	int _cnt;
-//	char *_base;
-//	int _flag;
-//	int _file;
-//	int _charbuf;
-//	int _bufsiz;
-//	char *_tmpfname;
-//} FILE;
+typedef struct _iobuf {
+	char *_ptr;
+	int _cnt;
+	char *_base;
+	int _flag;
+	int _file;
+	int _charbuf;
+	int _bufsiz;
+	char *_tmpfname;
+} FILE;
 #ifdef _WIN64
 #define __cdecl
 #define __declspec(x) __attribute__((x))
@@ -133,7 +132,66 @@ extern FILE *stdin;
 extern FILE *stdout;
 extern FILE *stderr;
 #   endif
+//char **envp_store;
+//void ffic_os_check(char **envp){
+//	envp_store = envp;//
+//	ffic_func strcmp = ffic_raw("libc","strcmp",0);
+//	//ffic_func printf = ffic_raw("libc","printf",0);
+//	for(char**env=envp;env && (*env);env++) {
+//		//printf("%s (%d)\n",*env,strcmp(*env,"OS=Windows"));
+//		if(strcmp(*env,"OS=Windows_NT")==0){ ffic_os = ffic_os_win;break; }
+//		//if(strcmp(*env,"COMMAND_MODE=unix2003")==0){ ffic_os = ffic_os_osx;break; }
+//	}
+//}
+void* ffic_os_std(int t){
+	if(t==0){ return stdin ;}
+	if(t==1){ return stdout;}
+	if(t==2){ return stderr;}
+//	void* tmp;
+//	switch(ffic_os){
+//#if defined(__APPLE__)
+//		case ffic_os_osx: 
+//			//if(t==0){ return ffic_raw("libc","__stdinp",0); }
+//			//if(t==1){ return ffic_raw("libc","__stdoutp",0);}
+//			//if(t==2){ return ffic_raw("libc","__stderrp",0);}
+//			if(t==0){ return __stdinp ;}
+//			if(t==1){ return __stdoutp;}
+//			if(t==2){ return __stderrp;}
+//			break;
 //#endif
+//		case ffic_os_unx: 
+//			if(t==0){ tmp = ffic_raw("libc","stdin",0); if(!tmp) return ffic_raw("libc","__stdinp",0); return tmp; }
+//			if(t==1){ tmp = ffic_raw("libc","stdout",0); if(!tmp) return ffic_raw("libc","__stdoutp",0); return tmp; }
+//			if(t==2){ tmp = ffic_raw("libc","stderr",0); if(!tmp) return ffic_raw("libc","__stderrp",0); return tmp; }
+//		case ffic_os_win:
+//			if(t==0) return (&(_iob)[0]);
+//			if(t==1) return (&(_iob)[1]);
+//			if(t==2) return (&(_iob)[2]);
+//			//tmp = ffic_raw("libc","_imp___iob",0);
+//			//if(tmp){ FILE_win (*_imp___iob)[]; _imp___iob= tmp; return (&(*_imp___iob)[t]);
+//			//}else{
+//			//	tmp = ffic_raw("libc","_iob",0);
+//			//	if(tmp){
+//			//		FILE_win *_iob = tmp;
+//			//		return (&(_iob)[t]);//TODO test later...
+//			//		//extern FILE _iob[];
+//			//		//			if(t==0) return (&(_iob)[0]);
+//			//		//			if(t==1) return (&(_iob)[1]);
+//			//		//			if(t==2) return (&(_iob)[2]);
+//			//	}else{
+//			//		printf("ERROR: win not found _imp___iob or _iob");exit(1);
+//			//	}
+//			//}
+//			break;
+//		case ffic_os_unknown:
+//		default:
+//			//for(char**env=envp_store;env && (*env);env++) { printf("%s\n",*env); }
+//			printf("ERROR: unknown ffic_os\n");exit(1);
+//			break;
+//	}
+//	//return ffic_void;
+	return (void*)0;
+}
 ///////////////////////////////////////////////
 typedef void* ffic_ptr;
 typedef ffic_ptr(*ffic_func)();
@@ -230,61 +288,9 @@ ffic_ptr ffic_sleep(int seconds)
 #endif
 	return 0;
 }
-//char **envp_store;
-//void ffic_os_check(char **envp){
-//	envp_store = envp;//
-//	ffic_func strcmp = ffic_raw("libc","strcmp",0);
-//	//ffic_func printf = ffic_raw("libc","printf",0);
-//	for(char**env=envp;env && (*env);env++) {
-//		//printf("%s (%d)\n",*env,strcmp(*env,"OS=Windows"));
-//		if(strcmp(*env,"OS=Windows_NT")==0){ ffic_os = ffic_os_win;break; }
-//		//if(strcmp(*env,"COMMAND_MODE=unix2003")==0){ ffic_os = ffic_os_osx;break; }
-//	}
-//}
-ffic_ptr ffic_os_std(int t){
-	void* tmp;
-	switch(ffic_os){
-#if defined(__APPLE__)
-		case ffic_os_osx: 
-			//if(t==0){ return ffic_raw("libc","__stdinp",0); }
-			//if(t==1){ return ffic_raw("libc","__stdoutp",0);}
-			//if(t==2){ return ffic_raw("libc","__stderrp",0);}
-			if(t==0){ return __stdinp ;}
-			if(t==1){ return __stdoutp;}
-			if(t==2){ return __stderrp;}
-			break;
-#endif
-		case ffic_os_unx: 
-			if(t==0){ tmp = ffic_raw("libc","stdin",0); if(!tmp) return ffic_raw("libc","__stdinp",0); return tmp; }
-			if(t==1){ tmp = ffic_raw("libc","stdout",0); if(!tmp) return ffic_raw("libc","__stdoutp",0); return tmp; }
-			if(t==2){ tmp = ffic_raw("libc","stderr",0); if(!tmp) return ffic_raw("libc","__stderrp",0); return tmp; }
-		case ffic_os_win:
-			tmp = ffic_raw("libc","_imp___iob",0);
-			if(tmp){ FILE_win (*_imp___iob)[]; _imp___iob= tmp; return (&(*_imp___iob)[t]);
-			}else{
-				tmp = ffic_raw("libc","_iob",0);
-				if(tmp){
-					FILE_win *_iob = tmp;
-					return (&(_iob)[t]);//TODO test later...
-					//extern FILE _iob[];
-					//			if(t==0) return (&(_iob)[0]);
-					//			if(t==1) return (&(_iob)[1]);
-					//			if(t==2) return (&(_iob)[2]);
-				}else{
-					printf("ERROR: win not found _imp___iob or _iob");exit(1);
-				}
-			}
-			break;
-		case ffic_os_unknown:
-		default:
-			//for(char**env=envp_store;env && (*env);env++) { printf("%s\n",*env); }
-			printf("ERROR: unknown ffic_os\n");exit(1);
-			break;
-	}
-	//return ffic_void;
-	return (void*)0;
-}
 ffic_u64 ffic_microtime(void);
+const char *libcname[] = {"libc","msvcrt","libc","libc"};
+const char *libsuffix[]= {"libc","msvcrt","libc","libc"};
 ffic_ptr(*ffic(const char* libname, const char* funcname, ...))()
 {
 	ffic_ptr addr = 0;
@@ -296,34 +302,37 @@ ffic_ptr(*ffic(const char* libname, const char* funcname, ...))()
 		else if(!strcmp("stdout",funcname)){ return ffic_os_std(1); }
 		else if(!strcmp("stdin",funcname)){ return ffic_os_std(0); }
 		else{
-			libname = 
-#if defined(__APPLE__)
-				"libc"
-#elif defined(_WIN64)
-				"msvcrt"
-#elif defined(_WIN32) || defined(_WIN64)
-				"msvcrt"
-#else
-				"libc"
-#endif
-				;				
+			libname = libcname[ ffic_os ];
+//#if defined(__APPLE__)
+//				"libc"
+//#elif defined(_WIN64)
+//				"msvcrt"
+//#elif defined(_WIN32) || defined(_WIN64)
+//				"msvcrt"
+//#else
+//				"libc"
+//#endif
+//				;				
 			if(!strcmp("microtime",funcname)){ return (ffic_ptr) ffic_microtime; }//ffic_u64 (*microtime)() = libc(microtime);
 			else if(!strcmp("usleep",funcname)){ return ffic_usleep; }
 			else if(!strcmp("sleep",funcname)){ return ffic_sleep; }
 			else if(!strcmp("msleep",funcname)){ return ffic_msleep; }
-#ifdef _WIN32
-			else if(!strcmp("fileno",funcname)){ funcname = "_fileno"; }
-#endif
+//#ifdef _WIN32
+			else if(ffic_os == ffic_os_win && !strcmp("fileno",funcname)){ funcname = "_fileno"; }
+//#endif
 			else if(!strcmp("setmode",funcname)){
-#ifdef _WIN32
+				if(ffic_os == ffic_os_win){
+//#ifdef _WIN32
 				funcname = "_setmode";
-#else
+				}else{
+//#else
 				addr = ffic_void;
-#endif
+//#endif
+				}
 			}
-#if defined(_WIN32)
-			else if(!strcmp("strdup",funcname)){ funcname = "_strdup"; }
-#endif
+//#if defined(_WIN32)
+			else if(ffic_os == ffic_os_win && !strcmp("strdup",funcname)){ funcname = "_strdup"; }
+//#endif
 		}
 	}
 	if(addr==0) addr = ffic_raw(libname,funcname,0);
@@ -341,24 +350,27 @@ ffic_u64 ffic_microtime(void)
 {
 	struct timeval tv;
 	static ffic_func gettimeofday;
-#ifdef _WIN32
-	gettimeofday = ffic_raw("kernel32","GetSystemTimePreciseAsFileTime",0);
-	if (!gettimeofday) gettimeofday = ffic_raw("kernel32","GetSystemTimeAsFileTime",0);
-	static const ffic_u64 epoch = 116444736000000000;
-	struct _FILETIME {
-		unsigned long dwLowDateTime;
-		unsigned long dwHighDateTime;
-	} file_time;
-	gettimeofday(&file_time);
-	ffic_u64 since_1601 = ( (ffic_u64) file_time.dwHighDateTime << 32) | (ffic_u64) file_time.dwLowDateTime;
-	ffic_u64 since_1970 = ((ffic_u64) since_1601 - epoch);
-	ffic_u64 microseconds_since_1970 = since_1970 / 10;
-	tv.tv_sec = (microseconds_since_1970 / (ffic_u64) 1000000);
-	tv.tv_usec = microseconds_since_1970 % (ffic_u64) 1000000;
-#else
-	gettimeofday = ffic("c","gettimeofday");
-	gettimeofday(&tv, 0);
-#endif
+	//#ifdef _WIN32
+	if(ffic_os == ffic_os_win){
+		gettimeofday = ffic_raw("kernel32","GetSystemTimePreciseAsFileTime",0);
+		if (!gettimeofday) gettimeofday = ffic_raw("kernel32","GetSystemTimeAsFileTime",0);
+		static const ffic_u64 epoch = 116444736000000000;
+		struct _FILETIME {
+			unsigned long dwLowDateTime;
+			unsigned long dwHighDateTime;
+		} file_time;
+		gettimeofday(&file_time);
+		ffic_u64 since_1601 = ( (ffic_u64) file_time.dwHighDateTime << 32) | (ffic_u64) file_time.dwLowDateTime;
+		ffic_u64 since_1970 = ((ffic_u64) since_1601 - epoch);
+		ffic_u64 microseconds_since_1970 = since_1970 / 10;
+		tv.tv_sec = (microseconds_since_1970 / (ffic_u64) 1000000);
+		tv.tv_usec = microseconds_since_1970 % (ffic_u64) 1000000;
+	}else{
+		//#else
+		gettimeofday = ffic("c","gettimeofday");
+		gettimeofday(&tv, 0);
+	}
+	//#endif
 	//return ((ffic_u64)tv.tv_sec*(ffic_u64)1000 + (((ffic_u64)tv.tv_usec+(ffic_u64)500)/(ffic_u64)1000)%(ffic_u64)1000);
 	return ((ffic_u64)tv.tv_sec*(ffic_u64)1000 + (((ffic_u64)tv.tv_usec)/(ffic_u64)1000)%(ffic_u64)1000);
 }

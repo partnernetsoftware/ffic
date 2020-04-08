@@ -32,17 +32,6 @@ typedef struct _c_types_64 {
   unsigned long long int ffic_u64;
  };
 } c_types_64;
-typedef struct _iobuf_win {
- char *_ptr;
- int _cnt;
- char *_base;
- int _flag;
- int _file;
- int _charbuf;
- int _bufsiz;
- char *_tmpfname;
-} FILE_win;
-typedef struct __FILE FILE;
 typedef signed char ffic_i8;
 typedef unsigned char ffic_u8;
 typedef signed short int ffic_i16;
@@ -55,6 +44,12 @@ typedef struct __FILE FILE;
 extern FILE *__stdinp;
 extern FILE *__stdoutp;
 extern FILE *__stderrp;
+void* ffic_os_std(int t){
+ if(t==0){ return __stdinp ;}
+ if(t==1){ return __stdoutp;}
+ if(t==2){ return __stderrp;}
+ return (void*)0;
+}
 typedef void* ffic_ptr;
 typedef ffic_ptr(*ffic_func)();
 typedef char* ffic_string;
@@ -97,39 +92,9 @@ ffic_ptr ffic_sleep(int seconds)
  ffic_raw("libc","usleep",0)(seconds*1000000);
  return 0;
 }
-ffic_ptr ffic_os_std(int t){
- void* tmp;
- switch(ffic_os){
-  case ffic_os_osx:
-   if(t==0){ return __stdinp ;}
-   if(t==1){ return __stdoutp;}
-   if(t==2){ return __stderrp;}
-   break;
-  case ffic_os_unx:
-   if(t==0){ tmp = ffic_raw("libc","stdin",0); if(!tmp) return ffic_raw("libc","__stdinp",0); return tmp; }
-   if(t==1){ tmp = ffic_raw("libc","stdout",0); if(!tmp) return ffic_raw("libc","__stdoutp",0); return tmp; }
-   if(t==2){ tmp = ffic_raw("libc","stderr",0); if(!tmp) return ffic_raw("libc","__stderrp",0); return tmp; }
-  case ffic_os_win:
-   tmp = ffic_raw("libc","_imp___iob",0);
-   if(tmp){ FILE_win (*_imp___iob)[]; _imp___iob= tmp; return (&(*_imp___iob)[t]);
-   }else{
-    tmp = ffic_raw("libc","_iob",0);
-    if(tmp){
-     FILE_win *_iob = tmp;
-     return (&(_iob)[t]);
-    }else{
-     printf("ERROR: win not found _imp___iob or _iob");exit(1);
-    }
-   }
-   break;
-  case ffic_os_unknown:
-  default:
-   printf("ERROR: unknown ffic_os\n");exit(1);
-   break;
- }
- return (void*)0;
-}
 ffic_u64 ffic_microtime(void);
+const char *libcname[] = {"libc","msvcrt","libc","libc"};
+const char *libsuffix[]= {"libc","msvcrt","libc","libc"};
 ffic_ptr(*ffic(const char* libname, const char* funcname, ...))()
 {
  ffic_ptr addr = 0;
@@ -138,16 +103,20 @@ ffic_ptr(*ffic(const char* libname, const char* funcname, ...))()
   else if(!strcmp("stdout",funcname)){ return ffic_os_std(1); }
   else if(!strcmp("stdin",funcname)){ return ffic_os_std(0); }
   else{
-   libname =
-    "libc"
-    ;
+   libname = libcname[ ffic_os ];
    if(!strcmp("microtime",funcname)){ return (ffic_ptr) ffic_microtime; }
    else if(!strcmp("usleep",funcname)){ return ffic_usleep; }
    else if(!strcmp("sleep",funcname)){ return ffic_sleep; }
    else if(!strcmp("msleep",funcname)){ return ffic_msleep; }
+   else if(ffic_os == ffic_os_win && !strcmp("fileno",funcname)){ funcname = "_fileno"; }
    else if(!strcmp("setmode",funcname)){
+    if(ffic_os == ffic_os_win){
+    funcname = "_setmode";
+    }else{
     addr = ffic_void;
+    }
    }
+   else if(ffic_os == ffic_os_win && !strcmp("strdup",funcname)){ funcname = "_strdup"; }
   }
  }
  if(addr==0) addr = ffic_raw(libname,funcname,0);
