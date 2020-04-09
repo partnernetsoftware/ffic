@@ -48,9 +48,11 @@ test_sao_osx:
 	echo $$(($$(gdate +'%s * 1000 + %-N / 1000000'))) && cat tests/fib.sl | ./sao_osx l d p -
 	echo $$(($$(gdate +'%s * 1000 + %-N / 1000000'))) && cat tests/test.sao | ./sao_osx d - && echo $$(($$(gdate +'%s * 1000 + %-N / 1000000'))) 
 osx_sao:
-	#rm -f sao_osx
+	rm -f sao_osx
+	rm -f sao_osx_upx
 	make pp_sao
 	${CC} sao.osx.pp.c -L. -o sao_osx
+	upx sao_osx -osao_osx_upx
 	#./upx_osx ./sao_osx
 	make test_sao_osx
 	ls -al sao*
