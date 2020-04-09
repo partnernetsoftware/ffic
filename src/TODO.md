@@ -6,7 +6,6 @@ autonomy, paradigm, ...
 
 ```
 /* TODO (Plan)
- * * ffic_setup(envpp) => ffic_os_, then make all *.pp.c same...
  * * ctype() + ffic() C.$sym() [0.0.7]
  * * shell [0.0.8]
  * * improve: table hash table size (refer to lua/jerryscript) [0.0.11]

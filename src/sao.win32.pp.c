@@ -5,32 +5,9 @@ typedef enum {
  ffic_os_osx,
  ffic_os_unx,
 } ffic_os_t;
-ffic_os_t ffic_os = ffic_os_unknown;
-typedef struct _c_types_32 c_types_32;
-struct _c_types_32 {
- union {
-  signed char ffic_i8;
-  unsigned char ffic_u8;
-  signed short int ffic_i16;
-  unsigned short int ffic_u16;
-  signed int ffic_i32;
-  unsigned int ffic_u32;
-  signed long int ffic_i64;
-  unsigned long int ffic_u64;
- };
-};
-typedef struct _c_types_64 {
- union {
-  signed char ffic_i8;
-  unsigned char ffic_u8;
-  signed short int ffic_i16;
-  unsigned short int ffic_u16;
-  signed int ffic_i32;
-  unsigned int ffic_u32;
-  signed long long int ffic_i64;
-  unsigned long long int ffic_u64;
- };
-} c_types_64;
+ffic_os_t ffic_os =
+ffic_os_win
+;
 typedef struct _iobuf_win {
  char *_ptr;
  int _cnt;
@@ -53,19 +30,18 @@ typedef unsigned long long int ffic_u64;
 typedef void* ffic_ptr;
 typedef ffic_ptr(*ffic_func)();
 typedef char* ffic_string;
+extern int printf(const char*,...);
+extern int strcmp(const char*,const char*);
+extern void exit(int);
+extern int fprintf(FILE*,const char*,...);
+extern int fflush(void*);
 char **envp_store;
 void ffic_setup(char **envp){
  envp_store = envp;
  for(char**env=envp;env && (*env);env++) {
-  if(strcmp(*env,"OS=Windows_NT")==0){ ffic_os = ffic_os_win;break; }
-  if(strcmp(*env,"COMMAND_MODE=unix2003")==0){ ffic_os = ffic_os_osx;break; }
+  printf("DEBUG: %s\n",*env);
  }
 }
-extern void exit(int);
-extern int printf(const char*,...);
-extern int fprintf(FILE*,const char*,...);
-extern int fflush(void*);
-extern int strcmp(const char*,const char*);
 extern ffic_ptr LoadLibraryA(const char*);
 extern ffic_ptr GetProcAddress(ffic_ptr,const char*);
 void ffic_strcat(char *buffer, const char *source, const char* append) {
@@ -78,45 +54,31 @@ ffic_ptr(*ffic_raw(const char* part1, const char* funcname, const char* part2))(
 {
  if(ffic_os==ffic_os_unknown){ printf("ERROR: need to call ffic_setup() first\n");exit(1); }
  char libfilename[512] = {0};
- ffic_strcat(libfilename,part1,
+ ffic_strcat(libfilename,
+   (part1==0)?( (ffic_os == ffic_os_win)?"msvcrt":"libc") : part1,
    (part2==0)?( (ffic_os == ffic_os_osx)?".dylib": (ffic_os==ffic_os_win)?".dll":".so"):part2);
  ffic_ptr rt = GetProcAddress(LoadLibraryA(libfilename), funcname);
  return rt;
 }
 void* ffic_os_std(int t){
- if(ffic_os==ffic_os_win){
- ffic_func fdopen = ffic_raw("msvcrt",(ffic_os==ffic_os_win)?"_fdopen":"fdopen",0);
-  return fdopen(
-    ffic_raw("msvcrt",(ffic_os==ffic_os_win)?"_dup":"dup",0)(t),
-    (t==0)?"r":"w");
-  ffic_func GetStdHandle = ffic_raw("kernel32","GetStdHandle",0);
-  void* tmp= GetStdHandle(
-    (t==0)?(-10):(t==1)?(-11):(-12));
-  FILE_win * rt = fdopen(ffic_raw("msvcrt","_open_osfhandle",0)(tmp),(t==0)?"r":"w");
-  printf("rt=%d\n",rt);
-  return rt;
- }
- else{
- ffic_func fdopen = ffic_raw("libc",(ffic_os==ffic_os_win)?"_fdopen":"fdopen",0);
-  return fdopen(
-    ffic_raw("libc",(ffic_os==ffic_os_win)?"_dup":"dup",0)(t),
-    (t==0)?"r":"w");
- }
- return (void*)0;
+ return ffic_raw(0,(ffic_os==ffic_os_win)?"_fdopen":"fdopen",0)(ffic_raw(0,(ffic_os==ffic_os_win)?"_dup":"dup",0)(t),(t==0)?"r":"w");
 }
 ffic_ptr ffic_usleep(int nano_seconds)
 {
- ffic_raw("kernel32","Sleep",0)(nano_seconds/1000);
+ if(ffic_os==ffic_os_win) ffic_raw("kernel32","Sleep",0)(nano_seconds/1000);
+ else ffic_raw("libc","usleep",0)(nano_seconds);
  return 0;
 };
 ffic_ptr ffic_msleep(int microseconds)
 {
- ffic_raw("kernel32","Sleep",0)(microseconds);
+ if (ffic_os==ffic_os_win) ffic_raw("kernel32","Sleep",0)(microseconds);
+ else ffic_raw("libc","usleep",0)(microseconds*1000);
  return 0;
 };
 ffic_ptr ffic_sleep(int seconds)
 {
- ffic_raw("kernel32","Sleep",0)(seconds*1000);
+ if(ffic_os==ffic_os_win) ffic_raw("kernel32","Sleep",0)(seconds*1000);
+ else ffic_raw("libc","usleep",0)(seconds*1000000);
  return 0;
 }
 ffic_u64 ffic_microtime(void);
@@ -124,9 +86,9 @@ ffic_ptr(*ffic(const char* libname, const char* funcname, ...))()
 {
  ffic_ptr addr = 0;
  if(!strcmp("c",libname)){
-  if(!strcmp("stderr",funcname)){ return ffic_os_std(2); }
-  else if(!strcmp("stdout",funcname)){ return ffic_os_std(1); }
-  else if(!strcmp("stdin",funcname)){ return ffic_os_std(0); }
+  if(!strcmp("stderr",funcname) || !strcmp("2",funcname)){ return ffic_os_std(2); }
+  else if(!strcmp("stdout",funcname) || !strcmp("1",funcname)){ return ffic_os_std(1); }
+  else if(!strcmp("stdin",funcname) || !strcmp("0",funcname)){ return ffic_os_std(0); }
   else{
    libname = (ffic_os == ffic_os_win)?"msvcrt":"libc";
    if(!strcmp("microtime",funcname)){ return (ffic_ptr) ffic_microtime; }
@@ -143,6 +105,7 @@ ffic_ptr(*ffic(const char* libname, const char* funcname, ...))()
  }
  if(addr==0) addr = ffic_raw(libname,funcname,0);
  if(0==addr){
+  fprintf(ffic_os_std(1),"ERR: Not found %s.%s\n", libname, funcname);fflush(ffic_os_std(1));
   return ffic_void;
  }
  return addr;
@@ -948,7 +911,6 @@ p_sao_obj saolang_init()
 void print_version(){ libc_(libc_printf,"printf")(" SaoLang (R) v" "0.0.6" " - Wanjo Chan (c) 2020\n"); }
 void print_help(){ libc_(libc_printf,"printf")("Usage	 : sao [options] [script.sao | -]]\nOptions	 :\n	h:	Help\n	v:	Version\n	i:	Interactive\n	p:	Print final result\n	d:	Dev only\n	e:	Eval\n	s:	Strict mode\n	l:	Lisp syntax\n"); }
 int main(int argc,char **argv, char** envp) {
- ffic_setup(envp);
  ffic_func strcmp = libc_(libc_strcmp,"strcmp");
  libc_(libc_setmode,"setmode")(libc_(libc_fileno,"fileno")(libc_(libc_stdin,"stdin")),0x8000 );
  g_symbol_holder = sao_new((sao_obj){._type=type_table, ._size=65536-1});

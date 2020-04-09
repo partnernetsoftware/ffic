@@ -7,7 +7,7 @@
 
 int main(int argc, char **argv, char **envp){
 
-	ffic_setup(envp);
+	//ffic_setup(envp);
 
 	anyptr tcc_ptr = tcc(tcc_new)();
 	if (!tcc_ptr) {
