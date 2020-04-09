@@ -45,9 +45,9 @@ p_sao_obj native_cmp(p_sao_obj args) {
 }
 //p_sao_obj native_not(p_sao_obj args) { return native_cmp(args); }
 p_sao_obj native_eq(p_sao_obj args) { return sao_is_eq(car(args), cadr(args)) ? SAO_TAG_true : SAO_TAG_false; }
-p_sao_obj native_equalq(p_sao_obj args) {
-	if (sao_is_eq(car(args), cadr(args)))
-		return SAO_TAG_true;
+//TODO to change name ( avoid eq)
+p_sao_obj native_same(p_sao_obj args) {
+	if (sao_is_eq(car(args), cadr(args))) return SAO_TAG_true;
 	if ((car(args)->_type == type_list) && (cadr(args)->_type == type_list)) {
 		p_sao_obj a, b;
 		a = car(args);
@@ -234,7 +234,7 @@ p_sao_obj saolang_init()
 			list,vector,vget,vset,//data structure
 			load,print,read,//io
 			add,sub,mul,div,cmp,lt,gt,//logic,
-			is_null,is_list,pairq,eq,equalq,//helpers
+			is_null,is_list,pairq,eq,same,//helpers
 			);
 	SAO_ITR(add_sym_list, c_int);
 	return SAO_TAG_global;

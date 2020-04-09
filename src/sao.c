@@ -82,7 +82,6 @@ struct _sao_obj {
 		};
 	};
 };
-//#define sao_new_x(t,...) sao_new((sao_obj){._type=type_##t,__VA_ARGS__})
 //TODO gc()
 p_sao_obj sao_new(sao_obj tpl) {
 	sao_obj * ret = libc(malloc)(sizeof(sao_obj));
@@ -172,10 +171,11 @@ p_sao_obj cdadr(p_sao_obj x) { return (!x || x->_type || !x->cdr || x->cdr->_typ
 //p_sao_obj cadddr(p_sao_obj x) { return (!x || x->_type || !x->cdr || x->cdr->_type || !x->cdr->cdr || x->cdr->cdr->_type || !x->cdr->cdr->cdr || x->cdr->cdr->cdr->_type)? SAO_TAG_nil: x->cdr->cdr->cdr->car; }
 p_sao_obj cadddr(p_sao_obj x) { return (sao_is_list(x)&&sao_is_list(x->cdr)&&sao_is_list(x->cdr->cdr)&&sao_is_list(x->cdr->cdr->cdr))? x->cdr->cdr->cdr->car:SAO_TAG_nil; }
 #define sao_new_symbol(s) sao_new((sao_obj){._type=type_symbol,._string=s})
-//p_sao_obj sao_new_lambda(p_sao_obj params, p_sao_obj body) { return cons(SAO_TAG_lambda, cons(params, body)); }
 #define sao_new_lambda(params,body) cons(SAO_TAG_lambda, cons(params,body))
-//p_sao_obj sao_new_procedure(p_sao_obj params, p_sao_obj body, p_sao_obj ctx) { return cons(SAO_TAG_procedure, cons(params, cons(body, cons(ctx, SAO_TAG_nil)))); }
 #define sao_new_procedure(params,body,ctx) cons(SAO_TAG_procedure, cons(params, cons(body, cons(ctx, SAO_TAG_nil))))
+#define sao_new_table(s) sao_new((sao_obj){._type=type_table, ._size=s})
+#define sao_new_string(s) sao_new((sao_obj){._type=type_string, ._string=s})
+#define sao_new_integer(i) sao_new((sao_obj){._type=type_integer, ._integer=i})
 
 long sao_table_hash(const ffic_string s, int ht_len) {
 	long h = 0;
@@ -210,7 +210,6 @@ p_sao_obj sao_table_insert(p_sao_obj holder,p_sao_obj key_obj){
 	the_table[h]= key_obj;
 	return holder;
 }
-#define sao_new_table(s) sao_new((sao_obj){._type=type_table, ._size=s})
 p_sao_obj sao_tbl_resize(p_sao_obj holder,int size){
 	//if(!holder)
 	if(!holder)
@@ -251,7 +250,7 @@ p_sao_obj sao_not_false(p_sao_obj x) {
 	return x;
 }
 //p_sao_obj sao_is_tagged(p_sao_obj cell, p_sao_obj tag) { return (cell&&!cell->_type) ? sao_is_eq(car(cell),tag) : SAO_TAG_nil; }
-p_sao_obj sao_is_tagged(p_sao_obj cell, p_sao_obj tag) { return sao_is_atom(cell) ? sao_is_eq(car(cell),tag) : SAO_TAG_nil; }
+p_sao_obj sao_is_tagged(p_sao_obj cell, p_sao_obj tag) { return sao_is_list(cell) ? sao_is_eq(car(cell),tag) : SAO_TAG_nil; }
 int sao_list_len(p_sao_obj expr) { return (expr) ? (1+sao_list_len(cdr(expr))):0; }
 int sao_deq_c(sao_stream *fw)
 {
@@ -443,7 +442,7 @@ p_sao_obj sao_read_str(sao_stream * fw) {
 		buf[i++] = (char) c;
 	}
 	buf[i] = '\0';
-	return sao_new((sao_obj){._type=type_string,._string=buf});
+	return sao_new_string(buf);
 }
 void sao_comment(sao_stream * fw) { int c; for (;;) { c = sao_deq_c(fw); if (c == '\n' || c == SAO_EOF) return; } }
 p_sao_obj sao_load_expr(sao_stream * fw) //TODO add ,depth ?
@@ -491,9 +490,12 @@ p_sao_obj sao_load_expr(sao_stream * fw) //TODO add ,depth ?
 			return SAO_TAG_nil;
 		}
 		//TODO parsing interger/number need upgrade algo soon:
-		if (sao_is_digit(c)) return sao_new( (sao_obj) {._type=type_integer, ._integer=sao_read_int(fw, c - '0')} );
+		if (sao_is_digit(c))
+			return sao_new_integer(sao_read_int(fw, c - '0'));
+			//return sao_new( (sao_obj) {._type=type_integer, ._integer=sao_read_int(fw, c - '0')} );
 		if (c == '-' && sao_is_digit(sao_peek(fw)))
-			return sao_new( (sao_obj) {._type=type_integer, ._integer=-1*sao_read_int(fw, c - '0')} );
+			return sao_new_integer(-1*sao_read_int(fw, c - '0'));
+			//return sao_new( (sao_obj) {._type=type_integer, ._integer=-1*sao_read_int(fw, c - '0')} );
 	}
 	return SAO_TAG_nil;
 }
@@ -574,11 +576,9 @@ tail:
 	else if (sao_is_tagged(exp, SAO_TAG_quote)) { return cadr(exp); }
 	else if (sao_is_tagged(exp, SAO_TAG_lambda)) { return sao_new_procedure(cadr(exp), cddr(exp), ctx); }
 	else if (sao_is_tagged(exp, SAO_TAG_var)) {
-		if (sao_is_atom(cadr(exp)))
-			sao_def_var(cadr(exp), sao_eval(caddr(exp), ctx), ctx);
+		if (sao_is_atom(cadr(exp))) sao_def_var(cadr(exp), sao_eval(caddr(exp), ctx), ctx);
 		else {
-			p_sao_obj closure =
-				sao_eval(sao_new_lambda(cdr(cadr(exp)), cddr(exp)), ctx);
+			p_sao_obj closure = sao_eval(sao_new_lambda(cdr(cadr(exp)), cddr(exp)), ctx);
 			sao_def_var(car(cadr(exp)), closure, ctx);
 		}
 		return SAO_TAG_ok;
@@ -720,7 +720,10 @@ int main(int argc,char **argv, char** envp) {
 				string_or_name = _car->_string;
 				i_val = 1;
 			}
-			sao_def_var(sao_new_symbol(string_or_name), sao_new((sao_obj) {._type=type_integer, ._integer=(i_val)} ), SAO_TAG_argv);//@ref sao_get_var
+			sao_def_var(sao_new_symbol(string_or_name),
+					//sao_new((sao_obj) {._type=type_integer, ._integer=(i_val)} ),r
+					sao_new_integer(i_val),
+					SAO_TAG_argv);//@ref sao_get_var
 			int found = 0;
 			for(int i=0;i<=argt_h;i++) if(string_or_name[0]==argt_names[i][0]){ argta[i]+=i_val; found=1;break; }
 			if(!found) script_file = string_or_name; else found_any++;
