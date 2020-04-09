@@ -86,8 +86,7 @@ p_sao_obj native_add(p_sao_obj list) {
 		total += car(list)->_integer;
 		list = cdr(list);
 	}
-	//return sao_new_integer(total);
-	return sao_new((sao_obj) {._type=type_integer, ._integer=(total)} );
+	return sao_new_integer(total);
 }
 p_sao_obj native_sub(p_sao_obj list) {
 	SAO_CHECK_TYPE(car(list), type_integer);
@@ -98,8 +97,7 @@ p_sao_obj native_sub(p_sao_obj list) {
 		total -= car(list)->_integer;
 		list = cdr(list);
 	}
-	return sao_new((sao_obj) {._type=type_integer, ._integer=(total)} );
-	//return sao_new_integer(total);
+	return sao_new_integer(total);
 }
 p_sao_obj native_div(p_sao_obj list) {
 	SAO_CHECK_TYPE(car(list), type_integer);
@@ -110,8 +108,7 @@ p_sao_obj native_div(p_sao_obj list) {
 		total /= car(list)->_integer;
 		list = cdr(list);
 	}
-	//return sao_new_integer(total);
-	return sao_new((sao_obj) {._type=type_integer, ._integer=(total)} );
+	return sao_new_integer(total);
 }
 p_sao_obj native_mul(p_sao_obj list) {
 	SAO_CHECK_TYPE(car(list), type_integer);
@@ -122,8 +119,7 @@ p_sao_obj native_mul(p_sao_obj list) {
 		total *= car(list)->_integer;
 		list = cdr(list);
 	}
-	//return sao_new_integer(total);
-	return sao_new((sao_obj) {._type=type_integer, ._integer=(total)} );
+	return sao_new_integer(total);
 }
 p_sao_obj native_gt(p_sao_obj sexp) {
 	SAO_CHECK_TYPE(car(sexp), type_integer);
@@ -218,7 +214,6 @@ p_sao_obj native_c_int(p_sao_obj args) {
 	libc(printf)("\n native_c_int=%s\n",s);
 	return SAO_TAG_nil;
 }
-#define sao_new_native(x,n) sao_new((sao_obj){._type=type_native, ._native=x,._ffi=n})
 #define add_sym_list(n) sao_def_var(sao_new_symbol(#n), sao_new_native(native_##n,#n), SAO_TAG_global);
 p_sao_obj saolang_init()
 {

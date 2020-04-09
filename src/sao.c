@@ -136,7 +136,7 @@ typedef struct {
 	stream_t _type;
 	void* fp;
 	ffic_string pos;//for stream_char only
-	FileChar * ptr_start;
+	//FileChar * ptr_start;//TODO for gc()
 	FileChar * ptr_head;
 	FileChar * ptr_last;
 } sao_stream;
@@ -150,25 +150,19 @@ p_sao_obj sao_load_expr(sao_stream * fw);
 #define sao_is_alpha(c) ((long)libc(isalpha)(c))
 #define sao_is_alphanumber(c) ((long)libc(isalnum)(c))
 
-p_sao_obj g_symbol_holder = SAO_NULL;
+//p_sao_obj g_symbol_holder = SAO_NULL;
 
 p_sao_obj cons(p_sao_obj car, p_sao_obj cdr) { p_sao_obj ret = sao_new((sao_obj){._type=type_list,.car=car,.cdr=cdr});return ret; }
-//p_sao_obj car(p_sao_obj x) { return (!x || x->_type)? SAO_TAG_nil: x->car; }
-//p_sao_obj car(p_sao_obj x) { return sao_is_list(x)?x->car:SAO_TAG_nil; }
 p_sao_obj car(p_sao_obj x) { return sao_is_list(x)?x->car:SAO_TAG_nil; }
-//p_sao_obj cdr(p_sao_obj x) { return (!x || x->_type)? SAO_TAG_nil: x->cdr; }
 p_sao_obj cdr(p_sao_obj x) { return sao_is_list(x)?x->cdr:SAO_TAG_nil; }
-//p_sao_obj caar(p_sao_obj x) { return (!x || x->_type || !x->car || x->car->_type)? SAO_TAG_nil: x->car->car; }
 p_sao_obj caar(p_sao_obj x) { return (sao_is_list(x)&&sao_is_list(x->car))? x->car->car : SAO_TAG_nil; }
-p_sao_obj cdar(p_sao_obj x) { return (!x || x->_type || !x->car || x->car->_type)? SAO_TAG_nil: x->car->cdr; }
-p_sao_obj cadr(p_sao_obj x) { return (!x || x->_type || !x->cdr || x->cdr->_type)? SAO_TAG_nil: x->cdr->car; }
-p_sao_obj cddr(p_sao_obj x) { return (!x || x->_type || !x->cdr || x->cdr->_type)? SAO_TAG_nil: x->cdr->cdr; }
-//p_sao_obj cadar(p_sao_obj x) { return (!x || x->_type || !x->car || x->car->_type || !x->car->cdr || x->car->cdr->_type)? SAO_TAG_nil: x->car->cdr->car; }
+p_sao_obj cdar(p_sao_obj x) { return (sao_is_list(x)&&sao_is_list(x->car))? x->car->cdr : SAO_TAG_nil; }
+p_sao_obj cadr(p_sao_obj x) { return (sao_is_list(x)&&sao_is_list(x->cdr))? x->cdr->car : SAO_TAG_nil; }
+p_sao_obj cddr(p_sao_obj x) { return (sao_is_list(x)&&sao_is_list(x->cdr))? x->cdr->cdr : SAO_TAG_nil; }
 p_sao_obj cadar(p_sao_obj x) { return (sao_is_list(x)&&sao_is_list(x->car)&&sao_is_list(x->car->cdr))? x->car->cdr->car:SAO_TAG_nil; }
-p_sao_obj caddr(p_sao_obj x) { return (!x || x->_type || !x->cdr || x->cdr->_type || !x->cdr->cdr || x->cdr->cdr->_type)? SAO_TAG_nil: x->cdr->cdr->car; }
-p_sao_obj cdddr(p_sao_obj x) { return (!x || x->_type || !x->cdr || x->cdr->_type || !x->cdr->cdr || x->cdr->cdr->_type)? SAO_TAG_nil: x->cdr->cdr->cdr; }
-p_sao_obj cdadr(p_sao_obj x) { return (!x || x->_type || !x->cdr || x->cdr->_type || !x->cdr->car || x->cdr->car->_type)? SAO_TAG_nil: x->cdr->car->cdr; }
-//p_sao_obj cadddr(p_sao_obj x) { return (!x || x->_type || !x->cdr || x->cdr->_type || !x->cdr->cdr || x->cdr->cdr->_type || !x->cdr->cdr->cdr || x->cdr->cdr->cdr->_type)? SAO_TAG_nil: x->cdr->cdr->cdr->car; }
+p_sao_obj caddr(p_sao_obj x) { return (sao_is_list(x)&&sao_is_list(x->cdr)&&sao_is_list(x->car->cdr))? x->cdr->cdr->car:SAO_TAG_nil; }
+p_sao_obj cdddr(p_sao_obj x) { return (sao_is_list(x)&&sao_is_list(x->cdr)&&sao_is_list(x->cdr->cdr))? x->cdr->cdr->cdr:SAO_TAG_nil; }
+p_sao_obj cdadr(p_sao_obj x) { return (sao_is_list(x)&&sao_is_list(x->cdr)&&sao_is_list(x->cdr->car))? x->cdr->car->cdr:SAO_TAG_nil; }
 p_sao_obj cadddr(p_sao_obj x) { return (sao_is_list(x)&&sao_is_list(x->cdr)&&sao_is_list(x->cdr->cdr)&&sao_is_list(x->cdr->cdr->cdr))? x->cdr->cdr->cdr->car:SAO_TAG_nil; }
 #define sao_new_symbol(s) sao_new((sao_obj){._type=type_symbol,._string=s})
 #define sao_new_lambda(params,body) cons(SAO_TAG_lambda, cons(params,body))
@@ -176,6 +170,7 @@ p_sao_obj cadddr(p_sao_obj x) { return (sao_is_list(x)&&sao_is_list(x->cdr)&&sao
 #define sao_new_table(s) sao_new((sao_obj){._type=type_table, ._size=s})
 #define sao_new_string(s) sao_new((sao_obj){._type=type_string, ._string=s})
 #define sao_new_integer(i) sao_new((sao_obj){._type=type_integer, ._integer=i})
+#define sao_new_native(x,n) sao_new((sao_obj){._type=type_native, ._native=x,._ffi=n})
 
 long sao_table_hash(const ffic_string s, int ht_len) {
 	long h = 0;
@@ -221,9 +216,9 @@ p_sao_obj sao_tbl_resize(p_sao_obj holder,int size){
 	}
 	return holder;
 }
-//p_sao_obj append(p_sao_obj l1, p_sao_obj l2) {
+//p_sao_obj sao_append(p_sao_obj l1, p_sao_obj l2) {
 //	if (!(l1)) return l2;
-//	return cons(car(l1), append(cdr(l1), l2));
+//	return cons(car(l1), sao_append(cdr(l1), l2));
 //}
 p_sao_obj sao_reverse(p_sao_obj list, p_sao_obj first) {
 	p_sao_obj rt = (!(list)) ? first :
@@ -251,30 +246,21 @@ p_sao_obj sao_not_false(p_sao_obj x) {
 }
 //p_sao_obj sao_is_tagged(p_sao_obj cell, p_sao_obj tag) { return (cell&&!cell->_type) ? sao_is_eq(car(cell),tag) : SAO_TAG_nil; }
 p_sao_obj sao_is_tagged(p_sao_obj cell, p_sao_obj tag) { return sao_is_list(cell) ? sao_is_eq(car(cell),tag) : SAO_TAG_nil; }
-int sao_list_len(p_sao_obj expr) { return (expr) ? (1+sao_list_len(cdr(expr))):0; }
+int sao_list_len(p_sao_obj expr) { return (expr) ? (1+sao_list_len(cdr(expr))):0; } //TODO improve ?
 int sao_deq_c(sao_stream *fw)
 {
 	int c = -2;//
 	FileChar * ptr_head = fw->ptr_head;
-	if(ptr_head!=SAO_NULL){
-		c = ptr_head->c;
-		fw->ptr_head=ptr_head->ptr_next;
-	}
+	if(ptr_head!=SAO_NULL){ c = ptr_head->c; fw->ptr_head=ptr_head->ptr_next; }
 	return c;
 }
 int sao_enq_c(sao_stream* fw,int k){
 	SAO_NEW_OBJECT(FileChar,fc);
 	fc->c = k; 
 	fc->ptr_prev= fw->ptr_last;
-	if(SAO_NULL==fw->ptr_start){
-		fw->ptr_start = fc;
-	}
-	if(SAO_NULL==fw->ptr_head){
-		fw->ptr_head = fc;
-	}
-	if(SAO_NULL!=fw->ptr_last){
-		fw->ptr_last->ptr_next = fc;
-	}
+	//if(SAO_NULL==fw->ptr_start){ fw->ptr_start = fc; }
+	if(SAO_NULL==fw->ptr_head){ fw->ptr_head = fc; }
+	if(SAO_NULL!=fw->ptr_last){ fw->ptr_last->ptr_next = fc; }
 	fw->ptr_last = fc;
 	return k;
 }
@@ -692,7 +678,7 @@ void print_help(){ sao_stdout("Usage	 : sao [options] [script.sao | -]]\nOptions
 int main(int argc,char **argv, char** envp) {
 	ffic_func strcmp = libc(strcmp);
 	libc(setmode)(libc(fileno)(libc(stdin)),0x8000/*O_BINARY*/);
-	g_symbol_holder = sao_new_table(65536-1);//TODO auto expand
+	//g_symbol_holder = sao_new_table(65536-1);//TODO auto expand
 	SAO_TAG_global = sao_expand(SAO_TAG_nil, SAO_TAG_nil, SAO_TAG_nil);
 	SAO_TAG_argv = sao_expand(SAO_TAG_nil, SAO_TAG_nil, SAO_TAG_nil);
 	SAO_ITR(add_sym_x, SAO_EXPAND(LIST_SAO_TAG));//core tags
