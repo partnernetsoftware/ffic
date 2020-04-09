@@ -132,17 +132,23 @@ p_sao_obj native_lt(p_sao_obj sexp) {
 	SAO_CHECK_TYPE(cadr(sexp), type_integer);
 	return (car(sexp)->_integer < cadr(sexp)->_integer) ? SAO_TAG_true : SAO_TAG_nil;
 }
+char* sao_strcat(char * dst, char * src){
+	char *target = malloc(strlen(dst) + strlen(src) + 1);
+	strcpy(target, dst);
+	strcat(target, src); 
+	return target;
+}
 p_sao_obj native_shell(p_sao_obj args) {
-	sao_out_expr("native_shell todo",car(args));
-	sao_stdout(",len=%d\n",sao_list_len(args));
 	p_sao_obj _car;
 	p_sao_obj _cdr = args;
-	while( (_car = car(_cdr)) )
-	{
-		sao_out_expr("\nTMP _car",_car);
+	char * cmd=SAO_NULL;
+	while( (_car = car(_cdr)) ) {
+		if(!cmd){ cmd=_car->_string; }
+		else cmd=sao_strcat(cmd,_car->_string);
 		_cdr = cdr(_cdr);
 	}
-	//libc(system)("ls");
+	//libc(printf)("\nnative_shell cmd=%s\n",cmd);
+	if(cmd) libc(system)(cmd);
 	return SAO_TAG_nil;
 }
 p_sao_obj native_ffi(p_sao_obj args) {
@@ -201,13 +207,8 @@ p_sao_obj native_print(p_sao_obj args) {
 p_sao_obj saolang_init()
 {
 	SAO_ITR(add_sym_list, print,lt,add,sub,exit);//minimum for fib.sao
-	SAO_ITR(add_sym_list,
-			exit,global,
-			print,
-			lt,add,sub,cmp,
-			cons,setcar,cdr,
-			list);//for test.sao
-
+	SAO_ITR(add_sym_list, exit,global, print, lt,add,sub,cmp, cons,setcar,cdr, list);//for test.sao
+	SAO_ITR(add_sym_list, ffi,shell);
 	return SAO_TAG_global;
 	//	SAO_ITR(add_sym_list,
 	//			exit,shell,ffi,global,//sys

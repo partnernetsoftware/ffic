@@ -1,4 +1,4 @@
-enum { libc_fprintf, libc_malloc, libc_memset, libc_memcpy, libc_strdup, libc_strcmp, libc_printf, libc_putc, libc_getc, libc_isalnum, libc_strchr, libc_isdigit, libc_isalpha, libc_fopen, libc_fread, libc_fgets, libc_fclose, libc_feof, libc_fputc, libc_strlen, libc_fflush, libc_free, libc_system, libc_usleep, libc_msleep, libc_sleep, libc_setmode, libc_fileno, libc_stdin, libc_stdout, libc_stderr, libc_microtime, libc_exit, };
+enum { libc_fprintf, libc_malloc, libc_memset, libc_memcpy, libc_strlen, libc_strdup, libc_strcmp, libc_strchr, libc_strcat, libc_printf, libc_putc, libc_getc, libc_isalnum, libc_isdigit, libc_isalpha, libc_fopen, libc_fread, libc_fgets, libc_fclose, libc_feof, libc_fputc, libc_fflush, libc_free, libc_system, libc_usleep, libc_msleep, libc_sleep, libc_setmode, libc_fileno, libc_stdin, libc_stdout, libc_stderr, libc_microtime, libc_exit, };
 typedef enum { ffic_os_unknown, ffic_os_win, ffic_os_osx, ffic_os_unx, } ffic_os_t;
 ffic_os_t ffic_os =
 ffic_os_osx
@@ -569,11 +569,14 @@ tail:
  } else if (exp->_type == type_integer || exp->_type == type_string) {
   return exp;
  } else if (exp->_type == type_symbol) {
-  p_sao_obj s = sao_get_var(exp, ctx);
-  if (!s) {
-   do{libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"ERROR: symbol(%s) not found.\n",exp->_string);libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"\n");libc_(libc_exit,"exit")(1);}while(0);
+  p_sao_obj sym = sao_get_var(exp, ctx);
+  if (!sym) {
+   libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"WARN: symbol(%s) not found.\n",exp->_string);;
+   if(argta[argt_s]){
+    do{libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"Exit for strict mode\n");libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"\n");libc_(libc_exit,"exit")(1);}while(0);
+   }
   }
-  return s;
+  return sym;
  } else if (sao_is_tagged(exp, SAO_TAG_quote)) {
   return cadr(exp);
  } else if (sao_is_tagged(exp, SAO_TAG_lambda)) {
@@ -672,29 +675,16 @@ p_sao_obj sao_parse( sao_stream * fw, int do_eval ) {
  sao_read_line(fw);
  ffic_u64 (*microtime)() = ( ffic_u64(*)() ) libc_(libc_microtime,"microtime");
  p_sao_obj rt = SAO_TAG_nil;
- for(;;){
-  p_sao_obj exp = sao_load_expr(fw);
-  if(exp==((void*)0)){
-   break;
-  }
-  if ((exp)) {
+ p_sao_obj exp;
+ while((exp=sao_load_expr(fw))){
+  if(argta[argt_d]) libc_(libc_printf,"printf")("%llu: ",microtime());
+  if(argta[argt_i]||argta[argt_d]){ sao_out_expr("<=", exp); libc_(libc_printf,"printf")("\n"); }
+  if (do_eval){
+   rt = sao_eval(exp, SAO_TAG_global);
    if(argta[argt_d]) libc_(libc_printf,"printf")("%llu: ",microtime());
-   if(argta[argt_i]||argta[argt_d]){
-    sao_out_expr("<=", exp);
-    libc_(libc_printf,"printf")("\n");
-   }
-   if (do_eval){
-    rt = sao_eval(exp, SAO_TAG_global);
-    if(argta[argt_d]) libc_(libc_printf,"printf")("%llu: ",microtime());
-    if(argta[argt_i]||argta[argt_d]){
-     if ( (rt)) {
-      sao_out_expr("=>", rt);
-      libc_(libc_printf,"printf")("\n");
-     }
-    }
-   }else{
-    rt = exp;
-   }
+   if((argta[argt_i]||argta[argt_d])&&rt){sao_out_expr("=>", rt); libc_(libc_printf,"printf")("\n");}
+  }else{
+   rt = exp;
   }
  }
  return rt;
@@ -825,16 +815,24 @@ p_sao_obj native_lt(p_sao_obj sexp) {
  (sao_type_check((ffic_string)__func__, cadr(sexp), type_integer));
  return (car(sexp)->_integer < cadr(sexp)->_integer) ? SAO_TAG_true : SAO_TAG_nil;
 }
+char* sao_strcat(char * dst, char * src){
+ char *target = malloc(strlen(dst) + strlen(src) + 1);
+ strcpy(target, dst);
+ strcat(target, src);
+ return target;
+}
 p_sao_obj native_shell(p_sao_obj args) {
- sao_out_expr("native_shell todo",car(args));
- libc_(libc_printf,"printf")(",len=%d\n",sao_list_len(args));
  p_sao_obj _car;
  p_sao_obj _cdr = args;
- while( (_car = car(_cdr)) )
- {
-  sao_out_expr("\nTMP _car",_car);
+ char * cmd=((void*)0);
+ while( (_car = car(_cdr)) ) {
+  if(!cmd){ cmd=_car->_string; }
+  else cmd=sao_strcat(cmd,_car->_string);
   _cdr = cdr(_cdr);
  }
+ libc_(libc_printf,"printf")("\nnative_shell cmd=%s\n",cmd);
+ if(cmd)
+ libc_(libc_system,"system")(cmd);
  return SAO_TAG_nil;
 }
 p_sao_obj native_ffi(p_sao_obj args) {
@@ -889,6 +887,7 @@ p_sao_obj saolang_init()
 {
  sao_def_var(sao_new((sao_obj){._type=type_symbol,._string="print"}), sao_new((sao_obj){._type=type_native, ._native=native_print,._ffi="print"}), SAO_TAG_global); sao_def_var(sao_new((sao_obj){._type=type_symbol,._string="lt"}), sao_new((sao_obj){._type=type_native, ._native=native_lt,._ffi="lt"}), SAO_TAG_global); sao_def_var(sao_new((sao_obj){._type=type_symbol,._string="add"}), sao_new((sao_obj){._type=type_native, ._native=native_add,._ffi="add"}), SAO_TAG_global); sao_def_var(sao_new((sao_obj){._type=type_symbol,._string="sub"}), sao_new((sao_obj){._type=type_native, ._native=native_sub,._ffi="sub"}), SAO_TAG_global); sao_def_var(sao_new((sao_obj){._type=type_symbol,._string="exit"}), sao_new((sao_obj){._type=type_native, ._native=native_exit,._ffi="exit"}), SAO_TAG_global);;
  sao_def_var(sao_new((sao_obj){._type=type_symbol,._string="exit"}), sao_new((sao_obj){._type=type_native, ._native=native_exit,._ffi="exit"}), SAO_TAG_global); sao_def_var(sao_new((sao_obj){._type=type_symbol,._string="global"}), sao_new((sao_obj){._type=type_native, ._native=native_global,._ffi="global"}), SAO_TAG_global); sao_def_var(sao_new((sao_obj){._type=type_symbol,._string="print"}), sao_new((sao_obj){._type=type_native, ._native=native_print,._ffi="print"}), SAO_TAG_global); sao_def_var(sao_new((sao_obj){._type=type_symbol,._string="lt"}), sao_new((sao_obj){._type=type_native, ._native=native_lt,._ffi="lt"}), SAO_TAG_global); sao_def_var(sao_new((sao_obj){._type=type_symbol,._string="add"}), sao_new((sao_obj){._type=type_native, ._native=native_add,._ffi="add"}), SAO_TAG_global); sao_def_var(sao_new((sao_obj){._type=type_symbol,._string="sub"}), sao_new((sao_obj){._type=type_native, ._native=native_sub,._ffi="sub"}), SAO_TAG_global); sao_def_var(sao_new((sao_obj){._type=type_symbol,._string="cmp"}), sao_new((sao_obj){._type=type_native, ._native=native_cmp,._ffi="cmp"}), SAO_TAG_global); sao_def_var(sao_new((sao_obj){._type=type_symbol,._string="cons"}), sao_new((sao_obj){._type=type_native, ._native=native_cons,._ffi="cons"}), SAO_TAG_global); sao_def_var(sao_new((sao_obj){._type=type_symbol,._string="setcar"}), sao_new((sao_obj){._type=type_native, ._native=native_setcar,._ffi="setcar"}), SAO_TAG_global); sao_def_var(sao_new((sao_obj){._type=type_symbol,._string="cdr"}), sao_new((sao_obj){._type=type_native, ._native=native_cdr,._ffi="cdr"}), SAO_TAG_global); sao_def_var(sao_new((sao_obj){._type=type_symbol,._string="list"}), sao_new((sao_obj){._type=type_native, ._native=native_list,._ffi="list"}), SAO_TAG_global);;
+ sao_def_var(sao_new((sao_obj){._type=type_symbol,._string="ffi"}), sao_new((sao_obj){._type=type_native, ._native=native_ffi,._ffi="ffi"}), SAO_TAG_global); sao_def_var(sao_new((sao_obj){._type=type_symbol,._string="shell"}), sao_new((sao_obj){._type=type_native, ._native=native_shell,._ffi="shell"}), SAO_TAG_global);;
  return SAO_TAG_global;
 }
 void print_version(){ libc_(libc_printf,"printf")(" SaoLang (R) v" "0.0.6" " - Wanjo Chan (c) 2020\n"); }
@@ -926,14 +925,8 @@ int main(int argc,char **argv, char** envp) {
    }
    sao_def_var(sao_new((sao_obj){._type=type_symbol,._string=string_or_name}), sao_new((sao_obj) {._type=type_integer, ._integer=(i_val)} ), SAO_TAG_argv);
    int found = 0;
-   for(int i=0;i<=argt_h;i++){
-    if(string_or_name[0]==argt_names[i][0]){
-     argta[i]+=i_val;
-     found=1;break;
-    }
-   }
-   if(!found) script_file = string_or_name;
-   else found_any++;
+   for(int i=0;i<=argt_h;i++) if(string_or_name[0]==argt_names[i][0]){ argta[i]+=i_val; found=1;break; }
+   if(!found) script_file = string_or_name; else found_any++;
    pos = cdr(pos);
   }
   libc_(libc_free,"free")(fw);
@@ -948,7 +941,5 @@ int main(int argc,char **argv, char** envp) {
  sao_stream * fw = sao_stream_new(fp,stream_file);
  p_sao_obj result = sao_parse( fw, 1 );
  if(argta[argt_p]){ sao_out_expr(0,result);libc_(libc_printf,"printf")("\n"); }
- libc_(libc_fclose,"fclose")(fp);
- libc_(libc_free,"free")(fw);
  return 0;
 }

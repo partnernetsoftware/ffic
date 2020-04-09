@@ -37,7 +37,7 @@
 #define SAO_ITR1(mmm,mm1,qqq,...) SAO_EVAL( SAO_WHILE1( mmm,mm1,qqq,__VA_ARGS__) )
 //////////////////////////////////////////////////////////////////////////////
 #define DEFINE_ENUM_LIBC(n) libc_##n,
-enum { SAO_ITR(DEFINE_ENUM_LIBC,fprintf,malloc,memset,memcpy,strdup,strcmp,printf,putc,getc,isalnum,strchr,isdigit,isalpha,fopen,fread,fgets,fclose,feof,fputc,strlen,fflush,free,system,  usleep,msleep,sleep,setmode,fileno,stdin,stdout,stderr,microtime,exit) };
+enum { SAO_ITR(DEFINE_ENUM_LIBC,fprintf,malloc,memset,memcpy,strlen,strdup,strcmp,strchr,strcat,printf,putc,getc,isalnum,isdigit,isalpha,fopen,fread,fgets,fclose,feof,fputc,fflush,free,system,  usleep,msleep,sleep,setmode,fileno,stdin,stdout,stderr,microtime,exit) };
 #define libc(f) libc_(libc_##f,#f)
 #include "ffic.h" //github.com/partnernetsoftware/ffic/blob/master/src/ffic.h
 ffic_func libc_a[libc_exit+1];
@@ -581,11 +581,14 @@ tail:
 	} else if (exp->_type == type_integer || exp->_type == type_string) {
 		return exp;
 	} else if (exp->_type == type_symbol) {
-		p_sao_obj s = sao_get_var(exp, ctx);
-		if (!s) {
-			sao_error("ERROR: symbol(%s) not found.\n",exp->_string);
+		p_sao_obj sym = sao_get_var(exp, ctx);
+		if (!sym) {
+			sao_warn("WARN: symbol(%s) not found.\n",exp->_string);
+			if(SAO_ARGV(s)){
+				sao_error("Exit for strict mode\n");
+			}
 		}
-		return s;
+		return sym;
 	} else if (sao_is_tagged(exp, SAO_TAG_quote)) {
 		return cadr(exp);
 	} else if (sao_is_tagged(exp, SAO_TAG_lambda)) {
@@ -684,29 +687,16 @@ p_sao_obj sao_parse( sao_stream * fw, int do_eval ) {
 	sao_read_line(fw);
 	ffic_u64 (*microtime)() = ( ffic_u64(*)() ) libc(microtime);
 	p_sao_obj rt = SAO_TAG_nil;
-	for(;;){
-		p_sao_obj exp = sao_load_expr(fw);
-		if(exp==SAO_NULL){
-			break;
-		}
-		if ((exp)) {
+	p_sao_obj exp;
+	while((exp=sao_load_expr(fw))){
+		if(SAO_ARGV(d)) sao_stdout("%llu: ",microtime());
+		if(SAO_ARGV(i)||SAO_ARGV(d)){ sao_out_expr("<=", exp); sao_stdout("\n"); }
+		if (do_eval){
+			rt = sao_eval(exp, SAO_TAG_global);
 			if(SAO_ARGV(d)) sao_stdout("%llu: ",microtime());
-			if(SAO_ARGV(i)||SAO_ARGV(d)){
-				sao_out_expr("<=", exp);
-				sao_stdout("\n");
-			}
-			if (do_eval){
-				rt = sao_eval(exp, SAO_TAG_global);
-				if(SAO_ARGV(d)) sao_stdout("%llu: ",microtime());
-				if(SAO_ARGV(i)||SAO_ARGV(d)){
-					if ( (rt)) {
-						sao_out_expr("=>", rt);
-						sao_stdout("\n");
-					}
-				}
-			}else{
-				rt = exp;
-			}
+			if((SAO_ARGV(i)||SAO_ARGV(d))&&rt){sao_out_expr("=>", rt); sao_stdout("\n");}
+		}else{
+			rt = exp;
 		}
 	}
 	return rt;
@@ -755,14 +745,8 @@ int main(int argc,char **argv, char** envp) {
 			//sao_def_var(sao_new_symbol(string_or_name), sao_new_integer(i_val), SAO_TAG_argv);//@ref sao_get_var
 			sao_def_var(sao_new_symbol(string_or_name), sao_new((sao_obj) {._type=type_integer, ._integer=(i_val)} ), SAO_TAG_argv);//@ref sao_get_var
 			int found = 0;
-			for(int i=0;i<=argt_h;i++){
-				if(string_or_name[0]==argt_names[i][0]){
-					argta[i]+=i_val;
-					found=1;break;
-				}
-			}
-			if(!found) script_file = string_or_name;
-			else found_any++;
+			for(int i=0;i<=argt_h;i++) if(string_or_name[0]==argt_names[i][0]){ argta[i]+=i_val; found=1;break; }
+			if(!found) script_file = string_or_name; else found_any++;
 			pos = cdr(pos);
 		}
 		libc(free)(fw);//
@@ -777,7 +761,9 @@ int main(int argc,char **argv, char** envp) {
 	sao_stream * fw = sao_stream_new(fp,stream_file);
 	p_sao_obj result = sao_parse( fw, 1/*eval*/ );
 	if(SAO_ARGV(p)){ sao_out_expr(0,result);sao_stdout("\n"); }
+#if 0
 	libc(fclose)(fp);//
 	libc(free)(fw);//
+#endif
 	return 0;
 }
