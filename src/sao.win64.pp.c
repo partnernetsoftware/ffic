@@ -1,23 +1,8 @@
 enum { libc_fprintf, libc_malloc, libc_memset, libc_memcpy, libc_strdup, libc_strcmp, libc_printf, libc_putc, libc_getc, libc_isalnum, libc_strchr, libc_isdigit, libc_isalpha, libc_fopen, libc_fread, libc_fgets, libc_fclose, libc_feof, libc_fputc, libc_strlen, libc_fflush, libc_free, libc_system, libc_usleep, libc_msleep, libc_sleep, libc_setmode, libc_fileno, libc_stdin, libc_stdout, libc_stderr, libc_microtime, libc_exit, };
-typedef enum {
- ffic_os_unknown,
- ffic_os_win,
- ffic_os_osx,
- ffic_os_unx,
-} ffic_os_t;
+typedef enum { ffic_os_unknown, ffic_os_win, ffic_os_osx, ffic_os_unx, } ffic_os_t;
 ffic_os_t ffic_os =
 ffic_os_win
 ;
-typedef struct _iobuf_win {
- char *_ptr;
- int _cnt;
- char *_base;
- int _flag;
- int _file;
- int _charbuf;
- int _bufsiz;
- char *_tmpfname;
-} FILE_win;
 typedef struct __FILE FILE;
 typedef signed char ffic_i8;
 typedef unsigned char ffic_u8;
@@ -30,6 +15,8 @@ typedef unsigned long int ffic_u64;
 typedef void* ffic_ptr;
 typedef ffic_ptr(*ffic_func)();
 typedef char* ffic_string;
+extern ffic_ptr LoadLibraryA(const char*);
+extern ffic_ptr GetProcAddress(ffic_ptr,const char*);
 extern int printf(const char*,...);
 extern int strcmp(const char*,const char*);
 extern void exit(int);
@@ -37,17 +24,14 @@ extern int fprintf(FILE*,const char*,...);
 extern int fflush(void*);
 char **envp_store;
 void ffic_setup(char **envp){
+ if(8!=sizeof(void*)){ printf("ERROR: SIZEOF_POINTER(%d) not correct, should be (%d)\n",8,(int) sizeof(void*)); }
  envp_store = envp;
  for(char**env=envp;env && (*env);env++) {
   printf("DEBUG: %s\n",*env);
  }
 }
-extern ffic_ptr LoadLibraryA(const char*);
-extern ffic_ptr GetProcAddress(ffic_ptr,const char*);
 void ffic_strcat(char *buffer, const char *source, const char* append) {
- while (*source) *(buffer++) = *(source++);
- while (*append) *(buffer++) = *(append++);
- *buffer = '\0';
+ while (*source) *(buffer++) = *(source++); while (*append) *(buffer++) = *(append++); *buffer = '\0';
 }
 ffic_ptr ffic_void(){return 0;};
 ffic_ptr(*ffic_raw(const char* part1, const char* funcname, const char* part2))()
@@ -60,8 +44,11 @@ ffic_ptr(*ffic_raw(const char* part1, const char* funcname, const char* part2))(
  ffic_ptr rt = GetProcAddress(LoadLibraryA(libfilename), funcname);
  return rt;
 }
+void* ffic_std[3];
 void* ffic_os_std(int t){
- return ffic_raw(0,(ffic_os==ffic_os_win)?"_fdopen":"fdopen",0)(ffic_raw(0,(ffic_os==ffic_os_win)?"_dup":"dup",0)(t),(t==0)?"r":"w");
+ if(ffic_std[t]) return ffic_std[t];
+ ffic_std[t] = ffic_raw(0,(ffic_os==ffic_os_win)?"_fdopen":"fdopen",0)(ffic_raw(0,(ffic_os==ffic_os_win)?"_dup":"dup",0)(t),(t==0)?"r":"w");
+ return ffic_std[t];
 }
 ffic_ptr ffic_usleep(int nano_seconds)
 {
@@ -85,27 +72,23 @@ ffic_u64 ffic_microtime(void);
 ffic_ptr(*ffic(const char* libname, const char* funcname, ...))()
 {
  ffic_ptr addr = 0;
- if(!strcmp("c",libname)){
+ if(!strcmp("c",libname)){ libname = 0;
   if(!strcmp("stderr",funcname) || !strcmp("2",funcname)){ return ffic_os_std(2); }
   else if(!strcmp("stdout",funcname) || !strcmp("1",funcname)){ return ffic_os_std(1); }
   else if(!strcmp("stdin",funcname) || !strcmp("0",funcname)){ return ffic_os_std(0); }
-  else{
-   libname = (ffic_os == ffic_os_win)?"msvcrt":"libc";
-   if(!strcmp("microtime",funcname)){ return (ffic_ptr) ffic_microtime; }
-   else if(!strcmp("usleep",funcname)){ return ffic_usleep; }
-   else if(!strcmp("sleep",funcname)){ return ffic_sleep; }
-   else if(!strcmp("msleep",funcname)){ return ffic_msleep; }
-   else if(ffic_os == ffic_os_win && !strcmp("fileno",funcname)){ funcname = "_fileno"; }
-   else if(!strcmp("setmode",funcname)){
-    if(ffic_os == ffic_os_win){ funcname = "_setmode";
-    }else{ addr = ffic_void; }
-   }
-   else if(ffic_os == ffic_os_win && !strcmp("strdup",funcname)){ funcname = "_strdup"; }
+  else if(!strcmp("microtime",funcname)){ return (ffic_ptr) ffic_microtime; }
+  else if(!strcmp("usleep",funcname)){ return ffic_usleep; }
+  else if(!strcmp("sleep",funcname)){ return ffic_sleep; }
+  else if(!strcmp("msleep",funcname)){ return ffic_msleep; }
+  else if(ffic_os == ffic_os_win && !strcmp("fileno",funcname)){ funcname = "_fileno"; }
+  else if(!strcmp("setmode",funcname)){
+   if(ffic_os == ffic_os_win){ funcname = "_setmode"; }else{ addr = ffic_void; }
   }
+  else if(ffic_os == ffic_os_win && !strcmp("strdup",funcname)){ funcname = "_strdup"; }
  }
  if(addr==0) addr = ffic_raw(libname,funcname,0);
  if(0==addr){
-  fprintf(ffic_os_std(1),"ERR: Not found %s.%s\n", libname, funcname);fflush(ffic_os_std(1));
+  fprintf(ffic_os_std(1),"WARN: Not found %s.%s\n", libname, funcname);fflush(ffic_os_std(1));
   return ffic_void;
  }
  return addr;

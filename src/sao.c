@@ -57,11 +57,9 @@ void* sao_calloc(long _sizeof){return libc(memset)(libc(malloc)(_sizeof),0,_size
 #define sao_stdout(...) libc(printf)(__VA_ARGS__)
 #define sao_error(...) do{sao_stderr(__VA_ARGS__);sao_stderr("\n");libc(exit)(1);}while(0)
 #define sao_warn(...) sao_stderr(__VA_ARGS__);
-
 define_map(argt, i,p,d,v,e,s,l,h);
 int argta[argt_h+1];
 #define SAO_ARGV(x) argta[argt_##x]
-
 define_map(ctype, long,double,any);
 define_map(stream, file,char);
 #define feature_table //[0.0.10]+
@@ -70,7 +68,6 @@ define_map(type, list,integer,double,symbol,string,native,vector,
 		table
 #endif
 		);
-
 typedef struct _sao_obj sao_obj,*p_sao_obj;
 typedef p_sao_obj (*native_t)(p_sao_obj );
 struct _sao_obj {
