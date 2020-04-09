@@ -404,9 +404,7 @@ int sao_peek(sao_stream * fw)
 {
  int c = 0;
  FileChar * ptr_head = fw->ptr_head;
- if(ptr_head!=0){
-  c = ptr_head->c;
- }
+ if(ptr_head!=0){ c = ptr_head->c; }
  return c;
 }
 p_sao_obj sao_read_symbol(sao_stream * fw, char start)
@@ -414,11 +412,9 @@ p_sao_obj sao_read_symbol(sao_stream * fw, char start)
  char buf[128];
  buf[0] = start;
  int i = 1;
- while (((long)libc_(libc_isalnum,"isalnum")(sao_peek(fw)))
-   || libc_(libc_strchr,"strchr")(type_symbolS, sao_peek(fw)))
+ while (((long)libc_(libc_isalnum,"isalnum")(sao_peek(fw))) || libc_(libc_strchr,"strchr")(type_symbolS, sao_peek(fw)))
  {
-  if (i >= 128)
-   do{libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"Symbol name too long - maximum length 128 characters");libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"\n");libc_(libc_exit,"exit")(1);}while(0);
+  if (i >= 128) do{libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"Symbol name too long - maximum length 128 characters");libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"\n");libc_(libc_exit,"exit")(1);}while(0);
   buf[i++] = sao_deq_c(fw);
  }
  buf[i] = '\0';
@@ -426,8 +422,7 @@ p_sao_obj sao_read_symbol(sao_stream * fw, char start)
 }
 int sao_read_int(sao_stream * fw, int start)
 {
- while ( ((long)libc_(libc_isdigit,"isdigit")(sao_peek(fw))) )
-  start = start * 10 + (sao_deq_c(fw) - '0');
+ while ( ((long)libc_(libc_isdigit,"isdigit")(sao_peek(fw))) ) start = start * 10 + (sao_deq_c(fw) - '0');
  return start;
 }
 p_sao_obj sao_read_list(sao_stream * fw)
@@ -443,10 +438,10 @@ p_sao_obj sao_read_list(sao_stream * fw)
  return SAO_TAG_nil;
 }
 p_sao_obj sao_read_str(sao_stream * fw) {
- char buf[256]; int i = 0; int c;
+ char buf[1024]; int i = 0; int c;
  while ((c = sao_deq_c(fw)) != '\"') {
   if (c == (-1)) return SAO_TAG_nil;
-  if (i >= 256) do{libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"String too long - maximum length 256 characters");libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"\n");libc_(libc_exit,"exit")(1);}while(0);
+  if (i >= 1024) do{libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"String too long - maximum length 1024 characters");libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"\n");libc_(libc_exit,"exit")(1);}while(0);
   buf[i++] = (char) c;
  }
  buf[i] = '\0';
@@ -830,9 +825,7 @@ p_sao_obj native_shell(p_sao_obj args) {
   else cmd=sao_strcat(cmd,_car->_string);
   _cdr = cdr(_cdr);
  }
- libc_(libc_printf,"printf")("\nnative_shell cmd=%s\n",cmd);
- if(cmd)
- libc_(libc_system,"system")(cmd);
+ if(cmd) libc_(libc_system,"system")(cmd);
  return SAO_TAG_nil;
 }
 p_sao_obj native_ffi(p_sao_obj args) {
@@ -941,5 +934,6 @@ int main(int argc,char **argv, char** envp) {
  sao_stream * fw = sao_stream_new(fp,stream_file);
  p_sao_obj result = sao_parse( fw, 1 );
  if(argta[argt_p]){ sao_out_expr(0,result);libc_(libc_printf,"printf")("\n"); }
+ libc_(libc_fclose,"fclose")(fp); libc_(libc_free,"free")(fw);
  return 0;
 }

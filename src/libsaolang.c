@@ -148,7 +148,7 @@ p_sao_obj native_shell(p_sao_obj args) {
 		_cdr = cdr(_cdr);
 	}
 	//libc(printf)("\nnative_shell cmd=%s\n",cmd);
-	if(cmd) libc(system)(cmd);
+	if(cmd) libc(system)(cmd);//TODO return result as data.
 	return SAO_TAG_nil;
 }
 p_sao_obj native_ffi(p_sao_obj args) {
