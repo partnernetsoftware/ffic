@@ -24,16 +24,6 @@ ffic_os_unx
 # define SIZEOF_POINTER 8 //64 as default...
 # endif
 #endif
-typedef struct _iobuf_win {
-	char *_ptr;
-	int _cnt;
-	char *_base;
-	int _flag;
-	int _file;
-	int _charbuf;
-	int _bufsiz;
-	char *_tmpfname;
-} FILE_win;
 typedef struct __FILE FILE;
 typedef signed char ffic_i8;
 typedef unsigned char ffic_u8;
