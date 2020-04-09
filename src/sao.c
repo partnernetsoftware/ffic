@@ -561,10 +561,7 @@ tail:
 	} else if (exp->_type == type_symbol) {
 		p_sao_obj sym = sao_get_var(exp, ctx);
 		if (!sym) {
-			sao_warn("WARN: symbol(%s) not found.\n",exp->_string);
-			if(SAO_ARGV(s)){
-				sao_error("Exit for strict mode\n");
-			}
+			if(SAO_ARGV(s)){ sao_error("ERROR: symbol(%s) not found.\n",exp->_string); }
 		}
 		return sym;
 	} else if (sao_is_tagged(exp, SAO_TAG_quote)) {
@@ -624,10 +621,7 @@ tail:
 				vars = cons(caar(pointer), vars);
 				vals = cons(cadar(pointer), vals);
 			}
-			sao_def_var(cadr(exp),
-					sao_eval(sao_new_lambda(vars, cdr(cddr(exp))),
-						sao_expand(vars, vals, ctx)),
-					ctx); /* evaluate lambda */
+			sao_def_var(cadr(exp), sao_eval(sao_new_lambda(vars, cdr(cddr(exp))), sao_expand(vars, vals, ctx)), ctx); /* evaluate lambda */
 			exp = cons(cadr(exp), vals);
 			goto tail;
 		}

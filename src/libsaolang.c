@@ -202,22 +202,32 @@ p_sao_obj native_print(p_sao_obj args) {
 	sao_stdout("\n");
 	return SAO_TAG_nil;
 }
+p_sao_obj native_c_int(p_sao_obj args) {
+	p_sao_obj _car;
+	p_sao_obj _cdr = args;
+	char * s=SAO_NULL;
+	while( (_car = car(_cdr)) ) {
+		if(!s){ s=_car->_string; }
+		else s=sao_strcat(s,_car->_string);
+		_cdr = cdr(_cdr);
+	}
+	libc(printf)("\n native_c_int=%s\n",s);
+	return SAO_TAG_nil;
+}
 #define sao_new_native(x,n) sao_new((sao_obj){._type=type_native, ._native=x,._ffi=n})
 #define add_sym_list(n) sao_def_var(sao_new_symbol(#n), sao_new_native(native_##n,#n), SAO_TAG_global);
 p_sao_obj saolang_init()
 {
 	SAO_ITR(add_sym_list, print,lt,add,sub,exit);//minimum for fib.sao
-	SAO_ITR(add_sym_list, exit,global, print, lt,add,sub,cmp, cons,setcar,cdr, list);//for test.sao
-	SAO_ITR(add_sym_list, ffi,shell);
+	SAO_ITR(add_sym_list,
+			exit,shell,ffi,global,//sys
+			type,cons,car,cdr,setcar,setcdr,//core
+			list,vector,vget,vset,//data structure
+			load,print,read,//io
+			add,sub,mul,div,cmp,lt,gt,//logic,
+			is_null,is_list,pairq,atomq,eqq,equalq,//helpers
+			);
+	SAO_ITR(add_sym_list, c_int);
 	return SAO_TAG_global;
-	//	SAO_ITR(add_sym_list,
-	//			exit,shell,ffi,global,//sys
-	//			type,cons,car,cdr,setcar,setcdr,//core
-	//			list,vector,vget,vset,//data structure
-	//			load,print,read,//io
-	//			add,sub,mul,div,cmp,lt,gt,//logic,
-	//			is_null,is_list,pairq,atomq,eqq,equalq,//helpers
-	//			);
-	//	return SAO_TAG_global;
 }
 
