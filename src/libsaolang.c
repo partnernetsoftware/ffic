@@ -1,25 +1,121 @@
-p_sao_obj sao_type_check(const ffic_string func, p_sao_obj obj, type_t type)
+p_sao_obj sao_eval(p_sao_obj exp, p_sao_obj ctx);
+p_sao_obj sao_eval_list(p_sao_obj exp, p_sao_obj ctx) {
+	if (!(exp)) return SAO_TAG_nil;
+	return cons(sao_eval(car(exp), ctx), sao_eval_list(cdr(exp), ctx));
+}
+p_sao_obj sao_eval(p_sao_obj exp, p_sao_obj ctx)
 {
-	if (!(obj)) {
-		sao_stderr("Invalid argument to function %s: SAO_TAG_nil\n", func);
-		libc(exit)(1);
+tail:
+	if (!(exp)) { return SAO_TAG_nil; }
+	else if (exp->_type == type_integer || exp->_type == type_string) { return exp; }
+	else if (exp->_type == type_symbol) {
+		p_sao_obj sym = sao_get_var(exp, ctx);
+		if (!sym) { if(SAO_ARGV(s)){ sao_error("ERROR: symbol(%s) not found.\n",exp->_string); } } return sym;
+	}
+	else if (sao_is_tagged(exp, SAO_TAG_quote)) { return cadr(exp); }
+	else if (sao_is_tagged(exp, SAO_TAG_lambda)) { return sao_new_procedure(cadr(exp), cddr(exp), ctx); }
+	else if (sao_is_tagged(exp, SAO_TAG_var)) {
+		if (sao_is_atom(cadr(exp))) sao_def_var(cadr(exp), sao_eval(caddr(exp), ctx), ctx);
+		else {
+			p_sao_obj closure = sao_eval(sao_new_lambda(cdr(cadr(exp)), cddr(exp)), ctx);
+			sao_def_var(car(cadr(exp)), closure, ctx);
+		}
+		return SAO_TAG_ok;
+	}
+	else if (sao_is_tagged(exp, SAO_TAG_begin)) {
+		p_sao_obj args = cdr(exp);
+		for (; (cdr(args)); args = cdr(args)) sao_eval(car(args), ctx);
+		exp = car(args);
+		goto tail;
+	}
+	else if (sao_is_tagged(exp, SAO_TAG_if)) {
+		p_sao_obj predicate = sao_eval(cadr(exp), ctx);
+		exp = (sao_not_false(predicate)) ? caddr(exp) : cadddr(exp);
+		goto tail;
+	}
+	else if (sao_is_tagged(exp, SAO_TAG_or)) {
+		p_sao_obj predicate = sao_eval(cadr(exp), ctx);
+		exp = (sao_not_false(predicate)) ? caddr(exp) : cadddr(exp);
+		goto tail;
+	}
+	else if (sao_is_tagged(exp, SAO_TAG_cond)) {
+		p_sao_obj branch = cdr(exp);
+		for (; (branch); branch = cdr(branch)) {
+			if (sao_is_tagged(car(branch), SAO_TAG_else) || sao_not_false(sao_eval(caar(branch), ctx))) {
+				exp = cons(SAO_TAG_begin, cdar(branch));
+				goto tail;
+			}
+		}
+		return SAO_TAG_nil;
+	}
+	else if (sao_is_tagged(exp, SAO_TAG_set)) { //TODO works in current ctx
+		if (sao_is_atom(cadr(exp))){
+			sao_set_var(cadr(exp), sao_eval(caddr(exp), ctx), ctx);
+		} else {
+			p_sao_obj closure =
+				sao_eval(sao_new_lambda(cdr(cadr(exp)), cddr(exp)), ctx);
+			sao_set_var(car(cadr(exp)), closure, ctx);
+		}
+		return SAO_TAG_ok;
+	}
+	else if (sao_is_tagged(exp, SAO_TAG_let)) { /* convert to lambda .. */
+		p_sao_obj idx;
+		p_sao_obj vars = SAO_TAG_nil, vals = SAO_TAG_nil;
+		if (!(cadr(exp))) return SAO_TAG_nil;
+		if (sao_is_atom(cadr(exp))) {
+			for (idx = caddr(exp); (idx); idx = cdr(idx)) { vars = cons(caar(idx), vars); vals = cons(cadar(idx), vals); }
+			sao_def_var(cadr(exp), sao_eval(sao_new_lambda(vars, cdddr(exp)), sao_expand(vars, vals, ctx)), ctx);
+			exp = cons(cadr(exp), vals);
+			goto tail;
+		}
+		for (idx = cadr(exp); (idx); idx = cdr(idx)) { vars = cons(caar(idx), vars); vals = cons(cadar(idx), vals); }
+		exp = cons(sao_new_lambda(vars, cddr(exp)), vals);
+		goto tail;
+	}
+	else { /* procedure( parameters, body-expr, ctx) */
+		p_sao_obj proc = sao_eval(car(exp), ctx);
+		p_sao_obj args = sao_eval_list(cdr(exp), ctx);
+		if (!(proc)) {
+			if(SAO_ARGV(s)){
+				sao_out_expr("WARNING: Invalid arguments to sao_eval:", exp);
+				sao_stdout("\n");
+			}
+			return SAO_TAG_nil;
+		}
+		if (proc->_type == type_native){ return proc->_native(args); }//TODO if empty native but ffi, should auto load into _native 
+		if (sao_is_tagged(proc, SAO_TAG_procedure)) {
+			ctx = sao_expand(cadr(proc), args, cadddr(proc));
+			exp = cons(SAO_TAG_begin, caddr(proc)); /* body-expr */
+			goto tail;
+		}
+		sao_stdout("DEBUG 800 native[%d,%d]\n",proc->_type,proc->_native);
+	}
+	sao_out_expr("Invalid arguments to sao_eval:", exp);
+	sao_stdout("\n");
+	return SAO_TAG_nil;
+}
+
+p_sao_obj sao_type_assert(const ffic_string func, p_sao_obj obj, type_t type)
+{
+	if (!obj) {
+		//sao_stderr("Invalid argument to function %s: SAO_TAG_nil\n", func); libc(exit)(1);
+		sao_error("Invalid argument to function %s: SAO_TAG_nil\n", func);
 	} else if (obj->_type != type) {
-		sao_stderr( "ERR: function %s. expected %s got %s\n",
-				func, type_names[type], type_names[obj->_type]);
-		libc(exit)(1);
+		//sao_stderr( "ERR: function %s. expected %s got %s\n", func, type_names[type], type_names[obj->_type]); libc(exit)(1);
+		sao_error( "ERR: function %s. expected %s got %s\n", func, type_names[type], type_names[obj->_type]);
 	}
 	return obj;
 }
-#define SAO_CHECK_TYPE(x, t) (sao_type_check((ffic_string)__func__, x, t))
+#define SAO_ASSERT_TYPE(x, t) (sao_type_assert((ffic_string)__func__, x, t))
 
 p_sao_obj native_type(p_sao_obj args) { return sao_new_symbol(type_names[car(args)->_type]); }
 p_sao_obj native_global(p_sao_obj args) { return SAO_TAG_global; }
 p_sao_obj native_list(p_sao_obj args) { return (args); }
 p_sao_obj native_cons(p_sao_obj args) { return cons(car(args), cadr(args)); }
-p_sao_obj native_car(p_sao_obj args) { if(SAO_ARGV(s)) SAO_CHECK_TYPE(car(args), type_list); return caar(args); }
-p_sao_obj native_cdr(p_sao_obj args) { if(SAO_ARGV(s)) SAO_CHECK_TYPE(car(args), type_list); return cdar(args); }
-p_sao_obj native_setcar(p_sao_obj args) { SAO_CHECK_TYPE(car(args), type_list); (args->car->car = (cadr(args))); return SAO_TAG_nil; }
-p_sao_obj native_setcdr(p_sao_obj args) { SAO_CHECK_TYPE(car(args), type_list); (args->car->cdr = (cadr(args))); return SAO_TAG_nil; }
+p_sao_obj native_car(p_sao_obj args) { if(SAO_ARGV(s)) SAO_ASSERT_TYPE(car(args), type_list); return caar(args); }
+p_sao_obj native_cdr(p_sao_obj args) { if(SAO_ARGV(s)) SAO_ASSERT_TYPE(car(args), type_list); return cdar(args); }
+p_sao_obj native_setcar(p_sao_obj args) { SAO_ASSERT_TYPE(car(args), type_list); (args->car->car = (cadr(args))); return SAO_TAG_nil; }
+p_sao_obj native_setcdr(p_sao_obj args) { SAO_ASSERT_TYPE(car(args), type_list); (args->car->cdr = (cadr(args))); return SAO_TAG_nil; }
 p_sao_obj native_is_null(p_sao_obj args) { return !(car(args)) ? SAO_TAG_true : SAO_TAG_false; }
 p_sao_obj native_pairq(p_sao_obj args) {
 	if (car(args)->_type != type_list) return SAO_TAG_false;
@@ -77,58 +173,58 @@ p_sao_obj native_same(p_sao_obj args) {
 	return SAO_TAG_false;
 }
 p_sao_obj native_add(p_sao_obj list) {
-	SAO_CHECK_TYPE(car(list), type_integer);
+	SAO_ASSERT_TYPE(car(list), type_integer);
 	long total = car(list)->_integer;
 	list = cdr(list);
 	while ((car(list)))
 	{
-		SAO_CHECK_TYPE(car(list), type_integer);
+		SAO_ASSERT_TYPE(car(list), type_integer);
 		total += car(list)->_integer;
 		list = cdr(list);
 	}
 	return sao_new_integer(total);
 }
 p_sao_obj native_sub(p_sao_obj list) {
-	SAO_CHECK_TYPE(car(list), type_integer);
+	SAO_ASSERT_TYPE(car(list), type_integer);
 	long total = car(list)->_integer;
 	list = cdr(list);
 	while ((list)) {
-		SAO_CHECK_TYPE(car(list), type_integer);
+		SAO_ASSERT_TYPE(car(list), type_integer);
 		total -= car(list)->_integer;
 		list = cdr(list);
 	}
 	return sao_new_integer(total);
 }
 p_sao_obj native_div(p_sao_obj list) {
-	SAO_CHECK_TYPE(car(list), type_integer);
+	SAO_ASSERT_TYPE(car(list), type_integer);
 	long total = car(list)->_integer;
 	list = cdr(list);
 	while ((list)) {
-		SAO_CHECK_TYPE(car(list), type_integer);
+		SAO_ASSERT_TYPE(car(list), type_integer);
 		total /= car(list)->_integer;
 		list = cdr(list);
 	}
 	return sao_new_integer(total);
 }
 p_sao_obj native_mul(p_sao_obj list) {
-	SAO_CHECK_TYPE(car(list), type_integer);
+	SAO_ASSERT_TYPE(car(list), type_integer);
 	long total = car(list)->_integer;
 	list = cdr(list);
 	while ((list)) {
-		SAO_CHECK_TYPE(car(list), type_integer);
+		SAO_ASSERT_TYPE(car(list), type_integer);
 		total *= car(list)->_integer;
 		list = cdr(list);
 	}
 	return sao_new_integer(total);
 }
 p_sao_obj native_gt(p_sao_obj sexp) {
-	SAO_CHECK_TYPE(car(sexp), type_integer);
-	SAO_CHECK_TYPE(cadr(sexp), type_integer);
+	SAO_ASSERT_TYPE(car(sexp), type_integer);
+	SAO_ASSERT_TYPE(cadr(sexp), type_integer);
 	return (car(sexp)->_integer > cadr(sexp)->_integer) ? SAO_TAG_true : SAO_TAG_nil;
 }
 p_sao_obj native_lt(p_sao_obj sexp) {
-	SAO_CHECK_TYPE(car(sexp), type_integer);
-	SAO_CHECK_TYPE(cadr(sexp), type_integer);
+	SAO_ASSERT_TYPE(car(sexp), type_integer);
+	SAO_ASSERT_TYPE(cadr(sexp), type_integer);
 	return (car(sexp)->_integer < cadr(sexp)->_integer) ? SAO_TAG_true : SAO_TAG_nil;
 }
 //TODO tmp cat...
@@ -180,18 +276,18 @@ p_sao_obj native_load(p_sao_obj args) { //TODO merge with native_read() 1!
 	return ret;
 }
 p_sao_obj native_vector(p_sao_obj args) {
-	p_sao_obj sym = SAO_CHECK_TYPE(car(args), type_integer);
+	p_sao_obj sym = SAO_ASSERT_TYPE(car(args), type_integer);
 	return sao_new((sao_obj){._type=type_symbol,._len=sym->_integer});
 }
 p_sao_obj native_vget(p_sao_obj args) {
-	p_sao_obj vct = SAO_CHECK_TYPE(car(args), type_vector);
-	p_sao_obj key = SAO_CHECK_TYPE(cadr(args), type_integer);
+	p_sao_obj vct = SAO_ASSERT_TYPE(car(args), type_vector);
+	p_sao_obj key = SAO_ASSERT_TYPE(cadr(args), type_integer);
 	if (key->_integer >= vct->_len) return SAO_TAG_nil;
 	return vct->_vector[key->_integer];
 }
 p_sao_obj native_vset(p_sao_obj args){
-	p_sao_obj vct = SAO_CHECK_TYPE(car(args), type_vector);
-	p_sao_obj key = SAO_CHECK_TYPE(cadr(args), type_integer);
+	p_sao_obj vct = SAO_ASSERT_TYPE(car(args), type_vector);
+	p_sao_obj key = SAO_ASSERT_TYPE(cadr(args), type_integer);
 	if (!(caddr(args))) return SAO_TAG_nil;
 	if (key->_integer >= vct->_len) return SAO_TAG_nil;
 	car(args)->_vector[key->_integer] = caddr(args);
