@@ -437,7 +437,7 @@ p_sao_obj sao_read_str(sao_stream * fw) {
 	return sao_new((sao_obj){._type=type_string,._string=buf});
 }
 void sao_comment(sao_stream * fw) { int c; for (;;) { c = sao_deq_c(fw); if (c == '\n' || c == SAO_EOF) return; } }
-p_sao_obj sao_load_expr(sao_stream * fw)
+p_sao_obj sao_load_expr(sao_stream * fw) //TODO add ,depth ?
 {
 	int c;
 	for (;;) {
@@ -477,7 +477,10 @@ p_sao_obj sao_load_expr(sao_stream * fw)
 			list = cons(theSymbol,list);
 			return list;
 		}
-		if (c == ')') { return SAO_TAG_nil; }
+		if (c == ')') {
+			//TODO check depth, and should return error if the pracket is not correct
+			return SAO_TAG_nil;
+		}
 		//TODO parsing interger/number need upgrade algo soon:
 		if (sao_is_digit(c)) return sao_new( (sao_obj) {._type=type_integer, ._integer=sao_read_int(fw, c - '0')} );
 		if (c == '-' && sao_is_digit(sao_peek(fw)))
@@ -683,7 +686,7 @@ int main(int argc,char **argv, char** envp) {
 	g_symbol_holder = sao_new_table(65536-1);//TODO auto expand
 	SAO_TAG_global = sao_expand(SAO_TAG_nil, SAO_TAG_nil, SAO_TAG_nil);
 	SAO_TAG_argv = sao_expand(SAO_TAG_nil, SAO_TAG_nil, SAO_TAG_nil);
-	SAO_ITR(add_sym_x, SAO_EXPAND(LIST_SAO_TAG));
+	SAO_ITR(add_sym_x, SAO_EXPAND(LIST_SAO_TAG));//core tags
 	saolang_init();
 	ffic_string script_file = "-";
 	int found_any = 0;

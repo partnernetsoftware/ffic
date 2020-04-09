@@ -34,14 +34,17 @@ p_sao_obj native_is_list(p_sao_obj args) {
 			return SAO_TAG_false;
 	return (car(args)->_type == type_list && native_pairq(args) != SAO_TAG_true) ? SAO_TAG_true : SAO_TAG_false;
 }
-p_sao_obj native_atomq(p_sao_obj sexp) { return sao_is_atom(car(sexp)) ? SAO_TAG_true : SAO_TAG_false; }
+p_sao_obj native_atom(p_sao_obj expr) {
+	//sao_stderr("debug native_atom\n",expr);
+	return sao_is_atom(car(expr)) ? SAO_TAG_true : SAO_TAG_false;
+}
 p_sao_obj native_cmp(p_sao_obj args) {
 	if ((car(args)->_type != type_integer) || (cadr(args)->_type != type_integer))
 		return SAO_TAG_false;
 	return (car(args)->_integer == cadr(args)->_integer) ? SAO_TAG_true : SAO_TAG_false;
 }
 //p_sao_obj native_not(p_sao_obj args) { return native_cmp(args); }
-p_sao_obj native_eqq(p_sao_obj args) { return sao_is_eq(car(args), cadr(args)) ? SAO_TAG_true : SAO_TAG_false; }
+p_sao_obj native_eq(p_sao_obj args) { return sao_is_eq(car(args), cadr(args)) ? SAO_TAG_true : SAO_TAG_false; }
 p_sao_obj native_equalq(p_sao_obj args) {
 	if (sao_is_eq(car(args), cadr(args)))
 		return SAO_TAG_true;
@@ -219,13 +222,17 @@ p_sao_obj native_c_int(p_sao_obj args) {
 p_sao_obj saolang_init()
 {
 	SAO_ITR(add_sym_list, print,lt,add,sub,exit);//minimum for fib.sao
+	//CommonLisp: format,defun
+	//Clojure:defn
+	SAO_ITR(add_sym_list, //quote,cond,var(i.e. define),
+			atom,eq,car,cdr,cons,//function from LISP
 	SAO_ITR(add_sym_list,
 			exit,shell,ffi,global,//sys
-			type,cons,car,cdr,setcar,setcdr,//core
+			type,cons,setcar,setcdr,//core
 			list,vector,vget,vset,//data structure
 			load,print,read,//io
 			add,sub,mul,div,cmp,lt,gt,//logic,
-			is_null,is_list,pairq,atomq,eqq,equalq,//helpers
+			is_null,is_list,pairq,eq,equalq,//helpers
 			);
 	SAO_ITR(add_sym_list, c_int);
 	return SAO_TAG_global;

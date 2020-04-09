@@ -1,0 +1,28 @@
+# TODO
+
+var(test(exp1,exp2),is_equal(exp1 exp2))
+
+# quote
+
+quote(a) //=> a
+'a			 //=> a
+
+# atom
+
+atom('a)        //=> true
+atom('(a b c))  //=> false
+atom('())       //=> true
+atom(atom('a))  //=> true 
+atom('atom('a)) //=> false
+
+# var
+
+var(g,"goose")  //=> OK TODO change to true
+g               //=> "goose"
+print(g)        //=> print(g)=>"goose"
+let(
+	(g(10))       //limited the g as 10
+	print(g)      //=> 10
+)
+
+
