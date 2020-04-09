@@ -187,17 +187,17 @@ p_sao_obj sao_eval(p_sao_obj exp, p_sao_obj ctx);
 p_sao_obj sao_load_expr(sao_stream * fw);
 p_sao_obj g_symbol_holder = ((void*)0);
 p_sao_obj cons(p_sao_obj car, p_sao_obj cdr) { p_sao_obj ret = sao_new((sao_obj){._type=type_list,.car=car,.cdr=cdr});return ret; }
-p_sao_obj car(p_sao_obj x) { return (!x || x->_type)? SAO_TAG_nil: x->car; }
-p_sao_obj cdr(p_sao_obj x) { return (!x || x->_type)? SAO_TAG_nil: x->cdr; }
-p_sao_obj caar(p_sao_obj x) { return (!x || x->_type || !x->car || x->car->_type)? SAO_TAG_nil: x->car->car; }
+p_sao_obj car(p_sao_obj x) { return (x&&!x->_type)?x->car:SAO_TAG_nil; }
+p_sao_obj cdr(p_sao_obj x) { return (x&&!x->_type)?x->cdr:SAO_TAG_nil; }
+p_sao_obj caar(p_sao_obj x) { return ((x&&!x->_type)&&(x->car&&!x->car->_type))? x->car->car : SAO_TAG_nil; }
 p_sao_obj cdar(p_sao_obj x) { return (!x || x->_type || !x->car || x->car->_type)? SAO_TAG_nil: x->car->cdr; }
 p_sao_obj cadr(p_sao_obj x) { return (!x || x->_type || !x->cdr || x->cdr->_type)? SAO_TAG_nil: x->cdr->car; }
 p_sao_obj cddr(p_sao_obj x) { return (!x || x->_type || !x->cdr || x->cdr->_type)? SAO_TAG_nil: x->cdr->cdr; }
-p_sao_obj cadar(p_sao_obj x) { return (!x || x->_type || !x->car || x->car->_type || !x->car->cdr || x->car->cdr->_type)? SAO_TAG_nil: x->car->cdr->car; }
+p_sao_obj cadar(p_sao_obj x) { return ((x&&!x->_type)&&(x->car&&!x->car->_type)&&(x->car->cdr&&!x->car->cdr->_type))? x->car->cdr->car:SAO_TAG_nil; }
 p_sao_obj caddr(p_sao_obj x) { return (!x || x->_type || !x->cdr || x->cdr->_type || !x->cdr->cdr || x->cdr->cdr->_type)? SAO_TAG_nil: x->cdr->cdr->car; }
 p_sao_obj cdddr(p_sao_obj x) { return (!x || x->_type || !x->cdr || x->cdr->_type || !x->cdr->cdr || x->cdr->cdr->_type)? SAO_TAG_nil: x->cdr->cdr->cdr; }
 p_sao_obj cdadr(p_sao_obj x) { return (!x || x->_type || !x->cdr || x->cdr->_type || !x->cdr->car || x->cdr->car->_type)? SAO_TAG_nil: x->cdr->car->cdr; }
-p_sao_obj cadddr(p_sao_obj x) { return (!x || x->_type || !x->cdr || x->cdr->_type || !x->cdr->cdr || x->cdr->cdr->_type || !x->cdr->cdr->cdr || x->cdr->cdr->cdr->_type)? SAO_TAG_nil: x->cdr->cdr->cdr->car; }
+p_sao_obj cadddr(p_sao_obj x) { return ((x&&!x->_type)&&(x->cdr&&!x->cdr->_type)&&(x->cdr->cdr&&!x->cdr->cdr->_type)&&(x->cdr->cdr->cdr&&!x->cdr->cdr->cdr->_type))? x->cdr->cdr->cdr->car:SAO_TAG_nil; }
 p_sao_obj sao_new_lambda(p_sao_obj params, p_sao_obj body) { return cons(SAO_TAG_lambda, cons(params, body)); }
 p_sao_obj sao_new_procedure(p_sao_obj params, p_sao_obj body, p_sao_obj ctx) {
  return cons(SAO_TAG_procedure, cons(params, cons(body, cons(ctx, SAO_TAG_nil))));
@@ -560,23 +560,16 @@ void sao_out_expr(ffic_string str, p_sao_obj el){
 p_sao_obj sao_eval(p_sao_obj exp, p_sao_obj ctx)
 {
 tail:
- if (!(exp))
- {
-  return SAO_TAG_nil;
- } else if (exp->_type == type_integer || exp->_type == type_string) {
-  return exp;
- } else if (exp->_type == type_symbol) {
+ if (!(exp)) { return SAO_TAG_nil; }
+ else if (exp->_type == type_integer || exp->_type == type_string) { return exp; }
+ else if (exp->_type == type_symbol) {
   p_sao_obj sym = sao_get_var(exp, ctx);
-  if (!sym) {
-   if(argta[argt_s]){ do{libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"ERROR: symbol(%s) not found.\n",exp->_string);libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"\n");libc_(libc_exit,"exit")(1);}while(0); }
-  }
-  return sym;
- } else if (sao_is_tagged(exp, SAO_TAG_quote)) {
-  return cadr(exp);
- } else if (sao_is_tagged(exp, SAO_TAG_lambda)) {
-  return sao_new_procedure(cadr(exp), cddr(exp), ctx);
- } else if (sao_is_tagged(exp, SAO_TAG_var)) {
-  if (((cadr(exp)&&cadr(exp)->_type)?cadr(exp):SAO_TAG_nil))
+  if (!sym) { if(argta[argt_s]){ do{libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"ERROR: symbol(%s) not found.\n",exp->_string);libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"\n");libc_(libc_exit,"exit")(1);}while(0); } } return sym;
+ }
+ else if (sao_is_tagged(exp, SAO_TAG_quote)) { return cadr(exp); }
+ else if (sao_is_tagged(exp, SAO_TAG_lambda)) { return sao_new_procedure(cadr(exp), cddr(exp), ctx); }
+ else if (sao_is_tagged(exp, SAO_TAG_var)) {
+  if ((cadr(exp)&&cadr(exp)->_type))
    sao_def_var(cadr(exp), sao_eval(caddr(exp), ctx), ctx);
   else {
    p_sao_obj closure =
@@ -584,21 +577,25 @@ tail:
    sao_def_var(car(cadr(exp)), closure, ctx);
   }
   return SAO_TAG_ok;
- } else if (sao_is_tagged(exp, SAO_TAG_begin)) {
+ }
+ else if (sao_is_tagged(exp, SAO_TAG_begin)) {
   p_sao_obj args = cdr(exp);
   for (; (cdr(args)); args = cdr(args))
    sao_eval(car(args), ctx);
   exp = car(args);
   goto tail;
- } else if (sao_is_tagged(exp, SAO_TAG_if)) {
+ }
+ else if (sao_is_tagged(exp, SAO_TAG_if)) {
   p_sao_obj predicate = sao_eval(cadr(exp), ctx);
   exp = (sao_not_false(predicate)) ? caddr(exp) : cadddr(exp);
   goto tail;
- } else if (sao_is_tagged(exp, SAO_TAG_or)) {
+ }
+ else if (sao_is_tagged(exp, SAO_TAG_or)) {
   p_sao_obj predicate = sao_eval(cadr(exp), ctx);
   exp = (sao_not_false(predicate)) ? caddr(exp) : cadddr(exp);
   goto tail;
- } else if (sao_is_tagged(exp, SAO_TAG_cond)) {
+ }
+ else if (sao_is_tagged(exp, SAO_TAG_cond)) {
   p_sao_obj branch = cdr(exp);
   for (; (branch); branch = cdr(branch)) {
    if (sao_is_tagged(car(branch), SAO_TAG_else) ||
@@ -608,8 +605,9 @@ tail:
    }
   }
   return SAO_TAG_nil;
- } else if (sao_is_tagged(exp, SAO_TAG_set)) {
-  if (((cadr(exp)&&cadr(exp)->_type)?cadr(exp):SAO_TAG_nil)){
+ }
+ else if (sao_is_tagged(exp, SAO_TAG_set)) {
+  if ((cadr(exp)&&cadr(exp)->_type)){
    sao_set_var(cadr(exp), sao_eval(caddr(exp), ctx), ctx);
   } else {
    p_sao_obj closure =
@@ -617,12 +615,13 @@ tail:
    sao_set_var(car(cadr(exp)), closure, ctx);
   }
   return SAO_TAG_ok;
- } else if (sao_is_tagged(exp, SAO_TAG_let)) {
+ }
+ else if (sao_is_tagged(exp, SAO_TAG_let)) {
   p_sao_obj pointer;
   p_sao_obj vars = SAO_TAG_nil;
   p_sao_obj vals = SAO_TAG_nil;
   if (!(cadr(exp))) return SAO_TAG_nil;
-  if (((cadr(exp)&&cadr(exp)->_type)?cadr(exp):SAO_TAG_nil)) {
+  if ((cadr(exp)&&cadr(exp)->_type)) {
    for (pointer = caddr(exp); (pointer); pointer = cdr(pointer))
    {
     vars = cons(caar(pointer), vars);
@@ -638,7 +637,8 @@ tail:
   }
   exp = cons(sao_new_lambda(vars, cddr(exp)), vals);
   goto tail;
- } else {
+ }
+ else {
   p_sao_obj proc = sao_eval(car(exp), ctx);
   p_sao_obj args = sao_eval_list(cdr(exp), ctx);
   if (!(proc)) {
@@ -702,7 +702,7 @@ p_sao_obj native_setcdr(p_sao_obj args) { (sao_type_check((ffic_string)__func__,
 p_sao_obj native_is_null(p_sao_obj args) { return !(car(args)) ? SAO_TAG_true : SAO_TAG_false; }
 p_sao_obj native_pairq(p_sao_obj args) {
  if (car(args)->_type != type_list) return SAO_TAG_false;
- return (((caar(args)&&caar(args)->_type)?caar(args):SAO_TAG_nil) && ((cdar(args)&&cdar(args)->_type)?cdar(args):SAO_TAG_nil)) ? SAO_TAG_true : SAO_TAG_false;
+ return ((caar(args)&&caar(args)->_type) && (cdar(args)&&cdar(args)->_type)) ? SAO_TAG_true : SAO_TAG_false;
 }
 p_sao_obj native_is_list(p_sao_obj args) {
  p_sao_obj list;
@@ -714,7 +714,7 @@ p_sao_obj native_is_list(p_sao_obj args) {
  return (car(args)->_type == type_list && native_pairq(args) != SAO_TAG_true) ? SAO_TAG_true : SAO_TAG_false;
 }
 p_sao_obj native_atom(p_sao_obj expr) {
- return ((car(expr)&&car(expr)->_type)?car(expr):SAO_TAG_nil) ? SAO_TAG_true : SAO_TAG_false;
+ return (car(expr)&&car(expr)->_type) ? SAO_TAG_true : SAO_TAG_false;
 }
 p_sao_obj native_cmp(p_sao_obj args) {
  if ((car(args)->_type != type_integer) || (cadr(args)->_type != type_integer))
