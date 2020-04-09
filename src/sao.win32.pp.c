@@ -126,7 +126,7 @@ ffic_func libc_(int fi,const ffic_string fn){ return libc_a[fi]?libc_a[fi]:(libc
 void* sao_calloc(long _sizeof){return libc_(libc_memset,"memset")(libc_(libc_malloc,"malloc")(_sizeof),0,_sizeof);}
 typedef enum { argt_i, argt_p, argt_d, argt_v, argt_e, argt_s, argt_l, argt_h, } argt_t; ffic_string argt_names[] = { "i", "p", "d", "v", "e", "s", "l", "h", };;
 int argta[argt_h+1];
-typedef enum { ctype_long, ctype_double, ctype_any, } ctype_t; ffic_string ctype_names[] = { "long", "double", "any", };;
+typedef enum { ctype_long, ctype_double, ctype_int, ctype_float, ctype_i64, ctype_u64, ctype_string, ctype_struct, ctype_pointer, } ctype_t; ffic_string ctype_names[] = { "long", "double", "int", "float", "i64", "u64", "string", "struct", "pointer", };;
 typedef enum { stream_file, stream_char, } stream_t; ffic_string stream_names[] = { "file", "char", };;
 typedef enum { type_list, type_integer, type_double, type_symbol, type_string, type_native, type_vector, type_table, } type_t; ffic_string type_names[] = { "list", "integer", "double", "symbol", "string", "native", "vector", "table", };;
 typedef struct _sao_obj sao_obj,*p_sao_obj;

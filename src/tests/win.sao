@@ -1,0 +1,4 @@
+
+# ffi("user32","MessageBoxA")(c_int(0),c_string("hello3"),c_string("hello4"),c_int(0))
+ffi("user32","MessageBoxA")(0,"hello3","hello4",0)
+

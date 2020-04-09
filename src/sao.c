@@ -60,7 +60,7 @@ void* sao_calloc(long _sizeof){return libc(memset)(libc(malloc)(_sizeof),0,_size
 define_map(argt, i,p,d,v,e,s,l,h);
 int argta[argt_h+1];
 #define SAO_ARGV(x) argta[argt_##x]
-define_map(ctype, long,double,any);
+define_map(ctype, long,double,int,float,i64,u64,string,struct,pointer);//etc TODO
 define_map(stream, file,char);
 define_map(type, list,integer,double,symbol,string,native,vector,table);
 typedef struct _sao_obj sao_obj,*p_sao_obj;
