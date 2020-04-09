@@ -172,10 +172,11 @@ p_sao_obj cdadr(p_sao_obj x) { return (!x || x->_type || !x->cdr || x->cdr->_typ
 //p_sao_obj cadddr(p_sao_obj x) { return (!x || x->_type || !x->cdr || x->cdr->_type || !x->cdr->cdr || x->cdr->cdr->_type || !x->cdr->cdr->cdr || x->cdr->cdr->cdr->_type)? SAO_TAG_nil: x->cdr->cdr->cdr->car; }
 p_sao_obj cadddr(p_sao_obj x) { return (sao_is_list(x)&&sao_is_list(x->cdr)&&sao_is_list(x->cdr->cdr)&&sao_is_list(x->cdr->cdr->cdr))? x->cdr->cdr->cdr->car:SAO_TAG_nil; }
 #define sao_new_symbol(s) sao_new((sao_obj){._type=type_symbol,._string=s})
-p_sao_obj sao_new_lambda(p_sao_obj params, p_sao_obj body) { return cons(SAO_TAG_lambda, cons(params, body)); }
-p_sao_obj sao_new_procedure(p_sao_obj params, p_sao_obj body, p_sao_obj ctx) {
-	return cons(SAO_TAG_procedure, cons(params, cons(body, cons(ctx, SAO_TAG_nil))));
-}
+//p_sao_obj sao_new_lambda(p_sao_obj params, p_sao_obj body) { return cons(SAO_TAG_lambda, cons(params, body)); }
+#define sao_new_lambda(params,body) cons(SAO_TAG_lambda, cons(params,body))
+//p_sao_obj sao_new_procedure(p_sao_obj params, p_sao_obj body, p_sao_obj ctx) { return cons(SAO_TAG_procedure, cons(params, cons(body, cons(ctx, SAO_TAG_nil)))); }
+#define sao_new_procedure(params,body,ctx) cons(SAO_TAG_procedure, cons(params, cons(body, cons(ctx, SAO_TAG_nil))))
+
 long sao_table_hash(const ffic_string s, int ht_len) {
 	long h = 0;
 	ffic_string u = s;
@@ -249,7 +250,8 @@ p_sao_obj sao_not_false(p_sao_obj x) {
 	if (x->_type == type_integer && x->_integer == 0) return SAO_TAG_nil;
 	return x;
 }
-p_sao_obj sao_is_tagged(p_sao_obj cell, p_sao_obj tag) { return (cell&&!cell->_type) ? sao_is_eq(car(cell),tag) : SAO_TAG_nil; }
+//p_sao_obj sao_is_tagged(p_sao_obj cell, p_sao_obj tag) { return (cell&&!cell->_type) ? sao_is_eq(car(cell),tag) : SAO_TAG_nil; }
+p_sao_obj sao_is_tagged(p_sao_obj cell, p_sao_obj tag) { return sao_is_atom(cell) ? sao_is_eq(car(cell),tag) : SAO_TAG_nil; }
 int sao_list_len(p_sao_obj expr) { return (expr) ? (1+sao_list_len(cdr(expr))):0; }
 int sao_deq_c(sao_stream *fw)
 {

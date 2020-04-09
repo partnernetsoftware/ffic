@@ -198,10 +198,6 @@ p_sao_obj caddr(p_sao_obj x) { return (!x || x->_type || !x->cdr || x->cdr->_typ
 p_sao_obj cdddr(p_sao_obj x) { return (!x || x->_type || !x->cdr || x->cdr->_type || !x->cdr->cdr || x->cdr->cdr->_type)? SAO_TAG_nil: x->cdr->cdr->cdr; }
 p_sao_obj cdadr(p_sao_obj x) { return (!x || x->_type || !x->cdr || x->cdr->_type || !x->cdr->car || x->cdr->car->_type)? SAO_TAG_nil: x->cdr->car->cdr; }
 p_sao_obj cadddr(p_sao_obj x) { return ((x&&!x->_type)&&(x->cdr&&!x->cdr->_type)&&(x->cdr->cdr&&!x->cdr->cdr->_type)&&(x->cdr->cdr->cdr&&!x->cdr->cdr->cdr->_type))? x->cdr->cdr->cdr->car:SAO_TAG_nil; }
-p_sao_obj sao_new_lambda(p_sao_obj params, p_sao_obj body) { return cons(SAO_TAG_lambda, cons(params, body)); }
-p_sao_obj sao_new_procedure(p_sao_obj params, p_sao_obj body, p_sao_obj ctx) {
- return cons(SAO_TAG_procedure, cons(params, cons(body, cons(ctx, SAO_TAG_nil))));
-}
 long sao_table_hash(const ffic_string s, int ht_len) {
  long h = 0;
  ffic_string u = s;
@@ -567,13 +563,13 @@ tail:
   if (!sym) { if(argta[argt_s]){ do{libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"ERROR: symbol(%s) not found.\n",exp->_string);libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"\n");libc_(libc_exit,"exit")(1);}while(0); } } return sym;
  }
  else if (sao_is_tagged(exp, SAO_TAG_quote)) { return cadr(exp); }
- else if (sao_is_tagged(exp, SAO_TAG_lambda)) { return sao_new_procedure(cadr(exp), cddr(exp), ctx); }
+ else if (sao_is_tagged(exp, SAO_TAG_lambda)) { return cons(SAO_TAG_procedure, cons(cadr(exp), cons(cddr(exp), cons(ctx, SAO_TAG_nil)))); }
  else if (sao_is_tagged(exp, SAO_TAG_var)) {
   if ((cadr(exp)&&cadr(exp)->_type))
    sao_def_var(cadr(exp), sao_eval(caddr(exp), ctx), ctx);
   else {
    p_sao_obj closure =
-    sao_eval(sao_new_lambda(cdr(cadr(exp)), cddr(exp)), ctx);
+    sao_eval(cons(SAO_TAG_lambda, cons(cdr(cadr(exp)),cddr(exp))), ctx);
    sao_def_var(car(cadr(exp)), closure, ctx);
   }
   return SAO_TAG_ok;
@@ -611,7 +607,7 @@ tail:
    sao_set_var(cadr(exp), sao_eval(caddr(exp), ctx), ctx);
   } else {
    p_sao_obj closure =
-    sao_eval(sao_new_lambda(cdr(cadr(exp)), cddr(exp)), ctx);
+    sao_eval(cons(SAO_TAG_lambda, cons(cdr(cadr(exp)),cddr(exp))), ctx);
    sao_set_var(car(cadr(exp)), closure, ctx);
   }
   return SAO_TAG_ok;
@@ -627,7 +623,7 @@ tail:
     vars = cons(caar(pointer), vars);
     vals = cons(cadar(pointer), vals);
    }
-   sao_def_var(cadr(exp), sao_eval(sao_new_lambda(vars, cdr(cddr(exp))), sao_expand(vars, vals, ctx)), ctx);
+   sao_def_var(cadr(exp), sao_eval(cons(SAO_TAG_lambda, cons(vars,cdr(cddr(exp)))), sao_expand(vars, vals, ctx)), ctx);
    exp = cons(cadr(exp), vals);
    goto tail;
   }
@@ -635,7 +631,7 @@ tail:
    vars = cons(caar(pointer), vars);
    vals = cons(cadar(pointer), vals);
   }
-  exp = cons(sao_new_lambda(vars, cddr(exp)), vals);
+  exp = cons(cons(SAO_TAG_lambda, cons(vars,cddr(exp))), vals);
   goto tail;
  }
  else {
