@@ -135,10 +135,11 @@ p_sao_obj native_lt(p_sao_obj sexp) {
 	SAO_CHECK_TYPE(cadr(sexp), type_integer);
 	return (car(sexp)->_integer < cadr(sexp)->_integer) ? SAO_TAG_true : SAO_TAG_nil;
 }
+//TODO tmp cat...
 char* sao_strcat(char * dst, char * src){
-	char *target = malloc(strlen(dst) + strlen(src) + 1);
-	strcpy(target, dst);
-	strcat(target, src); 
+	char *target = libc(malloc)((int)libc(strlen)(dst) + (int)libc(strlen)(src) + 1);
+	libc(strcpy)(target, dst);
+	libc(strcat)(target, src); 
 	return target;
 }
 p_sao_obj native_shell(p_sao_obj args) {
@@ -226,6 +227,7 @@ p_sao_obj saolang_init()
 	//Clojure:defn
 	SAO_ITR(add_sym_list, //quote,cond,var(i.e. define),
 			atom,eq,car,cdr,cons,//function from LISP
+			);
 	SAO_ITR(add_sym_list,
 			exit,shell,ffi,global,//sys
 			type,cons,setcar,setcdr,//core

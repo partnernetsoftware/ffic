@@ -37,7 +37,7 @@
 #define SAO_ITR1(mmm,mm1,qqq,...) SAO_EVAL( SAO_WHILE1( mmm,mm1,qqq,__VA_ARGS__) )
 //////////////////////////////////////////////////////////////////////////////
 #define DEFINE_ENUM_LIBC(n) libc_##n,
-enum { SAO_ITR(DEFINE_ENUM_LIBC,fprintf,malloc,memset,memcpy,strlen,strdup,strcmp,strchr,strcat,printf,putc,getc,isalnum,isdigit,isalpha,fopen,fread,fgets,fclose,feof,fputc,fflush,free,system,  usleep,msleep,sleep,setmode,fileno,stdin,stdout,stderr,microtime,exit) };
+enum { SAO_ITR(DEFINE_ENUM_LIBC,fprintf,malloc,memset,memcpy,strcpy,strlen,strdup,strcmp,strchr,strcat,printf,putc,getc,isalnum,isdigit,isalpha,fopen,fread,fgets,fclose,feof,fputc,fflush,free,system,  usleep,msleep,sleep,setmode,fileno,stdin,stdout,stderr,microtime,exit) };
 #define libc(f) libc_(libc_##f,#f)
 #include "ffic.h" //github.com/partnernetsoftware/ffic/blob/master/src/ffic.h
 ffic_func libc_a[libc_exit+1];
