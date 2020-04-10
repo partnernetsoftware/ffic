@@ -1,3 +1,8 @@
+p_sao_obj sao_not_false(p_sao_obj x) {
+	if (!(x) || sao_is_eq(x, SAO_TAG_false)) return SAO_TAG_nil;
+	if (x->_type == type_integer && x->_integer == 0) return SAO_TAG_nil;
+	return x;
+}
 p_sao_obj sao_eval(p_sao_obj exp, p_sao_obj ctx);
 p_sao_obj sao_eval_list(p_sao_obj exp, p_sao_obj ctx) {
 	if (!(exp)) return SAO_TAG_nil;

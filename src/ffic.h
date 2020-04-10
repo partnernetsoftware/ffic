@@ -1,12 +1,17 @@
 /* ffic() to unify libc */
 typedef enum { ffic_os_unknown, ffic_os_win, ffic_os_osx, ffic_os_unx, } ffic_os_t;
-ffic_os_t ffic_os = //ffic_os_unknown;
 #ifdef _WIN32
-ffic_os_win
+ffic_os_t ffic_os = ffic_os_win;
+char* ffic_libcname = "msvcrt";
+char* ffic_sosuffix = ".dll";
 #elif defined(__APPLE__)
-ffic_os_osx
+ffic_os_t ffic_os = ffic_os_osx;
+char* ffic_libcname = "libc";
+char* ffic_sosuffix = ".dylib";
 #else
-ffic_os_unx
+ffic_os_t ffic_os = ffic_os_unx;
+char* ffic_libcname = "libc";
+char* ffic_sosuffix = ".so";
 #endif
 ;
 #ifndef SIZEOF_POINTER
@@ -41,6 +46,7 @@ typedef unsigned long long int ffic_u64;
 typedef void* ffic_ptr;
 typedef ffic_ptr(*ffic_func)();
 typedef char* ffic_string;
+#define ffic_tmp_string(n) ((char[n]){0})
 #ifndef FFIC
 #define FFIC 1
 #endif
@@ -82,18 +88,17 @@ void ffic_setup(char **envp){
 		//if(strcmp(*env,"COMMAND_MODE=unix2003")==0){ ffic_os = ffic_os_osx; }
 	}
 }
-//CALLER WARNING: makesure your buffer enough!
-void ffic_strcat(char *buffer, const char *source, const char* append) {
-	while (*source)  *(buffer++) = *(source++); while (*append)  *(buffer++) = *(append++); *buffer = '\0';
+void _ffic_strcat(char *buffer, const char *source, const char* append) {
+	while (*source)  *(buffer++) = *(source++);
+	while (*append)  *(buffer++) = *(append++);
+	*buffer = '\0';
 }
 ffic_ptr ffic_void(){return 0;};
 ffic_ptr(*ffic_raw(const char* part1, const char* funcname, const char* part2))()
 {
 	if(ffic_os==ffic_os_unknown){ printf("ERROR: need to call ffic_setup() first\n");exit(1); }
 	char libfilename[512] = {0};
-	ffic_strcat(libfilename,
-			(part1==0)?( (ffic_os == ffic_os_win)?"msvcrt":"libc") : part1,
-			(part2==0)?( (ffic_os == ffic_os_osx)?".dylib": (ffic_os==ffic_os_win)?".dll":".so"):part2);
+	_ffic_strcat(libfilename, (part1)? part1 : ffic_libcname, (part2)? part2 : ffic_sosuffix );
 	ffic_ptr rt = ffic_dlsym(ffic_dlopen(libfilename,0x100 | 0x1/*RTLD_LAZY*/), funcname);
 	return rt;
 }
@@ -106,19 +111,19 @@ void* ffic_os_std(int t){
 ffic_ptr ffic_usleep(int nano_seconds)
 {
 	if(ffic_os==ffic_os_win) ffic_raw("kernel32","Sleep",0)(nano_seconds/1000);
-	else ffic_raw("libc","usleep",0)(nano_seconds);
+	else ffic_raw(ffic_libcname,"usleep",0)(nano_seconds);
 	return 0;
 };
 ffic_ptr ffic_msleep(int microseconds)
 {
 	if (ffic_os==ffic_os_win) ffic_raw("kernel32","Sleep",0)(microseconds);
-	else ffic_raw("libc","usleep",0)(microseconds*1000);
+	else ffic_raw(ffic_libcname,"usleep",0)(microseconds*1000);
 	return 0;
 };
 ffic_ptr ffic_sleep(int seconds)
 {
 	if(ffic_os==ffic_os_win) ffic_raw("kernel32","Sleep",0)(seconds*1000);
-	else ffic_raw("libc","usleep",0)(seconds*1000000);
+	else ffic_raw(ffic_libcname,"usleep",0)(seconds*1000000);
 	return 0;
 }
 ffic_u64 ffic_microtime(void);

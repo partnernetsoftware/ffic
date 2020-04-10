@@ -66,24 +66,24 @@ define_map(type, list,integer,double,symbol,string,native,vector,table);
 typedef struct _sao_obj sao_obj,*p_sao_obj;
 typedef p_sao_obj (*native_t)(p_sao_obj );
 struct _sao_obj {
-	union {
-		void* ptr3[3];//for future speed improving
-		struct {
+	//union {
+		//void* ptr3[3];//for future speed improving
+		//struct {
 			union{ void* ptr; type_t _type; };
 			union {
-				struct { p_sao_obj car; p_sao_obj cdr; /* p_sao_obj upr; upper link for contexting */}; 
+				struct { p_sao_obj car; p_sao_obj cdr; }; 
 				struct { p_sao_obj* _vector; long _len; };
 				struct { p_sao_obj* _table; long _size; };
 				struct { ffic_string _string; long _depth;};
+				struct { native_t _native; ffic_string _ffi;/* $sharelib.$method */ };
 				long _integer;
 				double _double;//TODO with basic math.
-				struct { native_t _native; ffic_string _ffi;/* $sharelib.$method */ };
 			};
-		};
-	};
+		//};
+	//};
 };
-//TODO gc()
 p_sao_obj sao_new(sao_obj tpl) {
+	//TODO gc()
 	sao_obj * ret = libc(malloc)(sizeof(sao_obj));
 	libc(memcpy)(ret,&tpl,sizeof(sao_obj));
 	switch(ret->_type){
@@ -113,13 +113,12 @@ p_sao_obj sao_new(sao_obj tpl) {
 			ret->_vector = SAO_NEW_C(p_sao_obj,ret->_len);break;//
 		case type_table:
 			ret->_table = SAO_NEW_C(p_sao_obj,ret->_size);break;//
-		case type_native:
-			//TODO
+		case type_native: //TODO
 			break;
 		case type_double:
 		case type_integer:
-		case type_list:
-			break;//TODO
+		case type_list://TODO
+			break;
 	}
 	return ret;
 }
@@ -237,11 +236,6 @@ p_sao_obj sao_is_eq(p_sao_obj x, p_sao_obj y) {
 		}
 	}while(0);
 	return SAO_TAG_nil;
-}
-p_sao_obj sao_not_false(p_sao_obj x) {
-	if (!(x) || sao_is_eq(x, SAO_TAG_false)) return SAO_TAG_nil;
-	if (x->_type == type_integer && x->_integer == 0) return SAO_TAG_nil;
-	return x;
 }
 //p_sao_obj sao_is_tagged(p_sao_obj cell, p_sao_obj tag) { return (cell&&!cell->_type) ? sao_is_eq(car(cell),tag) : SAO_TAG_nil; }
 p_sao_obj sao_is_tagged(p_sao_obj cell, p_sao_obj tag) { return sao_is_list(cell) ? sao_is_eq(car(cell),tag) : SAO_TAG_nil; }

@@ -1,7 +1,8 @@
 enum { libc_fprintf, libc_malloc, libc_memset, libc_memcpy, libc_strcpy, libc_strlen, libc_strdup, libc_strcmp, libc_strchr, libc_strcat, libc_printf, libc_putc, libc_getc, libc_isalnum, libc_isdigit, libc_isalpha, libc_fopen, libc_fread, libc_fgets, libc_fclose, libc_feof, libc_fputc, libc_fflush, libc_free, libc_system, libc_usleep, libc_msleep, libc_sleep, libc_setmode, libc_fileno, libc_stdin, libc_stdout, libc_stderr, libc_microtime, libc_exit, };
 typedef enum { ffic_os_unknown, ffic_os_win, ffic_os_osx, ffic_os_unx, } ffic_os_t;
-ffic_os_t ffic_os =
-ffic_os_win
+ffic_os_t ffic_os = ffic_os_win;
+char* ffic_libcname = "msvcrt";
+char* ffic_sosuffix = ".dll";
 ;
 typedef struct __FILE FILE;
 typedef signed char ffic_i8;
@@ -30,17 +31,17 @@ void ffic_setup(char **envp){
   printf("DEBUG: %s\n",*env);
  }
 }
-void ffic_strcat(char *buffer, const char *source, const char* append) {
- while (*source) *(buffer++) = *(source++); while (*append) *(buffer++) = *(append++); *buffer = '\0';
+void _ffic_strcat(char *buffer, const char *source, const char* append) {
+ while (*source) *(buffer++) = *(source++);
+ while (*append) *(buffer++) = *(append++);
+ *buffer = '\0';
 }
 ffic_ptr ffic_void(){return 0;};
 ffic_ptr(*ffic_raw(const char* part1, const char* funcname, const char* part2))()
 {
  if(ffic_os==ffic_os_unknown){ printf("ERROR: need to call ffic_setup() first\n");exit(1); }
  char libfilename[512] = {0};
- ffic_strcat(libfilename,
-   (part1==0)?( (ffic_os == ffic_os_win)?"msvcrt":"libc") : part1,
-   (part2==0)?( (ffic_os == ffic_os_osx)?".dylib": (ffic_os==ffic_os_win)?".dll":".so"):part2);
+ _ffic_strcat(libfilename, (part1)? part1 : ffic_libcname, (part2)? part2 : ffic_sosuffix );
  ffic_ptr rt = GetProcAddress(LoadLibraryA(libfilename), funcname);
  return rt;
 }
@@ -53,19 +54,19 @@ void* ffic_os_std(int t){
 ffic_ptr ffic_usleep(int nano_seconds)
 {
  if(ffic_os==ffic_os_win) ffic_raw("kernel32","Sleep",0)(nano_seconds/1000);
- else ffic_raw("libc","usleep",0)(nano_seconds);
+ else ffic_raw(ffic_libcname,"usleep",0)(nano_seconds);
  return 0;
 };
 ffic_ptr ffic_msleep(int microseconds)
 {
  if (ffic_os==ffic_os_win) ffic_raw("kernel32","Sleep",0)(microseconds);
- else ffic_raw("libc","usleep",0)(microseconds*1000);
+ else ffic_raw(ffic_libcname,"usleep",0)(microseconds*1000);
  return 0;
 };
 ffic_ptr ffic_sleep(int seconds)
 {
  if(ffic_os==ffic_os_win) ffic_raw("kernel32","Sleep",0)(seconds*1000);
- else ffic_raw("libc","usleep",0)(seconds*1000000);
+ else ffic_raw(ffic_libcname,"usleep",0)(seconds*1000000);
  return 0;
 }
 ffic_u64 ffic_microtime(void);
@@ -132,21 +133,16 @@ typedef enum { type_list, type_integer, type_double, type_symbol, type_string, t
 typedef struct _sao_obj sao_obj,*p_sao_obj;
 typedef p_sao_obj (*native_t)(p_sao_obj );
 struct _sao_obj {
- union {
-  void* ptr3[3];
-  struct {
    union{ void* ptr; type_t _type; };
    union {
     struct { p_sao_obj car; p_sao_obj cdr; };
     struct { p_sao_obj* _vector; long _len; };
     struct { p_sao_obj* _table; long _size; };
     struct { ffic_string _string; long _depth;};
+    struct { native_t _native; ffic_string _ffi; };
     long _integer;
     double _double;
-    struct { native_t _native; ffic_string _ffi; };
    };
-  };
- };
 };
 p_sao_obj sao_new(sao_obj tpl) {
  sao_obj * ret = libc_(libc_malloc,"malloc")(sizeof(sao_obj));
@@ -248,11 +244,6 @@ p_sao_obj sao_is_eq(p_sao_obj x, p_sao_obj y) {
   }
  }while(0);
  return SAO_TAG_nil;
-}
-p_sao_obj sao_not_false(p_sao_obj x) {
- if (!(x) || sao_is_eq(x, SAO_TAG_false)) return SAO_TAG_nil;
- if (x->_type == type_integer && x->_integer == 0) return SAO_TAG_nil;
- return x;
 }
 p_sao_obj sao_is_tagged(p_sao_obj cell, p_sao_obj tag) { return (cell&&!cell->_type) ? sao_is_eq(car(cell),tag) : SAO_TAG_nil; }
 int sao_list_len(p_sao_obj expr) { return (expr) ? (1+sao_list_len(cdr(expr))):0; }
@@ -536,6 +527,11 @@ void sao_out_expr(ffic_string str, p_sao_obj el){
    }
    libc_(libc_printf,"printf")(")");
  }
+}
+p_sao_obj sao_not_false(p_sao_obj x) {
+ if (!(x) || sao_is_eq(x, SAO_TAG_false)) return SAO_TAG_nil;
+ if (x->_type == type_integer && x->_integer == 0) return SAO_TAG_nil;
+ return x;
 }
 p_sao_obj sao_eval(p_sao_obj exp, p_sao_obj ctx);
 p_sao_obj sao_eval_list(p_sao_obj exp, p_sao_obj ctx) {
