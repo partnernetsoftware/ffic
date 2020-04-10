@@ -232,7 +232,7 @@ p_sao_obj native_lt(p_sao_obj sexp) {
 	SAO_ASSERT_TYPE(cadr(sexp), type_integer);
 	return (car(sexp)->_integer < cadr(sexp)->_integer) ? SAO_TAG_true : SAO_TAG_nil;
 }
-//TODO tmp cat...
+//TODO tmp cat...(has mem leak)
 char* sao_strcat(char * dst, char * src){
 	char *target = libc(malloc)((int)libc(strlen)(dst) + (int)libc(strlen)(src) + 1);
 	libc(strcpy)(target, dst);

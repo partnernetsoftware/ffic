@@ -31,18 +31,21 @@ void ffic_setup(char **envp){
   printf("DEBUG: %s\n",*env);
  }
 }
-void _ffic_strcat(char *buffer, const char *source, const char* append) {
- while (*source) *(buffer++) = *(source++);
- while (*append) *(buffer++) = *(append++);
- *buffer = '\0';
-}
+extern void* malloc();
+extern void free(void*);
+extern unsigned long strlen(const char*);
+extern char* strcpy(char*,const char*);
+extern char* strcat(char*,const char*);
+ffic_string _ffic_strcat(const char* dst, const char* src){ char *target = malloc(strlen(dst) + strlen(src) + 1); strcpy(target, dst); strcat(target, src); return target; }
 ffic_ptr ffic_void(){return 0;};
 ffic_ptr(*ffic_raw(const char* part1, const char* funcname, const char* part2))()
 {
  if(ffic_os==ffic_os_unknown){ printf("ERROR: need to call ffic_setup() first\n");exit(1); }
- char libfilename[512] = {0};
- _ffic_strcat(libfilename, (part1)? part1 : ffic_libcname, (part2)? part2 : ffic_sosuffix );
- ffic_ptr rt = dlsym(dlopen(libfilename,0x100 | 0x1 ), funcname);
+ ffic_string work_string;
+ ffic_ptr rt = dlsym(dlopen(
+    work_string = _ffic_strcat((part1)? part1 : ffic_libcname, (part2)? part2 : ffic_sosuffix),
+    0x100 | 0x1 ), funcname);
+ free(work_string);
  return rt;
 }
 void* ffic_std[3];
