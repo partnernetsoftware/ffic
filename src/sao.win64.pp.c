@@ -31,19 +31,18 @@ void ffic_setup(char **envp){
   printf("DEBUG: %s\n",*env);
  }
 }
-extern void* malloc();
-extern void free(void*);
-extern unsigned long strlen(const char*);
-extern char* strcpy(char*,const char*);
-extern char* strcat(char*,const char*);
-ffic_string _ffic_strcat(const char* dst, const char* src){ char *target = malloc(strlen(dst) + strlen(src) + 1); strcpy(target, dst); strcat(target, src); return target; }
+void _ffic_strcat(char *buffer, const char *source, const char* append) {
+ while (*source) *(buffer++) = *(source++);
+ while (*append) *(buffer++) = *(append++);
+ *buffer = '\0';
+}
 ffic_ptr ffic_void(){return 0;};
 ffic_ptr(*ffic_raw(const char* part1, const char* funcname, const char* part2))()
 {
  if(ffic_os==ffic_os_unknown){ printf("ERROR: need to call ffic_setup() first\n");exit(1); }
- ffic_string work_string;
- ffic_ptr rt = GetProcAddress(LoadLibraryA(work_string = _ffic_strcat((part1)? part1 : ffic_libcname, (part2)? part2 : ffic_sosuffix)), funcname);
- free(work_string);
+ char libfilename[512] = {0};
+ _ffic_strcat(libfilename, (part1)? part1 : ffic_libcname, (part2)? part2 : ffic_sosuffix );
+ ffic_ptr rt = GetProcAddress(LoadLibraryA(libfilename), funcname);
  return rt;
 }
 void* ffic_std[3];
@@ -756,7 +755,7 @@ p_sao_obj native_lt(p_sao_obj sexp) {
  return (car(sexp)->_integer < cadr(sexp)->_integer) ? SAO_TAG_true : SAO_TAG_nil;
 }
 char* sao_strcat(char * dst, char * src){
- char *target = libc_(libc_malloc,"malloc")((int)libc_(libc_strlen,"strlen")(dst) + (int)libc_(libc_strlen,"strlen")(src) + 1);
+ char *target = libc_(libc_malloc,"malloc")((long)libc_(libc_strlen,"strlen")(dst) + (long)libc_(libc_strlen,"strlen")(src) + 1);
  libc_(libc_strcpy,"strcpy")(target, dst);
  libc_(libc_strcat,"strcat")(target, src);
  return target;
@@ -841,7 +840,7 @@ p_sao_obj saolang_init()
  sao_def_var(sao_new((sao_obj){._type=type_symbol,._string="c_int"}), sao_new((sao_obj){._type=type_native, ._native=native_c_int,._ffi="c_int"}), SAO_TAG_global);;
  return SAO_TAG_global;
 }
-p_sao_obj sao_parse( sao_stream * fw, int do_eval ) {
+p_sao_obj sao_parse( sao_stream * fw, p_sao_obj ctx ) {
  sao_read_line(fw);
  ffic_u64 (*microtime)() = ( ffic_u64(*)() ) libc_(libc_microtime,"microtime");
  p_sao_obj rt = SAO_TAG_nil;
@@ -849,12 +848,15 @@ p_sao_obj sao_parse( sao_stream * fw, int do_eval ) {
  while((exp=sao_load_expr(fw))){
   if(argta[argt_d]) libc_(libc_printf,"printf")("%llu: ",microtime());
   if(argta[argt_i]||argta[argt_d]){ sao_out_expr("<=", exp); libc_(libc_printf,"printf")("\n"); }
-  if (do_eval){
-   rt = sao_eval(exp, SAO_TAG_global);
+  if (ctx){
+   rt = sao_eval(exp,ctx);
    if(argta[argt_d]) libc_(libc_printf,"printf")("%llu: ",microtime());
    if((argta[argt_i]||argta[argt_d])&&rt){sao_out_expr("=>", rt); libc_(libc_printf,"printf")("\n");}
   }else{
    rt = exp;
+   if((argta[argt_i]||argta[argt_d])){
+    sao_out_expr("==>", rt); libc_(libc_printf,"printf")("\n");
+   }
   }
  }
  return rt;
@@ -867,7 +869,6 @@ int main(int argc,char **argv, char** envp) {
  SAO_TAG_global = sao_expand(SAO_TAG_nil, SAO_TAG_nil, SAO_TAG_nil);
  SAO_TAG_argv = sao_expand(SAO_TAG_nil, SAO_TAG_nil, SAO_TAG_nil);
  SAO_TAG_true=sao_new((sao_obj){._type=type_symbol,._string="true"});sao_def_var(SAO_TAG_true,SAO_TAG_true,SAO_TAG_global); SAO_TAG_false=sao_new((sao_obj){._type=type_symbol,._string="false"});sao_def_var(SAO_TAG_false,SAO_TAG_false,SAO_TAG_global); SAO_TAG_quote=sao_new((sao_obj){._type=type_symbol,._string="quote"});sao_def_var(SAO_TAG_quote,SAO_TAG_quote,SAO_TAG_global); SAO_TAG_set=sao_new((sao_obj){._type=type_symbol,._string="set"});sao_def_var(SAO_TAG_set,SAO_TAG_set,SAO_TAG_global); SAO_TAG_let=sao_new((sao_obj){._type=type_symbol,._string="let"});sao_def_var(SAO_TAG_let,SAO_TAG_let,SAO_TAG_global); SAO_TAG_var=sao_new((sao_obj){._type=type_symbol,._string="var"});sao_def_var(SAO_TAG_var,SAO_TAG_var,SAO_TAG_global); SAO_TAG_procedure=sao_new((sao_obj){._type=type_symbol,._string="procedure"});sao_def_var(SAO_TAG_procedure,SAO_TAG_procedure,SAO_TAG_global); SAO_TAG_if=sao_new((sao_obj){._type=type_symbol,._string="if"});sao_def_var(SAO_TAG_if,SAO_TAG_if,SAO_TAG_global); SAO_TAG_lambda=sao_new((sao_obj){._type=type_symbol,._string="lambda"});sao_def_var(SAO_TAG_lambda,SAO_TAG_lambda,SAO_TAG_global); SAO_TAG_begin=sao_new((sao_obj){._type=type_symbol,._string="begin"});sao_def_var(SAO_TAG_begin,SAO_TAG_begin,SAO_TAG_global); SAO_TAG_or=sao_new((sao_obj){._type=type_symbol,._string="or"});sao_def_var(SAO_TAG_or,SAO_TAG_or,SAO_TAG_global); SAO_TAG_ok=sao_new((sao_obj){._type=type_symbol,._string="ok"});sao_def_var(SAO_TAG_ok,SAO_TAG_ok,SAO_TAG_global); SAO_TAG_else=sao_new((sao_obj){._type=type_symbol,._string="else"});sao_def_var(SAO_TAG_else,SAO_TAG_else,SAO_TAG_global); SAO_TAG_cond=sao_new((sao_obj){._type=type_symbol,._string="cond"});sao_def_var(SAO_TAG_cond,SAO_TAG_cond,SAO_TAG_global); SAO_TAG_error=sao_new((sao_obj){._type=type_symbol,._string="error"});sao_def_var(SAO_TAG_error,SAO_TAG_error,SAO_TAG_global);;
- saolang_init();
  ffic_string script_file = "-";
  int found_any = 0;
  if(argc>1){
@@ -902,14 +903,21 @@ int main(int argc,char **argv, char** envp) {
   libc_(libc_free,"free")(fw);
   sao_def_var(SAO_TAG_argv,SAO_TAG_argv,SAO_TAG_global);
  }
- if(!found_any){ print_help();argta[argt_i]++; argta[argt_v]++; }
- else { if(argta[argt_i]){argta[argt_v]++; found_any++;} }
- if(argta[argt_v]){ print_version();if(found_any==1)libc_(libc_exit,"exit")(0); }
- if(argta[argt_h]){ print_help();libc_(libc_exit,"exit")(0);}
- void* fp = ((!strcmp("-",script_file)) ? (void*)libc_(libc_stdin,"stdin") : (void*)libc_(libc_fopen,"fopen")(script_file, "r"));
- if(!fp) do{libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"FILE NOT FOUND: %s",script_file);libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"\n");libc_(libc_exit,"exit")(1);}while(0);
+ void* fp;
+ if(!strcmp("-",script_file)){
+  fp = libc_(libc_stdin,"stdin");
+  if(!found_any){ print_help();argta[argt_i]++; argta[argt_v]++; }
+  else { if(argta[argt_i]){argta[argt_v]++; found_any++;} }
+  if(argta[argt_v]){ print_version();if(found_any==1)libc_(libc_exit,"exit")(0); }
+  if(argta[argt_h]){ print_help();libc_(libc_exit,"exit")(0);}
+ }else{
+  fp = libc_(libc_fopen,"fopen")(script_file, "r");
+  if(!fp) do{libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"FILE NOT FOUND: %s",script_file);libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"\n");libc_(libc_exit,"exit")(1);}while(0);
+ }
  sao_stream * fw = sao_stream_new(fp,stream_file);
- p_sao_obj result = sao_parse( fw, 1 );
+ p_sao_obj ctx = SAO_TAG_nil;
+ ctx = saolang_init();
+ p_sao_obj result = sao_parse( fw, ctx );
  if(argta[argt_p]){ sao_out_expr(0,result);libc_(libc_printf,"printf")("\n"); }
  libc_(libc_fclose,"fclose")(fp); libc_(libc_free,"free")(fw);
  return 0;

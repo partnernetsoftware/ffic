@@ -540,7 +540,7 @@ void sao_out_expr(ffic_string str, p_sao_obj el){
 	}
 }
 #include "libsaolang.c" //@ref sao_eval() and saolang_init() 
-p_sao_obj sao_parse( sao_stream * fw, int do_eval ) {
+p_sao_obj sao_parse( sao_stream * fw, p_sao_obj ctx ) {
 	sao_read_line(fw);
 	ffic_u64 (*microtime)() = ( ffic_u64(*)() ) libc(microtime);
 	p_sao_obj rt = SAO_TAG_nil;
@@ -548,12 +548,15 @@ p_sao_obj sao_parse( sao_stream * fw, int do_eval ) {
 	while((exp=sao_load_expr(fw))){
 		if(SAO_ARGV(d)) sao_stdout("%llu: ",microtime());
 		if(SAO_ARGV(i)||SAO_ARGV(d)){ sao_out_expr("<=", exp); sao_stdout("\n"); }
-		if (do_eval){
-			rt = sao_eval(exp, SAO_TAG_global);
+		if (ctx){
+			rt = sao_eval(exp,ctx);
 			if(SAO_ARGV(d)) sao_stdout("%llu: ",microtime());
 			if((SAO_ARGV(i)||SAO_ARGV(d))&&rt){sao_out_expr("=>", rt); sao_stdout("\n");}
 		}else{
 			rt = exp;
+			if((SAO_ARGV(i)||SAO_ARGV(d))){
+				sao_out_expr("==>", rt); sao_stdout("\n");
+			}
 		}
 	}
 	return rt;
@@ -570,7 +573,6 @@ int main(int argc,char **argv, char** envp) {
 	SAO_TAG_global = sao_expand(SAO_TAG_nil, SAO_TAG_nil, SAO_TAG_nil);
 	SAO_TAG_argv = sao_expand(SAO_TAG_nil, SAO_TAG_nil, SAO_TAG_nil);
 	SAO_ITR(add_sym_x, SAO_EXPAND(LIST_SAO_TAG));//core tags
-	saolang_init();
 	ffic_string script_file = "-";
 	int found_any = 0;
 	if(argc>1){
@@ -606,14 +608,25 @@ int main(int argc,char **argv, char** envp) {
 		libc(free)(fw);//
 		sao_def_var(SAO_TAG_argv,SAO_TAG_argv,SAO_TAG_global);//for later use
 	}
-	if(!found_any){ print_help();SAO_ARGV(i)++; SAO_ARGV(v)++; }
-	else { if(SAO_ARGV(i)){SAO_ARGV(v)++; found_any++;} }
-	if(SAO_ARGV(v)){ print_version();if(found_any==1)libc(exit)(0); }
-	if(SAO_ARGV(h)){ print_help();libc(exit)(0);}
-	void* fp = ((!strcmp("-",script_file)) ? (void*)libc(stdin) : (void*)libc(fopen)(script_file, "r"));
-	if(!fp) sao_error("FILE NOT FOUND: %s",script_file);
+//	if(!found_any){ print_help();SAO_ARGV(i)++; SAO_ARGV(v)++; }
+//	else { if(SAO_ARGV(i)){SAO_ARGV(v)++; found_any++;} }
+//	if(SAO_ARGV(v)){ print_version();if(found_any==1)libc(exit)(0); }
+//	if(SAO_ARGV(h)){ print_help();libc(exit)(0);}
+	void* fp;
+	if(!strcmp("-",script_file)){
+		fp = libc(stdin);
+		if(!found_any){ print_help();SAO_ARGV(i)++; SAO_ARGV(v)++; }
+		else { if(SAO_ARGV(i)){SAO_ARGV(v)++; found_any++;} }
+		if(SAO_ARGV(v)){ print_version();if(found_any==1)libc(exit)(0); }
+		if(SAO_ARGV(h)){ print_help();libc(exit)(0);}
+	}else{
+		fp = libc(fopen)(script_file, "r");
+		if(!fp) sao_error("FILE NOT FOUND: %s",script_file);
+	}
 	sao_stream * fw = sao_stream_new(fp,stream_file);
-	p_sao_obj result = sao_parse( fw, 1/*eval*/ );
+	p_sao_obj ctx = SAO_TAG_nil;
+	ctx = saolang_init();//TODO
+	p_sao_obj result = sao_parse( fw, ctx );
 	if(SAO_ARGV(p)){ sao_out_expr(0,result);sao_stdout("\n"); }
 	libc(fclose)(fp); libc(free)(fw);
 	return 0;

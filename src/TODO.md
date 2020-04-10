@@ -26,3 +26,7 @@ autonomy, paradigm, ...
 
 ```
 
+# notes
+
+sao.c for framework
+libsaolang.c for customize the lang

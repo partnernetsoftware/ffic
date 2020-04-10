@@ -234,7 +234,7 @@ p_sao_obj native_lt(p_sao_obj sexp) {
 }
 //TODO tmp cat...(has mem leak)
 char* sao_strcat(char * dst, char * src){
-	char *target = libc(malloc)((int)libc(strlen)(dst) + (int)libc(strlen)(src) + 1);
+	char *target = libc(malloc)((long)libc(strlen)(dst) + (long)libc(strlen)(src) + 1);
 	libc(strcpy)(target, dst);
 	libc(strcat)(target, src); 
 	return target;
