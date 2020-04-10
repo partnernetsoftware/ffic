@@ -1,3 +1,6 @@
+//TODO 
+//#include "ffic.h"
+//make libsaolang.(dylib|dll|so) for ffic loading
 p_sao_obj sao_not_false(p_sao_obj x) {
 	if (!(x) || sao_is_eq(x, SAO_TAG_false)) return SAO_TAG_nil;
 	if (x->_type == type_integer && x->_integer == 0) return SAO_TAG_nil;

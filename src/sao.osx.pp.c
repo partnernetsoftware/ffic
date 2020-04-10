@@ -1,9 +1,12 @@
 enum { libc_fprintf, libc_malloc, libc_memset, libc_memcpy, libc_strcpy, libc_strlen, libc_strdup, libc_strcmp, libc_strchr, libc_strcat, libc_printf, libc_putc, libc_getc, libc_isalnum, libc_isdigit, libc_isalpha, libc_fopen, libc_fread, libc_fgets, libc_fclose, libc_feof, libc_fputc, libc_fflush, libc_free, libc_system, libc_usleep, libc_msleep, libc_sleep, libc_setmode, libc_fileno, libc_stdin, libc_stdout, libc_stderr, libc_microtime, libc_exit, };
+typedef void* ffic_ptr;
+typedef ffic_ptr(*ffic_func)();
+typedef char* ffic_string;
 typedef enum { ffic_os_unknown, ffic_os_win, ffic_os_osx, ffic_os_unx, } ffic_os_t;
 ffic_os_t ffic_os = ffic_os_osx;
-char* ffic_libcname = "libc";
-char* ffic_sosuffix = ".dylib";
-;
+ffic_string ffic_libcname = "libc";
+ffic_string ffic_sosuffix = ".dylib";
+static ffic_func gettimeofday=(void*)0;
 typedef struct __FILE FILE;
 typedef signed char ffic_i8;
 typedef unsigned char ffic_u8;
@@ -13,9 +16,6 @@ typedef signed int ffic_i32;
 typedef unsigned int ffic_u32;
 typedef signed long int ffic_i64;
 typedef unsigned long int ffic_u64;
-typedef void* ffic_ptr;
-typedef ffic_ptr(*ffic_func)();
-typedef char* ffic_string;
 extern ffic_ptr dlopen(const char *,int);
 extern ffic_ptr dlsym(ffic_ptr, const char *);
 extern int printf(const char*,...);
@@ -69,6 +69,7 @@ ffic_ptr ffic_sleep(int seconds)
  else ffic_raw(ffic_libcname,"usleep",0)(seconds*1000000);
  return 0;
 }
+struct timeval { long tv_sec; long tv_usec; };
 ffic_u64 ffic_microtime(void);
 ffic_ptr(*ffic(const char* libname, const char* funcname, ...))()
 {
@@ -94,16 +95,11 @@ ffic_ptr(*ffic(const char* libname, const char* funcname, ...))()
  }
  return addr;
 }
-struct timeval {
- long tv_sec;
- long tv_usec;
-};
 ffic_u64 ffic_microtime(void)
 {
  struct timeval tv;
- static ffic_func gettimeofday;
  if(ffic_os == ffic_os_win){
-  gettimeofday = ffic_raw("kernel32","GetSystemTimePreciseAsFileTime",0);
+  if (!gettimeofday) gettimeofday = ffic_raw("kernel32","GetSystemTimePreciseAsFileTime",0);
   if (!gettimeofday) gettimeofday = ffic_raw("kernel32","GetSystemTimeAsFileTime",0);
   static const ffic_u64 epoch = 116444736000000000;
   struct _FILETIME {
@@ -117,7 +113,7 @@ ffic_u64 ffic_microtime(void)
   tv.tv_sec = (microseconds_since_1970 / (ffic_u64) 1000000);
   tv.tv_usec = microseconds_since_1970 % (ffic_u64) 1000000;
  }else{
-  gettimeofday = ffic("c","gettimeofday");
+  if (!gettimeofday) gettimeofday = ffic("c","gettimeofday");
   gettimeofday(&tv, 0);
  }
  return ((ffic_u64)tv.tv_sec*(ffic_u64)1000 + (((ffic_u64)tv.tv_usec)/(ffic_u64)1000)%(ffic_u64)1000);

@@ -1,19 +1,25 @@
-/* ffic() to unify libc */
+/* to unify libc */
+#ifndef FFIC_H
+#define FFIC_H
+typedef void* ffic_ptr;
+typedef ffic_ptr(*ffic_func)();
+typedef char* ffic_string;
+#define ffic_tmp_string(n) ((char[n]){0})
 typedef enum { ffic_os_unknown, ffic_os_win, ffic_os_osx, ffic_os_unx, } ffic_os_t;
 #ifdef _WIN32
 ffic_os_t ffic_os = ffic_os_win;
-char* ffic_libcname = "msvcrt";
-char* ffic_sosuffix = ".dll";
+ffic_string ffic_libcname = "msvcrt";
+ffic_string ffic_sosuffix = ".dll";
 #elif defined(__APPLE__)
 ffic_os_t ffic_os = ffic_os_osx;
-char* ffic_libcname = "libc";
-char* ffic_sosuffix = ".dylib";
+ffic_string ffic_libcname = "libc";
+ffic_string ffic_sosuffix = ".dylib";
 #else
 ffic_os_t ffic_os = ffic_os_unx;
-char* ffic_libcname = "libc";
-char* ffic_sosuffix = ".so";
+ffic_string ffic_libcname = "libc";
+ffic_string ffic_sosuffix = ".so";
 #endif
-;
+static ffic_func gettimeofday=(void*)0;
 #ifndef SIZEOF_POINTER
 # if defined(_WIN64)
 # define SIZEOF_POINTER 8 //WIN 64
@@ -43,10 +49,6 @@ typedef unsigned long long int ffic_u64;
 #error Unknown SIZEOF_POINTER ?
 #endif
 ///////////////////////////////////////////////
-typedef void* ffic_ptr;
-typedef ffic_ptr(*ffic_func)();
-typedef char* ffic_string;
-#define ffic_tmp_string(n) ((char[n]){0})
 #ifndef FFIC
 #define FFIC 1
 #endif
@@ -126,6 +128,7 @@ ffic_ptr ffic_sleep(int seconds)
 	else ffic_raw(ffic_libcname,"usleep",0)(seconds*1000000);
 	return 0;
 }
+struct timeval { long tv_sec; long tv_usec; };
 ffic_u64 ffic_microtime(void);
 ffic_ptr(*ffic(const char* libname, const char* funcname, ...))()
 {
@@ -151,16 +154,11 @@ ffic_ptr(*ffic(const char* libname, const char* funcname, ...))()
 	}
 	return addr;
 }
-struct timeval {
-	long tv_sec;
-	long tv_usec;
-};
 ffic_u64 ffic_microtime(void)
 {
 	struct timeval tv;
-	static ffic_func gettimeofday;
 	if(ffic_os == ffic_os_win){
-		gettimeofday = ffic_raw("kernel32","GetSystemTimePreciseAsFileTime",0);
+		if (!gettimeofday) gettimeofday = ffic_raw("kernel32","GetSystemTimePreciseAsFileTime",0);
 		if (!gettimeofday) gettimeofday = ffic_raw("kernel32","GetSystemTimeAsFileTime",0);
 		static const ffic_u64 epoch = 116444736000000000;
 		struct _FILETIME {
@@ -174,7 +172,7 @@ ffic_u64 ffic_microtime(void)
 		tv.tv_sec = (microseconds_since_1970 / (ffic_u64) 1000000);
 		tv.tv_usec = microseconds_since_1970 % (ffic_u64) 1000000;
 	}else{
-		gettimeofday = ffic("c","gettimeofday");
+		if (!gettimeofday) gettimeofday = ffic("c","gettimeofday");
 		gettimeofday(&tv, 0);
 	}
 	return ((ffic_u64)tv.tv_sec*(ffic_u64)1000 + (((ffic_u64)tv.tv_usec)/(ffic_u64)1000)%(ffic_u64)1000);
@@ -187,3 +185,5 @@ ffic_u64 ffic_microtime(void)
 #ifndef libc
 # define libc(f) f
 #endif
+
+#endif//FFIC_H
