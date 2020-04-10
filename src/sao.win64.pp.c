@@ -31,10 +31,11 @@ void ffic_setup(char **envp){
   printf("DEBUG: %s\n",*env);
  }
 }
-void _ffic_strcat(char *buffer, const char *source, const char* append) {
- while (*source) *(buffer++) = *(source++);
- while (*append) *(buffer++) = *(append++);
- *buffer = '\0';
+char* _ffic_strcat(char* buffer, const char *source, const char* append) {
+ char* ptr = buffer;
+ while (*source) *(ptr++) = *(source++); while (*append) *(ptr++) = *(append++);
+ *ptr = '\0';
+ return buffer;
 }
 ffic_ptr ffic_void(){return 0;};
 ffic_ptr(*ffic_raw(const char* part1, const char* funcname, const char* part2))()
