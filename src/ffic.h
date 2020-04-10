@@ -38,9 +38,11 @@ typedef unsigned short int ffic_u16;
 typedef signed int ffic_i32;
 typedef unsigned int ffic_u32;
 #if SIZEOF_POINTER==8
+typedef signed long int ffic_ipt;//int size as ptr
 typedef signed long int ffic_i64;
 typedef unsigned long int ffic_u64;
 #elif SIZEOF_POINTER==4
+typedef signed long long int ffic_ipt;//int size as ptr
 typedef signed long long int ffic_i64;
 typedef unsigned long long int ffic_u64;
 #elif SIZEOF_POINTER==16

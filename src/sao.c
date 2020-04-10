@@ -62,7 +62,7 @@ int argta[argt_h+1];
 #define SAO_ARGV(x) argta[argt_##x]
 define_map(ctype, long,double,int,float,i64,u64,string,struct,pointer);//etc TODO
 define_map(stream, file,char);
-define_map(type, list,integer,double,symbol,string,native,vector,table);
+define_map(type, list,integer,double,symbol,string,native,vector,table,ctype);
 typedef struct _sao_obj sao_obj,*p_sao_obj;
 typedef p_sao_obj (*native_t)(p_sao_obj );
 struct _sao_obj {
@@ -88,25 +88,6 @@ p_sao_obj sao_new(sao_obj tpl) {
 	libc(memcpy)(ret,&tpl,sizeof(sao_obj));
 	switch(ret->_type){
 		case type_symbol:
-			//TODO jot the symbol depth
-			//	p_sao_obj ret = sao_table_lookup(g_symbol_holder,s);
-			//	if (!(ret)) {
-			//		ret = sao_alloc(type_symbol);
-			//		ret->_string = libc(strdup)(s);
-			//		//ht_insert(ret);
-			//		sao_table_insert(g_symbol_holder,ret);
-			//	}else{
-			//		//TODO need using depth also?
-			//		if(!libc(strcmp)(ret->_string,s)){
-			//			//sao_warn("sao_table_insert again same for (%s)?\n",s);
-			//			//sao_table_insert(g_symbol_holder,ret);
-			//		}else{
-			//			sao_error("g_symbol_holder full? (%s,%s)\n",ret->_string,s);
-			//		//	int newsize = 2*(gHTable_len+1)-1 ;
-			//		//	ht_resize( newsize );
-			//		//	return sao_new_symbol(s);
-			//		}
-			//	}
 		case type_string:
 			ret->_string=libc(strdup)(ret->_string);break;
 		case type_vector:
@@ -118,6 +99,8 @@ p_sao_obj sao_new(sao_obj tpl) {
 		case type_double:
 		case type_integer:
 		case type_list://TODO
+			break;
+		case type_ctype://TODO wrapping up the ffic
 			break;
 	}
 	return ret;
@@ -147,10 +130,14 @@ p_sao_obj sao_load_expr(sao_stream * fw);
 #define sao_is_digit(c) ((long)libc(isdigit)(c))
 #define sao_is_alpha(c) ((long)libc(isalpha)(c))
 #define sao_is_alphanumber(c) ((long)libc(isalnum)(c))
-
 //p_sao_obj g_symbol_holder = SAO_NULL;
-
-p_sao_obj cons(p_sao_obj car, p_sao_obj cdr) { p_sao_obj ret = sao_new((sao_obj){._type=type_list,.car=car,.cdr=cdr});return ret; }
+#define sao_new_list(a,d) sao_new((sao_obj){._type=type_list,.car=a,.cdr=d})
+#define sao_new_symbol(s) sao_new((sao_obj){._type=type_symbol,._string=s})
+#define sao_new_table(s) sao_new((sao_obj){._type=type_table, ._size=s})
+#define sao_new_string(s) sao_new((sao_obj){._type=type_string, ._string=s})
+#define sao_new_integer(i) sao_new((sao_obj){._type=type_integer, ._integer=i})
+#define sao_new_native(x,n) sao_new((sao_obj){._type=type_native, ._native=x,._ffi=n})
+p_sao_obj cons(p_sao_obj car, p_sao_obj cdr) { p_sao_obj ret = sao_new_list(car,cdr);return ret; }
 p_sao_obj car(p_sao_obj x) { return sao_is_list(x)?x->car:SAO_TAG_nil; }
 p_sao_obj cdr(p_sao_obj x) { return sao_is_list(x)?x->cdr:SAO_TAG_nil; }
 p_sao_obj caar(p_sao_obj x) { return (sao_is_list(x)&&sao_is_list(x->car))? x->car->car : SAO_TAG_nil; }
@@ -162,13 +149,8 @@ p_sao_obj caddr(p_sao_obj x) { return (sao_is_list(x)&&sao_is_list(x->cdr)&&sao_
 p_sao_obj cdddr(p_sao_obj x) { return (sao_is_list(x)&&sao_is_list(x->cdr)&&sao_is_list(x->cdr->cdr))? x->cdr->cdr->cdr:SAO_TAG_nil; }
 p_sao_obj cdadr(p_sao_obj x) { return (sao_is_list(x)&&sao_is_list(x->cdr)&&sao_is_list(x->cdr->car))? x->cdr->car->cdr:SAO_TAG_nil; }
 p_sao_obj cadddr(p_sao_obj x) { return (sao_is_list(x)&&sao_is_list(x->cdr)&&sao_is_list(x->cdr->cdr)&&sao_is_list(x->cdr->cdr->cdr))? x->cdr->cdr->cdr->car:SAO_TAG_nil; }
-#define sao_new_symbol(s) sao_new((sao_obj){._type=type_symbol,._string=s})
 #define sao_new_lambda(params,body) cons(SAO_TAG_lambda, cons(params,body))
 #define sao_new_procedure(params,body,ctx) cons(SAO_TAG_procedure, cons(params, cons(body, cons(ctx, SAO_TAG_nil))))
-#define sao_new_table(s) sao_new((sao_obj){._type=type_table, ._size=s})
-#define sao_new_string(s) sao_new((sao_obj){._type=type_string, ._string=s})
-#define sao_new_integer(i) sao_new((sao_obj){._type=type_integer, ._integer=i})
-#define sao_new_native(x,n) sao_new((sao_obj){._type=type_native, ._native=x,._ffi=n})
 
 long sao_table_hash(const ffic_string s, int ht_len) {
 	long h = 0;
@@ -467,10 +449,8 @@ p_sao_obj sao_load_expr(sao_stream * fw) //TODO add ,depth ?
 		//TODO parsing interger/number need upgrade algo soon:
 		if (sao_is_digit(c))
 			return sao_new_integer(sao_read_int(fw, c - '0'));
-			//return sao_new( (sao_obj) {._type=type_integer, ._integer=sao_read_int(fw, c - '0')} );
 		if (c == '-' && sao_is_digit(sao_peek(fw)))
 			return sao_new_integer(-1*sao_read_int(fw, c - '0'));
-			//return sao_new( (sao_obj) {._type=type_integer, ._integer=-1*sao_read_int(fw, c - '0')} );
 	}
 	return SAO_TAG_nil;
 }
@@ -480,6 +460,8 @@ void sao_out_expr(ffic_string str, p_sao_obj el){
 	if (!(el)) { sao_stdout("'()"); return; }//TODO
 	if (!(el)) { return; }
 	switch (el->_type) {
+		case type_ctype://TODO can it be same as symbol or ctype
+			sao_stdout("<ctype>"); break;
 		case type_string:
 			sao_stdout("\"%s\"", el->_string); break;
 		case type_symbol:
@@ -561,18 +543,16 @@ p_sao_obj sao_parse( sao_stream * fw, p_sao_obj ctx ) {
 	}
 	return rt;
 }
-//#define add_sym_x(x) do{SAO_TAG_##x=sao_new_symbol(#x);sao_def_var(SAO_TAG_##x,SAO_TAG_##x,SAO_TAG_global);}while(0);
-//#define add_sym_x(x) {SAO_TAG_##x=sao_new_symbol(#x);sao_def_var(SAO_TAG_##x,SAO_TAG_##x,SAO_TAG_global);}
-#define add_sym_x(x) SAO_TAG_##x=sao_new_symbol(#x);sao_def_var(SAO_TAG_##x,SAO_TAG_##x,SAO_TAG_global);
+#define sao_add_sym_x(x) SAO_TAG_##x=sao_new_symbol(#x);sao_def_var(SAO_TAG_##x,SAO_TAG_##x,SAO_TAG_global);
 void print_version(){ sao_stdout(" SaoLang (R) v" SAO_VERSION " - Wanjo Chan (c) 2020\n"); }
 void print_help(){ sao_stdout("Usage	 : sao [options] [script.sao | -]]\nOptions	 :\n	h:	Help\n	v:	Version\n	i:	Interactive\n	p:	Print final result\n	d:	Dev only\n	e:	Eval\n	s:	Strict mode\n	l:	Lisp syntax\n"); }
 int main(int argc,char **argv, char** envp) {
 	ffic_func strcmp = libc(strcmp);
 	libc(setmode)(libc(fileno)(libc(stdin)),0x8000/*O_BINARY*/);
-	//g_symbol_holder = sao_new_table(65536-1);//TODO auto expand
+	//g_symbol_holder = sao_new_table(65536-1);//TODO auto expand for the tables
 	SAO_TAG_global = sao_expand(SAO_TAG_nil, SAO_TAG_nil, SAO_TAG_nil);
 	SAO_TAG_argv = sao_expand(SAO_TAG_nil, SAO_TAG_nil, SAO_TAG_nil);
-	SAO_ITR(add_sym_x, SAO_EXPAND(LIST_SAO_TAG));//core tags
+	SAO_ITR(sao_add_sym_x, SAO_EXPAND(LIST_SAO_TAG));//core tags
 	ffic_string script_file = "-";
 	int found_any = 0;
 	if(argc>1){
@@ -597,7 +577,6 @@ int main(int argc,char **argv, char** envp) {
 				i_val = 1;
 			}
 			sao_def_var(sao_new_symbol(string_or_name),
-					//sao_new((sao_obj) {._type=type_integer, ._integer=(i_val)} ),r
 					sao_new_integer(i_val),
 					SAO_TAG_argv);//@ref sao_get_var
 			int found = 0;
@@ -608,10 +587,6 @@ int main(int argc,char **argv, char** envp) {
 		libc(free)(fw);//
 		sao_def_var(SAO_TAG_argv,SAO_TAG_argv,SAO_TAG_global);//for later use
 	}
-//	if(!found_any){ print_help();SAO_ARGV(i)++; SAO_ARGV(v)++; }
-//	else { if(SAO_ARGV(i)){SAO_ARGV(v)++; found_any++;} }
-//	if(SAO_ARGV(v)){ print_version();if(found_any==1)libc(exit)(0); }
-//	if(SAO_ARGV(h)){ print_help();libc(exit)(0);}
 	void* fp;
 	if(!strcmp("-",script_file)){
 		fp = libc(stdin);
@@ -631,3 +606,24 @@ int main(int argc,char **argv, char** envp) {
 	libc(fclose)(fp); libc(free)(fw);
 	return 0;
 }
+
+//TODO jot the symbol depth
+//	p_sao_obj ret = sao_table_lookup(g_symbol_holder,s);
+//	if (!(ret)) {
+//		ret = sao_alloc(type_symbol);
+//		ret->_string = libc(strdup)(s);
+//		//ht_insert(ret);
+//		sao_table_insert(g_symbol_holder,ret);
+//	}else{
+//		//TODO need using depth also?
+//		if(!libc(strcmp)(ret->_string,s)){
+//			//sao_warn("sao_table_insert again same for (%s)?\n",s);
+//			//sao_table_insert(g_symbol_holder,ret);
+//		}else{
+//			sao_error("g_symbol_holder full? (%s,%s)\n",ret->_string,s);
+//		//	int newsize = 2*(gHTable_len+1)-1 ;
+//		//	ht_resize( newsize );
+//		//	return sao_new_symbol(s);
+//		}
+//	}
+

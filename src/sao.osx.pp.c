@@ -14,6 +14,7 @@ typedef signed short int ffic_i16;
 typedef unsigned short int ffic_u16;
 typedef signed int ffic_i32;
 typedef unsigned int ffic_u32;
+typedef signed long int ffic_ipt;
 typedef signed long int ffic_i64;
 typedef unsigned long int ffic_u64;
 extern ffic_ptr dlopen(const char *,int);
@@ -123,7 +124,7 @@ typedef enum { argt_i, argt_p, argt_d, argt_v, argt_e, argt_s, argt_l, argt_h, }
 int argta[argt_h+1];
 typedef enum { ctype_long, ctype_double, ctype_int, ctype_float, ctype_i64, ctype_u64, ctype_string, ctype_struct, ctype_pointer, } ctype_t; ffic_string ctype_names[] = { "long", "double", "int", "float", "i64", "u64", "string", "struct", "pointer", };;
 typedef enum { stream_file, stream_char, } stream_t; ffic_string stream_names[] = { "file", "char", };;
-typedef enum { type_list, type_integer, type_double, type_symbol, type_string, type_native, type_vector, type_table, } type_t; ffic_string type_names[] = { "list", "integer", "double", "symbol", "string", "native", "vector", "table", };;
+typedef enum { type_list, type_integer, type_double, type_symbol, type_string, type_native, type_vector, type_table, type_ctype, } type_t; ffic_string type_names[] = { "list", "integer", "double", "symbol", "string", "native", "vector", "table", "ctype", };;
 typedef struct _sao_obj sao_obj,*p_sao_obj;
 typedef p_sao_obj (*native_t)(p_sao_obj );
 struct _sao_obj {
@@ -154,6 +155,8 @@ p_sao_obj sao_new(sao_obj tpl) {
   case type_double:
   case type_integer:
   case type_list:
+   break;
+  case type_ctype:
    break;
  }
  return ret;
@@ -467,6 +470,8 @@ void sao_out_expr(ffic_string str, p_sao_obj el){
  if (!(el)) { libc_(libc_printf,"printf")("'()"); return; }
  if (!(el)) { return; }
  switch (el->_type) {
+  case type_ctype:
+   libc_(libc_printf,"printf")("<ctype>"); break;
   case type_string:
    libc_(libc_printf,"printf")("\"%s\"", el->_string); break;
   case type_symbol:
