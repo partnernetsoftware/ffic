@@ -6,7 +6,7 @@ typedef enum { ffic_os_unknown, ffic_os_win, ffic_os_osx, ffic_os_unx, } ffic_os
 ffic_os_t ffic_os = ffic_os_win;
 ffic_string ffic_libcname = "msvcrt";
 ffic_string ffic_sosuffix = ".dll";
-static ffic_func gettimeofday=(void*)0;
+static ffic_func ffic_gettimeofday=(ffic_ptr)0;
 typedef struct __FILE FILE;
 typedef signed char ffic_i8;
 typedef unsigned char ffic_u8;
@@ -99,22 +99,19 @@ ffic_u64 ffic_microtime(void)
 {
  struct timeval tv;
  if(ffic_os == ffic_os_win){
-  if (!gettimeofday) gettimeofday = ffic_raw("kernel32","GetSystemTimePreciseAsFileTime",0);
-  if (!gettimeofday) gettimeofday = ffic_raw("kernel32","GetSystemTimeAsFileTime",0);
+  if (!ffic_gettimeofday) ffic_gettimeofday = ffic_raw("kernel32","GetSystemTimePreciseAsFileTime",0);
+  if (!ffic_gettimeofday) ffic_gettimeofday = ffic_raw("kernel32","GetSystemTimeAsFileTime",0);
   static const ffic_u64 epoch = 116444736000000000;
-  struct _FILETIME {
-   unsigned long dwLowDateTime;
-   unsigned long dwHighDateTime;
-  } file_time;
-  gettimeofday(&file_time);
+  struct _FILETIME { unsigned long dwLowDateTime; unsigned long dwHighDateTime; } file_time;
+  ffic_gettimeofday(&file_time);
   ffic_u64 since_1601 = ( (ffic_u64) file_time.dwHighDateTime << 32) | (ffic_u64) file_time.dwLowDateTime;
   ffic_u64 since_1970 = ((ffic_u64) since_1601 - epoch);
   ffic_u64 microseconds_since_1970 = since_1970 / 10;
   tv.tv_sec = (microseconds_since_1970 / (ffic_u64) 1000000);
   tv.tv_usec = microseconds_since_1970 % (ffic_u64) 1000000;
  }else{
-  if (!gettimeofday) gettimeofday = ffic("c","gettimeofday");
-  gettimeofday(&tv, 0);
+  if (!ffic_gettimeofday) ffic_gettimeofday = ffic("c","gettimeofday");
+  ffic_gettimeofday(&tv, 0);
  }
  return ((ffic_u64)tv.tv_sec*(ffic_u64)1000 + (((ffic_u64)tv.tv_usec)/(ffic_u64)1000)%(ffic_u64)1000);
 }
