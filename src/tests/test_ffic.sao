@@ -1,0 +1,16 @@
+# ffi("user32","MessageBoxA")(c_int(0),c_string("hello3"),c_string("hello4"),c_int(0))
+#ffi("user32","MessageBoxA")(0,"hello3","hello4",0)
+
+
+#if(cond()tree)
+
+//ctype()
+# ffi("user32","MessageBoxA")(c_int(0),c_string("hello3"),c_string("hello4"),c_int(0))
+// ffic("user32","MessageBoxA",ctype(ptr))(ctype(int,3))
+
+# not good, how about
+#
+#
+#//var( name, (l,n,rt,ctype(int),ctype(string),ctype(ptr)) );//delcare the $name
+#
+#// print( name( "xxxx" )) //

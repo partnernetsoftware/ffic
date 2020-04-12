@@ -106,7 +106,8 @@ p_sao_obj sao_new(sao_obj tpl) {
 	return ret;
 }
 #define define_sao_tag(n) p_sao_obj SAO_TAG_##n=SAO_NULL;
-#define LIST_SAO_TAG true,false,quote,set,let,var,procedure,if,lambda,begin,or,ok,else,cond,error
+//#define LIST_SAO_TAG true,false,quote,procedure//,lambda,var,ok//,set,let,if,begin,or,else,cond,error
+#define LIST_SAO_TAG true,false,quote,procedure,lambda,var,ok,set,let,if,begin,or,else,cond,error
 SAO_ITR(define_sao_tag, nil,argv,global);
 SAO_ITR(define_sao_tag, SAO_EXPAND(LIST_SAO_TAG));
 typedef struct _FileChar {
@@ -149,6 +150,7 @@ p_sao_obj caddr(p_sao_obj x) { return (sao_is_list(x)&&sao_is_list(x->cdr)&&sao_
 p_sao_obj cdddr(p_sao_obj x) { return (sao_is_list(x)&&sao_is_list(x->cdr)&&sao_is_list(x->cdr->cdr))? x->cdr->cdr->cdr:SAO_TAG_nil; }
 p_sao_obj cdadr(p_sao_obj x) { return (sao_is_list(x)&&sao_is_list(x->cdr)&&sao_is_list(x->cdr->car))? x->cdr->car->cdr:SAO_TAG_nil; }
 p_sao_obj cadddr(p_sao_obj x) { return (sao_is_list(x)&&sao_is_list(x->cdr)&&sao_is_list(x->cdr->cdr)&&sao_is_list(x->cdr->cdr->cdr))? x->cdr->cdr->cdr->car:SAO_TAG_nil; }
+
 #define sao_new_lambda(params,body) cons(SAO_TAG_lambda, cons(params,body))
 #define sao_new_procedure(params,body,ctx) cons(SAO_TAG_procedure, cons(params, cons(body, cons(ctx, SAO_TAG_nil))))
 
@@ -478,7 +480,7 @@ void sao_out_expr(ffic_string str, p_sao_obj el){
 			sao_stdout("<table %d>", el->_size); break;
 		case type_list:
 			if (sao_is_tagged(el, SAO_TAG_procedure)) {
-				sao_stdout("<closure>");//lambda
+				sao_stdout("<closure>");//TODO mereg with lambda?
 				return;
 			}
 			int skip=0;
@@ -521,7 +523,11 @@ void sao_out_expr(ffic_string str, p_sao_obj el){
 			sao_stdout(")");
 	}
 }
+#if 0 
+p_sao_obj sao_eval(p_sao_obj exp, p_sao_obj ctx) { return exp; }
+#else
 #include "libsaolang.c" //@ref sao_eval() and saolang_init() 
+#endif
 p_sao_obj sao_parse( sao_stream * fw, p_sao_obj ctx ) {
 	sao_read_line(fw);
 	ffic_u64 (*microtime)() = ( ffic_u64(*)() ) libc(microtime);
@@ -600,7 +606,7 @@ int main(int argc,char **argv, char** envp) {
 	}
 	sao_stream * fw = sao_stream_new(fp,stream_file);
 	p_sao_obj ctx = SAO_TAG_nil;
-	ctx = saolang_init();//TODO
+	//ctx = saolang_init();//TODO
 	p_sao_obj result = sao_parse( fw, ctx );
 	if(SAO_ARGV(p)){ sao_out_expr(0,result);sao_stdout("\n"); }
 	libc(fclose)(fp); libc(free)(fw);

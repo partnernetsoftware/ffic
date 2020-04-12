@@ -24,14 +24,6 @@ extern int strcmp(const char*,const char*);
 extern void exit(int);
 extern int fprintf(FILE*,const char*,...);
 extern int fflush(void*);
-char **envp_store;
-void ffic_setup(char **envp){
- if(4!=sizeof(void*)){ printf("ERROR: SIZEOF_POINTER(%d) not correct, should be (%d)\n",4,(int) sizeof(void*)); }
- envp_store = envp;
- for(char**env=envp;env && (*env);env++) {
-  printf("DEBUG: %s\n",*env);
- }
-}
 char* _ffic_strcat(char* buffer, const char *source, const char* append) {
  char* ptr = buffer;
  while (*source) *(ptr++) = *(source++); while (*append) *(ptr++) = *(append++);

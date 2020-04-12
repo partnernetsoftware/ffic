@@ -6,11 +6,12 @@ autonomy, paradigm, ...
 
 ```
 /* TODO (Plan)
+ * * redesign (remove interger and double, using "number" instead which actually just a notation of number as well)
  * * ctype() + ffic() C.$sym() [0.0.7]
- * * shell [0.0.8]
  * * improve: table hash table size (refer to lua/jerryscript) [0.0.11]
  * * table auto resize (0.0.12)
  * * rewrite: native (add symbol and then auto load when call, will have to save as binary); (0.1.2)
+ * * shell return [0.1.3]
  * * double/float and maths (0.1.5)
  * * suggestion: type: ERROR (0.2)
  * * redesign context/global with idea from ES6 [0.3]

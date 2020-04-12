@@ -45,8 +45,6 @@ typedef unsigned long int ffic_u64;
 typedef signed long long int ffic_ipt;//int size as ptr
 typedef signed long long int ffic_i64;
 typedef unsigned long long int ffic_u64;
-#elif SIZEOF_POINTER==16
-#error TODO SIZEOF_POINTER 16(128bit)
 #else
 #error Unknown SIZEOF_POINTER ?
 #endif
@@ -82,6 +80,7 @@ extern int strcmp(const char*,const char*);//TODO improve speed https://answer-i
 extern void exit(int);
 extern int fprintf(FILE*,const char*,...);
 extern int fflush(void*);
+#if 0
 char **envp_store;
 void ffic_setup(char **envp){
 	if(SIZEOF_POINTER!=sizeof(void*)){ printf("ERROR: SIZEOF_POINTER(%d) not correct, should be (%d)\n",SIZEOF_POINTER,(int) sizeof(void*)); }
@@ -92,6 +91,7 @@ void ffic_setup(char **envp){
 		//if(strcmp(*env,"COMMAND_MODE=unix2003")==0){ ffic_os = ffic_os_osx; }
 	}
 }
+#endif
 char* _ffic_strcat(char* buffer, const char *source, const char* append) {
 	char* ptr = buffer;
 	while (*source) *(ptr++) = *(source++); while (*append) *(ptr++) = *(append++);

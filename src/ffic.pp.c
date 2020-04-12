@@ -1,7 +1,11 @@
+typedef void* ffic_ptr;
+typedef ffic_ptr(*ffic_func)();
+typedef char* ffic_string;
 typedef enum { ffic_os_unknown, ffic_os_win, ffic_os_osx, ffic_os_unx, } ffic_os_t;
-ffic_os_t ffic_os =
-ffic_os_osx
-;
+ffic_os_t ffic_os = ffic_os_osx;
+ffic_string ffic_libcname = "libc";
+ffic_string ffic_sosuffix = ".dylib";
+static ffic_func ffic_gettimeofday=(ffic_ptr)0;
 typedef struct __FILE FILE;
 typedef signed char ffic_i8;
 typedef unsigned char ffic_u8;
@@ -9,11 +13,9 @@ typedef signed short int ffic_i16;
 typedef unsigned short int ffic_u16;
 typedef signed int ffic_i32;
 typedef unsigned int ffic_u32;
+typedef signed long int ffic_ipt;
 typedef signed long int ffic_i64;
 typedef unsigned long int ffic_u64;
-typedef void* ffic_ptr;
-typedef ffic_ptr(*ffic_func)();
-typedef char* ffic_string;
 extern ffic_ptr dlopen(const char *,int);
 extern ffic_ptr dlsym(ffic_ptr, const char *);
 extern int printf(const char*,...);
@@ -21,25 +23,18 @@ extern int strcmp(const char*,const char*);
 extern void exit(int);
 extern int fprintf(FILE*,const char*,...);
 extern int fflush(void*);
-char **envp_store;
-void ffic_setup(char **envp){
- if(8!=sizeof(void*)){ printf("ERROR: SIZEOF_POINTER(%d) not correct, should be (%d)\n",8,(int) sizeof(void*)); }
- envp_store = envp;
- for(char**env=envp;env && (*env);env++) {
-  printf("DEBUG: %s\n",*env);
- }
-}
-void ffic_strcat(char *buffer, const char *source, const char* append) {
- while (*source) *(buffer++) = *(source++); while (*append) *(buffer++) = *(append++); *buffer = '\0';
+char* _ffic_strcat(char* buffer, const char *source, const char* append) {
+ char* ptr = buffer;
+ while (*source) *(ptr++) = *(source++); while (*append) *(ptr++) = *(append++);
+ *ptr = '\0';
+ return buffer;
 }
 ffic_ptr ffic_void(){return 0;};
 ffic_ptr(*ffic_raw(const char* part1, const char* funcname, const char* part2))()
 {
  if(ffic_os==ffic_os_unknown){ printf("ERROR: need to call ffic_setup() first\n");exit(1); }
  char libfilename[512] = {0};
- ffic_strcat(libfilename,
-   (part1==0)?( (ffic_os == ffic_os_win)?"msvcrt":"libc") : part1,
-   (part2==0)?( (ffic_os == ffic_os_osx)?".dylib": (ffic_os==ffic_os_win)?".dll":".so"):part2);
+ _ffic_strcat(libfilename, (part1)? part1 : ffic_libcname, (part2)? part2 : ffic_sosuffix );
  ffic_ptr rt = dlsym(dlopen(libfilename,0x100 | 0x1 ), funcname);
  return rt;
 }
@@ -52,21 +47,22 @@ void* ffic_os_std(int t){
 ffic_ptr ffic_usleep(int nano_seconds)
 {
  if(ffic_os==ffic_os_win) ffic_raw("kernel32","Sleep",0)(nano_seconds/1000);
- else ffic_raw("libc","usleep",0)(nano_seconds);
+ else ffic_raw(ffic_libcname,"usleep",0)(nano_seconds);
  return 0;
 };
 ffic_ptr ffic_msleep(int microseconds)
 {
  if (ffic_os==ffic_os_win) ffic_raw("kernel32","Sleep",0)(microseconds);
- else ffic_raw("libc","usleep",0)(microseconds*1000);
+ else ffic_raw(ffic_libcname,"usleep",0)(microseconds*1000);
  return 0;
 };
 ffic_ptr ffic_sleep(int seconds)
 {
  if(ffic_os==ffic_os_win) ffic_raw("kernel32","Sleep",0)(seconds*1000);
- else ffic_raw("libc","usleep",0)(seconds*1000000);
+ else ffic_raw(ffic_libcname,"usleep",0)(seconds*1000000);
  return 0;
 }
+struct timeval { long tv_sec; long tv_usec; };
 ffic_u64 ffic_microtime(void);
 ffic_ptr(*ffic(const char* libname, const char* funcname, ...))()
 {
@@ -92,31 +88,23 @@ ffic_ptr(*ffic(const char* libname, const char* funcname, ...))()
  }
  return addr;
 }
-struct timeval {
- long tv_sec;
- long tv_usec;
-};
 ffic_u64 ffic_microtime(void)
 {
  struct timeval tv;
- static ffic_func gettimeofday;
  if(ffic_os == ffic_os_win){
-  gettimeofday = ffic_raw("kernel32","GetSystemTimePreciseAsFileTime",0);
-  if (!gettimeofday) gettimeofday = ffic_raw("kernel32","GetSystemTimeAsFileTime",0);
+  if (!ffic_gettimeofday) ffic_gettimeofday = ffic_raw("kernel32","GetSystemTimePreciseAsFileTime",0);
+  if (!ffic_gettimeofday) ffic_gettimeofday = ffic_raw("kernel32","GetSystemTimeAsFileTime",0);
   static const ffic_u64 epoch = 116444736000000000;
-  struct _FILETIME {
-   unsigned long dwLowDateTime;
-   unsigned long dwHighDateTime;
-  } file_time;
-  gettimeofday(&file_time);
+  struct _FILETIME { unsigned long dwLowDateTime; unsigned long dwHighDateTime; } file_time;
+  ffic_gettimeofday(&file_time);
   ffic_u64 since_1601 = ( (ffic_u64) file_time.dwHighDateTime << 32) | (ffic_u64) file_time.dwLowDateTime;
   ffic_u64 since_1970 = ((ffic_u64) since_1601 - epoch);
   ffic_u64 microseconds_since_1970 = since_1970 / 10;
   tv.tv_sec = (microseconds_since_1970 / (ffic_u64) 1000000);
   tv.tv_usec = microseconds_since_1970 % (ffic_u64) 1000000;
  }else{
-  gettimeofday = ffic("c","gettimeofday");
-  gettimeofday(&tv, 0);
+  if (!ffic_gettimeofday) ffic_gettimeofday = ffic("c","gettimeofday");
+  ffic_gettimeofday(&tv, 0);
  }
  return ((ffic_u64)tv.tv_sec*(ffic_u64)1000 + (((ffic_u64)tv.tv_usec)/(ffic_u64)1000)%(ffic_u64)1000);
 }
