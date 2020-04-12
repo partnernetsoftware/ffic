@@ -6,6 +6,7 @@ autonomy, paradigm, ...
 
 ```
 /* TODO (Plan)
+ * * sao.h (share by sao.c(the loader) and libsaolang.c (the default lang evaluator)
  * * redesign (remove interger and double, using "number" instead which actually just a notation of number as well)
  * * ctype() + ffic() C.$sym() [0.0.7]
  * * improve: table hash table size (refer to lua/jerryscript) [0.0.11]

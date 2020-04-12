@@ -1,6 +1,78 @@
+#define sao_add_sym_x(x) SAO_TAG_##x=sao_new_symbol(#x);sao_def_var(SAO_TAG_##x,SAO_TAG_##x,SAO_TAG_global);
+#define LIST_SAO_TAG lambda,var,ok,set,let,if,begin,or,else,cond,error
+SAO_ITR(define_sao_tag, SAO_EXPAND(LIST_SAO_TAG));
+
 //TODO 
 //#include "ffic.h"
 //make libsaolang.(dylib|dll|so) for ffic loading
+void sao_out_expr(ffic_string str, p_sao_obj el){
+	if (str) sao_stdout("%s ", str);
+	if (!(el)) { sao_stdout("'()"); return; }//TODO
+	if (!(el)) { return; }
+	switch (el->_type) {
+		case type_ctype://TODO can it be same as symbol or ctype
+			sao_stdout("<ctype>"); break;
+		case type_string:
+			sao_stdout("\"%s\"", el->_string); break;
+		case type_symbol:
+			sao_stdout("%s", el->_string); break;
+
+		case type_integer:
+			sao_stdout("%ld", el->_integer); break;
+		case type_double:
+			sao_stdout("%f", el->_double); break;
+
+		case type_native:
+			sao_stdout("<function>"); break;
+		case type_vector:
+			sao_stdout("<vector %d>", el->_len); break;
+		case type_table:
+			sao_stdout("<table %d>", el->_size); break;
+		case type_list:
+			if (sao_is_tagged(el, SAO_TAG_procedure)) {
+				sao_stdout("<closure>");//TODO mereg with lambda?
+				return;
+			}
+			int skip=0;
+			p_sao_obj *t = &el;
+			if(!SAO_ARGV(l)){
+				//if(!caller_string){
+				//	sao_stdout(" [%s] ",caller_string);
+				//}
+				//else
+				if ((*t)) {
+					if((*t)->car && type_symbol == (*t)->car->_type){
+						sao_out_expr(0, (*t)->car);//
+						skip=1;
+					}
+				}
+			}
+			sao_stdout("(");
+			while ((*t)) {
+				if(!SAO_ARGV(l)){
+					if(skip==1){
+						skip=0;
+					}else{
+						sao_stdout(" ");
+						sao_out_expr(0, (*t)->car);
+					}
+				}else{
+					sao_stdout(" ");
+					sao_out_expr(0, (*t)->car);
+				}
+				if (((*t)->cdr)) {
+					if ((*t)->cdr->_type == type_list) {
+						t = &(*t)->cdr;
+					} else {
+						sao_out_expr(".", (*t)->cdr);
+						break;
+					}
+				} else
+					break;
+			}
+			sao_stdout(")");
+	}
+}
 p_sao_obj sao_not_false(p_sao_obj x) {
 	if (!(x) || sao_is_eq(x, SAO_TAG_false)) return SAO_TAG_nil;
 	if (x->_type == type_integer && x->_integer == 0) return SAO_TAG_nil;
@@ -321,6 +393,7 @@ p_sao_obj native_c_int(p_sao_obj args) {
 #define add_sym_list(n) sao_def_var(sao_new_symbol(#n), sao_new_native(native_##n,#n), SAO_TAG_global);
 p_sao_obj saolang_init()
 {
+	SAO_ITR(sao_add_sym_x, SAO_EXPAND(LIST_SAO_TAG));//tags+
 	SAO_ITR(add_sym_list, print,lt,add,sub,exit);//minimum for fib.sao
 	//CommonLisp: format,defun
 	//Clojure:defn
@@ -338,4 +411,25 @@ p_sao_obj saolang_init()
 	SAO_ITR(add_sym_list, c_int);
 	return SAO_TAG_global;
 }
+
+//TODO jot the symbol depth
+//	p_sao_obj ret = sao_table_lookup(g_symbol_holder,s);
+//	if (!(ret)) {
+//		ret = sao_alloc(type_symbol);
+//		ret->_string = libc(strdup)(s);
+//		//ht_insert(ret);
+//		sao_table_insert(g_symbol_holder,ret);
+//	}else{
+//		//TODO need using depth also?
+//		if(!libc(strcmp)(ret->_string,s)){
+//			//sao_warn("sao_table_insert again same for (%s)?\n",s);
+//			//sao_table_insert(g_symbol_holder,ret);
+//		}else{
+//			sao_error("g_symbol_holder full? (%s,%s)\n",ret->_string,s);
+//		//	int newsize = 2*(gHTable_len+1)-1 ;
+//		//	ht_resize( newsize );
+//		//	return sao_new_symbol(s);
+//		}
+//	}
+
 
