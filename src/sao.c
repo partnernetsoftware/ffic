@@ -111,11 +111,8 @@ p_sao_obj sao_new(sao_obj tpl) {
 //#define LIST_SAO_TAG true,false,quote,procedure,lambda,var,ok,set,let,if,begin,or,else,cond,error
 SAO_ITR(define_sao_tag, nil,argv,global);
 SAO_ITR(define_sao_tag, SAO_EXPAND(LIST_SAO_TAG));
-typedef struct _FileChar {
-	int c;
-	struct _FileChar * ptr_prev;
-	struct _FileChar * ptr_next;
-} FileChar;
+//SAO_ITR(define_sao_tag, true,false,quote,procedure);
+typedef struct _FileChar { int c; struct _FileChar * ptr_prev; struct _FileChar * ptr_next; } FileChar;
 typedef struct {
 	stream_t _type;
 	void* fp;
@@ -132,7 +129,6 @@ p_sao_obj sao_load_expr(sao_stream * fw);
 #define sao_is_digit(c) ((long)libc(isdigit)(c))
 #define sao_is_alpha(c) ((long)libc(isalpha)(c))
 #define sao_is_alphanumber(c) ((long)libc(isalnum)(c))
-//p_sao_obj g_symbol_holder = SAO_NULL;
 #define sao_new_list(a,d) sao_new((sao_obj){._type=type_list,.car=a,.cdr=d})
 #define sao_new_symbol(s) sao_new((sao_obj){._type=type_symbol,._string=s})
 #define sao_new_table(s) sao_new((sao_obj){._type=type_table, ._size=s})
@@ -152,53 +148,6 @@ p_sao_obj cdddr(p_sao_obj x) { return (sao_is_list(x)&&sao_is_list(x->cdr)&&sao_
 p_sao_obj cdadr(p_sao_obj x) { return (sao_is_list(x)&&sao_is_list(x->cdr)&&sao_is_list(x->cdr->car))? x->cdr->car->cdr:SAO_TAG_nil; }
 p_sao_obj cadddr(p_sao_obj x) { return (sao_is_list(x)&&sao_is_list(x->cdr)&&sao_is_list(x->cdr->cdr)&&sao_is_list(x->cdr->cdr->cdr))? x->cdr->cdr->cdr->car:SAO_TAG_nil; }
 
-#define sao_new_lambda(params,body) cons(SAO_TAG_lambda, cons(params,body))
-#define sao_new_procedure(params,body,ctx) cons(SAO_TAG_procedure, cons(params, cons(body, cons(ctx, SAO_TAG_nil))))
-
-long sao_table_hash(const ffic_string s, int ht_len) {
-	long h = 0;
-	ffic_string u = s;
-	while (*u) { h = (h * 256 + (*u)) % ht_len; u++; }
-	return h;
-}
-p_sao_obj sao_table_lookup(p_sao_obj holder,ffic_string s) {
-	if(!holder) sao_error("sao_table_lookup(holder)\n");
-	p_sao_obj* the_table = holder->_table;
-	if(!the_table) sao_error("empty _table?");
-	if(!holder->_size) sao_error("empty _table.size?");
-	long h = sao_table_hash(s, holder->_size);
-	return the_table[h];
-}
-p_sao_obj sao_table_insert(p_sao_obj holder,p_sao_obj key_obj){
-	if(!holder) sao_error("sao_table_insert(holder)\n");
-	if(!key_obj) sao_error("sao_table_insert(key_obj)\n");
-
-	p_sao_obj* the_table = holder->_table;
-	if(!the_table) sao_error("empty _table?");
-	if(!holder->_size) sao_error("empty _table.size?");
-	long h = sao_table_hash(key_obj->_string, holder->_size);
-	if(the_table[h]){
-		//sao_warn("TODO sao_table_insert table need to resize (%d,%s)?\n",h,key_obj->_string);
-	}
-	//if(!the_table || (SAO_NULL != the_table[h] && SAO_NULL!=the_table[h]->_string)){
-	//	int size = 2*(holder->size+1)-1 ;
-	//	sao_tbl_resize(holder, size);
-	//	the_table = sao_tbl_resize(holder, key_obj);//again
-	//}
-	the_table[h]= key_obj;
-	return holder;
-}
-p_sao_obj sao_tbl_resize(p_sao_obj holder,int size){
-	//if(!holder)
-	if(!holder)
-		holder = sao_new_table(size);
-	//TMP...(fake resize first) TODO to implement the real resize soon
-	else{
-		holder->_table = SAO_NEW_C(p_sao_obj,size);//TMP
-		holder->_size = size;
-	}
-	return holder;
-}
 //p_sao_obj sao_append(p_sao_obj l1, p_sao_obj l2) {
 //	if (!(l1)) return l2;
 //	return cons(car(l1), sao_append(cdr(l1), l2));
@@ -291,7 +240,6 @@ int sao_read_line(sao_stream* fw) //TODO int * line_num
 p_sao_obj sao_expand(p_sao_obj var, p_sao_obj val, p_sao_obj ctx) {
 	return cons(cons(var, val), ctx);
 }
-//TODO should using g_symbol_holder later
 p_sao_obj sao_get_var(p_sao_obj var, p_sao_obj ctx) {
 	while ((ctx)) {
 		p_sao_obj frame = car(ctx);
@@ -326,7 +274,7 @@ p_sao_obj sao_set_var(p_sao_obj var, p_sao_obj val, p_sao_obj ctx) {
 	}
 	return val;
 }
-//TODO 
+//TODO  merge with 
 p_sao_obj sao_var(p_sao_obj var, p_sao_obj val, p_sao_obj ctx)
 {
 	if(!ctx) sao_error("ASSERT: sao_var need ctx");
@@ -424,6 +372,8 @@ p_sao_obj sao_load_expr(sao_stream * fw) //TODO add ,depth ?
 		}
 		if (c == ';' || c=='#' || (c=='/'&&'/'==sao_peek(fw))){ sao_comment(fw); continue; }
 		if (c == '\''){
+			//p_sao_obj child = sao_load_expr(fw);
+			//return cons(SAO_TAG_quote, cons(child, SAO_TAG_nil));
 			return cons(SAO_TAG_quote, cons(sao_load_expr(fw), SAO_TAG_nil));
 		}
 		if (libc(isalpha)(c) || libc(strchr)(type_symbolS, c)){
@@ -549,13 +499,11 @@ p_sao_obj sao_parse( sao_stream * fw, p_sao_obj ctx ) {
 	}
 	return rt;
 }
-#define sao_add_sym_x(x) SAO_TAG_##x=sao_new_symbol(#x);sao_var(SAO_TAG_##x,SAO_TAG_##x,SAO_TAG_global);
 void print_version(){ sao_stdout(" SaoLang (R) v" SAO_VERSION " - Wanjo Chan (c) 2020\n"); }
 void print_help(){ sao_stdout("Usage	 : sao [options] [script.sao | -]]\nOptions	 :\n	h:	Help\n	v:	Version\n	i:	Interactive\n	p:	Print final result\n	d:	Dev only\n	e:	Eval\n	s:	Strict mode\n	l:	Lisp syntax\n"); }
 int main(int argc,char **argv, char** envp) {
 	ffic_func strcmp = libc(strcmp);
 	libc(setmode)(libc(fileno)(libc(stdin)),0x8000/*O_BINARY*/);
-	//g_symbol_holder = sao_new_table(65536-1);//TODO auto expand for the tables
 	SAO_TAG_global = sao_expand(SAO_TAG_nil, SAO_TAG_nil, SAO_TAG_nil);
 	SAO_TAG_argv = sao_expand(SAO_TAG_nil, SAO_TAG_nil, SAO_TAG_nil);
 	SAO_ITR(sao_add_sym_x, SAO_EXPAND(LIST_SAO_TAG));//core tags
@@ -612,3 +560,4 @@ int main(int argc,char **argv, char** envp) {
 	libc(fclose)(fp); libc(free)(fw);
 	return 0;
 }
+

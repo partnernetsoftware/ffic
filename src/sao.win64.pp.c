@@ -155,11 +155,7 @@ p_sao_obj sao_new(sao_obj tpl) {
 }
 p_sao_obj SAO_TAG_nil=((void*)0); p_sao_obj SAO_TAG_argv=((void*)0); p_sao_obj SAO_TAG_global=((void*)0);;
 p_sao_obj SAO_TAG_true=((void*)0); p_sao_obj SAO_TAG_false=((void*)0); p_sao_obj SAO_TAG_quote=((void*)0); p_sao_obj SAO_TAG_set=((void*)0); p_sao_obj SAO_TAG_let=((void*)0); p_sao_obj SAO_TAG_var=((void*)0); p_sao_obj SAO_TAG_procedure=((void*)0); p_sao_obj SAO_TAG_if=((void*)0); p_sao_obj SAO_TAG_lambda=((void*)0); p_sao_obj SAO_TAG_begin=((void*)0); p_sao_obj SAO_TAG_or=((void*)0); p_sao_obj SAO_TAG_ok=((void*)0); p_sao_obj SAO_TAG_else=((void*)0); p_sao_obj SAO_TAG_cond=((void*)0); p_sao_obj SAO_TAG_error=((void*)0);;
-typedef struct _FileChar {
- int c;
- struct _FileChar * ptr_prev;
- struct _FileChar * ptr_next;
-} FileChar;
+typedef struct _FileChar { int c; struct _FileChar * ptr_prev; struct _FileChar * ptr_next; } FileChar;
 typedef struct {
  stream_t _type;
  void* fp;
@@ -180,41 +176,6 @@ p_sao_obj caddr(p_sao_obj x) { return ((x&&!x->_type)&&(x->cdr&&!x->cdr->_type)&
 p_sao_obj cdddr(p_sao_obj x) { return ((x&&!x->_type)&&(x->cdr&&!x->cdr->_type)&&(x->cdr->cdr&&!x->cdr->cdr->_type))? x->cdr->cdr->cdr:SAO_TAG_nil; }
 p_sao_obj cdadr(p_sao_obj x) { return ((x&&!x->_type)&&(x->cdr&&!x->cdr->_type)&&(x->cdr->car&&!x->cdr->car->_type))? x->cdr->car->cdr:SAO_TAG_nil; }
 p_sao_obj cadddr(p_sao_obj x) { return ((x&&!x->_type)&&(x->cdr&&!x->cdr->_type)&&(x->cdr->cdr&&!x->cdr->cdr->_type)&&(x->cdr->cdr->cdr&&!x->cdr->cdr->cdr->_type))? x->cdr->cdr->cdr->car:SAO_TAG_nil; }
-long sao_table_hash(const ffic_string s, int ht_len) {
- long h = 0;
- ffic_string u = s;
- while (*u) { h = (h * 256 + (*u)) % ht_len; u++; }
- return h;
-}
-p_sao_obj sao_table_lookup(p_sao_obj holder,ffic_string s) {
- if(!holder) do{libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"sao_table_lookup(holder)\n");libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"\n");libc_(libc_exit,"exit")(1);}while(0);
- p_sao_obj* the_table = holder->_table;
- if(!the_table) do{libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"empty _table?");libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"\n");libc_(libc_exit,"exit")(1);}while(0);
- if(!holder->_size) do{libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"empty _table.size?");libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"\n");libc_(libc_exit,"exit")(1);}while(0);
- long h = sao_table_hash(s, holder->_size);
- return the_table[h];
-}
-p_sao_obj sao_table_insert(p_sao_obj holder,p_sao_obj key_obj){
- if(!holder) do{libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"sao_table_insert(holder)\n");libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"\n");libc_(libc_exit,"exit")(1);}while(0);
- if(!key_obj) do{libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"sao_table_insert(key_obj)\n");libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"\n");libc_(libc_exit,"exit")(1);}while(0);
- p_sao_obj* the_table = holder->_table;
- if(!the_table) do{libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"empty _table?");libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"\n");libc_(libc_exit,"exit")(1);}while(0);
- if(!holder->_size) do{libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"empty _table.size?");libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"\n");libc_(libc_exit,"exit")(1);}while(0);
- long h = sao_table_hash(key_obj->_string, holder->_size);
- if(the_table[h]){
- }
- the_table[h]= key_obj;
- return holder;
-}
-p_sao_obj sao_tbl_resize(p_sao_obj holder,int size){
- if(!holder)
-  holder = sao_new((sao_obj){._type=type_table, ._size=size});
- else{
-  holder->_table = sao_calloc( sizeof(p_sao_obj) *(size) );
-  holder->_size = size;
- }
- return holder;
-}
 p_sao_obj sao_reverse(p_sao_obj list, p_sao_obj first) {
  p_sao_obj rt = (!(list)) ? first :
   sao_reverse(cdr(list), cons(car(list), first));
@@ -527,6 +488,41 @@ p_sao_obj sao_eval(p_sao_obj exp, p_sao_obj ctx);
 p_sao_obj sao_eval_list(p_sao_obj exp, p_sao_obj ctx) {
  if (!(exp)) return SAO_TAG_nil;
  return cons(sao_eval(car(exp), ctx), sao_eval_list(cdr(exp), ctx));
+}
+long sao_table_hash(const ffic_string s, int ht_len) {
+ long h = 0;
+ ffic_string u = s;
+ while (*u) { h = (h * 256 + (*u)) % ht_len; u++; }
+ return h;
+}
+p_sao_obj sao_table_lookup(p_sao_obj holder,ffic_string s) {
+ if(!holder) do{libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"sao_table_lookup(holder)\n");libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"\n");libc_(libc_exit,"exit")(1);}while(0);
+ p_sao_obj* the_table = holder->_table;
+ if(!the_table) do{libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"empty _table?");libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"\n");libc_(libc_exit,"exit")(1);}while(0);
+ if(!holder->_size) do{libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"empty _table.size?");libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"\n");libc_(libc_exit,"exit")(1);}while(0);
+ long h = sao_table_hash(s, holder->_size);
+ return the_table[h];
+}
+p_sao_obj sao_table_insert(p_sao_obj holder,p_sao_obj key_obj){
+ if(!holder) do{libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"sao_table_insert(holder)\n");libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"\n");libc_(libc_exit,"exit")(1);}while(0);
+ if(!key_obj) do{libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"sao_table_insert(key_obj)\n");libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"\n");libc_(libc_exit,"exit")(1);}while(0);
+ p_sao_obj* the_table = holder->_table;
+ if(!the_table) do{libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"empty _table?");libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"\n");libc_(libc_exit,"exit")(1);}while(0);
+ if(!holder->_size) do{libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"empty _table.size?");libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"\n");libc_(libc_exit,"exit")(1);}while(0);
+ long h = sao_table_hash(key_obj->_string, holder->_size);
+ if(the_table[h]){
+ }
+ the_table[h]= key_obj;
+ return holder;
+}
+p_sao_obj sao_tbl_resize(p_sao_obj holder,int size){
+ if(!holder)
+  holder = sao_new((sao_obj){._type=type_table, ._size=size});
+ else{
+  holder->_table = sao_calloc( sizeof(p_sao_obj) *(size) );
+  holder->_size = size;
+ }
+ return holder;
 }
 p_sao_obj sao_eval(p_sao_obj exp, p_sao_obj ctx)
 {
