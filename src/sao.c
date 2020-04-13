@@ -606,7 +606,7 @@ int main(int argc,char **argv, char** envp) {
 	}
 	sao_stream * fw = sao_stream_new(fp,stream_file);
 	p_sao_obj ctx = SAO_TAG_nil;
-	//ctx = saolang_init();//TODO
+	ctx = saolang_init();//
 	p_sao_obj result = sao_parse( fw, ctx );
 	if(SAO_ARGV(p)){ sao_out_expr(0,result);sao_stdout("\n"); }
 	libc(fclose)(fp); libc(free)(fw);
