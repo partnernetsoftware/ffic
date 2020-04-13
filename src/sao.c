@@ -106,12 +106,8 @@ p_sao_obj sao_new(sao_obj tpl) {
 	return ret;
 }
 #define define_sao_tag(n) p_sao_obj SAO_TAG_##n=SAO_NULL;
-//#define LIST_SAO_TAG true,false,quote,procedure//,lambda,var,ok//,set,let,if,begin,or,else,cond,error
-#define LIST_SAO_TAG true,false,quote,set,let,var,procedure,if,lambda,begin,or,ok,else,cond,error
-//#define LIST_SAO_TAG true,false,quote,procedure,lambda,var,ok,set,let,if,begin,or,else,cond,error
 SAO_ITR(define_sao_tag, nil,argv,global);
-SAO_ITR(define_sao_tag, SAO_EXPAND(LIST_SAO_TAG));
-//SAO_ITR(define_sao_tag, true,false,quote,procedure);
+SAO_ITR(define_sao_tag, true,false,quote,procedure);
 typedef struct _FileChar { int c; struct _FileChar * ptr_prev; struct _FileChar * ptr_next; } FileChar;
 typedef struct {
 	stream_t _type;
@@ -506,7 +502,7 @@ int main(int argc,char **argv, char** envp) {
 	libc(setmode)(libc(fileno)(libc(stdin)),0x8000/*O_BINARY*/);
 	SAO_TAG_global = sao_expand(SAO_TAG_nil, SAO_TAG_nil, SAO_TAG_nil);
 	SAO_TAG_argv = sao_expand(SAO_TAG_nil, SAO_TAG_nil, SAO_TAG_nil);
-	SAO_ITR(sao_add_sym_x, SAO_EXPAND(LIST_SAO_TAG));//core tags
+	SAO_ITR(sao_add_sym_x, true,false,quote,procedure);//core tags
 	ffic_string script_file = "-";
 	int found_any = 0;
 	if(argc>1){
