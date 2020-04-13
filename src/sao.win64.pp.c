@@ -859,7 +859,7 @@ int main(int argc,char **argv, char** envp) {
    p_sao_obj _car = car(pos);
    ffic_string string_or_name;
    int i_val = 0;
-   if( (_car&&!_car->_type) ){
+   if((_car&&!_car->_type)){
     p_sao_obj _caar = car(_car);
     string_or_name = _caar->_string;
     p_sao_obj _cadar = car(cdr(_car));
@@ -870,7 +870,7 @@ int main(int argc,char **argv, char** envp) {
    }
    sao_var(sao_new((sao_obj){._type=type_symbol,._string=string_or_name}), sao_new((sao_obj){._type=type_integer, ._integer=i_val}), SAO_TAG_argv);
    int found = 0;
-   for(int i=0;i<=argt_h;i++) if(string_or_name[0]==argt_names[i][0]){ argta[i]+=i_val; found=1;break; }
+   for(int i=0;i<=argt_h;i++) if(!strcmp(string_or_name,argt_names[i])){ argta[i]+=i_val; found=1;break; }
    if(!found) script_file = string_or_name; else found_any++;
    pos = cdr(pos);
   }
