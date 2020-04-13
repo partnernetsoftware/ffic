@@ -23,10 +23,10 @@ tail:
 	else if (sao_is_tagged(exp, SAO_TAG_quote)) { return cadr(exp); }
 	else if (sao_is_tagged(exp, SAO_TAG_lambda)) { return sao_new_procedure(cadr(exp), cddr(exp), ctx); }
 	else if (sao_is_tagged(exp, SAO_TAG_var)) {
-		if (sao_is_atom(cadr(exp))) sao_def_var(cadr(exp), sao_eval(caddr(exp), ctx), ctx);
+		if (sao_is_atom(cadr(exp))) sao_var(cadr(exp), sao_eval(caddr(exp), ctx), ctx);
 		else {
 			p_sao_obj closure = sao_eval(sao_new_lambda(cdr(cadr(exp)), cddr(exp)), ctx);
-			sao_def_var(car(cadr(exp)), closure, ctx);
+			sao_var(car(cadr(exp)), closure, ctx);
 		}
 		return SAO_TAG_ok;
 	}
@@ -72,7 +72,7 @@ tail:
 		if (!(cadr(exp))) return SAO_TAG_nil;
 		if (sao_is_atom(cadr(exp))) {
 			for (idx = caddr(exp); (idx); idx = cdr(idx)) { vars = cons(caar(idx), vars); vals = cons(cadar(idx), vals); }
-			sao_def_var(cadr(exp), sao_eval(sao_new_lambda(vars, cdddr(exp)), sao_expand(vars, vals, ctx)), ctx);
+			sao_var(cadr(exp), sao_eval(sao_new_lambda(vars, cdddr(exp)), sao_expand(vars, vals, ctx)), ctx);
 			exp = cons(cadr(exp), vals);
 			goto tail;
 		}
@@ -318,7 +318,7 @@ p_sao_obj native_c_int(p_sao_obj args) {
 	libc(printf)("\n native_c_int=%s\n",s);
 	return SAO_TAG_nil;
 }
-#define add_sym_list(n) sao_def_var(sao_new_symbol(#n), sao_new_native(native_##n,#n), SAO_TAG_global);
+#define add_sym_list(n) sao_var(sao_new_symbol(#n), sao_new_native(native_##n,#n), SAO_TAG_global);
 p_sao_obj saolang_init()
 {
 	SAO_ITR(add_sym_list, print,lt,add,sub,exit);//minimum for fib.sao
@@ -338,4 +338,25 @@ p_sao_obj saolang_init()
 	SAO_ITR(add_sym_list, c_int);
 	return SAO_TAG_global;
 }
+
+//TODO jot the symbol depth
+//	p_sao_obj ret = sao_table_lookup(g_symbol_holder,s);
+//	if (!(ret)) {
+//		ret = sao_alloc(type_symbol);
+//		ret->_string = libc(strdup)(s);
+//		//ht_insert(ret);
+//		sao_table_insert(g_symbol_holder,ret);
+//	}else{
+//		//TODO need using depth also?
+//		if(!libc(strcmp)(ret->_string,s)){
+//			//sao_warn("sao_table_insert again same for (%s)?\n",s);
+//			//sao_table_insert(g_symbol_holder,ret);
+//		}else{
+//			sao_error("g_symbol_holder full? (%s,%s)\n",ret->_string,s);
+//		//	int newsize = 2*(gHTable_len+1)-1 ;
+//		//	ht_resize( newsize );
+//		//	return sao_new_symbol(s);
+//		}
+//	}
+
 

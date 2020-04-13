@@ -107,7 +107,8 @@ p_sao_obj sao_new(sao_obj tpl) {
 }
 #define define_sao_tag(n) p_sao_obj SAO_TAG_##n=SAO_NULL;
 //#define LIST_SAO_TAG true,false,quote,procedure//,lambda,var,ok//,set,let,if,begin,or,else,cond,error
-#define LIST_SAO_TAG true,false,quote,procedure,lambda,var,ok,set,let,if,begin,or,else,cond,error
+#define LIST_SAO_TAG true,false,quote,set,let,var,procedure,if,lambda,begin,or,ok,else,cond,error
+//#define LIST_SAO_TAG true,false,quote,procedure,lambda,var,ok,set,let,if,begin,or,else,cond,error
 SAO_ITR(define_sao_tag, nil,argv,global);
 SAO_ITR(define_sao_tag, SAO_EXPAND(LIST_SAO_TAG));
 typedef struct _FileChar {
@@ -326,11 +327,11 @@ p_sao_obj sao_set_var(p_sao_obj var, p_sao_obj val, p_sao_obj ctx) {
 	return val;
 }
 //TODO 
-p_sao_obj sao_def_var(p_sao_obj var, p_sao_obj val, p_sao_obj ctx)
+p_sao_obj sao_var(p_sao_obj var, p_sao_obj val, p_sao_obj ctx)
 {
-	if(!ctx) sao_error("ASSERT: sao_def_var need ctx");
+	if(!ctx) sao_error("ASSERT: sao_var need ctx");
 	p_sao_obj frame = car(ctx);
-	if(!frame) sao_error("ASSERT: sao_def_var(): found no car in ctx");
+	if(!frame) sao_error("ASSERT: sao_var(): found no car in ctx");
 	p_sao_obj vars = car(frame);
 	p_sao_obj vals = cdr(frame);
 	while ((vars)) {
@@ -549,7 +550,7 @@ p_sao_obj sao_parse( sao_stream * fw, p_sao_obj ctx ) {
 	}
 	return rt;
 }
-#define sao_add_sym_x(x) SAO_TAG_##x=sao_new_symbol(#x);sao_def_var(SAO_TAG_##x,SAO_TAG_##x,SAO_TAG_global);
+#define sao_add_sym_x(x) SAO_TAG_##x=sao_new_symbol(#x);sao_var(SAO_TAG_##x,SAO_TAG_##x,SAO_TAG_global);
 void print_version(){ sao_stdout(" SaoLang (R) v" SAO_VERSION " - Wanjo Chan (c) 2020\n"); }
 void print_help(){ sao_stdout("Usage	 : sao [options] [script.sao | -]]\nOptions	 :\n	h:	Help\n	v:	Version\n	i:	Interactive\n	p:	Print final result\n	d:	Dev only\n	e:	Eval\n	s:	Strict mode\n	l:	Lisp syntax\n"); }
 int main(int argc,char **argv, char** envp) {
@@ -582,7 +583,7 @@ int main(int argc,char **argv, char** envp) {
 				string_or_name = _car->_string;
 				i_val = 1;
 			}
-			sao_def_var(sao_new_symbol(string_or_name),
+			sao_var(sao_new_symbol(string_or_name),
 					sao_new_integer(i_val),
 					SAO_TAG_argv);//@ref sao_get_var
 			int found = 0;
@@ -591,7 +592,7 @@ int main(int argc,char **argv, char** envp) {
 			pos = cdr(pos);
 		}
 		libc(free)(fw);//
-		sao_def_var(SAO_TAG_argv,SAO_TAG_argv,SAO_TAG_global);//for later use
+		sao_var(SAO_TAG_argv,SAO_TAG_argv,SAO_TAG_global);//for later use
 	}
 	void* fp;
 	if(!strcmp("-",script_file)){
@@ -612,24 +613,3 @@ int main(int argc,char **argv, char** envp) {
 	libc(fclose)(fp); libc(free)(fw);
 	return 0;
 }
-
-//TODO jot the symbol depth
-//	p_sao_obj ret = sao_table_lookup(g_symbol_holder,s);
-//	if (!(ret)) {
-//		ret = sao_alloc(type_symbol);
-//		ret->_string = libc(strdup)(s);
-//		//ht_insert(ret);
-//		sao_table_insert(g_symbol_holder,ret);
-//	}else{
-//		//TODO need using depth also?
-//		if(!libc(strcmp)(ret->_string,s)){
-//			//sao_warn("sao_table_insert again same for (%s)?\n",s);
-//			//sao_table_insert(g_symbol_holder,ret);
-//		}else{
-//			sao_error("g_symbol_holder full? (%s,%s)\n",ret->_string,s);
-//		//	int newsize = 2*(gHTable_len+1)-1 ;
-//		//	ht_resize( newsize );
-//		//	return sao_new_symbol(s);
-//		}
-//	}
-
