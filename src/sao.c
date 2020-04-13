@@ -496,10 +496,10 @@ int main(int argc,char **argv, char** envp) {
 	ffic_string script_file = "-";
 	int found_any = 0;
 	if(argc>1){
-		char argv_line[512] = {'_','(',0};
+		char argv_line[512] = "_(";//{'_','(',0};
 		ffic_string argv_ptr = &argv_line[2];
 		for(int i=1;i<argc;i++){*argv_ptr++=' ';ffic_string wk=argv[i];while(*wk)*argv_ptr++=*wk++;}
-		*argv_ptr++ = ')'; //*argv_ptr++ = '\0';
+		*argv_ptr++ = ')'; *argv_ptr++ = '\0';
 		sao_stream * fw = sao_stream_new(argv_line,stream_char);
 		p_sao_obj arg_expr = sao_load_expr( fw );
 		p_sao_obj pos = cdr(arg_expr);
