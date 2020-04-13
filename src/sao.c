@@ -106,7 +106,8 @@ p_sao_obj sao_new(sao_obj tpl) {
 	return ret;
 }
 #define define_sao_tag(n) p_sao_obj SAO_TAG_##n=SAO_NULL;
-SAO_ITR(define_sao_tag, nil,argv,global,true,false,quote,procedure);
+//SAO_ITR(define_sao_tag, nil,argv,global,true,false,quote,procedure);
+SAO_ITR(define_sao_tag, nil,argv,global,true,false,quote);
 typedef struct _FileChar { int c; struct _FileChar * ptr_prev; struct _FileChar * ptr_next; } FileChar;
 typedef struct {
 	stream_t _type;
@@ -399,48 +400,50 @@ void sao_out_expr(ffic_string str, p_sao_obj el){
 	if (!el) { return; }
 	switch (el->_type) {
 		case type_list:
-			if (sao_is_tagged(el, SAO_TAG_procedure)) {
-				sao_stdout("<closure>");//TODO mereg with lambda?
-				return;
-			}
-			int skip=0;
-			p_sao_obj *t = &el;
-			if(!SAO_ARGV(l)){
-				//if(!caller_string){
-				//	sao_stdout(" [%s] ",caller_string);
+			{
+				//if (sao_is_tagged(el, SAO_TAG_procedure)) {
+				//	sao_stdout("<closure>");//TODO to merge with lambda?
+				//	return;
 				//}
-				//else
-				if ((*t)) {
-					if((*t)->car && type_symbol == (*t)->car->_type){
-						sao_out_expr(0, (*t)->car);//
-						skip=1;
+				int skip=0;
+				p_sao_obj *t = &el;
+				if(!SAO_ARGV(l)){
+					//if(!caller_string){
+					//	sao_stdout(" [%s] ",caller_string);
+					//}
+					//else
+					if ((*t)) {
+						if((*t)->car && type_symbol == (*t)->car->_type){
+							sao_out_expr(0, (*t)->car);//
+							skip=1;
+						}
 					}
 				}
-			}
-			sao_stdout("(");
-			while ((*t)) {
-				if(!SAO_ARGV(l)){
-					if(skip==1){
-						skip=0;
+				sao_stdout("(");
+				while ((*t)) {
+					if(!SAO_ARGV(l)){
+						if(skip==1){
+							skip=0;
+						}else{
+							sao_stdout(" ");
+							sao_out_expr(0, (*t)->car);
+						}
 					}else{
 						sao_stdout(" ");
 						sao_out_expr(0, (*t)->car);
 					}
-				}else{
-					sao_stdout(" ");
-					sao_out_expr(0, (*t)->car);
-				}
-				if (((*t)->cdr)) {
-					if ((*t)->cdr->_type == type_list) {
-						t = &(*t)->cdr;
-					} else {
-						sao_out_expr(".", (*t)->cdr);
+					if (((*t)->cdr)) {
+						if ((*t)->cdr->_type == type_list) {
+							t = &(*t)->cdr;
+						} else {
+							sao_out_expr(".", (*t)->cdr);
+							break;
+						}
+					} else
 						break;
-					}
-				} else
-					break;
+				}
+				sao_stdout(")");
 			}
-			sao_stdout(")");
 			break;
 		case type_integer:
 			sao_stdout("%ld", el->_integer); break;
@@ -494,7 +497,8 @@ int main(int argc,char **argv, char** envp) {
 	libc(setmode)(libc(fileno)(libc(stdin)),0x8000/*O_BINARY*/);
 	SAO_TAG_global = sao_expand(SAO_TAG_nil, SAO_TAG_nil, SAO_TAG_nil);
 	SAO_TAG_argv = sao_expand(SAO_TAG_nil, SAO_TAG_nil, SAO_TAG_nil);
-	SAO_ITR(sao_add_sym_x, true,false,quote,procedure);//core tags
+	//SAO_ITR(sao_add_sym_x, true,false,quote,procedure);//core tags
+	SAO_ITR(sao_add_sym_x, true,false,quote);//core tags
 	ffic_string script_file = "-";
 	int found_any = 0;
 	if(argc>1){

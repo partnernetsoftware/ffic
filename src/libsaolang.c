@@ -1,4 +1,4 @@
-#define LIST_SAO_TAG set,let,var,if,lambda,begin,or,ok,else,cond,error
+#define LIST_SAO_TAG set,let,var,if,lambda,begin,or,ok,else,cond,error,procedure
 SAO_ITR(define_sao_tag, SAO_EXPAND(LIST_SAO_TAG));
 
 //TODO 
@@ -185,7 +185,7 @@ tail:
 			}
 			return SAO_TAG_ok;
 		}
-		else if (sao_is_eq(_car, SAO_TAG_let)) { /* convert to lambda .. */
+		else if (sao_is_eq(_car, SAO_TAG_let)) { /* convert to lambda, TODO merge with? */
 			p_sao_obj idx;
 			p_sao_obj vars = SAO_TAG_nil, vals = SAO_TAG_nil;
 			if (!(_cadr)) return SAO_TAG_nil;
