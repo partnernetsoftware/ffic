@@ -143,15 +143,6 @@ p_sao_obj cdddr(p_sao_obj x) { return (sao_is_list(x)&&sao_is_list(x->cdr)&&sao_
 p_sao_obj cdadr(p_sao_obj x) { return (sao_is_list(x)&&sao_is_list(x->cdr)&&sao_is_list(x->cdr->car))? x->cdr->car->cdr:SAO_TAG_nil; }
 p_sao_obj cadddr(p_sao_obj x) { return (sao_is_list(x)&&sao_is_list(x->cdr)&&sao_is_list(x->cdr->cdr)&&sao_is_list(x->cdr->cdr->cdr))? x->cdr->cdr->cdr->car:SAO_TAG_nil; }
 
-//p_sao_obj sao_append(p_sao_obj l1, p_sao_obj l2) {
-//	if (!(l1)) return l2;
-//	return cons(car(l1), sao_append(cdr(l1), l2));
-//}
-p_sao_obj sao_reverse(p_sao_obj list, p_sao_obj first) {
-	p_sao_obj rt = (!(list)) ? first :
-		sao_reverse(cdr(list), cons(car(list), first));
-	return rt;
-}
 p_sao_obj sao_is_eq(p_sao_obj x, p_sao_obj y) {
 	do{
 		if (x == y) return x;
@@ -166,6 +157,8 @@ p_sao_obj sao_is_eq(p_sao_obj x, p_sao_obj y) {
 	}while(0);
 	return SAO_TAG_nil;
 }
+p_sao_obj sao_append(p_sao_obj L1, p_sao_obj L2) { return (L1)?cons(car(L1), sao_append(cdr(L1), L2)) : L2; }
+p_sao_obj sao_reverse(p_sao_obj L, p_sao_obj F) { return (!L) ? F: sao_reverse(cdr(L), cons(car(L), F)); }
 //p_sao_obj sao_is_tagged(p_sao_obj cell, p_sao_obj tag) { return (cell&&!cell->_type) ? sao_is_eq(car(cell),tag) : SAO_TAG_nil; }
 p_sao_obj sao_is_tagged(p_sao_obj cell, p_sao_obj tag) { return sao_is_list(cell) ? sao_is_eq(car(cell),tag) : SAO_TAG_nil; }
 int sao_list_len(p_sao_obj expr) { return (expr) ? (1+sao_list_len(cdr(expr))):0; } //TODO improve ?
