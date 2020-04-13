@@ -280,7 +280,8 @@ p_sao_obj sao_var(p_sao_obj var, p_sao_obj val, p_sao_obj ctx)
 	frame->cdr = cons(val, cdr(frame));
 	return val;
 }
-char type_symbolS[] = "~!@#$%^&*_-+\\:.<>|{}[]?=/";
+//char type_symbolS[] = "~!@#$%^&*_-+\\:.<>|{}[]?=/";
+char type_symbolS[] = "~!@#$%&*_-+\\:.<>|{}[]?=/";
 sao_stream * sao_stream_new(void* fp,stream_t type)
 {
 	SAO_NEW_OBJECT(sao_stream,fw);
@@ -357,7 +358,8 @@ p_sao_obj sao_load_expr(sao_stream * fw) //TODO add ,depth ?
 			case '\"': return sao_read_str(fw);
 		}
 		if (c == ';' || c=='#' || (c=='/'&&'/'==sao_peek(fw))){ sao_comment(fw); continue; }
-		if (c == '\''){ return cons(SAO_TAG_quote, cons(sao_load_expr(fw), SAO_TAG_nil)); }
+		//if (c == '\''){ return cons(SAO_TAG_quote, cons(sao_load_expr(fw), SAO_TAG_nil)); }
+		if (c == '^'){ return cons(SAO_TAG_quote, cons(sao_load_expr(fw), SAO_TAG_nil)); }
 		p_sao_obj theSymbol = SAO_TAG_nil;
 		if (libc(isalpha)(c) || libc(strchr)(type_symbolS, c)){
 			theSymbol = sao_read_symbol(fw,c);

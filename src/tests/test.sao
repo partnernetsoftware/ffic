@@ -31,36 +31,36 @@ var( min( list-of-numbers)
       else( min-iter( best cdr( remaining)))))
   min-iter( car( list-of-numbers) cdr( list-of-numbers)))
 
-# Map a function 'f' onto list 'a'
+# Map a function f onto list a
 var( map lambda( f( a)
     if( is_null( a) 
-      '()
+      ^()
       cons( f( car( a)) map( f cdr( a))))))
 
 # Provide the association pair of key from list
 var( assoc( key list)
   if( is_null( list)
-    '()
-    if( eq?( key car( car( list))) 
+    ^()
+    if( eq( key car( car( list))) 
       car( list)
       assoc( key cdr( list)))))
 
 # Lambda key-list with dispatch
 var( make-key-list()
-  let( (list( '())) 
+  let( (list( ^())) 
     var( get-val lambda( var() 
         assoc( var list)))
     var( add-key lambda( var( val)
         set( list cons( cons( var val) list))))
     var( dispatch( m)
-      if( eq?( m 'add) add-key
-        if( eq?( m 'get) get-val 
+      if( eq( m ^add) add-key
+        if( eq( m ^get) get-val 
           list)))
     dispatch))
 
 # Lambda stack with dispatch
 var( make-stack()
-  let( (stack( '()))
+  let( (stack( ^()))
     var( push lambda( x() 
         set( stack cons( x stack))
         stack))
@@ -69,8 +69,8 @@ var( make-stack()
         set( stack cdr( stack))
         q))
     var( dispatch( m)
-      if( eq?( m 'push) push
-        if( eq?( m 'pop) pop 
+      if( eq( m ^push) push
+        if( eq( m ^pop) pop 
           stack)))
     dispatch))
 # Returns the last item in a list or pair.
@@ -86,7 +86,7 @@ var( last-item-in-list lambda( list()
 var( range( number) 
   var( range-helper( start max)
     if( cmp( start max)
-      cons( max '())
+      cons( max ^())
       cons( start range-helper( add( 1 start) max))))
   range-helper( 0 number))
 
@@ -118,14 +118,14 @@ var( reverse( list)
     if( is_null( remaining)
       first
       reverse-iter( cdr( remaining) cons( car( remaining) first))))
-  reverse-iter( list '()))
+  reverse-iter( list ^()))
 
 var( pow( num exp) 
   var( iter( a b) 
-    if( eq?( b 1) 
+    if( eq( b 1) 
       a
       iter( mul( a num) sub( b 1))))
-  if( eq?( exp 0)
+  if( eq( exp 0)
     1
     iter( num exp)))
 
@@ -154,13 +154,13 @@ var( mutate-procedure-body( name new-body) setcar( cddr( name) list( new-body)))
 var( mutate-procedure-args( name new-args) setcar( cdr( name) new-args))
 
 var( construct-procedure( args body env)
-  let( (new-proc( cons( 'procedure cons( '() cons( '() cons( '()))))))
+  let( (new-proc( cons( *procedure cons( ^() cons( ^() cons( ^()))))))
     mutate-procedure-args( new-proc args)
     mutate-procedure-body( new-proc body)
     mutate-procedure-env( new-proc env)
     new-proc))
 
-var( if-zero( x then) list( 'if list( '= x 0) then))
+var( if-zero( x then) list( *if list( *eq x 0) then))
 
 var( gen-accum( number)
   lambda( amount()
@@ -174,7 +174,7 @@ var( new-accum gen-accum( 0))
 var( for lambda( start( end do)
     var( for-loop( a z)
       if( cmp( a z)
-        'Done;; Last iteration
+        ^Done;; Last iteration
         begin( 
           do()
           for-loop( add( 1 a) z))))
@@ -188,7 +188,7 @@ var( make-withdraw( balance)
       "Insufficient funds")))
 
 # Various tests
-var( x '1( 2 3))
+var( x ^1( 2 3))
 var( factorial lambda(n() if( cmp( n 0) 1 mul( n factorial( sub( n 1))))))
 var( add1 lambda(n() add( 1 n)))
 var( sum-of-squares( num-list)
@@ -199,10 +199,10 @@ var( sum-of-squares( num-list)
   sos-helper( num-list 0))
 
 # Procedure with no args
-var( new-env() cons( cons( '() '()) '()))
+var( new-env() cons( cons( ^() ^()) ^()))
 # Construct a procedure with macro
-var( new-func construct-procedure( 'a() 'cons( a 10) global()))
-var( with-macros construct-procedure( 'x() if-zero( 'x 'ZERO) global()))
+var( new-func construct-procedure( ^a() ^cons( a 10) global()))
+var( with-macros construct-procedure( ^x() if-zero( ^x ^ZERO) global()))
 
 var(
 	fib(n),if(lt(n,3),1,add(fib(sub(n,1)),fib(sub(n,2))))

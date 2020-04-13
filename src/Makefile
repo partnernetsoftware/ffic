@@ -45,7 +45,7 @@ run_sao:
 	cat tests/test.sao | ./ffic sao.c
 test_sao_osx:
 	./sao_osx h v
-	echo $$(($$(gdate +'%s * 1000 + %-N / 1000000'))) && cat tests/fib.sl | ./sao_osx l d p -
+	#echo $$(($$(gdate +'%s * 1000 + %-N / 1000000'))) && cat tests/fib.sl | ./sao_osx l d p -
 	echo $$(($$(gdate +'%s * 1000 + %-N / 1000000'))) && cat tests/test.sao | ./sao_osx d - && echo $$(($$(gdate +'%s * 1000 + %-N / 1000000'))) 
 osx_sao:
 	rm -f sao_osx
