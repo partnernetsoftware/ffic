@@ -139,10 +139,9 @@ tail:
 	else if(sao_is_list(exp)){
 		p_sao_obj _car = car(exp);
 		p_sao_obj _cadr = cadr(exp);
-		if (sao_is_eq(_car, SAO_TAG_quote)) { return cadr(exp); }
-		else if (sao_is_eq(_car, SAO_TAG_lambda)) { return sao_new_procedure(cadr(exp), cddr(exp), ctx); }
+		if (sao_is_eq(_car, SAO_TAG_quote)) { return _cadr; }
+		else if (sao_is_eq(_car, SAO_TAG_lambda)) { return sao_new_procedure(_cadr, cddr(exp), ctx); }
 		else if (sao_is_eq(_car, SAO_TAG_var)) {
-			p_sao_obj _cadr = cadr(exp);
 			if (sao_is_atom(_cadr)) sao_var(_cadr, sao_eval(caddr(exp), ctx), ctx);
 			else {
 				p_sao_obj closure = sao_eval(sao_new_lambda(cdr(_cadr), cddr(exp)), ctx);
@@ -157,12 +156,12 @@ tail:
 			goto tail;
 		}
 		else if (sao_is_eq(_car, SAO_TAG_if)) {
-			p_sao_obj predicate = sao_eval(cadr(exp), ctx);
+			p_sao_obj predicate = sao_eval(_cadr, ctx);
 			exp = (sao_not_false(predicate)) ? caddr(exp) : cadddr(exp);
 			goto tail;
 		}
 		else if (sao_is_eq(_car, SAO_TAG_or)) {
-			p_sao_obj predicate = sao_eval(cadr(exp), ctx);
+			p_sao_obj predicate = sao_eval(_cadr, ctx);
 			exp = (sao_not_false(predicate)) ? caddr(exp) : cadddr(exp);
 			goto tail;
 		}
@@ -177,31 +176,31 @@ tail:
 			return SAO_TAG_nil;
 		}
 		else if (sao_is_eq(_car, SAO_TAG_set)) { //TODO works in current ctx
-			if (sao_is_atom(cadr(exp))){
-				sao_set_var(cadr(exp), sao_eval(caddr(exp), ctx), ctx);
+			if (sao_is_atom(_cadr)){
+				sao_set_var(_cadr, sao_eval(caddr(exp), ctx), ctx);
 			} else {
 				p_sao_obj closure =
-					sao_eval(sao_new_lambda(cdr(cadr(exp)), cddr(exp)), ctx);
-				sao_set_var(car(cadr(exp)), closure, ctx);
+					sao_eval(sao_new_lambda(cdr(_cadr), cddr(exp)), ctx);
+				sao_set_var(car(_cadr), closure, ctx);
 			}
 			return SAO_TAG_ok;
 		}
 		else if (sao_is_eq(_car, SAO_TAG_let)) { /* convert to lambda .. */
 			p_sao_obj idx;
 			p_sao_obj vars = SAO_TAG_nil, vals = SAO_TAG_nil;
-			if (!(cadr(exp))) return SAO_TAG_nil;
-			if (sao_is_atom(cadr(exp))) {
+			if (!(_cadr)) return SAO_TAG_nil;
+			if (sao_is_atom(_cadr)) {
 				for (idx = caddr(exp); (idx); idx = cdr(idx)) { vars = cons(caar(idx), vars); vals = cons(cadar(idx), vals); }
-				sao_var(cadr(exp), sao_eval(sao_new_lambda(vars, cdddr(exp)), sao_expand(vars, vals, ctx)), ctx);
-				exp = cons(cadr(exp), vals);
+				sao_var(_cadr, sao_eval(sao_new_lambda(vars, cdddr(exp)), sao_expand(vars, vals, ctx)), ctx);
+				exp = cons(_cadr, vals);
 				goto tail;
 			}
-			for (idx = cadr(exp); (idx); idx = cdr(idx)) { vars = cons(caar(idx), vars); vals = cons(cadar(idx), vals); }
+			for (idx = _cadr; (idx); idx = cdr(idx)) { vars = cons(caar(idx), vars); vals = cons(cadar(idx), vals); }
 			exp = cons(sao_new_lambda(vars, cddr(exp)), vals);
 			goto tail;
 		}
 		{ /* procedure( parameters, body-expr, ctx) */
-			p_sao_obj proc = sao_eval(car(exp), ctx);
+			p_sao_obj proc = sao_eval(_car, ctx);
 			p_sao_obj args = sao_eval_list(cdr(exp), ctx);
 			if (!(proc)) {
 				if(SAO_ARGV(s)){
