@@ -12,7 +12,7 @@ p_sao_obj sao_not_false(p_sao_obj x) {
 //TODO has bug to fix, don't use seriously.
 void sao_out_expr(ffic_string str, p_sao_obj el){
 	if (str) sao_stdout("%s ", str);
-	if (!(el)) { sao_stdout("'()"); return; }//TODO
+	//if (!(el)) { sao_stdout("'()"); return; }//TODO
 	if (!(el)) { return; }
 	switch (el->_type) {
 		case type_ctype://TODO can it be same as symbol or ctype
@@ -136,83 +136,91 @@ tail:
 		p_sao_obj sym = sao_get_var(exp, ctx);
 		if (!sym) { if(SAO_ARGV(s)){ sao_error("ERROR: symbol(%s) not found.\n",exp->_string); } } return sym;
 	}
-	else if (sao_is_tagged(exp, SAO_TAG_quote)) { return cadr(exp); }
-	else if (sao_is_tagged(exp, SAO_TAG_lambda)) { return sao_new_procedure(cadr(exp), cddr(exp), ctx); }
-	else if (sao_is_tagged(exp, SAO_TAG_var)) {
-		if (sao_is_atom(cadr(exp))) sao_var(cadr(exp), sao_eval(caddr(exp), ctx), ctx);
-		else {
-			p_sao_obj closure = sao_eval(sao_new_lambda(cdr(cadr(exp)), cddr(exp)), ctx);
-			sao_var(car(cadr(exp)), closure, ctx);
-		}
-		return SAO_TAG_ok;
-	}
-	else if (sao_is_tagged(exp, SAO_TAG_begin)) {
-		p_sao_obj args = cdr(exp);
-		for (; (cdr(args)); args = cdr(args)) sao_eval(car(args), ctx);
-		exp = car(args);
-		goto tail;
-	}
-	else if (sao_is_tagged(exp, SAO_TAG_if)) {
-		p_sao_obj predicate = sao_eval(cadr(exp), ctx);
-		exp = (sao_not_false(predicate)) ? caddr(exp) : cadddr(exp);
-		goto tail;
-	}
-	else if (sao_is_tagged(exp, SAO_TAG_or)) {
-		p_sao_obj predicate = sao_eval(cadr(exp), ctx);
-		exp = (sao_not_false(predicate)) ? caddr(exp) : cadddr(exp);
-		goto tail;
-	}
-	else if (sao_is_tagged(exp, SAO_TAG_cond)) {
-		p_sao_obj branch = cdr(exp);
-		for (; (branch); branch = cdr(branch)) {
-			if (sao_is_tagged(car(branch), SAO_TAG_else) || sao_not_false(sao_eval(caar(branch), ctx))) {
-				exp = cons(SAO_TAG_begin, cdar(branch));
-				goto tail;
+	else if(sao_is_list(exp)){
+		p_sao_obj _car = car(exp);
+		p_sao_obj _cadr = cadr(exp);
+		if (sao_is_eq(_car, SAO_TAG_quote)) { return cadr(exp); }
+		else if (sao_is_eq(_car, SAO_TAG_lambda)) { return sao_new_procedure(cadr(exp), cddr(exp), ctx); }
+		else if (sao_is_eq(_car, SAO_TAG_var)) {
+			p_sao_obj _cadr = cadr(exp);
+			if (sao_is_atom(_cadr)) sao_var(_cadr, sao_eval(caddr(exp), ctx), ctx);
+			else {
+				p_sao_obj closure = sao_eval(sao_new_lambda(cdr(_cadr), cddr(exp)), ctx);
+				sao_var(car(_cadr), closure, ctx);
 			}
+			return SAO_TAG_ok;
 		}
-		return SAO_TAG_nil;
-	}
-	else if (sao_is_tagged(exp, SAO_TAG_set)) { //TODO works in current ctx
-		if (sao_is_atom(cadr(exp))){
-			sao_set_var(cadr(exp), sao_eval(caddr(exp), ctx), ctx);
-		} else {
-			p_sao_obj closure =
-				sao_eval(sao_new_lambda(cdr(cadr(exp)), cddr(exp)), ctx);
-			sao_set_var(car(cadr(exp)), closure, ctx);
-		}
-		return SAO_TAG_ok;
-	}
-	else if (sao_is_tagged(exp, SAO_TAG_let)) { /* convert to lambda .. */
-		p_sao_obj idx;
-		p_sao_obj vars = SAO_TAG_nil, vals = SAO_TAG_nil;
-		if (!(cadr(exp))) return SAO_TAG_nil;
-		if (sao_is_atom(cadr(exp))) {
-			for (idx = caddr(exp); (idx); idx = cdr(idx)) { vars = cons(caar(idx), vars); vals = cons(cadar(idx), vals); }
-			sao_var(cadr(exp), sao_eval(sao_new_lambda(vars, cdddr(exp)), sao_expand(vars, vals, ctx)), ctx);
-			exp = cons(cadr(exp), vals);
+		else if (sao_is_eq(_car, SAO_TAG_begin)) {
+			p_sao_obj args = cdr(exp);
+			for (; (cdr(args)); args = cdr(args)) sao_eval(car(args), ctx);
+			exp = car(args);
 			goto tail;
 		}
-		for (idx = cadr(exp); (idx); idx = cdr(idx)) { vars = cons(caar(idx), vars); vals = cons(cadar(idx), vals); }
-		exp = cons(sao_new_lambda(vars, cddr(exp)), vals);
-		goto tail;
-	}
-	else { /* procedure( parameters, body-expr, ctx) */
-		p_sao_obj proc = sao_eval(car(exp), ctx);
-		p_sao_obj args = sao_eval_list(cdr(exp), ctx);
-		if (!(proc)) {
-			if(SAO_ARGV(s)){
-				sao_out_expr("WARNING: Invalid arguments to sao_eval:", exp);
-				sao_stdout("\n");
+		else if (sao_is_eq(_car, SAO_TAG_if)) {
+			p_sao_obj predicate = sao_eval(cadr(exp), ctx);
+			exp = (sao_not_false(predicate)) ? caddr(exp) : cadddr(exp);
+			goto tail;
+		}
+		else if (sao_is_eq(_car, SAO_TAG_or)) {
+			p_sao_obj predicate = sao_eval(cadr(exp), ctx);
+			exp = (sao_not_false(predicate)) ? caddr(exp) : cadddr(exp);
+			goto tail;
+		}
+		else if (sao_is_eq(_car, SAO_TAG_cond)) {
+			p_sao_obj branch = cdr(exp);
+			for (; (branch); branch = cdr(branch)) {
+				if (sao_is_tagged(car(branch), SAO_TAG_else) || sao_not_false(sao_eval(caar(branch), ctx))) {
+					exp = cons(SAO_TAG_begin, cdar(branch));
+					goto tail;
+				}
 			}
 			return SAO_TAG_nil;
 		}
-		if (proc->_type == type_native){ return proc->_native(args); }//TODO if empty native but ffi, should auto load into _native 
-		if (sao_is_tagged(proc, SAO_TAG_procedure)) {
-			ctx = sao_expand(cadr(proc), args, cadddr(proc));
-			exp = cons(SAO_TAG_begin, caddr(proc)); /* body-expr */
+		else if (sao_is_eq(_car, SAO_TAG_set)) { //TODO works in current ctx
+			if (sao_is_atom(cadr(exp))){
+				sao_set_var(cadr(exp), sao_eval(caddr(exp), ctx), ctx);
+			} else {
+				p_sao_obj closure =
+					sao_eval(sao_new_lambda(cdr(cadr(exp)), cddr(exp)), ctx);
+				sao_set_var(car(cadr(exp)), closure, ctx);
+			}
+			return SAO_TAG_ok;
+		}
+		else if (sao_is_eq(_car, SAO_TAG_let)) { /* convert to lambda .. */
+			p_sao_obj idx;
+			p_sao_obj vars = SAO_TAG_nil, vals = SAO_TAG_nil;
+			if (!(cadr(exp))) return SAO_TAG_nil;
+			if (sao_is_atom(cadr(exp))) {
+				for (idx = caddr(exp); (idx); idx = cdr(idx)) { vars = cons(caar(idx), vars); vals = cons(cadar(idx), vals); }
+				sao_var(cadr(exp), sao_eval(sao_new_lambda(vars, cdddr(exp)), sao_expand(vars, vals, ctx)), ctx);
+				exp = cons(cadr(exp), vals);
+				goto tail;
+			}
+			for (idx = cadr(exp); (idx); idx = cdr(idx)) { vars = cons(caar(idx), vars); vals = cons(cadar(idx), vals); }
+			exp = cons(sao_new_lambda(vars, cddr(exp)), vals);
 			goto tail;
 		}
-		//sao_stdout("DEBUG 800 native[%d,%d]\n",proc->_type,proc->_native);
+		{ /* procedure( parameters, body-expr, ctx) */
+			p_sao_obj proc = sao_eval(car(exp), ctx);
+			p_sao_obj args = sao_eval_list(cdr(exp), ctx);
+			if (!(proc)) {
+				if(SAO_ARGV(s)){
+					sao_out_expr("WARNING: Invalid arguments to sao_eval:", exp);
+					sao_stdout("\n");
+				}
+				return SAO_TAG_nil;
+			}
+			if (proc->_type == type_native){ return proc->_native(args); }//TODO if empty native but ffi, should auto load into _native 
+			if (sao_is_tagged(proc, SAO_TAG_procedure)) {
+				ctx = sao_expand(cadr(proc), args, cadddr(proc));
+				exp = cons(SAO_TAG_begin, caddr(proc)); /* body-expr */
+				goto tail;
+			}
+			//sao_stdout("DEBUG 800 native[%d,%d]\n",proc->_type,proc->_native);
+		}
+	}
+	else{
+		sao_out_expr("DEBUG: unhandle atom",exp);
 	}
 	sao_stdout("\n");
 	return SAO_TAG_nil;
