@@ -42,7 +42,7 @@ enum { SAO_ITR(DEFINE_ENUM_LIBC,fprintf,malloc,memset,memcpy,strcpy,strlen,strdu
 #include "ffic.h" //github.com/partnernetsoftware/ffic/blob/master/src/ffic.h
 ffic_func libc_a[libc_exit+1];
 ffic_func libc_(int fi,const ffic_string fn){ return libc_a[fi]?libc_a[fi]:(libc_a[fi]=ffic("c",fn)); }
-#define SAO_NULL ((void*)0)
+#define SAO_NULL (void*)0  //this one is faster then ((void*)0) or just 0
 #define SAO_EOF (-1)
 #define SAO_CAT_COMMA(a,b) a##b,
 void* sao_calloc(long _sizeof){return libc(memset)(libc(malloc)(_sizeof),0,_sizeof);}
@@ -225,9 +225,7 @@ int sao_read_line(sao_stream* fw) //TODO int * line_num
 	return line_num;
 }
 //////////////////////////////////////////////////////////////////////////////
-p_sao_obj sao_expand(p_sao_obj var, p_sao_obj val, p_sao_obj ctx) {
-	return cons(cons(var, val), ctx);
-}
+p_sao_obj sao_expand(p_sao_obj var, p_sao_obj val, p_sao_obj ctx) { return cons(cons(var, val), ctx); }
 p_sao_obj sao_get_var(p_sao_obj var, p_sao_obj ctx) {
 	while ((ctx)) {
 		p_sao_obj frame = car(ctx);
@@ -389,28 +387,15 @@ p_sao_obj sao_load_expr(sao_stream * fw) //TODO add ,depth ?
 	}
 	return SAO_TAG_nil;
 }
-//TODO has bug to fix, don't use seriously.
+#define sao_add_sym_x(x) SAO_TAG_##x=sao_new_symbol(#x);sao_var(SAO_TAG_##x,SAO_TAG_##x,SAO_TAG_global);
+//#define REDESIGN 1 //for redesign
+#ifdef REDESIGN
+p_sao_obj sao_eval(p_sao_obj exp, p_sao_obj ctx) { return exp; }
 void sao_out_expr(ffic_string str, p_sao_obj el){
 	if (str) sao_stdout("%s ", str);
 	if (!(el)) { sao_stdout("'()"); return; }//TODO
 	if (!(el)) { return; }
 	switch (el->_type) {
-		case type_ctype://TODO can it be same as symbol or ctype
-			sao_stdout("<ctype>"); break;
-		case type_string:
-			sao_stdout("\"%s\"", el->_string); break;
-		case type_symbol:
-			sao_stdout("%s", el->_string); break;
-		case type_integer:
-			sao_stdout("%ld", el->_integer); break;
-		case type_double:
-			sao_stdout("%f", el->_double); break;
-		case type_native:
-			sao_stdout("<function>"); break;
-		case type_vector:
-			sao_stdout("<vector %d>", el->_len); break;
-		case type_table:
-			sao_stdout("<table %d>", el->_size); break;
 		case type_list:
 			if (sao_is_tagged(el, SAO_TAG_procedure)) {
 				sao_stdout("<closure>");//TODO mereg with lambda?
@@ -454,10 +439,28 @@ void sao_out_expr(ffic_string str, p_sao_obj el){
 					break;
 			}
 			sao_stdout(")");
+			break;
+		case type_integer:
+			sao_stdout("%ld", el->_integer); break;
+		case type_string:
+			sao_stdout("\"%s\"", el->_string); break;
+
+//		case type_ctype://TODO can it be same as symbol or ctype
+//			sao_stdout("<ctype>"); break;
+//		case type_symbol:
+//			sao_stdout("%s", el->_string); break;
+//		case type_double:
+//			sao_stdout("%f", el->_double); break;
+//		case type_native:
+//			sao_stdout("<function>"); break;
+//		case type_vector:
+//			sao_stdout("<vector %d>", el->_len); break;
+//		case type_table:
+//			sao_stdout("<table %d>", el->_size); break;
+		default:
+			sao_stdout("%s", el->_string); break;
 	}
 }
-#if 0 
-p_sao_obj sao_eval(p_sao_obj exp, p_sao_obj ctx) { return exp; }
 #else
 #include "libsaolang.c" //@ref sao_eval() and saolang_init() 
 #endif
@@ -513,9 +516,7 @@ int main(int argc,char **argv, char** envp) {
 				string_or_name = _car->_string;
 				i_val = 1;
 			}
-			sao_var(sao_new_symbol(string_or_name),
-					sao_new_integer(i_val),
-					SAO_TAG_argv);//@ref sao_get_var
+			sao_var(sao_new_symbol(string_or_name), sao_new_integer(i_val), SAO_TAG_argv);
 			int found = 0;
 			for(int i=0;i<=argt_h;i++) if(string_or_name[0]==argt_names[i][0]){ argta[i]+=i_val; found=1;break; }
 			if(!found) script_file = string_or_name; else found_any++;
@@ -537,7 +538,9 @@ int main(int argc,char **argv, char** envp) {
 	}
 	sao_stream * fw = sao_stream_new(fp,stream_file);
 	p_sao_obj ctx = SAO_TAG_nil;
+#ifndef REDESIGN
 	ctx = saolang_init();//
+#endif
 	p_sao_obj result = sao_parse( fw, ctx );
 	if(SAO_ARGV(p)){ sao_out_expr(0,result);sao_stdout("\n"); }
 	libc(fclose)(fp); libc(free)(fw);
