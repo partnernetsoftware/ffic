@@ -388,13 +388,13 @@ p_sao_obj sao_load_expr(sao_stream * fw) //TODO add ,depth ?
 	return SAO_TAG_nil;
 }
 #define sao_add_sym_x(x) SAO_TAG_##x=sao_new_symbol(#x);sao_var(SAO_TAG_##x,SAO_TAG_##x,SAO_TAG_global);
-//#define REDESIGN 1 //for redesign
+//#define REDESIGN 1 //for redesign (stage 1: left only nil/list/expr ?
 #ifdef REDESIGN
 p_sao_obj sao_eval(p_sao_obj exp, p_sao_obj ctx) { return exp; }
 void sao_out_expr(ffic_string str, p_sao_obj el){
 	if (str) sao_stdout("%s ", str);
-	if (!(el)) { sao_stdout("'()"); return; }//TODO
-	if (!(el)) { return; }
+	//if (!(el)) { sao_stdout("'()"); return; }//TODO for quote only?
+	if (!el) { return; }
 	switch (el->_type) {
 		case type_list:
 			if (sao_is_tagged(el, SAO_TAG_procedure)) {
