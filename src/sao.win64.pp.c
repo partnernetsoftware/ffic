@@ -426,8 +426,7 @@ p_sao_obj sao_load_expr(sao_stream * fw)
   }
   if (c == ';' || c=='#' || (c=='/'&&'/'==sao_peek(fw))){ sao_comment(fw); continue; }
   if (c == '\''){
-   p_sao_obj child = sao_load_expr(fw);
-   return cons(SAO_TAG_quote, cons(child, SAO_TAG_nil));
+   return cons(SAO_TAG_quote, cons(sao_load_expr(fw), SAO_TAG_nil));
   }
   if (libc_(libc_isalpha,"isalpha")(c) || libc_(libc_strchr,"strchr")(type_symbolS, c)){
    theSymbol = sao_read_symbol(fw,c);
