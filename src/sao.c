@@ -106,8 +106,7 @@ p_sao_obj sao_new(sao_obj tpl) {
 	return ret;
 }
 #define define_sao_tag(n) p_sao_obj SAO_TAG_##n=SAO_NULL;
-SAO_ITR(define_sao_tag, nil,argv,global);
-SAO_ITR(define_sao_tag, true,false,quote,procedure);
+SAO_ITR(define_sao_tag, nil,argv,global,true,false,quote,procedure);
 typedef struct _FileChar { int c; struct _FileChar * ptr_prev; struct _FileChar * ptr_next; } FileChar;
 typedef struct {
 	stream_t _type;
@@ -353,7 +352,7 @@ p_sao_obj sao_load_expr(sao_stream * fw) //TODO add ,depth ?
 {
 	int c;
 	for (;;) {
-		p_sao_obj theSymbol = SAO_TAG_nil;
+		//p_sao_obj theSymbol = SAO_TAG_nil;
 		c = sao_deq_c(fw);
 		switch(c){
 			case SAO_EOF: return SAO_NULL;
@@ -367,11 +366,8 @@ p_sao_obj sao_load_expr(sao_stream * fw) //TODO add ,depth ?
 			case '\"': return sao_read_str(fw);
 		}
 		if (c == ';' || c=='#' || (c=='/'&&'/'==sao_peek(fw))){ sao_comment(fw); continue; }
-		if (c == '\''){
-			//p_sao_obj child = sao_load_expr(fw);
-			//return cons(SAO_TAG_quote, cons(child, SAO_TAG_nil));
-			return cons(SAO_TAG_quote, cons(sao_load_expr(fw), SAO_TAG_nil));
-		}
+		if (c == '\''){ return cons(SAO_TAG_quote, cons(sao_load_expr(fw), SAO_TAG_nil)); }
+		p_sao_obj theSymbol = SAO_TAG_nil;
 		if (libc(isalpha)(c) || libc(strchr)(type_symbolS, c)){
 			theSymbol = sao_read_symbol(fw,c);
 			if(SAO_ARGV(l)){ return theSymbol; }
@@ -395,10 +391,8 @@ p_sao_obj sao_load_expr(sao_stream * fw) //TODO add ,depth ?
 			return SAO_TAG_nil;
 		}
 		//TODO parsing interger/number need upgrade algo soon:
-		if (sao_is_digit(c))
-			return sao_new_integer(sao_read_int(fw, c - '0'));
-		if (c == '-' && sao_is_digit(sao_peek(fw)))
-			return sao_new_integer(-1*sao_read_int(fw, c - '0'));
+		if (sao_is_digit(c)) return sao_new_integer(sao_read_int(fw, c - '0'));
+		if (c == '-' && sao_is_digit(sao_peek(fw))) return sao_new_integer(-1*sao_read_int(fw, c - '0'));
 	}
 	return SAO_TAG_nil;
 }

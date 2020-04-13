@@ -153,8 +153,7 @@ p_sao_obj sao_new(sao_obj tpl) {
  }
  return ret;
 }
-p_sao_obj SAO_TAG_nil=((void*)0); p_sao_obj SAO_TAG_argv=((void*)0); p_sao_obj SAO_TAG_global=((void*)0);;
-p_sao_obj SAO_TAG_true=((void*)0); p_sao_obj SAO_TAG_false=((void*)0); p_sao_obj SAO_TAG_quote=((void*)0); p_sao_obj SAO_TAG_procedure=((void*)0);;
+p_sao_obj SAO_TAG_nil=((void*)0); p_sao_obj SAO_TAG_argv=((void*)0); p_sao_obj SAO_TAG_global=((void*)0); p_sao_obj SAO_TAG_true=((void*)0); p_sao_obj SAO_TAG_false=((void*)0); p_sao_obj SAO_TAG_quote=((void*)0); p_sao_obj SAO_TAG_procedure=((void*)0);;
 typedef struct _FileChar { int c; struct _FileChar * ptr_prev; struct _FileChar * ptr_next; } FileChar;
 typedef struct {
  stream_t _type;
@@ -372,7 +371,6 @@ p_sao_obj sao_load_expr(sao_stream * fw)
 {
  int c;
  for (;;) {
-  p_sao_obj theSymbol = SAO_TAG_nil;
   c = sao_deq_c(fw);
   switch(c){
    case (-1): return ((void*)0);
@@ -386,9 +384,8 @@ p_sao_obj sao_load_expr(sao_stream * fw)
    case '\"': return sao_read_str(fw);
   }
   if (c == ';' || c=='#' || (c=='/'&&'/'==sao_peek(fw))){ sao_comment(fw); continue; }
-  if (c == '\''){
-   return cons(SAO_TAG_quote, cons(sao_load_expr(fw), SAO_TAG_nil));
-  }
+  if (c == '\''){ return cons(SAO_TAG_quote, cons(sao_load_expr(fw), SAO_TAG_nil)); }
+  p_sao_obj theSymbol = SAO_TAG_nil;
   if (libc_(libc_isalpha,"isalpha")(c) || libc_(libc_strchr,"strchr")(type_symbolS, c)){
    theSymbol = sao_read_symbol(fw,c);
    if(argta[argt_l]){ return theSymbol; }
@@ -410,10 +407,8 @@ p_sao_obj sao_load_expr(sao_stream * fw)
   if (c == ')') {
    return SAO_TAG_nil;
   }
-  if (((long)libc_(libc_isdigit,"isdigit")(c)))
-   return sao_new((sao_obj){._type=type_integer, ._integer=sao_read_int(fw, c - '0')});
-  if (c == '-' && ((long)libc_(libc_isdigit,"isdigit")(sao_peek(fw))))
-   return sao_new((sao_obj){._type=type_integer, ._integer=-1*sao_read_int(fw, c - '0')});
+  if (((long)libc_(libc_isdigit,"isdigit")(c))) return sao_new((sao_obj){._type=type_integer, ._integer=sao_read_int(fw, c - '0')});
+  if (c == '-' && ((long)libc_(libc_isdigit,"isdigit")(sao_peek(fw)))) return sao_new((sao_obj){._type=type_integer, ._integer=-1*sao_read_int(fw, c - '0')});
  }
  return SAO_TAG_nil;
 }
