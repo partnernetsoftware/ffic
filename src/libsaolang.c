@@ -1,4 +1,4 @@
-#define LIST_SAO_TAG set,let,var,if,lambda,begin,or,ok,else,cond,error,procedure
+#define LIST_SAO_TAG true,false,set,let,var,if,lambda,begin,or,ok,else,cond,error,procedure
 SAO_ITR(define_sao_tag, SAO_EXPAND(LIST_SAO_TAG));
 
 //TODO 
@@ -443,7 +443,8 @@ p_sao_obj native_c_int(p_sao_obj args) {
 #define add_sym_list(n) sao_var(sao_new_symbol(#n), sao_new_native(native_##n,#n), SAO_TAG_global);
 p_sao_obj saolang_init()
 {
-	SAO_ITR(sao_add_sym_x, SAO_EXPAND(LIST_SAO_TAG));//core tags
+	SAO_ITR(sao_add_sym_x, SAO_EXPAND(LIST_SAO_TAG));
+
 	//p_sao_obj g_symbol_holder = SAO_NULL;
 	//g_symbol_holder = sao_new_table(65536-1);//TODO auto expand for the tables
 	SAO_ITR(add_sym_list, print,lt,add,sub,exit);//minimum for fib.sao

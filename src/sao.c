@@ -107,7 +107,8 @@ p_sao_obj sao_new(sao_obj tpl) {
 }
 #define define_sao_tag(n) p_sao_obj SAO_TAG_##n=SAO_NULL;
 //SAO_ITR(define_sao_tag, nil,argv,global,true,false,quote,procedure);
-SAO_ITR(define_sao_tag, nil,argv,global,true,false,quote);
+//SAO_ITR(define_sao_tag, nil,argv,global,true,false,quote);
+SAO_ITR(define_sao_tag, nil,argv,global,quote);
 typedef struct _FileChar { int c; struct _FileChar * ptr_prev; struct _FileChar * ptr_next; } FileChar;
 typedef struct {
 	stream_t _type;
@@ -264,16 +265,13 @@ p_sao_obj sao_set_var(p_sao_obj var, p_sao_obj val, p_sao_obj ctx) {
 //TODO  merge with 
 p_sao_obj sao_var(p_sao_obj var, p_sao_obj val, p_sao_obj ctx)
 {
-	if(!ctx) sao_error("ASSERT: sao_var need ctx");
+	if(!ctx) sao_error("ASSERT: sao_var() need ctx");
 	p_sao_obj frame = car(ctx);
-	if(!frame) sao_error("ASSERT: sao_var(): found no car in ctx");
+	if(!frame) sao_error("ASSERT: sao_var() found no car in ctx");
 	p_sao_obj vars = car(frame);
 	p_sao_obj vals = cdr(frame);
 	while ((vars)) {
-		if (sao_is_eq(var, car(vars))) {
-			vals->car = val;
-			return val;
-		}
+		if (sao_is_eq(var, car(vars))) { vals->car = val; return val; }
 		vars = cdr(vars);
 		vals = cdr(vals);
 	}
@@ -498,7 +496,8 @@ int main(int argc,char **argv, char** envp) {
 	SAO_TAG_global = sao_expand(SAO_TAG_nil, SAO_TAG_nil, SAO_TAG_nil);
 	SAO_TAG_argv = sao_expand(SAO_TAG_nil, SAO_TAG_nil, SAO_TAG_nil);
 	//SAO_ITR(sao_add_sym_x, true,false,quote,procedure);//core tags
-	SAO_ITR(sao_add_sym_x, true,false,quote);//core tags
+	//SAO_ITR(sao_add_sym_x, true,false,quote);//core tags
+	SAO_ITR(sao_add_sym_x, quote);//
 	ffic_string script_file = "-";
 	int found_any = 0;
 	if(argc>1){
