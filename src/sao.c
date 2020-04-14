@@ -70,6 +70,7 @@ struct _sao_obj {
 		//void* ptr3[3];//for future speed improving
 		//struct {
 			union{ void* ptr; type_t _type; };
+			ffic_string _raw;
 			union {
 				struct { p_sao_obj car; p_sao_obj cdr; }; 
 				struct { p_sao_obj* _vector; long _len; };
@@ -197,6 +198,7 @@ int sao_read_line(sao_stream* fw) //TODO int * line_num
 				break;
 			}
 		}
+		//TODO UTF8 support
 		ffic_func fgets = libc(fgets);
 		ffic_func strlen = libc(strlen);
 		int LINE_LEN = 1024;//TODO
@@ -355,17 +357,25 @@ p_sao_obj sao_load_expr(sao_stream * fw) //TODO add ,depth ?
 			case '\t':
 			case 0:
 			case ',': continue;
-			case '\"': return sao_read_str(fw);
+			case '\"': return sao_read_str(fw);//
 		}
 		if (c == ';' || c=='#' || (c=='/'&&'/'==sao_peek(fw))){ sao_comment(fw); continue; }
 		//if (c == '\''){ return cons(SAO_TAG_quote, cons(sao_load_expr(fw), SAO_NULL)); }
-		if (c == '^'){ return cons(SAO_TAG_quote, cons(sao_load_expr(fw), SAO_NULL)); }//shortcut of quote
+		if (c == '^'){
+			return cons(SAO_TAG_quote, cons(sao_load_expr(fw), SAO_NULL));
+		}//shortcut of quote
 		p_sao_obj theSymbol = SAO_NULL;
-		if (sao_is_alpha(c) || libc(strchr)(type_symbolS, c)){
+		if (c!='('&&c!=')')
+		//if (sao_is_alpha(c) || libc(strchr)(type_symbolS, c))
+		{
+			if (sao_is_digit(c)) return sao_new_integer(sao_read_int(fw, c - '0'));
+			if (c == '-' && sao_is_digit(sao_peek(fw))) return sao_new_integer(-1*sao_read_int(fw, c - '0'));
 			theSymbol = sao_read_symbol(fw,c);
-			if(SAO_ARGV(l)){ return theSymbol; }
+			if(SAO_ARGV(l)){ return theSymbol; }//LISP
 			else{
-				while(' '==sao_peek(fw)) c = sao_deq_c(fw);//TODO support \t later
+				while( (libc(strchr)(" \t", sao_peek(fw))) ) c = sao_deq_c(fw);
+				//if (c!='(') return theSymbol;
+				//while(' '==sao_peek(fw)) c = sao_deq_c(fw);//TODO support \t later
 				if('('==sao_peek(fw)){
 					c = sao_deq_c(fw);//jump next
 				}else{
@@ -373,9 +383,21 @@ p_sao_obj sao_load_expr(sao_stream * fw) //TODO add ,depth ?
 				}
 			}
 		}
+		//if (sao_is_alpha(c) || libc(strchr)(type_symbolS, c)){
+		//	theSymbol = sao_read_symbol(fw,c);
+		//	if(SAO_ARGV(l)){ return theSymbol; }
+		//	else{
+		//		while(' '==sao_peek(fw)) c = sao_deq_c(fw);//TODO support \t later
+		//		if('('==sao_peek(fw)){
+		//			c = sao_deq_c(fw);//jump next
+		//		}else{
+		//			return theSymbol;
+		//		}
+		//	}
+		//}
 		if (c == '(') {
 			p_sao_obj list = sao_read_list(fw);
-			if(SAO_ARGV(l)){ return list; }
+			if(SAO_ARGV(l)){ return list; }//LISP
 			list = cons(theSymbol,list);
 			return list;
 		}
@@ -384,8 +406,8 @@ p_sao_obj sao_load_expr(sao_stream * fw) //TODO add ,depth ?
 			return SAO_NULL;
 		}
 		//TODO parsing interger/number need upgrade algo soon:
-		if (sao_is_digit(c)) return sao_new_integer(sao_read_int(fw, c - '0'));
-		if (c == '-' && sao_is_digit(sao_peek(fw))) return sao_new_integer(-1*sao_read_int(fw, c - '0'));
+		//if (sao_is_digit(c)) return sao_new_integer(sao_read_int(fw, c - '0'));
+		//if (c == '-' && sao_is_digit(sao_peek(fw))) return sao_new_integer(-1*sao_read_int(fw, c - '0'));
 	}
 	return SAO_NULL;
 }

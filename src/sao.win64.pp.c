@@ -121,6 +121,7 @@ typedef struct _sao_obj sao_obj,*p_sao_obj;
 typedef p_sao_obj (*native_t)(p_sao_obj );
 struct _sao_obj {
    union{ void* ptr; type_t _type; };
+   ffic_string _raw;
    union {
     struct { p_sao_obj car; p_sao_obj cdr; };
     struct { p_sao_obj* _vector; long _len; };
@@ -376,9 +377,11 @@ p_sao_obj sao_load_expr(sao_stream * fw)
    case '\"': return sao_read_str(fw);
   }
   if (c == ';' || c=='#' || (c=='/'&&'/'==sao_peek(fw))){ sao_comment(fw); continue; }
-  if (c == '^'){ return cons(SAO_TAG_quote, cons(sao_load_expr(fw), (void*)0)); }
+  if (c == '^'){
+   return cons(SAO_TAG_quote, cons(sao_load_expr(fw), (void*)0));
+  }
   p_sao_obj theSymbol = (void*)0;
-  if (((long)libc_(libc_isalpha,"isalpha")(c)) || libc_(libc_strchr,"strchr")(type_symbolS, c)){
+  if (c!='('&&c!=')'){
    theSymbol = sao_read_symbol(fw,c);
    if(argta[argt_l]){ return theSymbol; }
    else{
