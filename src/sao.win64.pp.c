@@ -324,7 +324,8 @@ p_sao_obj sao_read_symbol(sao_stream * fw, char start)
  char buf[128];
  buf[0] = start;
  int i = 1;
- while (((long)libc_(libc_isalnum,"isalnum")(sao_peek(fw))) || libc_(libc_strchr,"strchr")(type_symbolS, sao_peek(fw)))
+ int cc;
+ while (cc=sao_peek(fw),((long)libc_(libc_isalnum,"isalnum")(cc)) || libc_(libc_strchr,"strchr")(type_symbolS, cc))
  {
   if (i >= 128) do{libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"Symbol name too long - maximum length 128 characters");libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"\n");libc_(libc_exit,"exit")(1);}while(0);
   buf[i++] = sao_deq_c(fw);
@@ -381,11 +382,14 @@ p_sao_obj sao_load_expr(sao_stream * fw)
    return cons(SAO_TAG_quote, cons(sao_load_expr(fw), (void*)0));
   }
   p_sao_obj theSymbol = (void*)0;
-  if (c!='('&&c!=')'){
+  if (c!='('&&c!=')')
+  {
+   if (((long)libc_(libc_isdigit,"isdigit")(c))) return sao_new((sao_obj){._type=type_integer, ._integer=sao_read_int(fw, c - '0')});
+   if (c == '-' && ((long)libc_(libc_isdigit,"isdigit")(sao_peek(fw)))) return sao_new((sao_obj){._type=type_integer, ._integer=-1*sao_read_int(fw, c - '0')});
    theSymbol = sao_read_symbol(fw,c);
    if(argta[argt_l]){ return theSymbol; }
    else{
-    while(' '==sao_peek(fw)) c = sao_deq_c(fw);
+    while( (libc_(libc_strchr,"strchr")(" \t", sao_peek(fw))) ) c = sao_deq_c(fw);
     if('('==sao_peek(fw)){
      c = sao_deq_c(fw);
     }else{
@@ -402,8 +406,6 @@ p_sao_obj sao_load_expr(sao_stream * fw)
   if (c == ')') {
    return (void*)0;
   }
-  if (((long)libc_(libc_isdigit,"isdigit")(c))) return sao_new((sao_obj){._type=type_integer, ._integer=sao_read_int(fw, c - '0')});
-  if (c == '-' && ((long)libc_(libc_isdigit,"isdigit")(sao_peek(fw)))) return sao_new((sao_obj){._type=type_integer, ._integer=-1*sao_read_int(fw, c - '0')});
  }
  return (void*)0;
 }

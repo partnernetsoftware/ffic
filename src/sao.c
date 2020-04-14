@@ -305,7 +305,8 @@ p_sao_obj sao_read_symbol(sao_stream * fw, char start)
 	char buf[128];
 	buf[0] = start;
 	int i = 1;
-	while (sao_is_alphanumber(sao_peek(fw)) || libc(strchr)(type_symbolS, sao_peek(fw)))
+	int cc;
+	while (cc=sao_peek(fw),sao_is_alphanumber(cc) || libc(strchr)(type_symbolS, cc))
 	{
 		if (i >= 128) sao_error("Symbol name too long - maximum length 128 characters");
 		buf[i++] = sao_deq_c(fw);
