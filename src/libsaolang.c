@@ -14,6 +14,7 @@ void sao_out_expr(ffic_string str, p_sao_obj el){
 	if (str) sao_stdout("%s ", str);
 	//if (!(el)) { sao_stdout("'()"); return; }//TODO
 	if (!(el)) { return; }
+	if(el->_raw) sao_stdout(" {%s<%s>} ",el->_raw,type_names[el->_type]);
 	switch (el->_type) {
 		case type_ctype://TODO can it be same as symbol or ctype
 			sao_stdout("<ctype>"); break;
@@ -131,7 +132,7 @@ p_sao_obj sao_eval(p_sao_obj exp, p_sao_obj ctx)
 {
 tail:
 	if (!(exp)) { return SAO_NULL; }
-	else if (exp->_type == type_integer || exp->_type == type_string) { return exp; }
+	else if (exp->_type == type_integer || exp->_type == type_string) { return exp; }//TODO
 	else if (exp->_type == type_symbol) {
 		p_sao_obj sym = sao_get_var(exp, ctx);
 		if (!sym) { if(SAO_ARGV(s)){ sao_error("ERROR: symbol(%s) not found.\n",exp->_string); } } return sym;
@@ -264,11 +265,6 @@ p_sao_obj native_atom(p_sao_obj expr) {
 	//sao_stderr("debug native_atom\n",expr);
 	return sao_is_atom(car(expr)) ? SAO_TAG_true : SAO_TAG_false;
 }
-p_sao_obj native_cmp(p_sao_obj args) {
-	if ((car(args)->_type != type_integer) || (cadr(args)->_type != type_integer))
-		return SAO_TAG_false;
-	return (car(args)->_integer == cadr(args)->_integer) ? SAO_TAG_true : SAO_TAG_false;
-}
 //p_sao_obj native_not(p_sao_obj args) { return native_cmp(args); }
 p_sao_obj native_eq(p_sao_obj args) { return sao_is_eq(car(args), cadr(args)) ? SAO_TAG_true : SAO_TAG_false; }
 //TODO to change name ( avoid eq)
@@ -301,6 +297,26 @@ p_sao_obj native_same(p_sao_obj args) {
 		return SAO_TAG_true;
 	}
 	return SAO_TAG_false;
+}
+//////////////////////////////////////////////////////////////////////////////
+p_sao_obj native_cmp(p_sao_obj args) {
+	sao_stderr("debug native_cmp(%d)\n",args->_type);
+	return SAO_TAG_true;
+
+	//TODO REDESIGN
+//	if ((car(args)->_type != type_integer) || (cadr(args)->_type != type_integer))
+//		return SAO_TAG_false;
+//	return (car(args)->_integer == cadr(args)->_integer) ? SAO_TAG_true : SAO_TAG_false;
+}
+p_sao_obj native_gt(p_sao_obj sexp) {
+	SAO_ASSERT_TYPE(car(sexp), type_integer);
+	SAO_ASSERT_TYPE(cadr(sexp), type_integer);
+	return (car(sexp)->_integer > cadr(sexp)->_integer) ? SAO_TAG_true : SAO_NULL;
+}
+p_sao_obj native_lt(p_sao_obj sexp) {
+	SAO_ASSERT_TYPE(car(sexp), type_integer);
+	SAO_ASSERT_TYPE(cadr(sexp), type_integer);
+	return (car(sexp)->_integer < cadr(sexp)->_integer) ? SAO_TAG_true : SAO_NULL;
 }
 p_sao_obj native_add(p_sao_obj list) {
 	SAO_ASSERT_TYPE(car(list), type_integer);
@@ -347,16 +363,7 @@ p_sao_obj native_mul(p_sao_obj list) {
 	}
 	return sao_new_integer(total);
 }
-p_sao_obj native_gt(p_sao_obj sexp) {
-	SAO_ASSERT_TYPE(car(sexp), type_integer);
-	SAO_ASSERT_TYPE(cadr(sexp), type_integer);
-	return (car(sexp)->_integer > cadr(sexp)->_integer) ? SAO_TAG_true : SAO_NULL;
-}
-p_sao_obj native_lt(p_sao_obj sexp) {
-	SAO_ASSERT_TYPE(car(sexp), type_integer);
-	SAO_ASSERT_TYPE(cadr(sexp), type_integer);
-	return (car(sexp)->_integer < cadr(sexp)->_integer) ? SAO_TAG_true : SAO_NULL;
-}
+//////////////////////////////////////////////////////////////////////////////
 //TODO tmp cat...(has mem leak)
 char* sao_strcat(char * dst, char * src){
 	char *target = libc(malloc)((long)libc(strlen)(dst) + (long)libc(strlen)(src) + 1);

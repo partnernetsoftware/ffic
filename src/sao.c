@@ -300,20 +300,20 @@ int sao_peek(sao_stream * fw)
 	if(ptr_head!=0){ c = ptr_head->c; }
 	return c;
 }
-p_sao_obj sao_read_symbol(sao_stream * fw, char start)
-{
-	char buf[128];
-	buf[0] = start;
-	int i = 1;
-	int cc;
-	while (cc=sao_peek(fw),sao_is_alphanumber(cc) || libc(strchr)(type_symbolS, cc))
-	{
-		if (i >= 128) sao_error("Symbol name too long - maximum length 128 characters");
-		buf[i++] = sao_deq_c(fw);
-	}
-	buf[i] = '\0';
-	return sao_new_symbol(buf);
-}
+//p_sao_obj sao_read_symbol(sao_stream * fw, char start)
+//{
+//	char buf[128];
+//	buf[0] = start;
+//	int i = 1;
+//	int cc;
+//	while (cc=sao_peek(fw),sao_is_alphanumber(cc) || libc(strchr)(type_symbolS, cc))
+//	{
+//		if (i >= 128) sao_error("Symbol name too long - maximum length 128 characters");
+//		buf[i++] = sao_deq_c(fw);
+//	}
+//	buf[i] = '\0';
+//	return sao_new_symbol(buf);
+//}
 // TODO read number(expecially float/double)
 int sao_read_int(sao_stream * fw, int start)
 {
@@ -332,16 +332,16 @@ p_sao_obj sao_read_list(sao_stream * fw)
 	}
 	return SAO_NULL;
 }
-p_sao_obj sao_read_str(sao_stream * fw) {
-	char buf[1024]; int i = 0; int c;//TODO support longer string..
-	while ((c = sao_deq_c(fw)) != '\"') {
-		if (c == SAO_EOF) return SAO_NULL;
-		if (i >= 1024) sao_error("String too long - maximum length 1024 characters");
-		buf[i++] = (char) c;
-	}
-	buf[i] = '\0';
-	return sao_new_string(buf);
-}
+//p_sao_obj sao_read_str(sao_stream * fw) {
+//	char buf[1024]; int i = 0; int c;//TODO support longer string..
+//	while ((c = sao_deq_c(fw)) != '\"') {
+//		if (c == SAO_EOF) return SAO_NULL;
+//		if (i >= 1024) sao_error("String too long - maximum length 1024 characters");
+//		buf[i++] = (char) c;
+//	}
+//	buf[i] = '\0';
+//	return sao_new_string(buf);
+//}
 void sao_comment(sao_stream * fw) { int c; for (;;) { c = sao_deq_c(fw); if (c == '\n' || c == SAO_EOF) return; } }
 p_sao_obj sao_load_expr(sao_stream * fw) //TODO add ,depth ?
 {
@@ -350,15 +350,29 @@ p_sao_obj sao_load_expr(sao_stream * fw) //TODO add ,depth ?
 		//p_sao_obj theSymbol = SAO_NULL;
 		c = sao_deq_c(fw);
 		switch(c){
-			case SAO_EOF: return SAO_NULL;
-			case -2: sao_read_line(fw);continue;
+			case SAO_EOF:
+				return SAO_NULL;
+			case -2:
+				sao_read_line(fw);continue;
 			case '\n':
 			case '\r':
 			case ' ':
 			case '\t':
 			case 0:
-			case ',': continue;
-			case '\"': return sao_read_str(fw);//
+			case ',':
+				continue;
+			case '\"':
+				{
+					//return sao_read_str(fw);//
+					char buf[1024]; int i = 0; int c;//TODO support longer string..
+					while ((c = sao_deq_c(fw)) != '\"') {
+						if (c == SAO_EOF) return SAO_NULL;
+						if (i >= 1024) sao_error("String too long - maximum length 1024 characters");
+						buf[i++] = (char) c;
+					}
+					buf[i] = '\0';
+					return sao_new_string(buf);
+				}
 		}
 		if (c == ';' || c=='#' || (c=='/'&&'/'==sao_peek(fw))){ sao_comment(fw); continue; }
 		//if (c == '\''){ return cons(SAO_TAG_quote, cons(sao_load_expr(fw), SAO_NULL)); }
@@ -369,9 +383,22 @@ p_sao_obj sao_load_expr(sao_stream * fw) //TODO add ,depth ?
 		if (c!='('&&c!=')')
 		//if (sao_is_alpha(c) || libc(strchr)(type_symbolS, c))
 		{
-			if (sao_is_digit(c)) return sao_new_integer(sao_read_int(fw, c - '0'));
-			if (c == '-' && sao_is_digit(sao_peek(fw))) return sao_new_integer(-1*sao_read_int(fw, c - '0'));
-			theSymbol = sao_read_symbol(fw,c);
+//			if (sao_is_digit(c)) return sao_new_integer(sao_read_int(fw, c - '0'));
+//			if (c == '-' && sao_is_digit(sao_peek(fw))) return sao_new_integer(-1*sao_read_int(fw, c - '0'));
+			//theSymbol = sao_read_symbol(fw,c);
+			char buf[1024];
+			buf[0] = c;
+			int i = 1;
+			int cc;
+			while (cc=sao_peek(fw),sao_is_alphanumber(cc) || libc(strchr)(type_symbolS, cc))
+			{
+				if (i >= 1024) sao_error("Symbol name too long - maximum length 1024 characters");
+				buf[i++] = sao_deq_c(fw);
+			}
+			buf[i] = '\0';
+			theSymbol = sao_new_symbol(buf);
+			theSymbol->_raw = libc(strdup)(buf);
+			
 			if(SAO_ARGV(l)){ return theSymbol; }//LISP
 			else{
 				while( (libc(strchr)(" \t", sao_peek(fw))) ) c = sao_deq_c(fw);
@@ -467,8 +494,8 @@ void sao_out_expr(ffic_string str, p_sao_obj el){
 				sao_stdout(")");
 			}
 			break;
-		case type_integer:
-			sao_stdout("%ld", el->_integer); break;
+//		case type_integer:
+//			sao_stdout("%ld", el->_integer); break;
 		case type_string:
 			sao_stdout("\"%s\"", el->_string); break;
 
@@ -485,7 +512,8 @@ void sao_out_expr(ffic_string str, p_sao_obj el){
 //		case type_table:
 //			sao_stdout("<table %d>", el->_size); break;
 		default:
-			sao_stdout("%s", el->_string); break;
+			//sao_stdout("%s", el->_string); break;
+			sao_stdout("<%s(%s)>", el->_raw,type_names[el->_type]); break;
 	}
 }
 #else
