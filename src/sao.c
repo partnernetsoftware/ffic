@@ -63,6 +63,7 @@ int argta[argt_h+1];
 define_map(ctype, long,double,int,float,i64,u64,string,struct,pointer);//etc TODO
 define_map(stream, file,char);
 define_map(type, list,integer,double,symbol,string,native,vector,table,ctype);
+
 typedef struct _sao_obj sao_obj,*p_sao_obj;
 typedef p_sao_obj (*native_t)(p_sao_obj );
 #define SAO_OBJ_V union {\
@@ -74,26 +75,10 @@ typedef p_sao_obj (*native_t)(p_sao_obj );
 	long _integer;\
 	double _double;\
 }
-typedef SAO_OBJ_V sao_obj_v, *p_sao_obj_v;
-struct _sao_obj {
-	//union {
-		//void* ptr3[3];//for future speed improving
-		//struct {
-			union{ void* ptr; type_t _type; };
-			ffic_string _raw;
-			//union tre
-			//	struct { p_sao_obj car; p_sao_obj cdr; }; 
-			//	struct { p_sao_obj* _vector; long _len; };
-			//	struct { p_sao_obj* _table; long _size; };
-			//	struct { ffic_string _string; long _depth;};
-			//	struct { native_t _native; ffic_string _ffi;/* $sharelib.$method */ };
-			//	long _integer;
-			//	double _double;//TODO with basic math.
-			//};
-			SAO_OBJ_V;
-		//};
-	//};
-};
+struct _sao_obj { union{ void* ptr; type_t _type; }; ffic_string _raw; SAO_OBJ_V; };
+
+//typedef SAO_OBJ_V sao_obj_v, *p_sao_obj_v;
+
 p_sao_obj sao_new(sao_obj tpl) {
 	//TODO gc()
 	sao_obj * ret = libc(malloc)(sizeof(sao_obj));
