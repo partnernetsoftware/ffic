@@ -125,7 +125,6 @@ p_sao_obj sao_load_expr(sao_stream * fw);
 #define sao_new_symbol(s) sao_new((sao_obj){._type=type_symbol,._string=s})
 #define sao_new_string(s) sao_new((sao_obj){._type=type_string, ._string=s})
 #define sao_new_integer(i) sao_new((sao_obj){._type=type_integer, ._integer=i})
-#define sao_new_native(x,n) sao_new((sao_obj){._type=type_native, ._native=x,._ffi=n})
 p_sao_obj cons(p_sao_obj car, p_sao_obj cdr) { p_sao_obj ret = sao_new_list(car,cdr);return ret; }
 p_sao_obj car(p_sao_obj x) { return sao_is_list(x)?x->car:SAO_NULL; }
 p_sao_obj cdr(p_sao_obj x) { return sao_is_list(x)?x->cdr:SAO_NULL; }
@@ -292,20 +291,6 @@ int sao_peek(sao_stream * fw)
 	if(ptr_head!=0){ c = ptr_head->c; }
 	return c;
 }
-//p_sao_obj sao_read_symbol(sao_stream * fw, char start)
-//{
-//	char buf[128];
-//	buf[0] = start;
-//	int i = 1;
-//	int cc;
-//	while (cc=sao_peek(fw),sao_is_alphanumber(cc) || libc(strchr)(type_symbolS, cc))
-//	{
-//		if (i >= 128) sao_error("Symbol name too long - maximum length 128 characters");
-//		buf[i++] = sao_deq_c(fw);
-//	}
-//	buf[i] = '\0';
-//	return sao_new_symbol(buf);
-//}
 // TODO read number(expecially float/double)
 int sao_read_int(sao_stream * fw, int start)
 {
@@ -324,43 +309,14 @@ p_sao_obj sao_read_list(sao_stream * fw)
 	}
 	return SAO_NULL;
 }
-//p_sao_obj sao_read_str(sao_stream * fw) {
-//	char buf[1024]; int i = 0; int c;//TODO support longer string..
-//	while ((c = sao_deq_c(fw)) != '\"') {
-//		if (c == SAO_EOF) return SAO_NULL;
-//		if (i >= 1024) sao_error("String too long - maximum length 1024 characters");
-//		buf[i++] = (char) c;
-//	}
-//	buf[i] = '\0';
-//	return sao_new_string(buf);
-//}
 void sao_comment(sao_stream * fw) { int c; for (;;) { c = sao_deq_c(fw); if (c == '\n' || c == SAO_EOF) return; } }
 p_sao_obj sao_default_convert(ffic_string str){
-	//sao_stdout("DEBUG sao_default_convert %s\n",str);
 	if(str){
 		if(str[0]=='"'){
 			return sao_new_string(str);
-		}else if(str[0]=='-'||sao_is_digit(str[0])){
+		}else if((str[0]=='-'&&sao_is_digit(str[1]))||sao_is_digit(str[0])){
 			long l_val = (long) libc(atol)(str);
 			int i_val = (long) libc(atoi)(str);
-			//sao_stdout("DEBUG sao_default_convert=%s,l_val=%ld,i_val=%d\n",str,l_val,i_val);
-			//typedef double (*ffic_func_f)();
-			//ffic_func_f atof = (ffic_func_f) libc(atof);
-			//double eps = 0.0000001;
-			////convert to symbol/interger/number
-			////double d_val = (double) libc(atof)(str);
-			//double d_val = atof(str);
-			////sao_stdout("DEBUG sao_default_convert=%s,l_val=%ld,i_val=%d\n",str,l_val,i_val);
-			////sao_stdout("DEBUG sao_default_convert=%s,l_val=%ld,d_val=%f,i_val=%d\n",str,l_val,d_val,i_val);
-			//double d_diff = d_val - (double)1.0 * (double)l_val;
-			//sao_stdout("DEBUG sao_default_convert=%s,l_val=%ld,d_val=%g,i_val=%d\n",str,l_val,d_val,i_val);
-			//if( d_diff>-eps && d_diff<eps ){
-			//	sao_stdout("DEBUG todo sao_new_double(%g)",d_val);
-			//	//return sao_new_double(d_val);//TMP
-			//}else{
-			//}
-			//return sao_new_integer(1);//TMP
-			//return sao_new_symbol(str);
 			p_sao_obj rt = sao_new_integer(l_val);
 			rt->_raw = str;//TODO..
 			return rt;
@@ -402,8 +358,6 @@ p_sao_obj sao_load_expr(sao_stream * fw) //TODO add ,depth ?
 					}
 					buf[i] = '\0';
 					p_sao_obj theSymbol = sao_new_string(buf);
-					//p_sao_obj theSymbol = sao_str_convert(buf);
-					//theSymbol->_raw = libc(strdup)(buf);
 					return theSymbol;
 				}
 		}
@@ -418,7 +372,6 @@ p_sao_obj sao_load_expr(sao_stream * fw) //TODO add ,depth ?
 		{
 			//if (sao_is_digit(c)) return sao_new_integer(sao_read_int(fw, c - '0'));
 			//if (c == '-' && sao_is_digit(sao_peek(fw))) return sao_new_integer(-1*sao_read_int(fw, c - '0'));
-			//theSymbol = sao_read_symbol(fw,c);
 			char buf[MAX_BUF_LEN];
 			buf[0] = c;
 			int i = 1;
@@ -430,8 +383,6 @@ p_sao_obj sao_load_expr(sao_stream * fw) //TODO add ,depth ?
 			}
 			buf[i] = '\0';
 			theSymbol = sao_str_convert(buf);
-			//theSymbol = sao_new_symbol(buf);
-			//theSymbol->_raw = libc(strdup)(buf);
 			
 			if(SAO_ARGV(l)){ return theSymbol; }//LISP
 			else{
@@ -445,18 +396,6 @@ p_sao_obj sao_load_expr(sao_stream * fw) //TODO add ,depth ?
 				}
 			}
 		}
-		//if (sao_is_alpha(c) || libc(strchr)(type_symbolS, c)){
-		//	theSymbol = sao_read_symbol(fw,c);
-		//	if(SAO_ARGV(l)){ return theSymbol; }//LISP
-		//	else{
-		//		while(' '==sao_peek(fw)) c = sao_deq_c(fw);//TODO support \t later
-		//		if('('==sao_peek(fw)){
-		//			c = sao_deq_c(fw);//jump next
-		//		}else{
-		//			return theSymbol;
-		//		}
-		//	}
-		//}
 		if (c == '(') {
 			p_sao_obj list = sao_read_list(fw);
 			if(SAO_ARGV(l)){ return list; }//LISP
@@ -472,41 +411,22 @@ p_sao_obj sao_load_expr(sao_stream * fw) //TODO add ,depth ?
 	}
 	return SAO_NULL;
 }
-#define sao_add_sym_x(x) SAO_TAG_##x=sao_new_symbol(#x);sao_var(SAO_TAG_##x,SAO_TAG_##x,SAO_TAG_global);
 //#define REDESIGN 1 //for redesign (stage 1: left only list/expr ?
 #ifdef REDESIGN
 p_sao_obj sao_eval(p_sao_obj exp, p_sao_obj ctx) { return exp; }
 void sao_out_expr(ffic_string str, p_sao_obj el){
 	if (str) sao_stdout("%s ", str);
-	//if (!(el)) { sao_stdout("'()"); return; }//TODO for quote only?
 	if (!el) { return; }
-	//if(el->_raw) sao_stdout(" {%s<%s>} ",el->_raw,type_names[el->_type]);
 	switch (el->_type) {
 		case type_list:
 			{
-				//if (sao_is_tagged(el, SAO_TAG_procedure)) {
-				//	sao_stdout("<closure>");//TODO to merge with lambda?
-				//	return;
-				//}
 				int skip=0;
 				p_sao_obj ptr = el;
-				//p_sao_obj *t = &el;
 				if(!SAO_ARGV(l)){
-					//if(!caller_string){
-					//	sao_stdout(" [%s] ",caller_string);
-					//}
-					//else
-					//if ((*t) && (*t)->car && type_symbol == (*t)->car->_type){
-					//	sao_out_expr(0, (*t)->car);//
-					//	skip=1;
-					//}
-					//if(car(ptr)){
-						sao_out_expr(0, car(ptr));//
-						skip=1;
-					//}
+					sao_out_expr(0, car(ptr));//
+					skip=1;
 				}
 				sao_stdout("(");
-				//while ((*t))
 				while (ptr)
 				{
 					if(!SAO_ARGV(l)){
@@ -514,15 +434,12 @@ void sao_out_expr(ffic_string str, p_sao_obj el){
 							skip=0;
 						}else{
 							sao_stdout(" ");
-							//sao_out_expr(0, (*t)->car);
 							sao_out_expr(0, car(ptr));
 						}
 					}else{//LISP
 						sao_stdout(" ");
-						//sao_out_expr(0, (*t)->car);
 						sao_out_expr(0, car(ptr));
 					}
-					//if (((*t)->cdr))
 					if (cdr(ptr))
 					{
 						if (sao_is_list(cdr(ptr)))
@@ -531,13 +448,6 @@ void sao_out_expr(ffic_string str, p_sao_obj el){
 							sao_out_expr(".", ptr->cdr);
 							break;
 						}
-						//if ((*t)->cdr->_type == type_list)
-						//{
-						//	t = &(*t)->cdr;
-						//} else {
-						//	sao_out_expr(".", (*t)->cdr);
-						//	break;
-						//}
 					} else
 						break;
 				}
@@ -586,9 +496,7 @@ int main(int argc,char **argv, char** envp) {
 	SAO_TAG_global = sao_expand(SAO_NULL, SAO_NULL, SAO_NULL);
 	//sao_out_expr("init global=",SAO_TAG_global);
 	SAO_TAG_argv = sao_expand(SAO_NULL, SAO_NULL, SAO_NULL);
-	//SAO_ITR(sao_add_sym_x, true,false,quote,procedure);//core tags
-	//SAO_ITR(sao_add_sym_x, true,false,quote);//core tags
-	SAO_ITR(sao_add_sym_x, quote);//
+	SAO_TAG_quote=sao_new_symbol("quote");sao_var(SAO_TAG_quote,SAO_TAG_quote,SAO_TAG_global);
 	ffic_string script_file = "-";
 	int found_any = 0;
 	if(argc>1){
@@ -600,24 +508,32 @@ int main(int argc,char **argv, char** envp) {
 		p_sao_obj arg_expr = sao_load_expr( fw );
 		p_sao_obj pos = cdr(arg_expr);
 		while(pos){
+			//sao_out_expr("DEBUG pos=",pos);
 			p_sao_obj _car = car(pos);
-			ffic_string string_or_name;
+			//sao_out_expr("\nDEBUG _car=",_car);
+			ffic_string string_or_name="-";
 			int l_val = 0;
 			if(sao_is_list(_car)){
 				p_sao_obj _caar = car(_car);
-				string_or_name = _caar->_string;
+				//string_or_name = _caar->_string;
+				string_or_name = _caar->_raw;
 				p_sao_obj _cadar = car(cdr(_car));
 				//l_val = (_cadar && _cadar->_type==type_integer) ? _cadar->_integer : 0;
 				if(_cadar) l_val = (long) libc(atol)(_cadar->_raw);
 			}else{
-				string_or_name = _car->_string;
-				l_val = 1;
+				if(_car){
+					string_or_name = _car->_string;
+					l_val = 1;
+				}
 			}
-			//sao_stdout("DEBUG string_or_name=%s,l_val=%ld\n",string_or_name,l_val);
-			sao_var(sao_new_symbol(string_or_name), sao_new_integer(l_val), SAO_TAG_argv);
-			int found = 0;
-			for(int i=0;i<=argt_h;i++) if(!strcmp(string_or_name,argt_names[i])){ argta[i]+=l_val; found=1;break; }
-			if(!found) script_file = string_or_name; else found_any++;
+			//sao_stdout("DEBUG 002 string_or_name=%s,l_val=%ld\n",string_or_name,l_val);
+			if(string_or_name){
+				sao_var(sao_new_symbol(string_or_name), sao_new_integer(l_val), SAO_TAG_argv);
+				int found = 0;
+				for(int i=0;i<=argt_h;i++) if(!strcmp(string_or_name,argt_names[i])){ argta[i]+=l_val; found=1;break; }
+				if(!found) script_file = string_or_name; else found_any++;
+			}
+			//sao_stdout("DEBUG 003 string_or_name=%s,l_val=%ld\n",string_or_name,l_val);
 			pos = cdr(pos);
 		}
 		libc(free)(fw);//

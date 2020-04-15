@@ -6,6 +6,7 @@ SAO_ITR(define_sao_tag, SAO_EXPAND(LIST_SAO_TAG));
 #define sao_new_native(x,n) sao_new((sao_obj){._type=type_native, ._native=x,._ffi=n})
 #define sao_new_lambda(params,body) cons(SAO_TAG_lambda, cons(params,body))
 #define sao_new_procedure(params,body,ctx) cons(SAO_TAG_procedure, cons(params, cons(body, cons(ctx, SAO_NULL))))
+#define sao_add_sym_x(x) SAO_TAG_##x=sao_new_symbol(#x);sao_var(SAO_TAG_##x,SAO_TAG_##x,SAO_TAG_global);
 
 //TODO 
 //#include "ffic.h"
@@ -215,7 +216,8 @@ tail:
 				return SAO_NULL;
 			}
 			if (proc->_type == type_native){ return proc->_native(args); }//TODO if empty native but ffi, should auto load into _native 
-			if (sao_is_tagged(proc, SAO_TAG_procedure)) {
+			if (sao_is_tagged(proc, SAO_TAG_procedure))
+			{
 				ctx = sao_expand(cadr(proc), args, cadddr(proc));
 				exp = cons(SAO_TAG_begin, caddr(proc)); /* body-expr */
 				goto tail;
