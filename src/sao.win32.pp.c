@@ -344,8 +344,7 @@ p_sao_obj sao_load_expr(sao_stream * fw)
 {
  int c;
  p_sao_obj theSymbol = (void*)0;
- for (;;) {
-  c = sao_deq_c(fw);
+ while( (c = sao_deq_c(fw))!=(-1) ) {
   switch(c){
    case '\n':
    case '\r':
@@ -354,7 +353,7 @@ p_sao_obj sao_load_expr(sao_stream * fw)
    case '\t':
    case 0:
    case ',':
-    if(theSymbol) return theSymbol;
+    if(theSymbol) break;
     continue;
    case ';':
    case '#':
@@ -363,48 +362,40 @@ p_sao_obj sao_load_expr(sao_stream * fw)
     return cons(SAO_TAG_quote, cons(sao_load_expr(fw), (void*)0));
    case '\"':
     {
-     char buf[2048]; int i = 0; int c;
+     char buf[2048] = {0}; int i = 0; int c;
      while ((c = sao_deq_c(fw)) != '\"') {
       if (c == (-1)) return (void*)0;
       if (i >= 2048) do{libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"String too long - maximum length %d characters",2048);libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"\n");libc_(libc_exit,"exit")(1);}while(0);
       buf[i++] = (char) c;
      }
-     buf[i] = '\0';
      return sao_new((sao_obj){._type=type_string, ._string=buf});
     }
-   case (-1):
-    if(theSymbol) return theSymbol;
+   case ')':
     return (void*)0;
+   case '(':
+    {
+     p_sao_obj list = sao_read_list(fw);
+     if(argta[argt_l]){ return list; }
+     return cons(theSymbol,list);
+    }
+   default:
+    {
+     char buf[2048] = {0};
+     buf[0] = c;
+     int i = 1;
+     int cc;
+     while (cc=sao_peek(fw), !libc_(libc_strchr,"strchr")(" \t(),\r\n", cc))
+     {
+      if (i >= 2048) do{libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"Symbol name too long - maximum length %d characters",2048);libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"\n");libc_(libc_exit,"exit")(1);}while(0);
+      buf[i++] = sao_deq_c(fw);
+     }
+     theSymbol = sao_str_convert(buf);
+     if (libc_(libc_strchr,"strchr")(" \t\r\n(", sao_peek(fw))) continue;
+    }
   }
-  if (c!='('&&c!=')')
-  {
-   char buf[2048];
-   buf[0] = c;
-   int i = 1;
-   int cc;
-   while (cc=sao_peek(fw),
-     !libc_(libc_strchr,"strchr")(" \t(),\r\n", cc)
-     )
-   {
-    if (i >= 2048) do{libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"Symbol name too long - maximum length %d characters",2048);libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"\n");libc_(libc_exit,"exit")(1);}while(0);
-    buf[i++] = sao_deq_c(fw);
-   }
-   buf[i] = '\0';
-   theSymbol = sao_str_convert(buf);
-   if (libc_(libc_strchr,"strchr")(" \t\r\n(", sao_peek(fw))) continue;
-   return theSymbol;
-  }
-  if (c == '(') {
-   p_sao_obj list = sao_read_list(fw);
-   if(argta[argt_l]){ return list; }
-   list = cons(theSymbol,list);
-   return list;
-  }
-  if (c == ')') {
-   return (void*)0;
-  }
+  break;
  }
- return (void*)0;
+ return theSymbol;
 }
 p_sao_obj SAO_TAG_true=(void*)0; p_sao_obj SAO_TAG_false=(void*)0; p_sao_obj SAO_TAG_set=(void*)0; p_sao_obj SAO_TAG_let=(void*)0; p_sao_obj SAO_TAG_var=(void*)0; p_sao_obj SAO_TAG_if=(void*)0; p_sao_obj SAO_TAG_lambda=(void*)0; p_sao_obj SAO_TAG_begin=(void*)0; p_sao_obj SAO_TAG_or=(void*)0; p_sao_obj SAO_TAG_ok=(void*)0; p_sao_obj SAO_TAG_else=(void*)0; p_sao_obj SAO_TAG_cond=(void*)0; p_sao_obj SAO_TAG_error=(void*)0; p_sao_obj SAO_TAG_procedure=(void*)0;;
 p_sao_obj sao_not_false(p_sao_obj x) {
@@ -857,7 +848,6 @@ int main(int argc,char **argv, char** envp) {
   *argv_ptr++ = ')'; *argv_ptr++ = '\0';
   sao_stream * fw = sao_stream_new(argv_line,stream_char);
   p_sao_obj arg_expr = sao_load_expr( fw );
-  sao_out_expr("\nDEBUG arg_expr=",arg_expr);
   p_sao_obj pos = cdr(arg_expr);
   while(pos){
    p_sao_obj _car = car(pos);

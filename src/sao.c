@@ -1,5 +1,5 @@
 //WARNING: do not go production unless gc() is done!
-#define SAO_VERSION "0.0.7"
+#define SAO_VERSION "0.0.8"
 #define SAO_CAT(a, ...) SAO_PRIMITIVE_CAT(a, __VA_ARGS__)
 #define SAO_PRIMITIVE_CAT(a, ...) a ## __VA_ARGS__
 #define SAO_IIF(c) SAO_PRIMITIVE_CAT(SAO_IIF_, c)
@@ -368,13 +368,13 @@ p_sao_obj sao_load_expr(sao_stream * fw) //TODO add ,depth ?
 				return cons(SAO_TAG_quote, cons(sao_load_expr(fw), SAO_NULL));
 			case '\"':
 				{
-					char buf[SAO_MAX_BUF_LEN]; int i = 0; int c;//TODO support longer string..
+					char buf[SAO_MAX_BUF_LEN] = {0}; int i = 0; int c;//TODO support longer string..
 					while ((c = sao_deq_c(fw)) != '\"') {//TODO not yet handling the \\" which to excape the "
 						if (c == SAO_EOF) return SAO_NULL;
 						if (i >= SAO_MAX_BUF_LEN) sao_error("String too long - maximum length %d characters",SAO_MAX_BUF_LEN);
 						buf[i++] = (char) c;
 					}
-					buf[i] = '\0';
+					//buf[i] = '\0';
 					return sao_new_string(buf);
 				}
 			case ')':
@@ -383,12 +383,11 @@ p_sao_obj sao_load_expr(sao_stream * fw) //TODO add ,depth ?
 				{
 					p_sao_obj list = sao_read_list(fw);
 					if(SAO_ARGV(l)){ return list; }//LISP
-					list = cons(theSymbol,list);
-					return list;
+					return cons(theSymbol,list);
 				}	
 			default:
 				{
-					char buf[SAO_MAX_BUF_LEN];
+					char buf[SAO_MAX_BUF_LEN] = {0};
 					buf[0] = c;
 					int i = 1;
 					int cc;
@@ -397,7 +396,7 @@ p_sao_obj sao_load_expr(sao_stream * fw) //TODO add ,depth ?
 						if (i >= SAO_MAX_BUF_LEN) sao_error("Symbol name too long - maximum length %d characters",SAO_MAX_BUF_LEN);
 						buf[i++] = sao_deq_c(fw);
 					}
-					buf[i] = '\0';
+					//buf[i] = '\0';
 					theSymbol = sao_str_convert(buf);
 
 					if (libc(strchr)(" \t\r\n(", sao_peek(fw))) continue;
