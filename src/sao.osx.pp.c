@@ -384,8 +384,7 @@ p_sao_obj sao_load_expr(sao_stream * fw)
      buf[0] = c;
      int i = 1;
      int cc;
-     while (cc=sao_peek(fw), !libc_(libc_strchr,"strchr")(" \t(),\r\n", cc))
-     {
+     while (cc=sao_peek(fw), !libc_(libc_strchr,"strchr")(" \t(),\r\n", cc)) {
       if (i >= 2048) do{libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"Symbol name too long - maximum length %d characters",2048);libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"\n");libc_(libc_exit,"exit")(1);}while(0);
       buf[i++] = sao_deq_c(fw);
      }
