@@ -345,13 +345,12 @@ p_sao_obj sao_default_convert(ffic_string str){
 	return SAO_NULL;
 }
 p_sao_obj(*sao_str_convert)(ffic_string) = sao_default_convert;
+#define SAO_MAX_BUF_LEN 2048
 p_sao_obj sao_load_expr(sao_stream * fw) //TODO add ,depth ?
 {
-#define MAX_BUF_LEN 2048
 	int c;
 	p_sao_obj theSymbol = SAO_NULL;
-	for (;;) {
-		c = sao_deq_c(fw);
+	while( (c = sao_deq_c(fw))!=SAO_EOF ) {
 		switch(c){
 			case '\n':
 			case '\r':
@@ -360,7 +359,7 @@ p_sao_obj sao_load_expr(sao_stream * fw) //TODO add ,depth ?
 			case '\t':
 			case 0:
 			case ',':
-				if(theSymbol) return theSymbol;
+				if(theSymbol) break;
 				continue;
 			case ';':
 			case '#':
@@ -369,10 +368,10 @@ p_sao_obj sao_load_expr(sao_stream * fw) //TODO add ,depth ?
 				return cons(SAO_TAG_quote, cons(sao_load_expr(fw), SAO_NULL));
 			case '\"':
 				{
-					char buf[MAX_BUF_LEN]; int i = 0; int c;//TODO support longer string..
+					char buf[SAO_MAX_BUF_LEN]; int i = 0; int c;//TODO support longer string..
 					while ((c = sao_deq_c(fw)) != '\"') {//TODO not yet handling the \\" which to excape the "
 						if (c == SAO_EOF) return SAO_NULL;
-						if (i >= MAX_BUF_LEN) sao_error("String too long - maximum length %d characters",MAX_BUF_LEN);
+						if (i >= SAO_MAX_BUF_LEN) sao_error("String too long - maximum length %d characters",SAO_MAX_BUF_LEN);
 						buf[i++] = (char) c;
 					}
 					buf[i] = '\0';
@@ -387,31 +386,25 @@ p_sao_obj sao_load_expr(sao_stream * fw) //TODO add ,depth ?
 					list = cons(theSymbol,list);
 					return list;
 				}	
-			case SAO_EOF:
-				if(theSymbol) return theSymbol;
-				return SAO_NULL;
 			default:
 				{
-					char buf[MAX_BUF_LEN];
+					char buf[SAO_MAX_BUF_LEN];
 					buf[0] = c;
 					int i = 1;
 					int cc;
-					while (cc=sao_peek(fw),
-							!libc(strchr)(" \t(),\r\n", cc)//stop when these meet
-							)
+					while (cc=sao_peek(fw), !libc(strchr)(" \t(),\r\n", cc))
 					{
-						if (i >= MAX_BUF_LEN) sao_error("Symbol name too long - maximum length %d characters",MAX_BUF_LEN);
+						if (i >= SAO_MAX_BUF_LEN) sao_error("Symbol name too long - maximum length %d characters",SAO_MAX_BUF_LEN);
 						buf[i++] = sao_deq_c(fw);
 					}
 					buf[i] = '\0';
 					theSymbol = sao_str_convert(buf);
 
 					if (libc(strchr)(" \t\r\n(", sao_peek(fw))) continue;
-					return theSymbol;
 				}
-		}
+		}//switch
+		break;
 	}
-	//return SAO_NULL;
 	return theSymbol;
 }
 //#define REDESIGN 1 //for redesign (stage 1: left only list/expr ?
