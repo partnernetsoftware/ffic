@@ -355,7 +355,6 @@ p_sao_obj sao_load_expr(sao_stream * fw) //TODO add ,depth ?
 		switch(c){
 			case '\n':
 			case '\r':
-				//if(theSymbol) return theSymbol;
 				sao_read_line(fw);continue;
 			case ' ':
 			case '\t':
@@ -363,17 +362,13 @@ p_sao_obj sao_load_expr(sao_stream * fw) //TODO add ,depth ?
 			case ',':
 				if(theSymbol) return theSymbol;
 				continue;
-//			case '(':
-//				{
-//					p_sao_obj list = sao_read_list(fw);
-//					if(SAO_ARGV(l)){ return list; }//LISP
-//					list = cons(theSymbol,list);
-//					return list;
-//				}
+			case ';':
+			case '#':
+				sao_comment(fw);continue;
+			case '^':
+				return cons(SAO_TAG_quote, cons(sao_load_expr(fw), SAO_NULL));
 			case '\"':
 				{
-					//TODO improve unlimited and unescape one
-					//return sao_read_str(fw);//
 					char buf[MAX_BUF_LEN]; int i = 0; int c;//TODO support longer string..
 					while ((c = sao_deq_c(fw)) != '\"') {//TODO not yet handling the \\" which to excape the "
 						if (c == SAO_EOF) return SAO_NULL;
@@ -381,79 +376,43 @@ p_sao_obj sao_load_expr(sao_stream * fw) //TODO add ,depth ?
 						buf[i++] = (char) c;
 					}
 					buf[i] = '\0';
-					//p_sao_obj theSymbol = sao_new_string(buf);
-					//return theSymbol;
 					return sao_new_string(buf);
 				}
+			case ')':
+				return SAO_NULL;
+			case '(':
+				{
+					p_sao_obj list = sao_read_list(fw);
+					if(SAO_ARGV(l)){ return list; }//LISP
+					list = cons(theSymbol,list);
+					return list;
+				}	
 			case SAO_EOF:
 				if(theSymbol) return theSymbol;
 				return SAO_NULL;
-		}
-//		if(c=='\"'){
-//			//TODO improve unlimited and unescape one
-//			//return sao_read_str(fw);//
-//			char buf[MAX_BUF_LEN]; int i = 0; int c;//TODO support longer string..
-//			while ((c = sao_deq_c(fw)) != '\"') {//TODO not yet handling the \\" which to excape the "
-//				if (c == SAO_EOF) return SAO_NULL;
-//				if (i >= MAX_BUF_LEN) sao_error("String too long - maximum length %d characters",MAX_BUF_LEN);
-//				buf[i++] = (char) c;
-//			}
-//			buf[i] = '\0';
-//			//p_sao_obj theSymbol = sao_new_string(buf);
-//			//return theSymbol;
-//			return sao_new_string(buf);
-//		}
-		if (c == ';' || c=='#' || (c=='/'&&'/'==sao_peek(fw))){ sao_comment(fw); continue; }
-		if (c == '^'){
-			return cons(SAO_TAG_quote, cons(sao_load_expr(fw), SAO_NULL));
-		}//shortcut of quote
-		if (c!='('&&c!=')')
-		{
-			char buf[MAX_BUF_LEN];
-			buf[0] = c;
-			int i = 1;
-			int cc;
-			while (cc=sao_peek(fw),
-					!libc(strchr)(" \t(),\r\n", cc)//stop when these meet
-					)
-			{
-				if (i >= MAX_BUF_LEN) sao_error("Symbol name too long - maximum length %d characters",MAX_BUF_LEN);
-				buf[i++] = sao_deq_c(fw);
-			}
-			buf[i] = '\0';
-			theSymbol = sao_str_convert(buf);
-			
-			if(SAO_ARGV(l)){ return theSymbol; }//LISP
-			else{
-				//if(libc(strchr)(" \t\r\n(", sao_peek(fw)))continue;
-				//if(libc(strchr)(" \t", sao_peek(fw)))continue;
-				//while( (libc(strchr)(" \t", sao_peek(fw))) ) c = sao_deq_c(fw);
-				if(libc(strchr)("\r\n\t ", sao_peek(fw)))continue;
-				//if (c!='(') return theSymbol;
-				//while(' '==sao_peek(fw)) c = sao_deq_c(fw);//TODO support \t later
-				if('('==sao_peek(fw)){
-					c = sao_deq_c(fw);//jump next
-				}else{
+			default:
+				{
+					char buf[MAX_BUF_LEN];
+					buf[0] = c;
+					int i = 1;
+					int cc;
+					while (cc=sao_peek(fw),
+							!libc(strchr)(" \t(),\r\n", cc)//stop when these meet
+							)
+					{
+						if (i >= MAX_BUF_LEN) sao_error("Symbol name too long - maximum length %d characters",MAX_BUF_LEN);
+						buf[i++] = sao_deq_c(fw);
+					}
+					buf[i] = '\0';
+					theSymbol = sao_str_convert(buf);
+
+					if (libc(strchr)(" \t\r\n(", sao_peek(fw))) continue;
 					return theSymbol;
 				}
-//				if(libc(strchr)(" \t\r\n(", sao_peek(fw)))continue;
-//				return theSymbol;
-			}
 		}
-		if (c == '(') {
-			p_sao_obj list = sao_read_list(fw);
-			if(SAO_ARGV(l)){ return list; }//LISP
-			list = cons(theSymbol,list);
-			return list;
-		}
-		//if(theSymbol) return theSymbol;
-		if (c == ')') {
-			return SAO_NULL; //TODO check depth, and should return error if the pracket is not correct
-		}
-		if(theSymbol) return theSymbol;
-		//return SAO_NULL;
 	}
-	return SAO_NULL;
+	//return SAO_NULL;
+	return theSymbol;
 }
 //#define REDESIGN 1 //for redesign (stage 1: left only list/expr ?
 #ifdef REDESIGN

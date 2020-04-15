@@ -12,7 +12,6 @@ cmp(3 3) #true
 not(3 3) #false
 
 var
-
 (
 	fib(n),if(lt(n,3),1,add(fib(sub(n,1)),fib(sub(n,2))))
 )
