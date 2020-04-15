@@ -37,7 +37,7 @@
 #define SAO_ITR1(mmm,mm1,qqq,...) SAO_EVAL( SAO_WHILE1( mmm,mm1,qqq,__VA_ARGS__) )
 //////////////////////////////////////////////////////////////////////////////
 #define DEFINE_ENUM_LIBC(n) libc_##n,
-enum { SAO_ITR(DEFINE_ENUM_LIBC,fprintf,malloc,memset,memcpy,strcpy,strlen,strdup,strcmp,strchr,strcat,printf,putc,getc,isalnum,isdigit,isalpha,fopen,fread,fgets,fclose,feof,fputc,fflush,free,system,atol,atoi,  usleep,msleep,sleep,setmode,fileno,stdin,stdout,stderr,microtime,exit) };
+enum { SAO_ITR(DEFINE_ENUM_LIBC,fprintf,malloc,memset,memcpy,strcpy,strlen,strdup,strcmp,strchr,strcat,printf,putc,getc,isalnum,isdigit,isalpha,fopen,fread,fgets,fclose,feof,fputc,fflush,free,system,atol,atoi,atof,  usleep,msleep,sleep,setmode,fileno,stdin,stdout,stderr,microtime,exit) };
 #define libc(f) libc_(libc_##f,#f)
 #include "ffic.h" //github.com/partnernetsoftware/ffic/blob/master/src/ffic.h
 ffic_func libc_a[libc_exit+1];
@@ -81,7 +81,7 @@ struct _sao_obj {
 		//struct {
 			union{ void* ptr; type_t _type; };
 			ffic_string _raw;
-			//union {
+			//union tre
 			//	struct { p_sao_obj car; p_sao_obj cdr; }; 
 			//	struct { p_sao_obj* _vector; long _len; };
 			//	struct { p_sao_obj* _table; long _size; };
@@ -110,8 +110,10 @@ p_sao_obj sao_new(sao_obj tpl) {
 			ret->_table = SAO_NEW_C(p_sao_obj,ret->_size);break;//
 		case type_native: //TODO
 			break;
+
 		case type_double:
 		case type_integer:
+
 		case type_list://TODO
 			break;
 		case type_ctype://TODO wrapping up the ffic
@@ -356,6 +358,42 @@ p_sao_obj sao_read_list(sao_stream * fw)
 //	return sao_new_string(buf);
 //}
 void sao_comment(sao_stream * fw) { int c; for (;;) { c = sao_deq_c(fw); if (c == '\n' || c == SAO_EOF) return; } }
+p_sao_obj sao_default_convert(ffic_string str){
+	//sao_stdout("DEBUG sao_default_convert %s\n",str);
+	if(str){
+		if(str[0]=='"'){
+			return sao_new_string(str);
+		}else if(str[0]=='-'||sao_is_digit(str[0])){
+			long l_val = (long) libc(atol)(str);
+			int i_val = (long) libc(atoi)(str);
+			//sao_stdout("DEBUG sao_default_convert=%s,l_val=%ld,i_val=%d\n",str,l_val,i_val);
+			//typedef double (*ffic_func_f)();
+			//ffic_func_f atof = (ffic_func_f) libc(atof);
+			//double eps = 0.0000001;
+			////convert to symbol/interger/number
+			////double d_val = (double) libc(atof)(str);
+			//double d_val = atof(str);
+			////sao_stdout("DEBUG sao_default_convert=%s,l_val=%ld,i_val=%d\n",str,l_val,i_val);
+			////sao_stdout("DEBUG sao_default_convert=%s,l_val=%ld,d_val=%f,i_val=%d\n",str,l_val,d_val,i_val);
+			//double d_diff = d_val - (double)1.0 * (double)l_val;
+			//sao_stdout("DEBUG sao_default_convert=%s,l_val=%ld,d_val=%g,i_val=%d\n",str,l_val,d_val,i_val);
+			//if( d_diff>-eps && d_diff<eps ){
+			//	sao_stdout("DEBUG todo sao_new_double(%g)",d_val);
+			//	//return sao_new_double(d_val);//TMP
+			//}else{
+			//}
+			//return sao_new_integer(1);//TMP
+			//return sao_new_symbol(str);
+			p_sao_obj rt = sao_new_integer(l_val);
+			rt->_raw = str;//TODO..
+			return rt;
+		}else{
+			return sao_new_symbol(str);
+		}
+	}
+	return SAO_NULL;
+}
+p_sao_obj(*sao_str_convert)(ffic_string) = sao_default_convert;
 p_sao_obj sao_load_expr(sao_stream * fw) //TODO add ,depth ?
 {
 #define MAX_BUF_LEN 2048
@@ -387,6 +425,7 @@ p_sao_obj sao_load_expr(sao_stream * fw) //TODO add ,depth ?
 					}
 					buf[i] = '\0';
 					p_sao_obj theSymbol = sao_new_string(buf);
+					//p_sao_obj theSymbol = sao_str_convert(buf);
 					//theSymbol->_raw = libc(strdup)(buf);
 					return theSymbol;
 				}
@@ -413,7 +452,8 @@ p_sao_obj sao_load_expr(sao_stream * fw) //TODO add ,depth ?
 				buf[i++] = sao_deq_c(fw);
 			}
 			buf[i] = '\0';
-			theSymbol = sao_new_symbol(buf);
+			theSymbol = sao_str_convert(buf);
+			//theSymbol = sao_new_symbol(buf);
 			//theSymbol->_raw = libc(strdup)(buf);
 			
 			if(SAO_ARGV(l)){ return theSymbol; }//LISP
@@ -455,12 +495,8 @@ p_sao_obj sao_load_expr(sao_stream * fw) //TODO add ,depth ?
 	}
 	return SAO_NULL;
 }
-p_sao_obj_v sao_default_convert(ffic_string str){
-	//convert to symbol/interger/number
-	return SAO_NULL;
-}
 #define sao_add_sym_x(x) SAO_TAG_##x=sao_new_symbol(#x);sao_var(SAO_TAG_##x,SAO_TAG_##x,SAO_TAG_global);
-#define REDESIGN 1 //for redesign (stage 1: left only list/expr ?
+//#define REDESIGN 1 //for redesign (stage 1: left only list/expr ?
 #ifdef REDESIGN
 p_sao_obj sao_eval(p_sao_obj exp, p_sao_obj ctx) { return exp; }
 void sao_out_expr(ffic_string str, p_sao_obj el){
@@ -550,7 +586,8 @@ void sao_out_expr(ffic_string str, p_sao_obj el){
 //			sao_stdout("<table %d>", el->_size); break;
 		default:
 			//sao_stdout("%s", el->_string); break;
-			sao_stdout("<%s(%s)>", el->_raw,type_names[el->_type]); break;
+			//sao_stdout("<%s(%s)>", el->_raw,type_names[el->_type]); break;
+			sao_stdout("<%s>", el->_raw); break;
 	}
 }
 #else

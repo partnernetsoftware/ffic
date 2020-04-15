@@ -10,10 +10,9 @@ Release repo of [SaoLang](https://search.ipaustralia.gov.au/trademarks/search/vi
 # Spec
 
 ```
-Symbol(...Symbol)
-
-Yup, nothing else.
-
+Expr => Atom || List
+List => Atom(...Expr)
+Atom => Null || String || Symbol || Number
 ```
 
 # Quick Example
