@@ -162,15 +162,9 @@ p_sao_obj sao_is_tagged(p_sao_obj cell, p_sao_obj tag) { return sao_is_list(cell
 int sao_list_len(p_sao_obj expr) { return (expr) ? (1+sao_list_len(cdr(expr))):0; } //TODO improve ?
 int sao_deq_c(sao_stream *fw)
 {
-	//int c = -2;//
 	int c = '\n';//
-	//int c = 0;//
 	FileChar * ptr_head = fw->ptr_head;
 	if(ptr_head!=SAO_NULL){ c = ptr_head->c; fw->ptr_head=ptr_head->ptr_next; }
-	//if(c==-2){
-	//	sao_stdout("[WARN sao_deq_c -2]\n");
-	//}
-	//sao_stdout("[%d]",c);
 	return c;
 }
 int sao_enq_c(sao_stream* fw,int k){
@@ -282,8 +276,6 @@ p_sao_obj sao_var(p_sao_obj var, p_sao_obj val, p_sao_obj ctx)
 	frame->cdr = cons(val, cdr(frame));
 	return val;
 }
-////char type_symbolS[] = "~!@#$%^&*_-+\\:.<>|{}[]?=/";
-//char type_symbolS[] = "~!@#$%&*_-+\\:.<>|{}[]?=/";
 sao_stream * sao_stream_new(void* fp,stream_t type)
 {
 	SAO_NEW_OBJECT(sao_stream,fw);
@@ -317,7 +309,6 @@ void sao_comment(sao_stream * fw) { int c; for (;;) { c = sao_deq_c(fw); if (c =
 typedef double (*ffic_func_f)();
 double d_eps = 0.0000001;
 p_sao_obj sao_default_convert(ffic_string str){
-
 	if(str){
 		if(str[0]=='"'){
 			return sao_new_string(str);
@@ -330,13 +321,11 @@ p_sao_obj sao_default_convert(ffic_string str){
 			double d_diff = (d_val - l_val);
 			p_sao_obj rt;
 			if(d_diff>=-d_eps && d_diff<=d_eps){
-				//sao_stdout("DEBUG LONG d_val=%g,l_val=%d,d_diff=%g\n",d_val,l_val,d_diff);
 				rt = sao_new_integer(l_val);
 			}else{
 				rt = sao_new_double(d_val);
-				//sao_stdout("DEBUG DOUBLE d_val=%g,l_val=%d,d_diff=%g\n",d_val,l_val,d_diff);
 			}
-			rt->_raw = str;//TODO..
+			rt->_raw = str;
 			return rt;
 		}else{
 			return sao_new_symbol(str);
@@ -345,7 +334,7 @@ p_sao_obj sao_default_convert(ffic_string str){
 	return SAO_NULL;
 }
 p_sao_obj(*sao_str_convert)(ffic_string) = sao_default_convert;
-#define SAO_MAX_BUF_LEN 2048
+#define SAO_MAX_BUF_LEN 2048 //TODO support longer string..
 p_sao_obj sao_load_expr(sao_stream * fw) //TODO add ,depth ?
 {
 	int c;
@@ -368,7 +357,7 @@ p_sao_obj sao_load_expr(sao_stream * fw) //TODO add ,depth ?
 				return cons(SAO_TAG_quote, cons(sao_load_expr(fw), SAO_NULL));
 			case '\"':
 				{
-					char buf[SAO_MAX_BUF_LEN] = {0}; int i = 0; int c;//TODO support longer string..
+					char buf[SAO_MAX_BUF_LEN] = {0}; int i = 0; int c;
 					while ((c = sao_deq_c(fw)) != '\"') {//TODO not yet handling the \\" which to excape the "
 						if (c == SAO_EOF) return SAO_NULL;
 						if (i >= SAO_MAX_BUF_LEN) sao_error("String too long - maximum length %d characters",SAO_MAX_BUF_LEN);

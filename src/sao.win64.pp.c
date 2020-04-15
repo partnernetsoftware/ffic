@@ -831,7 +831,7 @@ p_sao_obj sao_parse( sao_stream * fw, p_sao_obj ctx ) {
  }
  return rt;
 }
-void print_version(){ libc_(libc_printf,"printf")(" SaoLang (R) v" "0.0.7" " - Wanjo Chan (c) 2020\n"); }
+void print_version(){ libc_(libc_printf,"printf")(" SaoLang (R) v" "0.0.8" " - Wanjo Chan (c) 2020\n"); }
 void print_help(){ libc_(libc_printf,"printf")("Usage	 : sao [options] [script.sao | -]]\nOptions	 :\n	h:	Help\n	v:	Version\n	i:	Interactive\n	p:	Print final result\n	d:	Dev only\n	e:	Eval\n	s:	Strict mode\n	l:	Lisp syntax\n"); }
 int main(int argc,char **argv, char** envp) {
  ffic_func strcmp = libc_(libc_strcmp,"strcmp");
