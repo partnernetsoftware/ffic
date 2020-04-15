@@ -38,6 +38,7 @@
 //////////////////////////////////////////////////////////////////////////////
 #define DEFINE_ENUM_LIBC(n) libc_##n,
 enum { SAO_ITR(DEFINE_ENUM_LIBC,fprintf,malloc,memset,memcpy,strcpy,strlen,strdup,strcmp,strchr,strcat,printf,putc,getc,isalnum,isdigit,isalpha,fopen,fread,fgets,fclose,feof,fputc,fflush,free,system,atol,atoi,atof,  usleep,msleep,sleep,setmode,fileno,stdin,stdout,stderr,microtime,exit) };
+//https://github.com/CheezeCake/string.asm/blob/master/src/x86/strchr.s
 #define libc(f) libc_(libc_##f,#f)
 #include "ffic.h" //github.com/partnernetsoftware/ffic/blob/master/src/ffic.h
 ffic_func libc_a[libc_exit+1];
@@ -161,9 +162,15 @@ p_sao_obj sao_is_tagged(p_sao_obj cell, p_sao_obj tag) { return sao_is_list(cell
 int sao_list_len(p_sao_obj expr) { return (expr) ? (1+sao_list_len(cdr(expr))):0; } //TODO improve ?
 int sao_deq_c(sao_stream *fw)
 {
-	int c = -2;//
+	//int c = -2;//
+	int c = '\n';//
+	//int c = 0;//
 	FileChar * ptr_head = fw->ptr_head;
 	if(ptr_head!=SAO_NULL){ c = ptr_head->c; fw->ptr_head=ptr_head->ptr_next; }
+	//if(c==-2){
+	//	sao_stdout("[WARN sao_deq_c -2]\n");
+	//}
+	//sao_stdout("[%d]",c);
 	return c;
 }
 int sao_enq_c(sao_stream* fw,int k){
@@ -275,8 +282,8 @@ p_sao_obj sao_var(p_sao_obj var, p_sao_obj val, p_sao_obj ctx)
 	frame->cdr = cons(val, cdr(frame));
 	return val;
 }
-//char type_symbolS[] = "~!@#$%^&*_-+\\:.<>|{}[]?=/";
-char type_symbolS[] = "~!@#$%&*_-+\\:.<>|{}[]?=/";
+////char type_symbolS[] = "~!@#$%^&*_-+\\:.<>|{}[]?=/";
+//char type_symbolS[] = "~!@#$%&*_-+\\:.<>|{}[]?=/";
 sao_stream * sao_stream_new(void* fp,stream_t type)
 {
 	SAO_NEW_OBJECT(sao_stream,fw);
@@ -294,11 +301,6 @@ int sao_peek(sao_stream * fw)
 	return c;
 }
 // TODO read number(expecially float/double)
-int sao_read_int(sao_stream * fw, int start)
-{
-	while ( sao_is_digit(sao_peek(fw)) ) start = start * 10 + (sao_deq_c(fw) - '0');
-	return start;
-}
 p_sao_obj sao_read_list(sao_stream * fw)
 {
 	p_sao_obj obj;
@@ -347,21 +349,25 @@ p_sao_obj sao_load_expr(sao_stream * fw) //TODO add ,depth ?
 {
 #define MAX_BUF_LEN 2048
 	int c;
+	p_sao_obj theSymbol = SAO_NULL;
 	for (;;) {
-		//p_sao_obj theSymbol = SAO_NULL;
 		c = sao_deq_c(fw);
 		switch(c){
-			case SAO_EOF:
-				return SAO_NULL;
-			case -2:
-				sao_read_line(fw);continue;
 			case '\n':
 			case '\r':
+				sao_read_line(fw);continue;
 			case ' ':
 			case '\t':
 			case 0:
 			case ',':
 				continue;
+//			case '(':
+//				{
+//					p_sao_obj list = sao_read_list(fw);
+//					if(SAO_ARGV(l)){ return list; }//LISP
+//					list = cons(theSymbol,list);
+//					return list;
+//				}
 			case '\"':
 				{
 					//TODO improve unlimited and unescape one
@@ -373,26 +379,41 @@ p_sao_obj sao_load_expr(sao_stream * fw) //TODO add ,depth ?
 						buf[i++] = (char) c;
 					}
 					buf[i] = '\0';
-					p_sao_obj theSymbol = sao_new_string(buf);
-					return theSymbol;
+					//p_sao_obj theSymbol = sao_new_string(buf);
+					//return theSymbol;
+					return sao_new_string(buf);
 				}
+			case SAO_EOF:
+				if(theSymbol) return theSymbol;
+				return SAO_NULL;
 		}
+//		if(c=='\"'){
+//			//TODO improve unlimited and unescape one
+//			//return sao_read_str(fw);//
+//			char buf[MAX_BUF_LEN]; int i = 0; int c;//TODO support longer string..
+//			while ((c = sao_deq_c(fw)) != '\"') {//TODO not yet handling the \\" which to excape the "
+//				if (c == SAO_EOF) return SAO_NULL;
+//				if (i >= MAX_BUF_LEN) sao_error("String too long - maximum length %d characters",MAX_BUF_LEN);
+//				buf[i++] = (char) c;
+//			}
+//			buf[i] = '\0';
+//			//p_sao_obj theSymbol = sao_new_string(buf);
+//			//return theSymbol;
+//			return sao_new_string(buf);
+//		}
 		if (c == ';' || c=='#' || (c=='/'&&'/'==sao_peek(fw))){ sao_comment(fw); continue; }
-		//if (c == '\''){ return cons(SAO_TAG_quote, cons(sao_load_expr(fw), SAO_NULL)); }
 		if (c == '^'){
 			return cons(SAO_TAG_quote, cons(sao_load_expr(fw), SAO_NULL));
 		}//shortcut of quote
-		p_sao_obj theSymbol = SAO_NULL;
 		if (c!='('&&c!=')')
-		//if (sao_is_alpha(c) || libc(strchr)(type_symbolS, c))
 		{
-			//if (sao_is_digit(c)) return sao_new_integer(sao_read_int(fw, c - '0'));
-			//if (c == '-' && sao_is_digit(sao_peek(fw))) return sao_new_integer(-1*sao_read_int(fw, c - '0'));
 			char buf[MAX_BUF_LEN];
 			buf[0] = c;
 			int i = 1;
 			int cc;
-			while (cc=sao_peek(fw),sao_is_alphanumber(cc) || libc(strchr)(type_symbolS, cc))
+			while (cc=sao_peek(fw),
+					!libc(strchr)(" \t(),\r\n", cc)//stop when these meet
+					)
 			{
 				if (i >= MAX_BUF_LEN) sao_error("Symbol name too long - maximum length %d characters",MAX_BUF_LEN);
 				buf[i++] = sao_deq_c(fw);
@@ -402,14 +423,8 @@ p_sao_obj sao_load_expr(sao_stream * fw) //TODO add ,depth ?
 			
 			if(SAO_ARGV(l)){ return theSymbol; }//LISP
 			else{
-				while( (libc(strchr)(" \t", sao_peek(fw))) ) c = sao_deq_c(fw);
-				//if (c!='(') return theSymbol;
-				//while(' '==sao_peek(fw)) c = sao_deq_c(fw);//TODO support \t later
-				if('('==sao_peek(fw)){
-					c = sao_deq_c(fw);//jump next
-				}else{
-					return theSymbol;
-				}
+				if(libc(strchr)(" \t\r\n(", sao_peek(fw)))continue;
+				return theSymbol;
 			}
 		}
 		if (c == '(') {
@@ -418,12 +433,11 @@ p_sao_obj sao_load_expr(sao_stream * fw) //TODO add ,depth ?
 			list = cons(theSymbol,list);
 			return list;
 		}
+		//if(theSymbol) return theSymbol;
 		if (c == ')') {
 			return SAO_NULL; //TODO check depth, and should return error if the pracket is not correct
 		}
-		//TODO parsing interger/number need upgrade algo soon:
-		//if (sao_is_digit(c)) return sao_new_integer(sao_read_int(fw, c - '0'));
-		//if (c == '-' && sao_is_digit(sao_peek(fw))) return sao_new_integer(-1*sao_read_int(fw, c - '0'));
+		return SAO_NULL;
 	}
 	return SAO_NULL;
 }
@@ -486,7 +500,7 @@ void sao_out_expr(ffic_string str, p_sao_obj el){
 #include "libsaolang.c" //@ref sao_eval() and saolang_init() 
 #endif
 p_sao_obj sao_parse( sao_stream * fw, p_sao_obj ctx ) {
-	sao_read_line(fw);
+	//sao_read_line(fw);
 	ffic_u64 (*microtime)() = ( ffic_u64(*)() ) libc(microtime);
 	p_sao_obj rt = SAO_NULL;
 	p_sao_obj exp;
