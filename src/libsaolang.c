@@ -14,7 +14,7 @@ void sao_out_expr(ffic_string str, p_sao_obj el){
 	if (str) sao_stdout("%s ", str);
 	//if (!(el)) { sao_stdout("'()"); return; }//TODO
 	if (!(el)) { return; }
-	if(el->_raw) sao_stdout(" {%s<%s>} ",el->_raw,type_names[el->_type]);
+	//if(el->_raw) sao_stdout(" {%s<%s>} ",el->_raw,type_names[el->_type]);
 	switch (el->_type) {
 		case type_ctype://TODO can it be same as symbol or ctype
 			sao_stdout("<ctype>"); break;

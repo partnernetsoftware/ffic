@@ -1,5 +1,7 @@
 load("lib.sao")
 
+print("what is this");
+
 car(list(4,5)) #4
 
 caar( list(list(4,5),6) )  # 4

@@ -345,6 +345,7 @@ p_sao_obj sao_read_list(sao_stream * fw)
 void sao_comment(sao_stream * fw) { int c; for (;;) { c = sao_deq_c(fw); if (c == '\n' || c == SAO_EOF) return; } }
 p_sao_obj sao_load_expr(sao_stream * fw) //TODO add ,depth ?
 {
+#define MAX_BUF_LEN 2048
 	int c;
 	for (;;) {
 		//p_sao_obj theSymbol = SAO_NULL;
@@ -364,14 +365,16 @@ p_sao_obj sao_load_expr(sao_stream * fw) //TODO add ,depth ?
 			case '\"':
 				{
 					//return sao_read_str(fw);//
-					char buf[1024]; int i = 0; int c;//TODO support longer string..
+					char buf[MAX_BUF_LEN]; int i = 0; int c;//TODO support longer string..
 					while ((c = sao_deq_c(fw)) != '\"') {
 						if (c == SAO_EOF) return SAO_NULL;
-						if (i >= 1024) sao_error("String too long - maximum length 1024 characters");
+						if (i >= MAX_BUF_LEN) sao_error("String too long - maximum length %d characters",MAX_BUF_LEN);
 						buf[i++] = (char) c;
 					}
 					buf[i] = '\0';
-					return sao_new_string(buf);
+					p_sao_obj theSymbol = sao_new_string(buf);
+					theSymbol->_raw = libc(strdup)(buf);
+					return theSymbol;
 				}
 		}
 		if (c == ';' || c=='#' || (c=='/'&&'/'==sao_peek(fw))){ sao_comment(fw); continue; }
@@ -383,16 +386,16 @@ p_sao_obj sao_load_expr(sao_stream * fw) //TODO add ,depth ?
 		if (c!='('&&c!=')')
 		//if (sao_is_alpha(c) || libc(strchr)(type_symbolS, c))
 		{
-//			if (sao_is_digit(c)) return sao_new_integer(sao_read_int(fw, c - '0'));
-//			if (c == '-' && sao_is_digit(sao_peek(fw))) return sao_new_integer(-1*sao_read_int(fw, c - '0'));
+			//if (sao_is_digit(c)) return sao_new_integer(sao_read_int(fw, c - '0'));
+			//if (c == '-' && sao_is_digit(sao_peek(fw))) return sao_new_integer(-1*sao_read_int(fw, c - '0'));
 			//theSymbol = sao_read_symbol(fw,c);
-			char buf[1024];
+			char buf[MAX_BUF_LEN];
 			buf[0] = c;
 			int i = 1;
 			int cc;
 			while (cc=sao_peek(fw),sao_is_alphanumber(cc) || libc(strchr)(type_symbolS, cc))
 			{
-				if (i >= 1024) sao_error("Symbol name too long - maximum length 1024 characters");
+				if (i >= MAX_BUF_LEN) sao_error("Symbol name too long - maximum length %d characters",MAX_BUF_LEN);
 				buf[i++] = sao_deq_c(fw);
 			}
 			buf[i] = '\0';
@@ -413,7 +416,7 @@ p_sao_obj sao_load_expr(sao_stream * fw) //TODO add ,depth ?
 		}
 		//if (sao_is_alpha(c) || libc(strchr)(type_symbolS, c)){
 		//	theSymbol = sao_read_symbol(fw,c);
-		//	if(SAO_ARGV(l)){ return theSymbol; }
+		//	if(SAO_ARGV(l)){ return theSymbol; }//LISP
 		//	else{
 		//		while(' '==sao_peek(fw)) c = sao_deq_c(fw);//TODO support \t later
 		//		if('('==sao_peek(fw)){
@@ -430,8 +433,7 @@ p_sao_obj sao_load_expr(sao_stream * fw) //TODO add ,depth ?
 			return list;
 		}
 		if (c == ')') {
-			//TODO check depth, and should return error if the pracket is not correct
-			return SAO_NULL;
+			return SAO_NULL; //TODO check depth, and should return error if the pracket is not correct
 		}
 		//TODO parsing interger/number need upgrade algo soon:
 		//if (sao_is_digit(c)) return sao_new_integer(sao_read_int(fw, c - '0'));
@@ -440,13 +442,14 @@ p_sao_obj sao_load_expr(sao_stream * fw) //TODO add ,depth ?
 	return SAO_NULL;
 }
 #define sao_add_sym_x(x) SAO_TAG_##x=sao_new_symbol(#x);sao_var(SAO_TAG_##x,SAO_TAG_##x,SAO_TAG_global);
-//#define REDESIGN 1 //for redesign (stage 1: left only list/expr ?
+#define REDESIGN 1 //for redesign (stage 1: left only list/expr ?
 #ifdef REDESIGN
 p_sao_obj sao_eval(p_sao_obj exp, p_sao_obj ctx) { return exp; }
 void sao_out_expr(ffic_string str, p_sao_obj el){
 	if (str) sao_stdout("%s ", str);
 	//if (!(el)) { sao_stdout("'()"); return; }//TODO for quote only?
 	if (!el) { return; }
+	//if(el->_raw) sao_stdout(" {%s<%s>} ",el->_raw,type_names[el->_type]);
 	switch (el->_type) {
 		case type_list:
 			{
@@ -455,39 +458,55 @@ void sao_out_expr(ffic_string str, p_sao_obj el){
 				//	return;
 				//}
 				int skip=0;
-				p_sao_obj *t = &el;
+				p_sao_obj ptr = el;
+				//p_sao_obj *t = &el;
 				if(!SAO_ARGV(l)){
 					//if(!caller_string){
 					//	sao_stdout(" [%s] ",caller_string);
 					//}
 					//else
-					if ((*t)) {
-						if((*t)->car && type_symbol == (*t)->car->_type){
-							sao_out_expr(0, (*t)->car);//
-							skip=1;
-						}
-					}
+					//if ((*t) && (*t)->car && type_symbol == (*t)->car->_type){
+					//	sao_out_expr(0, (*t)->car);//
+					//	skip=1;
+					//}
+					//if(car(ptr)){
+						sao_out_expr(0, car(ptr));//
+						skip=1;
+					//}
 				}
 				sao_stdout("(");
-				while ((*t)) {
+				//while ((*t))
+				while (ptr)
+				{
 					if(!SAO_ARGV(l)){
 						if(skip==1){
 							skip=0;
 						}else{
 							sao_stdout(" ");
-							sao_out_expr(0, (*t)->car);
+							//sao_out_expr(0, (*t)->car);
+							sao_out_expr(0, car(ptr));
 						}
-					}else{
+					}else{//LISP
 						sao_stdout(" ");
-						sao_out_expr(0, (*t)->car);
+						//sao_out_expr(0, (*t)->car);
+						sao_out_expr(0, car(ptr));
 					}
-					if (((*t)->cdr)) {
-						if ((*t)->cdr->_type == type_list) {
-							t = &(*t)->cdr;
-						} else {
-							sao_out_expr(".", (*t)->cdr);
+					//if (((*t)->cdr))
+					if (cdr(ptr))
+					{
+						if (sao_is_list(cdr(ptr)))
+							ptr = ptr->cdr;//TODO improve
+						else {
+							sao_out_expr(".", ptr->cdr);
 							break;
 						}
+						//if ((*t)->cdr->_type == type_list)
+						//{
+						//	t = &(*t)->cdr;
+						//} else {
+						//	sao_out_expr(".", (*t)->cdr);
+						//	break;
+						//}
 					} else
 						break;
 				}
@@ -496,8 +515,8 @@ void sao_out_expr(ffic_string str, p_sao_obj el){
 			break;
 //		case type_integer:
 //			sao_stdout("%ld", el->_integer); break;
-		case type_string:
-			sao_stdout("\"%s\"", el->_string); break;
+//		case type_string:
+//			sao_stdout("\"%s\"", el->_string); break;
 
 //		case type_ctype://TODO can it be same as symbol or ctype
 //			sao_stdout("<ctype>"); break;
