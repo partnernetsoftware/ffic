@@ -32,7 +32,7 @@ void sao_out_expr(ffic_string str, p_sao_obj el){
 		case type_integer:
 			sao_stdout("%ld", el->_integer); break;
 		case type_double:
-			sao_stdout("%f", el->_double); break;
+			sao_stdout("%g", el->_double); break;
 		case type_native:
 			sao_stdout("<function>"); break;
 		case type_vector:

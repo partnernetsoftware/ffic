@@ -125,6 +125,8 @@ p_sao_obj sao_load_expr(sao_stream * fw);
 #define sao_new_symbol(s) sao_new((sao_obj){._type=type_symbol,._string=s})
 #define sao_new_string(s) sao_new((sao_obj){._type=type_string, ._string=s})
 #define sao_new_integer(i) sao_new((sao_obj){._type=type_integer, ._integer=i})
+#define sao_new_double(d) sao_new((sao_obj){._type=type_double, ._double=d})
+
 p_sao_obj cons(p_sao_obj car, p_sao_obj cdr) { p_sao_obj ret = sao_new_list(car,cdr);return ret; }
 p_sao_obj car(p_sao_obj x) { return sao_is_list(x)?x->car:SAO_NULL; }
 p_sao_obj cdr(p_sao_obj x) { return sao_is_list(x)?x->cdr:SAO_NULL; }
@@ -310,14 +312,28 @@ p_sao_obj sao_read_list(sao_stream * fw)
 	return SAO_NULL;
 }
 void sao_comment(sao_stream * fw) { int c; for (;;) { c = sao_deq_c(fw); if (c == '\n' || c == SAO_EOF) return; } }
+typedef double (*ffic_func_f)();
+double d_eps = 0.0000001;
 p_sao_obj sao_default_convert(ffic_string str){
+
 	if(str){
 		if(str[0]=='"'){
 			return sao_new_string(str);
 		}else if((str[0]=='-'&&sao_is_digit(str[1]))||sao_is_digit(str[0])){
+			ffic_func_f atof = (ffic_func_f) libc(atof);
 			long l_val = (long) libc(atol)(str);
 			int i_val = (long) libc(atoi)(str);
-			p_sao_obj rt = sao_new_integer(l_val);
+
+			double d_val = atof(str);
+			double d_diff = (d_val - l_val);
+			p_sao_obj rt;
+			if(d_diff>=-d_eps && d_diff<=d_eps){
+				//sao_stdout("DEBUG LONG d_val=%g,l_val=%d,d_diff=%g\n",d_val,l_val,d_diff);
+				rt = sao_new_integer(l_val);
+			}else{
+				rt = sao_new_double(d_val);
+				//sao_stdout("DEBUG DOUBLE d_val=%g,l_val=%d,d_diff=%g\n",d_val,l_val,d_diff);
+			}
 			rt->_raw = str;//TODO..
 			return rt;
 		}else{
@@ -456,6 +472,8 @@ void sao_out_expr(ffic_string str, p_sao_obj el){
 			break;
 		case type_integer:
 			sao_stdout("%ld", el->_integer); break;
+		case type_double:
+			sao_stdout("%g", el->_double); break;
 		case type_string:
 			sao_stdout("\"%s\"", el->_string); break;
 		default:
