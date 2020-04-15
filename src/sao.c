@@ -37,7 +37,7 @@
 #define SAO_ITR1(mmm,mm1,qqq,...) SAO_EVAL( SAO_WHILE1( mmm,mm1,qqq,__VA_ARGS__) )
 //////////////////////////////////////////////////////////////////////////////
 #define DEFINE_ENUM_LIBC(n) libc_##n,
-enum { SAO_ITR(DEFINE_ENUM_LIBC,fprintf,malloc,memset,memcpy,strcpy,strlen,strdup,strcmp,strchr,strcat,printf,putc,getc,isalnum,isdigit,isalpha,fopen,fread,fgets,fclose,feof,fputc,fflush,free,system,  usleep,msleep,sleep,setmode,fileno,stdin,stdout,stderr,microtime,exit) };
+enum { SAO_ITR(DEFINE_ENUM_LIBC,fprintf,malloc,memset,memcpy,strcpy,strlen,strdup,strcmp,strchr,strcat,printf,putc,getc,isalnum,isdigit,isalpha,fopen,fread,fgets,fclose,feof,fputc,fflush,free,system,atol,atoi,  usleep,msleep,sleep,setmode,fileno,stdin,stdout,stderr,microtime,exit) };
 #define libc(f) libc_(libc_##f,#f)
 #include "ffic.h" //github.com/partnernetsoftware/ffic/blob/master/src/ffic.h
 ffic_func libc_a[libc_exit+1];
@@ -65,21 +65,32 @@ define_map(stream, file,char);
 define_map(type, list,integer,double,symbol,string,native,vector,table,ctype);
 typedef struct _sao_obj sao_obj,*p_sao_obj;
 typedef p_sao_obj (*native_t)(p_sao_obj );
+#define SAO_OBJ_V union {\
+	struct { p_sao_obj car; p_sao_obj cdr; }; \
+	struct { p_sao_obj* _vector; long _len; };\
+	struct { p_sao_obj* _table; long _size; };\
+	struct { ffic_string _string; long _depth;};\
+	struct { native_t _native; ffic_string _ffi;};\
+	long _integer;\
+	double _double;\
+}
+typedef SAO_OBJ_V sao_obj_v, *p_sao_obj_v;
 struct _sao_obj {
 	//union {
 		//void* ptr3[3];//for future speed improving
 		//struct {
 			union{ void* ptr; type_t _type; };
 			ffic_string _raw;
-			union {
-				struct { p_sao_obj car; p_sao_obj cdr; }; 
-				struct { p_sao_obj* _vector; long _len; };
-				struct { p_sao_obj* _table; long _size; };
-				struct { ffic_string _string; long _depth;};
-				struct { native_t _native; ffic_string _ffi;/* $sharelib.$method */ };
-				long _integer;
-				double _double;//TODO with basic math.
-			};
+			//union {
+			//	struct { p_sao_obj car; p_sao_obj cdr; }; 
+			//	struct { p_sao_obj* _vector; long _len; };
+			//	struct { p_sao_obj* _table; long _size; };
+			//	struct { ffic_string _string; long _depth;};
+			//	struct { native_t _native; ffic_string _ffi;/* $sharelib.$method */ };
+			//	long _integer;
+			//	double _double;//TODO with basic math.
+			//};
+			SAO_OBJ_V;
 		//};
 	//};
 };
@@ -90,7 +101,9 @@ p_sao_obj sao_new(sao_obj tpl) {
 	switch(ret->_type){
 		case type_symbol:
 		case type_string:
-			ret->_string=libc(strdup)(ret->_string);break;
+			ret->_raw=libc(strdup)(ret->_string);
+			ret->_string=libc(strdup)(ret->_string);
+			break;
 		case type_vector:
 			ret->_vector = SAO_NEW_C(p_sao_obj,ret->_len);break;//
 		case type_table:
@@ -130,8 +143,8 @@ p_sao_obj sao_load_expr(sao_stream * fw);
 #define sao_is_alphanumber(c) ((long)libc(isalnum)(c))
 #define sao_new_list(a,d) sao_new((sao_obj){._type=type_list,.car=a,.cdr=d})
 #define sao_new_symbol(s) sao_new((sao_obj){._type=type_symbol,._string=s})
-#define sao_new_table(s) sao_new((sao_obj){._type=type_table, ._size=s})
 #define sao_new_string(s) sao_new((sao_obj){._type=type_string, ._string=s})
+#define sao_new_table(s) sao_new((sao_obj){._type=type_table, ._size=s})
 #define sao_new_integer(i) sao_new((sao_obj){._type=type_integer, ._integer=i})
 #define sao_new_native(x,n) sao_new((sao_obj){._type=type_native, ._native=x,._ffi=n})
 p_sao_obj cons(p_sao_obj car, p_sao_obj cdr) { p_sao_obj ret = sao_new_list(car,cdr);return ret; }
@@ -364,16 +377,17 @@ p_sao_obj sao_load_expr(sao_stream * fw) //TODO add ,depth ?
 				continue;
 			case '\"':
 				{
+					//TODO improve unlimited and unescape one
 					//return sao_read_str(fw);//
 					char buf[MAX_BUF_LEN]; int i = 0; int c;//TODO support longer string..
-					while ((c = sao_deq_c(fw)) != '\"') {
+					while ((c = sao_deq_c(fw)) != '\"') {//TODO not yet handling the \\" which to excape the "
 						if (c == SAO_EOF) return SAO_NULL;
 						if (i >= MAX_BUF_LEN) sao_error("String too long - maximum length %d characters",MAX_BUF_LEN);
 						buf[i++] = (char) c;
 					}
 					buf[i] = '\0';
 					p_sao_obj theSymbol = sao_new_string(buf);
-					theSymbol->_raw = libc(strdup)(buf);
+					//theSymbol->_raw = libc(strdup)(buf);
 					return theSymbol;
 				}
 		}
@@ -400,7 +414,7 @@ p_sao_obj sao_load_expr(sao_stream * fw) //TODO add ,depth ?
 			}
 			buf[i] = '\0';
 			theSymbol = sao_new_symbol(buf);
-			theSymbol->_raw = libc(strdup)(buf);
+			//theSymbol->_raw = libc(strdup)(buf);
 			
 			if(SAO_ARGV(l)){ return theSymbol; }//LISP
 			else{
@@ -439,6 +453,10 @@ p_sao_obj sao_load_expr(sao_stream * fw) //TODO add ,depth ?
 		//if (sao_is_digit(c)) return sao_new_integer(sao_read_int(fw, c - '0'));
 		//if (c == '-' && sao_is_digit(sao_peek(fw))) return sao_new_integer(-1*sao_read_int(fw, c - '0'));
 	}
+	return SAO_NULL;
+}
+p_sao_obj_v sao_default_convert(ffic_string str){
+	//convert to symbol/interger/number
 	return SAO_NULL;
 }
 #define sao_add_sym_x(x) SAO_TAG_##x=sao_new_symbol(#x);sao_var(SAO_TAG_##x,SAO_TAG_##x,SAO_TAG_global);
@@ -513,10 +531,10 @@ void sao_out_expr(ffic_string str, p_sao_obj el){
 				sao_stdout(")");
 			}
 			break;
-//		case type_integer:
-//			sao_stdout("%ld", el->_integer); break;
-//		case type_string:
-//			sao_stdout("\"%s\"", el->_string); break;
+		case type_integer:
+			sao_stdout("%ld", el->_integer); break;
+		case type_string:
+			sao_stdout("\"%s\"", el->_string); break;
 
 //		case type_ctype://TODO can it be same as symbol or ctype
 //			sao_stdout("<ctype>"); break;
@@ -583,23 +601,26 @@ int main(int argc,char **argv, char** envp) {
 		while(pos){
 			p_sao_obj _car = car(pos);
 			ffic_string string_or_name;
-			int i_val = 0;
+			int l_val = 0;
 			if(sao_is_list(_car)){
 				p_sao_obj _caar = car(_car);
 				string_or_name = _caar->_string;
 				p_sao_obj _cadar = car(cdr(_car));
-				i_val = (_cadar && _cadar->_type==type_integer) ? _cadar->_integer : 0;
+				//l_val = (_cadar && _cadar->_type==type_integer) ? _cadar->_integer : 0;
+				if(_cadar) l_val = (long) libc(atol)(_cadar->_raw);
 			}else{
 				string_or_name = _car->_string;
-				i_val = 1;
+				l_val = 1;
 			}
-			sao_var(sao_new_symbol(string_or_name), sao_new_integer(i_val), SAO_TAG_argv);
+			//sao_stdout("DEBUG string_or_name=%s,l_val=%ld\n",string_or_name,l_val);
+			sao_var(sao_new_symbol(string_or_name), sao_new_integer(l_val), SAO_TAG_argv);
 			int found = 0;
-			for(int i=0;i<=argt_h;i++) if(!strcmp(string_or_name,argt_names[i])){ argta[i]+=i_val; found=1;break; }
+			for(int i=0;i<=argt_h;i++) if(!strcmp(string_or_name,argt_names[i])){ argta[i]+=l_val; found=1;break; }
 			if(!found) script_file = string_or_name; else found_any++;
 			pos = cdr(pos);
 		}
 		libc(free)(fw);//
+		//sao_out_expr("DEBUG argv",SAO_TAG_argv);
 		sao_var(SAO_TAG_argv,SAO_TAG_argv,SAO_TAG_global);//for later use
 	}
 	void* fp;
