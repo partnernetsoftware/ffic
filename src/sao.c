@@ -64,6 +64,9 @@ define_map(ctype, long,double,int,float,i64,u64,string,struct,pointer);//etc TOD
 define_map(stream, file,char);
 define_map(type, list,integer,double,symbol,string,native,vector,table,ctype);
 
+//enum { SAO_ITR1(define_enum_item,n,__VA_ARGS__) 
+//define_enum_t
+
 typedef struct _sao_obj sao_obj,*p_sao_obj;
 typedef p_sao_obj (*native_t)(p_sao_obj );
 #define SAO_OBJ_V union {\
@@ -75,7 +78,7 @@ typedef p_sao_obj (*native_t)(p_sao_obj );
 	long _integer;\
 	double _double;\
 }
-struct _sao_obj { union{ void* ptr; type_t _type; }; ffic_string _raw; SAO_OBJ_V; };
+struct _sao_obj { union{ void* ptr; int _type; }; ffic_string _raw; SAO_OBJ_V; };
 
 //typedef SAO_OBJ_V sao_obj_v, *p_sao_obj_v;
 
@@ -86,23 +89,13 @@ p_sao_obj sao_new(sao_obj tpl) {
 	switch(ret->_type){
 		case type_symbol:
 		case type_string:
-			ret->_raw=libc(strdup)(ret->_string);
 			ret->_string=libc(strdup)(ret->_string);
+			ret->_raw=libc(strdup)(ret->_string);
 			break;
 		case type_vector:
 			ret->_vector = SAO_NEW_C(p_sao_obj,ret->_len);break;//
 		case type_table:
 			ret->_table = SAO_NEW_C(p_sao_obj,ret->_size);break;//
-		case type_native: //TODO
-			break;
-
-		case type_double:
-		case type_integer:
-
-		case type_list://TODO
-			break;
-		case type_ctype://TODO wrapping up the ffic
-			break;
 	}
 	return ret;
 }
@@ -131,7 +124,6 @@ p_sao_obj sao_load_expr(sao_stream * fw);
 #define sao_new_list(a,d) sao_new((sao_obj){._type=type_list,.car=a,.cdr=d})
 #define sao_new_symbol(s) sao_new((sao_obj){._type=type_symbol,._string=s})
 #define sao_new_string(s) sao_new((sao_obj){._type=type_string, ._string=s})
-#define sao_new_table(s) sao_new((sao_obj){._type=type_table, ._size=s})
 #define sao_new_integer(i) sao_new((sao_obj){._type=type_integer, ._integer=i})
 #define sao_new_native(x,n) sao_new((sao_obj){._type=type_native, ._native=x,._ffi=n})
 p_sao_obj cons(p_sao_obj car, p_sao_obj cdr) { p_sao_obj ret = sao_new_list(car,cdr);return ret; }
@@ -556,19 +548,6 @@ void sao_out_expr(ffic_string str, p_sao_obj el){
 			sao_stdout("%ld", el->_integer); break;
 		case type_string:
 			sao_stdout("\"%s\"", el->_string); break;
-
-//		case type_ctype://TODO can it be same as symbol or ctype
-//			sao_stdout("<ctype>"); break;
-//		case type_symbol:
-//			sao_stdout("%s", el->_string); break;
-//		case type_double:
-//			sao_stdout("%f", el->_double); break;
-//		case type_native:
-//			sao_stdout("<function>"); break;
-//		case type_vector:
-//			sao_stdout("<vector %d>", el->_len); break;
-//		case type_table:
-//			sao_stdout("<table %d>", el->_size); break;
 		default:
 			//sao_stdout("%s", el->_string); break;
 			//sao_stdout("<%s(%s)>", el->_raw,type_names[el->_type]); break;

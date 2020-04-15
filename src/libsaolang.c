@@ -1,6 +1,12 @@
 #define LIST_SAO_TAG true,false,set,let,var,if,lambda,begin,or,ok,else,cond,error,procedure
 SAO_ITR(define_sao_tag, SAO_EXPAND(LIST_SAO_TAG));
 
+#define sao_new_table(s) sao_new((sao_obj){._type=type_table, ._size=s})
+#define sao_new_vector(l) sao_new((sao_obj){._type=type_vector, ._len=l})
+#define sao_new_native(x,n) sao_new((sao_obj){._type=type_native, ._native=x,._ffi=n})
+#define sao_new_lambda(params,body) cons(SAO_TAG_lambda, cons(params,body))
+#define sao_new_procedure(params,body,ctx) cons(SAO_TAG_procedure, cons(params, cons(body, cons(ctx, SAO_NULL))))
+
 //TODO 
 //#include "ffic.h"
 //make libsaolang.(dylib|dll|so) for ffic loading
@@ -126,8 +132,6 @@ p_sao_obj sao_tbl_resize(p_sao_obj holder,int size){
 	}
 	return holder;
 }
-#define sao_new_lambda(params,body) cons(SAO_TAG_lambda, cons(params,body))
-#define sao_new_procedure(params,body,ctx) cons(SAO_TAG_procedure, cons(params, cons(body, cons(ctx, SAO_NULL))))
 p_sao_obj sao_eval(p_sao_obj exp, p_sao_obj ctx)
 {
 tail:
@@ -226,7 +230,7 @@ tail:
 	return SAO_NULL;
 }
 
-p_sao_obj sao_type_assert(const ffic_string func, p_sao_obj obj, type_t type)
+p_sao_obj sao_type_assert(const ffic_string func, p_sao_obj obj, int type)
 {
 	if (!obj) {
 		//sao_stderr("Invalid argument to function %s: SAO_NULL\n", func); libc(exit)(1);
@@ -413,7 +417,8 @@ p_sao_obj native_load(p_sao_obj args) { //TODO merge with native_read() 1!
 }
 p_sao_obj native_vector(p_sao_obj args) {
 	p_sao_obj sym = SAO_ASSERT_TYPE(car(args), type_integer);
-	return sao_new((sao_obj){._type=type_symbol,._len=sym->_integer});
+	//return sao_new((sao_obj){._type=type_vector,._len=sym->_integer});
+	return sao_new_vector(sym->_integer);
 }
 p_sao_obj native_vget(p_sao_obj args) {
 	p_sao_obj vct = SAO_ASSERT_TYPE(car(args), type_vector);
