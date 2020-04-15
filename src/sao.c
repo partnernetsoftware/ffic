@@ -361,7 +361,7 @@ p_sao_obj sao_load_expr(sao_stream * fw) //TODO add ,depth ?
 			case '\t':
 			case 0:
 			case ',':
-				//if(theSymbol) return theSymbol;
+				if(theSymbol) return theSymbol;
 				continue;
 //			case '(':
 //				{
@@ -427,6 +427,7 @@ p_sao_obj sao_load_expr(sao_stream * fw) //TODO add ,depth ?
 			else{
 				//if(libc(strchr)(" \t\r\n(", sao_peek(fw)))continue;
 				//if(libc(strchr)(" \t", sao_peek(fw)))continue;
+				//if(libc(strchr)("\r\n", sao_peek(fw)))continue;
 				while( (libc(strchr)(" \t", sao_peek(fw))) ) c = sao_deq_c(fw);
 				//if (c!='(') return theSymbol;
 				//while(' '==sao_peek(fw)) c = sao_deq_c(fw);//TODO support \t later
@@ -565,7 +566,7 @@ int main(int argc,char **argv, char** envp) {
 				string_or_name = _caar->_raw;
 				p_sao_obj _cadar = car(cdr(_car));
 				//l_val = (_cadar && _cadar->_type==type_integer) ? _cadar->_integer : 0;
-				if(_cadar) l_val = libc(atol)(_cadar->_raw);
+				if(_cadar) l_val = (long) libc(atol)(_cadar->_raw);
 			}else{
 				//TODO check _car null??
 				string_or_name = _car->_string;
