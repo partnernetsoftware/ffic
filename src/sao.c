@@ -335,7 +335,7 @@ p_sao_obj sao_default_convert(ffic_string str){
 }
 p_sao_obj(*sao_str_convert)(ffic_string) = sao_default_convert;
 #define SAO_MAX_BUF_LEN 2048 //TODO support longer string..
-p_sao_obj sao_load_expr(sao_stream * fw) //TODO add ,depth ?
+p_sao_obj sao_load_expr(sao_stream * fw)
 {
 	int c;
 	p_sao_obj theSymbol = SAO_NULL;
@@ -363,7 +363,6 @@ p_sao_obj sao_load_expr(sao_stream * fw) //TODO add ,depth ?
 						if (i >= SAO_MAX_BUF_LEN) sao_error("String too long - maximum length %d characters",SAO_MAX_BUF_LEN);
 						buf[i++] = (char) c;
 					}
-					//buf[i] = '\0';
 					return sao_new_string(buf);
 				}
 			case ')':
@@ -380,14 +379,11 @@ p_sao_obj sao_load_expr(sao_stream * fw) //TODO add ,depth ?
 					buf[0] = c;
 					int i = 1;
 					int cc;
-					while (cc=sao_peek(fw), !libc(strchr)(" \t(),\r\n", cc))
-					{
+					while (cc=sao_peek(fw), !libc(strchr)(" \t(),\r\n", cc)) {
 						if (i >= SAO_MAX_BUF_LEN) sao_error("Symbol name too long - maximum length %d characters",SAO_MAX_BUF_LEN);
 						buf[i++] = sao_deq_c(fw);
 					}
-					//buf[i] = '\0';
 					theSymbol = sao_str_convert(buf);
-
 					if (libc(strchr)(" \t\r\n(", sao_peek(fw))) continue;
 				}
 		}//switch
@@ -395,64 +391,7 @@ p_sao_obj sao_load_expr(sao_stream * fw) //TODO add ,depth ?
 	}
 	return theSymbol;
 }
-//#define REDESIGN 1 //for redesign (stage 1: left only list/expr ?
-#ifdef REDESIGN
-p_sao_obj sao_eval(p_sao_obj exp, p_sao_obj ctx) { return exp; }
-void sao_out_expr(ffic_string str, p_sao_obj el){
-	if (str) sao_stdout("%s ", str);
-	if (!el) { return; }
-	switch (el->_type) {
-		case type_list:
-			{
-				int skip=0;
-				p_sao_obj ptr = el;
-				if(!SAO_ARGV(l)){
-					sao_out_expr(0, car(ptr));//
-					skip=1;
-				}
-				sao_stdout("(");
-				while (ptr)
-				{
-					if(!SAO_ARGV(l)){
-						if(skip==1){
-							skip=0;
-						}else{
-							sao_stdout(" ");
-							sao_out_expr(0, car(ptr));
-						}
-					}else{//LISP
-						sao_stdout(" ");
-						sao_out_expr(0, car(ptr));
-					}
-					if (cdr(ptr))
-					{
-						if (sao_is_list(cdr(ptr)))
-							ptr = ptr->cdr;//TODO improve
-						else {
-							sao_out_expr(".", ptr->cdr);
-							break;
-						}
-					} else
-						break;
-				}
-				sao_stdout(")");
-			}
-			break;
-		case type_integer:
-			sao_stdout("%ld", el->_integer); break;
-		case type_double:
-			sao_stdout("%g", el->_double); break;
-		case type_string:
-			sao_stdout("\"%s\"", el->_string); break;
-		default:
-			//sao_stdout("%s", el->_string); break;
-			//sao_stdout("<%s(%s)>", el->_raw,type_names[el->_type]); break;
-			sao_stdout("<%s>", el->_raw); break;
-	}
-}
-#else
 #include "libsaolang.c" //@ref sao_eval() and saolang_init() 
-#endif
 p_sao_obj sao_parse( sao_stream * fw, p_sao_obj ctx ) {
 	//sao_read_line(fw);
 	ffic_u64 (*microtime)() = ( ffic_u64(*)() ) libc(microtime);
@@ -480,50 +419,40 @@ int main(int argc,char **argv, char** envp) {
 	ffic_func strcmp = libc(strcmp);
 	libc(setmode)(libc(fileno)(libc(stdin)),0x8000/*O_BINARY*/);
 	SAO_TAG_global = sao_expand(SAO_NULL, SAO_NULL, SAO_NULL);
-	//sao_out_expr("init global=",SAO_TAG_global);
 	SAO_TAG_argv = sao_expand(SAO_NULL, SAO_NULL, SAO_NULL);
 	SAO_TAG_quote=sao_new_symbol("quote");sao_var(SAO_TAG_quote,SAO_TAG_quote,SAO_TAG_global);
 	ffic_string script_file = "-";
 	int found_any = 0;
 	if(argc>1){
-		char argv_line[512] = "_(";//{'_','(',0};
+		char argv_line[512] = "_(";
 		ffic_string argv_ptr = &argv_line[2];
 		for(int i=1;i<argc;i++){ (*argv_ptr++)=' ';ffic_string wk=argv[i];while(*wk) (*argv_ptr++)=(*wk++);}
 		*argv_ptr++ = ')'; *argv_ptr++ = '\0';
-		//sao_stdout("DEBUG 001 argv_line=%s\n",argv_line);
 		sao_stream * fw = sao_stream_new(argv_line,stream_char);
 		p_sao_obj arg_expr = sao_load_expr( fw );
-		//sao_out_expr("\nDEBUG arg_expr=",arg_expr);
 		p_sao_obj pos = cdr(arg_expr);
 		while(pos){
-			//sao_out_expr("\nDEBUG pos=",pos);
 			p_sao_obj _car = car(pos);
-			//sao_out_expr("\nDEBUG _car=",_car);
 			ffic_string string_or_name=SAO_NULL;
 			long l_val = 1;
 			if(sao_is_list(_car)){
 				p_sao_obj _caar = car(_car);
 				string_or_name = _caar->_raw;
 				p_sao_obj _cadar = car(cdr(_car));
-				//l_val = (_cadar && _cadar->_type==type_integer) ? _cadar->_integer : 0;
 				if(_cadar) l_val = (long) libc(atol)(_cadar->_raw);
 			}else{
 				if(_car)
-				//string_or_name = _car->_string;
 				string_or_name = _car->_raw;
 			}
-			//sao_stdout("\nDEBUG 002 string_or_name=%s,l_val=%ld\n",string_or_name,l_val);
 			if(string_or_name){
 				sao_var(sao_new_symbol(string_or_name), sao_new_integer(l_val), SAO_TAG_argv);
 				int found = 0;
 				for(int i=0;i<=argt_h;i++) if(!strcmp(string_or_name,argt_names[i])){ argta[i]+=l_val; found=1;break; }
 				if(!found) script_file = string_or_name; else found_any++;
 			}
-			//sao_stdout("DEBUG 003 string_or_name=%s,l_val=%ld\n",string_or_name,l_val);
 			pos = cdr(pos);
 		}
 		libc(free)(fw);//
-		//sao_out_expr("DEBUG argv",SAO_TAG_argv);
 		sao_var(SAO_TAG_argv,SAO_TAG_argv,SAO_TAG_global);//for later use
 	}
 	void* fp;
@@ -539,9 +468,7 @@ int main(int argc,char **argv, char** envp) {
 	}
 	sao_stream * fw = sao_stream_new(fp,stream_file);
 	p_sao_obj ctx = SAO_NULL;
-#ifndef REDESIGN
-	ctx = saolang_init();//
-#endif
+	ctx = saolang_init();
 	p_sao_obj result = sao_parse( fw, ctx );
 	if(SAO_ARGV(p)){ sao_out_expr(0,result);sao_stdout("\n"); }
 	libc(fclose)(fp); libc(free)(fw);
