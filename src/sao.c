@@ -427,8 +427,8 @@ p_sao_obj sao_load_expr(sao_stream * fw) //TODO add ,depth ?
 			else{
 				//if(libc(strchr)(" \t\r\n(", sao_peek(fw)))continue;
 				//if(libc(strchr)(" \t", sao_peek(fw)))continue;
-				//if(libc(strchr)("\r\n", sao_peek(fw)))continue;
-				while( (libc(strchr)(" \t", sao_peek(fw))) ) c = sao_deq_c(fw);
+				//while( (libc(strchr)(" \t", sao_peek(fw))) ) c = sao_deq_c(fw);
+				if(libc(strchr)("\r\n\t ", sao_peek(fw)))continue;
 				//if (c!='(') return theSymbol;
 				//while(' '==sao_peek(fw)) c = sao_deq_c(fw);//TODO support \t later
 				if('('==sao_peek(fw)){
@@ -553,13 +553,13 @@ int main(int argc,char **argv, char** envp) {
 		//sao_stdout("DEBUG 001 argv_line=%s\n",argv_line);
 		sao_stream * fw = sao_stream_new(argv_line,stream_char);
 		p_sao_obj arg_expr = sao_load_expr( fw );
-		sao_out_expr("\nDEBUG arg_expr=",arg_expr);
+		//sao_out_expr("\nDEBUG arg_expr=",arg_expr);
 		p_sao_obj pos = cdr(arg_expr);
 		while(pos){
 			//sao_out_expr("\nDEBUG pos=",pos);
 			p_sao_obj _car = car(pos);
 			//sao_out_expr("\nDEBUG _car=",_car);
-			ffic_string string_or_name;
+			ffic_string string_or_name=SAO_NULL;
 			long l_val = 1;
 			if(sao_is_list(_car)){
 				p_sao_obj _caar = car(_car);
@@ -568,17 +568,18 @@ int main(int argc,char **argv, char** envp) {
 				//l_val = (_cadar && _cadar->_type==type_integer) ? _cadar->_integer : 0;
 				if(_cadar) l_val = (long) libc(atol)(_cadar->_raw);
 			}else{
-				//TODO check _car null??
-				string_or_name = _car->_string;
+				if(_car)
+				//string_or_name = _car->_string;
+				string_or_name = _car->_raw;
 			}
-			sao_stdout("\nDEBUG 002 string_or_name=%s,l_val=%ld\n",string_or_name,l_val);
+			//sao_stdout("\nDEBUG 002 string_or_name=%s,l_val=%ld\n",string_or_name,l_val);
 			if(string_or_name){
 				sao_var(sao_new_symbol(string_or_name), sao_new_integer(l_val), SAO_TAG_argv);
 				int found = 0;
 				for(int i=0;i<=argt_h;i++) if(!strcmp(string_or_name,argt_names[i])){ argta[i]+=l_val; found=1;break; }
 				if(!found) script_file = string_or_name; else found_any++;
 			}
-			sao_stdout("DEBUG 003 string_or_name=%s,l_val=%ld\n",string_or_name,l_val);
+			//sao_stdout("DEBUG 003 string_or_name=%s,l_val=%ld\n",string_or_name,l_val);
 			pos = cdr(pos);
 		}
 		libc(free)(fw);//

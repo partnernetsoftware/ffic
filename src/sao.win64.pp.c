@@ -354,6 +354,7 @@ p_sao_obj sao_load_expr(sao_stream * fw)
    case '\t':
    case 0:
    case ',':
+    if(theSymbol) return theSymbol;
     continue;
    case '\"':
     {
@@ -391,8 +392,12 @@ p_sao_obj sao_load_expr(sao_stream * fw)
    theSymbol = sao_str_convert(buf);
    if(argta[argt_l]){ return theSymbol; }
    else{
-    if(libc_(libc_strchr,"strchr")(" \t\r\n(", sao_peek(fw)))continue;
-    return theSymbol;
+    if(libc_(libc_strchr,"strchr")("\r\n\t ", sao_peek(fw)))continue;
+    if('('==sao_peek(fw)){
+     c = sao_deq_c(fw);
+    }else{
+     return theSymbol;
+    }
    }
   }
   if (c == '(') {
@@ -404,7 +409,7 @@ p_sao_obj sao_load_expr(sao_stream * fw)
   if (c == ')') {
    return (void*)0;
   }
-  return (void*)0;
+  if(theSymbol) return theSymbol;
  }
  return (void*)0;
 }
@@ -855,32 +860,32 @@ int main(int argc,char **argv, char** envp) {
  if(argc>1){
   char argv_line[512] = "_(";
   ffic_string argv_ptr = &argv_line[2];
-  for(int i=1;i<argc;i++){*argv_ptr++=' ';ffic_string wk=argv[i];while(*wk)*argv_ptr++=*wk++;}
+  for(int i=1;i<argc;i++){ (*argv_ptr++)=' ';ffic_string wk=argv[i];while(*wk) (*argv_ptr++)=(*wk++);}
   *argv_ptr++ = ')'; *argv_ptr++ = '\0';
   sao_stream * fw = sao_stream_new(argv_line,stream_char);
   p_sao_obj arg_expr = sao_load_expr( fw );
+  sao_out_expr("\nDEBUG arg_expr=",arg_expr);
   p_sao_obj pos = cdr(arg_expr);
   while(pos){
    p_sao_obj _car = car(pos);
-   ffic_string string_or_name="-";
-   int l_val = 0;
+   ffic_string string_or_name;
+   long l_val = 1;
    if((_car&&!_car->_type)){
     p_sao_obj _caar = car(_car);
     string_or_name = _caar->_raw;
     p_sao_obj _cadar = car(cdr(_car));
     if(_cadar) l_val = (long) libc_(libc_atol,"atol")(_cadar->_raw);
    }else{
-    if(_car){
-     string_or_name = _car->_string;
-     l_val = 1;
-    }
+    string_or_name = _car->_string;
    }
+   libc_(libc_printf,"printf")("\nDEBUG 002 string_or_name=%s,l_val=%ld\n",string_or_name,l_val);
    if(string_or_name){
     sao_var(sao_new((sao_obj){._type=type_symbol,._string=string_or_name}), sao_new((sao_obj){._type=type_integer, ._integer=l_val}), SAO_TAG_argv);
     int found = 0;
     for(int i=0;i<=argt_h;i++) if(!strcmp(string_or_name,argt_names[i])){ argta[i]+=l_val; found=1;break; }
     if(!found) script_file = string_or_name; else found_any++;
    }
+   libc_(libc_printf,"printf")("DEBUG 003 string_or_name=%s,l_val=%ld\n",string_or_name,l_val);
    pos = cdr(pos);
   }
   libc_(libc_free,"free")(fw);
