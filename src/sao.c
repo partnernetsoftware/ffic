@@ -61,22 +61,23 @@ void* sao_calloc(long _sizeof){return libc(memset)(libc(malloc)(_sizeof),0,_size
 define_map(argt, i,p,d,v,e,s,l,h);
 int argta[argt_h+1];
 #define SAO_ARGV(x) argta[argt_##x]
-define_map(ctype,  long,double,int,float,i64,u64,string,struct,pointer);//etc TODO
 define_map(stream, file,char);//
-define_map(type,   list,integer,double,symbol,string,native,vector,table,ctype);
+define_map(type,   list,long,double,symbol,string);
 
 //enum { SAO_ITR1(define_enum_item,n,__VA_ARGS__) 
 //define_enum_t
 
 typedef struct _sao_obj sao_obj,*p_sao_obj;
 typedef p_sao_obj (*native_t)(p_sao_obj );
+
+//TODO the _table can be merge to _vector....
 #define SAO_OBJ_V union {\
 	struct { p_sao_obj car; p_sao_obj cdr; }; \
 	struct { p_sao_obj* _vector; long _len; };\
 	struct { p_sao_obj* _table; long _size; };\
 	struct { ffic_string _string; long _depth;};\
 	struct { native_t _native; ffic_string _ffi;};\
-	long _integer;\
+	long _long;\
 	double _double;\
 }
 struct _sao_obj { union{ void* ptr; int _type; }; ffic_string _raw; SAO_OBJ_V; };
@@ -93,17 +94,14 @@ p_sao_obj sao_new(sao_obj tpl) {
 			ret->_string=libc(strdup)(ret->_string);
 			ret->_raw=libc(strdup)(ret->_string);
 			break;
-		case type_vector:
-			ret->_vector = SAO_NEW_C(p_sao_obj,ret->_len);break;//
-		case type_table:
-			ret->_table = SAO_NEW_C(p_sao_obj,ret->_size);break;//
+//		case type_vector:
+//			ret->_vector = SAO_NEW_C(p_sao_obj,ret->_len);break;//
+//		case type_table:
+//			ret->_table = SAO_NEW_C(p_sao_obj,ret->_size);break;//
 	}
 	return ret;
 }
 #define define_sao_tag(n) p_sao_obj SAO_TAG_##n=SAO_NULL;
-//SAO_ITR(define_sao_tag, nil,argv,global,true,false,quote,procedure);
-//SAO_ITR(define_sao_tag, nil,argv,global,true,false,quote);
-//SAO_ITR(define_sao_tag, nil,argv,global,quote);
 SAO_ITR(define_sao_tag, argv,global,quote);
 typedef struct _FileChar { int c; struct _FileChar * ptr_prev; struct _FileChar * ptr_next; } FileChar;
 typedef struct {
@@ -117,8 +115,8 @@ typedef struct {
 
 p_sao_obj sao_load_expr(sao_stream * fw);
 
-ffic_func_d atof;//= (ffic_func_d) libc(atof);
-ffic_func_l atol;//= (ffic_func_l) libc(atol);
+ffic_func_d atof;
+ffic_func_l atol;
 
 #define sao_is_list(x) (x&&!x->_type)
 #define sao_is_atom(x) (x&&x->_type)
@@ -128,7 +126,7 @@ ffic_func_l atol;//= (ffic_func_l) libc(atol);
 #define sao_new_list(a,d) sao_new((sao_obj){._type=type_list,.car=a,.cdr=d})
 #define sao_new_symbol(s) sao_new((sao_obj){._type=type_symbol,._string=s})
 #define sao_new_string(s) sao_new((sao_obj){._type=type_string, ._string=s})
-#define sao_new_integer(i) sao_new((sao_obj){._type=type_integer, ._integer=i})
+#define sao_new_long(i) sao_new((sao_obj){._type=type_long, ._long=i})
 #define sao_new_double(d) sao_new((sao_obj){._type=type_double, ._double=d})
 
 p_sao_obj cons(p_sao_obj car, p_sao_obj cdr) { p_sao_obj ret = sao_new_list(car,cdr);return ret; }
@@ -150,7 +148,7 @@ p_sao_obj sao_is_eq(p_sao_obj x, p_sao_obj y) {
 		if (!x || !y) break;
 		if (x->_type != y->_type) break;
 		switch (x->_type) {
-			case type_integer: if(x->_integer == y->_integer) return x;
+			case type_long: if(x->_long == y->_long) return x;
 			case type_symbol:
 			case type_string: if(!libc(strcmp)(x->_string, y->_string)) return x;
 			default: break;
@@ -187,11 +185,12 @@ int sao_read_line(sao_stream* fw) //TODO int * line_num
 	do{
 		if(fw->_type==stream_file){
 			if(!fw->fp) sao_error("FILE NOT FOUND?");
-			if(feof(fw->fp)){ break; }
+			if(feof(fw->fp)){ sao_enq_c(fw,SAO_EOF); break; }
 		}else{
-			if (fw->pos==0) sao_stderr("DEBUG no pos?");
+			if (fw->pos==0) sao_stderr("DEBUG no pos??");//should not see??
 			if (*(fw->pos)==0){
-				sao_stderr("DEBUG end?");
+				sao_stderr("DEBUG end??");//should not see?
+				sao_enq_c(fw,SAO_EOF);
 				break;
 			}
 		}
@@ -319,7 +318,7 @@ p_sao_obj sao_default_convert(ffic_string str){
 			double d_val = atof(str);
 			double d_diff = (d_val - l_val);
 			p_sao_obj rt;
-			rt = (d_diff>=-sao_eps && d_diff<=sao_eps) ?  sao_new_integer(l_val) : sao_new_double(d_val);
+			rt = (d_diff>=-sao_eps && d_diff<=sao_eps) ?  sao_new_long(l_val) : sao_new_double(d_val);
 			rt->_raw = str;
 			return rt;
 		}else{
@@ -440,7 +439,7 @@ int main(int argc,char **argv, char** envp) {
 				if(_car) string_or_name = _car->_raw;
 			}
 			if(string_or_name){
-				sao_var(sao_new_symbol(string_or_name), sao_new_integer(l_val), SAO_TAG_argv);
+				sao_var(sao_new_symbol(string_or_name), sao_new_long(l_val), SAO_TAG_argv);
 				int found = 0;
 				for(int i=0;i<=argt_h;i++) if(!strcmp(string_or_name,argt_names[i])){ argta[i]+=l_val; found=1;break; }
 				if(!found) script_file = string_or_name; else found_any++;

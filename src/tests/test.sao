@@ -5,10 +5,15 @@ print("what is this");
 car(list(4,5))                            # 4
 caar( list(list(4,5),6) )                 # 4
 cadar( list(list(4,5),6) )                # 5
+
 cmp(2 3)                                  # false
-not(2 3)                                  # true
+nc(2 3)                               # true
+
 cmp(3 3)                                  # true
-not(3 3)                                  # false
+nc(3 3)                               # false
+
+lt(2,3) #true
+le(2,2) #true
 
 var (
 	fib(n),if(lt(n,3),1,add(fib(sub(n,1)),fib(sub(n,2))))
@@ -17,9 +22,7 @@ fib(12)                                   # 144
 
 sum-of-squares( list(1 2 3 4) )           # 30
 
-
 c_int("12345")
-
 
 #ffi("printf")(c.int(12345))
 
