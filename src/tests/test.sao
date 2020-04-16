@@ -8,8 +8,11 @@ load("lib.sao")
 print("what is this");
 
 car(list(4,5))                            # 4
+#car(4,5)                            # 4
 caar( list(list(4,5),6) )                 # 4
+#caar( (4,5),6 )                 # 4
 cadar( list(list(4,5),6) )                # 5
+#cadar( ((4,5),6) )                # 5
 
 cmp(2 3)                                  # false
 nc(2 3)                               # true
@@ -25,7 +28,9 @@ var (
 )
 fib(12)                                   # 144
 
-sum-of-squares( list(1 2 3 4) )           # 30
+cdr( list(1 2 3 4) )
+sum_of_squares( list(1 2 3 4) )           # 30
+#sum_of_squares( (1 2 3 4) )           # 30
 
 c_int("12345")
 
