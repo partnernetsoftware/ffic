@@ -16,7 +16,7 @@ SAO_ITR(define_sao_tag, SAO_EXPAND(LIST_SAO_TAG));
 #define sao_add_sym_x(x) SAO_TAG_##x=sao_new_symbol(#x);sao_var(SAO_TAG_##x,SAO_TAG_##x,SAO_TAG_global);
 
 //TODO has bug to fix, don't use seriously.
-void sao_out_expr(ffic_string str, p_sao_obj el){
+void _sao_print(ffic_string str, p_sao_obj el){
 	if (str) sao_stdout("%s ", str);
 	//if (!(el)) { sao_stdout("'()"); return; }//TODO
 	if (!(el)) { return; }
@@ -52,7 +52,7 @@ void sao_out_expr(ffic_string str, p_sao_obj el){
 				//else
 				if ((*t)) {
 					if((*t)->car && type_symbol == (*t)->car->_type){
-						sao_out_expr(0, (*t)->car);//
+						_sao_print(0, (*t)->car);//
 						skip=1;
 					}
 				}
@@ -64,17 +64,17 @@ void sao_out_expr(ffic_string str, p_sao_obj el){
 						skip=0;
 					}else{
 						sao_stdout(" ");
-						sao_out_expr(0, (*t)->car);
+						_sao_print(0, (*t)->car);
 					}
 				}else{
 					sao_stdout(" ");
-					sao_out_expr(0, (*t)->car);
+					_sao_print(0, (*t)->car);
 				}
 				if (((*t)->cdr)) {
 					if ((*t)->cdr->_type == type_list) {
 						t = &(*t)->cdr;
 					} else {
-						sao_out_expr(".", (*t)->cdr);
+						_sao_print(".", (*t)->cdr);
 						break;
 					}
 				} else
@@ -90,8 +90,6 @@ p_sao_obj sao_not_false(p_sao_obj x) {
 	p_sao_obj rt = x;
 	if (!x || sao_is_eq(x, SAO_TAG_false)) rt = SAO_NULL;
 	else if (x->_type == type_long && x->_long == 0) rt = SAO_NULL;
-	//sao_out_expr("\nsao_not_false.x",x);
-	//sao_out_expr("\nsao_not_false.rt",rt);
 	return rt;
 }
 p_sao_obj sao_eval(p_sao_obj exp, p_sao_obj ctx);
@@ -173,11 +171,7 @@ tail:
 		}
 		else if (sao_is_eq(_car, SAO_TAG_if)) {
 			p_sao_obj predicate = sao_eval(_cadr, ctx);
-			//sao_out_expr("\npredicate._cadr=",_cadr);
-			//sao_out_expr("\npredicate=",predicate);
-			//sao_out_expr("\nsao_not_false(predicate)=",sao_not_false(predicate));
 			exp = (sao_not_false(predicate)) ? caddr(exp) : cadddr(exp);
-			//sao_out_expr("\nsao_not_false(predicate).exp=",exp);
 			goto tail;
 		}
 		else if (sao_is_eq(_car, SAO_TAG_or)) {
@@ -225,7 +219,7 @@ tail:
 			p_sao_obj args = sao_eval_list(cdr(exp), ctx);
 			if (!proc) {
 				if(SAO_ARGV(s)){
-					sao_out_expr("WARNING: Invalid arguments to sao_eval:", exp);
+					sao_print("WARNING: Invalid arguments to sao_eval:", exp);
 					sao_stdout("\n");
 				}
 				return SAO_NULL;//should null?
@@ -241,7 +235,7 @@ tail:
 		}
 	}
 	else{
-		sao_out_expr("DEBUG: unhandle atom",exp);
+		sao_print("DEBUG: unhandle atom",exp);
 	}
 	sao_stdout("\n");
 	//return SAO_TAG_false;
@@ -405,7 +399,7 @@ p_sao_obj native_shell(p_sao_obj args) {
 	return SAO_TAG_true;
 }
 p_sao_obj native_ffi(p_sao_obj args) {
-	sao_out_expr("ffi todo",args);
+	sao_print("ffi todo",args);
 	//libc(system)("ls");
 	return SAO_TAG_true;
 }
@@ -451,7 +445,7 @@ p_sao_obj native_vset(p_sao_obj args){
 	return SAO_TAG_true;
 }
 p_sao_obj native_print(p_sao_obj args) {
-	sao_out_expr(0, car(args));
+	sao_print(0, car(args));
 	sao_stdout("\n");
 	return SAO_NULL;
 }
@@ -470,6 +464,8 @@ p_sao_obj native_c_int(p_sao_obj args) {
 #define add_sym_list(n) sao_var(sao_new_symbol(#n), sao_new_native(native_##n,#n), SAO_TAG_global);
 p_sao_obj saolang_init()
 {
+	sao_print = _sao_print;
+	
 //	ffic_func printf = libc(printf);
 //	printf("saolang_init() type_ctype=%d,type_table=%d\n",type_ctype,type_table);
 

@@ -309,6 +309,72 @@ p_sao_obj sao_default_convert(ffic_string str){
 	return SAO_NULL;
 }
 p_sao_obj(*sao_str_convert)(ffic_string) = sao_default_convert;
+void sao_print_default(ffic_string str, p_sao_obj el){
+	if (str) sao_stdout("%s ", str);
+	if (!el) { return; }
+	switch (el->_type) {
+		case type_string:
+			sao_stdout("\"%s\"", el->_string); break;
+		case type_long:
+			sao_stdout("%ld", el->_long); break;
+		case type_double:
+			sao_stdout("%g", el->_double); break;
+//		case type_native:
+//			sao_stdout("<function>"); break;
+//		case type_vector:
+//			sao_stdout("<vector %d>", el->_len); break;
+//		case type_table:
+//			sao_stdout("<table %d>", el->_size); break;
+		case type_list:
+			{
+//			if (sao_is_tagged(el, SAO_TAG_procedure)) {
+//				sao_stdout("<closure>");//TODO mereg with lambda?
+//				return;
+//			}
+				int skip=0;
+				p_sao_obj *t = &el;
+				if(!SAO_ARGV(l)){
+					//if(!caller_string){
+					//	sao_stdout(" [%s] ",caller_string);
+					//}
+					//else
+					if ((*t)) {
+						if((*t)->car && type_symbol == (*t)->car->_type){
+							sao_print_default(0, (*t)->car);//
+							skip=1;
+						}
+					}
+				}
+				sao_stdout("(");
+				while ((*t)) {
+					if(!SAO_ARGV(l)){
+						if(skip==1){
+							skip=0;
+						}else{
+							sao_stdout(" ");
+							sao_print_default(0, (*t)->car);
+						}
+					}else{
+						sao_stdout(" ");
+						sao_print_default(0, (*t)->car);
+					}
+					if (((*t)->cdr)) {
+						if ((*t)->cdr->_type == type_list) {
+							t = &(*t)->cdr;
+						} else {
+							sao_print_default(".", (*t)->cdr);
+							break;
+						}
+					} else
+						break;
+				}
+				sao_stdout(")");
+			}
+		default:
+			sao_stdout("%s", el->_raw); break;
+	}
+}
+void(*sao_print)(ffic_string,p_sao_obj) = sao_print_default;
 #define SAO_MAX_BUF_LEN 2048 //TODO support longer string..
 p_sao_obj sao_load_expr(sao_stream * fw)
 {
@@ -373,15 +439,15 @@ p_sao_obj sao_parse( sao_stream * fw, p_sao_obj ctx ) {
 	p_sao_obj exp;
 	while((exp=sao_load_expr(fw))){
 		if(SAO_ARGV(d)) sao_stdout("%llu: ",microtime());
-		if(SAO_ARGV(i)||SAO_ARGV(d)){ sao_out_expr("<=", exp); sao_stdout("\n"); }
+		if(SAO_ARGV(i)||SAO_ARGV(d)){ sao_print("<=", exp); sao_stdout("\n"); }
 		if (ctx){
 			rt = sao_eval(exp,ctx);
 			if(SAO_ARGV(d)) sao_stdout("%llu: ",microtime());
-			if((SAO_ARGV(i)||SAO_ARGV(d))&&rt){sao_out_expr("=>", rt); sao_stdout("\n");}
+			if((SAO_ARGV(i)||SAO_ARGV(d))&&rt){sao_print("=>", rt); sao_stdout("\n");}
 		}else{
 			rt = exp;
 			if((SAO_ARGV(i)||SAO_ARGV(d))){
-				sao_out_expr("==>", rt); sao_stdout("\n");
+				sao_print("==>", rt); sao_stdout("\n");
 			}
 		}
 	}
@@ -445,7 +511,7 @@ int main(int argc,char **argv, char** envp) {
 	p_sao_obj ctx = SAO_NULL;
 	ctx = saolang_init();
 	p_sao_obj result = sao_parse( fw, ctx );
-	if(SAO_ARGV(p)){ sao_out_expr(0,result);sao_stdout("\n"); }
+	if(SAO_ARGV(p)){ sao_print(0,result);sao_stdout("\n"); }
 	libc(fclose)(fp); libc(free)(fw);
 	return 0;
 }
