@@ -61,9 +61,9 @@ void* sao_calloc(long _sizeof){return libc(memset)(libc(malloc)(_sizeof),0,_size
 define_map(argt, i,p,d,v,e,s,l,h);
 int argta[argt_h+1];
 #define SAO_ARGV(x) argta[argt_##x]
-define_map(ctype, long,double,int,float,i64,u64,string,struct,pointer);//etc TODO
-define_map(stream, file,char);
-define_map(type, list,integer,double,symbol,string,native,vector,table,ctype);
+define_map(ctype,  long,double,int,float,i64,u64,string,struct,pointer);//etc TODO
+define_map(stream, file,char);//
+define_map(type,   list,integer,double,symbol,string,native,vector,table,ctype);
 
 //enum { SAO_ITR1(define_enum_item,n,__VA_ARGS__) 
 //define_enum_t
@@ -116,6 +116,9 @@ typedef struct {
 } sao_stream;
 
 p_sao_obj sao_load_expr(sao_stream * fw);
+
+ffic_func_d atof;//= (ffic_func_d) libc(atof);
+ffic_func_l atol;//= (ffic_func_l) libc(atol);
 
 #define sao_is_list(x) (x&&!x->_type)
 #define sao_is_atom(x) (x&&x->_type)
@@ -306,25 +309,17 @@ p_sao_obj sao_read_list(sao_stream * fw)
 	return SAO_NULL;
 }
 void sao_comment(sao_stream * fw) { int c; for (;;) { c = sao_deq_c(fw); if (c == '\n' || c == SAO_EOF) return; } }
-typedef double (*ffic_func_f)();
-double d_eps = 0.0000001;
+double sao_eps = 0.0000001;
 p_sao_obj sao_default_convert(ffic_string str){
 	if(str){
 		if(str[0]=='"'){
 			return sao_new_string(str);
-		}else if((str[0]=='-'&&sao_is_digit(str[1]))||sao_is_digit(str[0])){
-			ffic_func_f atof = (ffic_func_f) libc(atof);
-			long l_val = (long) libc(atol)(str);
-			int i_val = (long) libc(atoi)(str);
-
+		}else if((str[0]=='-'&&sao_is_digit(str[1]))||sao_is_digit(str[0])){ //TODO speed up later.
+			long l_val = atol(str);
 			double d_val = atof(str);
 			double d_diff = (d_val - l_val);
 			p_sao_obj rt;
-			if(d_diff>=-d_eps && d_diff<=d_eps){
-				rt = sao_new_integer(l_val);
-			}else{
-				rt = sao_new_double(d_val);
-			}
+			rt = (d_diff>=-sao_eps && d_diff<=sao_eps) ?  sao_new_integer(l_val) : sao_new_double(d_val);
 			rt->_raw = str;
 			return rt;
 		}else{
@@ -375,17 +370,15 @@ p_sao_obj sao_load_expr(sao_stream * fw)
 				}	
 			default:
 				{
-					char buf[SAO_MAX_BUF_LEN] = {0};
-					buf[0] = c;
-					int i = 1;
-					int cc;
+					char buf[SAO_MAX_BUF_LEN] = {c};
+					int i = 1, cc;
 					while (cc=sao_peek(fw), !libc(strchr)(" \t(),\r\n", cc)) {
 						if (i >= SAO_MAX_BUF_LEN) sao_error("Symbol name too long - maximum length %d characters",SAO_MAX_BUF_LEN);
 						buf[i++] = sao_deq_c(fw);
 					}
 					theSymbol = sao_str_convert(buf);
-					while (cc=sao_peek(fw), libc(strchr)(" \t", cc)) { sao_deq_c(fw); }//eat the empty
-					if (libc(strchr)(",\r\n(", sao_peek(fw))) continue;//need to continue
+					while (cc=sao_peek(fw), libc(strchr)(" \t", cc)) sao_deq_c(fw);
+					if (libc(strchr)(",\r\n(", sao_peek(fw))) continue;
 				}
 		}//switch
 		break;
@@ -394,7 +387,7 @@ p_sao_obj sao_load_expr(sao_stream * fw)
 }
 #include "libsaolang.c" //@ref sao_eval() and saolang_init() 
 p_sao_obj sao_parse( sao_stream * fw, p_sao_obj ctx ) {
-	//sao_read_line(fw);
+	sao_read_line(fw);
 	ffic_u64 (*microtime)() = ( ffic_u64(*)() ) libc(microtime);
 	p_sao_obj rt = SAO_NULL;
 	p_sao_obj exp;
@@ -418,6 +411,8 @@ void print_version(){ sao_stdout(" SaoLang (R) v" SAO_VERSION " - Wanjo Chan (c)
 void print_help(){ sao_stdout("Usage	 : sao [options] [script.sao | -]]\nOptions	 :\n	h:	Help\n	v:	Version\n	i:	Interactive\n	p:	Print final result\n	d:	Dev only\n	e:	Eval\n	s:	Strict mode\n	l:	Lisp syntax\n"); }
 int main(int argc,char **argv, char** envp) {
 	ffic_func strcmp = libc(strcmp);
+	atof= (ffic_func_d) libc(atof);
+	atol= (ffic_func_l) libc(atol);
 	libc(setmode)(libc(fileno)(libc(stdin)),0x8000/*O_BINARY*/);
 	SAO_TAG_global = sao_expand(SAO_NULL, SAO_NULL, SAO_NULL);
 	SAO_TAG_argv = sao_expand(SAO_NULL, SAO_NULL, SAO_NULL);
@@ -438,12 +433,11 @@ int main(int argc,char **argv, char** envp) {
 			long l_val = 1;
 			if(sao_is_list(_car)){
 				p_sao_obj _caar = car(_car);
-				string_or_name = _caar->_raw;
-				p_sao_obj _cadar = car(cdr(_car));
-				if(_cadar) l_val = (long) libc(atol)(_cadar->_raw);
+				if(_caar){ string_or_name = _caar->_raw; }
+				p_sao_obj _cadar = cadr(_car);
+				if(_cadar) l_val = atol(_cadar->_raw);
 			}else{
-				if(_car)
-				string_or_name = _car->_raw;
+				if(_car) string_or_name = _car->_raw;
 			}
 			if(string_or_name){
 				sao_var(sao_new_symbol(string_or_name), sao_new_integer(l_val), SAO_TAG_argv);
