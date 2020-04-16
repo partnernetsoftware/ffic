@@ -66,7 +66,7 @@ typedef struct _sao_obj sao_obj,*p_sao_obj;
 typedef p_sao_obj (*native_t)(p_sao_obj );
 #define SAO_OBJ_V union {\
 	struct { p_sao_obj car; p_sao_obj cdr; }; \
-	struct { p_sao_obj* _vector; long _len; };\
+/*	struct { p_sao_obj* _vector; long _len; };*/\
 	struct { p_sao_obj* _table; long _size; };\
 	struct { ffic_string _string; long _depth;};\
 	struct { native_t _native; ffic_string _ffi;};\
@@ -319,12 +319,6 @@ void sao_print_default(ffic_string str, p_sao_obj el){
 			sao_stdout("%ld", el->_long); break;
 		case type_double:
 			sao_stdout("%g", el->_double); break;
-//		case type_native:
-//			sao_stdout("<function>"); break;
-//		case type_vector:
-//			sao_stdout("<vector %d>", el->_len); break;
-//		case type_table:
-//			sao_stdout("<table %d>", el->_size); break;
 		case type_list:
 			{
 //			if (sao_is_tagged(el, SAO_TAG_procedure)) {
