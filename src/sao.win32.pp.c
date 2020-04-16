@@ -348,33 +348,33 @@ void sao_print_default(ffic_string str, p_sao_obj el){
   case type_list:
    {
     int skip=0;
-    p_sao_obj *t = &el;
+    p_sao_obj ptr = el;
     if(!argta[argt_l]){
-     if ((*t)) {
-      if((*t)->car && type_symbol == (*t)->car->_type){
-       sao_print_default(0, (*t)->car);
+     if (ptr) {
+      if(ptr->car && type_symbol == ptr->car->_type){
+       sao_print_default(0, ptr->car);
        skip=1;
       }
      }
     }
     libc_(libc_printf,"printf")("(");
-    while ((*t)) {
+    while (ptr) {
      if(!argta[argt_l]){
       if(skip==1){
        skip=0;
       }else{
        libc_(libc_printf,"printf")(" ");
-       sao_print_default(0, (*t)->car);
+       sao_print_default(0, ptr->car);
       }
      }else{
       libc_(libc_printf,"printf")(" ");
-      sao_print_default(0, (*t)->car);
+      sao_print_default(0, ptr->car);
      }
-     if (((*t)->cdr)) {
-      if ((*t)->cdr->_type == type_list) {
-       t = &(*t)->cdr;
+     if ((ptr->cdr)) {
+      if (ptr->cdr->_type == type_list) {
+       ptr = ptr->cdr;
       } else {
-       sao_print_default(".", (*t)->cdr);
+       sao_print_default(".", ptr->cdr);
        break;
       }
      } else

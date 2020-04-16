@@ -44,37 +44,35 @@ void _sao_print(ffic_string str, p_sao_obj el){
 				return;
 			}
 			int skip=0;
-			p_sao_obj *t = &el;
+			p_sao_obj ptr = el;
 			if(!SAO_ARGV(l)){
 				//if(!caller_string){
 				//	sao_stdout(" [%s] ",caller_string);
 				//}
 				//else
-				if ((*t)) {
-					if((*t)->car && type_symbol == (*t)->car->_type){
-						_sao_print(0, (*t)->car);//
+				if (ptr && ptr->car && type_symbol == ptr->car->_type){
+						_sao_print(0, ptr->car);//
 						skip=1;
-					}
 				}
 			}
 			sao_stdout("(");
-			while ((*t)) {
+			while (ptr) {
 				if(!SAO_ARGV(l)){
 					if(skip==1){
 						skip=0;
 					}else{
 						sao_stdout(" ");
-						_sao_print(0, (*t)->car);
+						_sao_print(0, ptr->car);
 					}
 				}else{
 					sao_stdout(" ");
-					_sao_print(0, (*t)->car);
+					_sao_print(0, ptr->car);
 				}
-				if (((*t)->cdr)) {
-					if ((*t)->cdr->_type == type_list) {
-						t = &(*t)->cdr;
+				if ((ptr->cdr)) {
+					if (ptr->cdr->_type == type_list) {
+						ptr = ptr->cdr;
 					} else {
-						_sao_print(".", (*t)->cdr);
+						_sao_print(".", ptr->cdr);
 						break;
 					}
 				} else

@@ -332,37 +332,35 @@ void sao_print_default(ffic_string str, p_sao_obj el){
 //				return;
 //			}
 				int skip=0;
-				p_sao_obj *t = &el;
+				p_sao_obj ptr = el;
 				if(!SAO_ARGV(l)){
 					//if(!caller_string){
 					//	sao_stdout(" [%s] ",caller_string);
 					//}
 					//else
-					if ((*t)) {
-						if((*t)->car && type_symbol == (*t)->car->_type){
-							sao_print_default(0, (*t)->car);//
+					if (ptr && ptr->car && type_symbol == ptr->car->_type){
+							sao_print_default(0, ptr->car);//
 							skip=1;
-						}
 					}
 				}
 				sao_stdout("(");
-				while ((*t)) {
+				while (ptr) {
 					if(!SAO_ARGV(l)){
 						if(skip==1){
 							skip=0;
 						}else{
 							sao_stdout(" ");
-							sao_print_default(0, (*t)->car);
+							sao_print_default(0, ptr->car);
 						}
 					}else{
 						sao_stdout(" ");
-						sao_print_default(0, (*t)->car);
+						sao_print_default(0, ptr->car);
 					}
-					if (((*t)->cdr)) {
-						if ((*t)->cdr->_type == type_list) {
-							t = &(*t)->cdr;
+					if ((ptr->cdr)) {
+						if (ptr->cdr->_type == type_list) {
+							ptr = ptr->cdr;
 						} else {
-							sao_print_default(".", (*t)->cdr);
+							sao_print_default(".", ptr->cdr);
 							break;
 						}
 					} else
@@ -509,7 +507,7 @@ int main(int argc,char **argv, char** envp) {
 	}
 	sao_stream * fw = sao_stream_new(fp,stream_file);
 	p_sao_obj ctx = SAO_NULL;
-	ctx = saolang_init();
+	ctx = saolang_init();//TODO can be override by argv:c(name)
 	p_sao_obj result = sao_parse( fw, ctx );
 	if(SAO_ARGV(p)){ sao_print(0,result);sao_stdout("\n"); }
 	libc(fclose)(fp); libc(free)(fw);
