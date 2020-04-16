@@ -22,7 +22,7 @@ void _sao_print(ffic_string str, p_sao_obj el){
 			return sao_print_default(str, el);
 	}
 
-//	if (str) sao_stdout("%s ", str);
+	if (str) sao_stdout("%s ", str);
 //	//if (!(el)) { sao_stdout("'()"); return; }//TODO
 //	if (!(el)) { return; }
 
@@ -50,14 +50,6 @@ void _sao_print(ffic_string str, p_sao_obj el){
 			int skip=0;
 			p_sao_obj ptr = el;
 			if(!SAO_ARGV(l)){
-				////if(!caller_string){
-				////	sao_stdout(" [%s] ",caller_string);
-				////}
-				////else
-				//if (ptr && ptr->car && type_symbol == ptr->car->_type){
-				//		_sao_print(0, ptr->car);//
-				//		skip=1;
-				//}
 					_sao_print(0, car(ptr));//
 					skip=1;
 			}
@@ -145,10 +137,10 @@ p_sao_obj sao_tbl_resize(p_sao_obj holder,int size){
 	}
 	return holder;
 }
-p_sao_obj _sao_eval(p_sao_obj exp, p_sao_obj ctx)
-{
+p_sao_obj _sao_eval(p_sao_obj exp, p_sao_obj ctx) {
 tail:
-	if (!(exp)) { return SAO_NULL; }
+	//sao_print("\n DEBUG _sao_eval=>",exp);
+	if (!exp) { return SAO_NULL; }
 	else if (exp->_type == type_long || exp->_type == type_string) { return exp; }//TODO
 	else if (exp->_type == type_symbol) {
 		p_sao_obj sym = sao_get_var(exp, ctx);

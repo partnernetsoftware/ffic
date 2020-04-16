@@ -323,14 +323,8 @@ void sao_print_default(ffic_string str, p_sao_obj el){
 				int skip=0;
 				p_sao_obj ptr = el;
 				if(!SAO_ARGV(l)){
-					//if (ptr && ptr->car && type_symbol == ptr->car->_type){
-					//		sao_print_default(0, ptr->car);//
-					//		skip=1;
-					//}
-					//if (car(ptr)){
 					sao_print_default(0, car(ptr));//
 					skip=1;
-					//}
 				}
 				sao_stdout("(");
 				while (ptr) {
@@ -404,7 +398,13 @@ p_sao_obj sao_load_expr(sao_stream * fw) {
 					//sao_print("\n list=>",list);
 					//sao_print("\n theSymbol=>",theSymbol);
 					//sao_print("\n cons(theSymbol,list)=>",cons(theSymbol,list));
-					return cons(theSymbol,list);
+					if(!theSymbol){
+						//sao_print("\n list=>",list);
+						theSymbol = sao_new_symbol("list");
+					}
+					p_sao_obj rt = cons(theSymbol,list);
+					//sao_print("\n rt=>",rt);
+					return rt;
 				}	
 			default:
 				{
@@ -439,10 +439,10 @@ p_sao_obj sao_parse( sao_stream * fw, p_sao_obj ctx ) {
 		if (ctx){
 			rt = sao_eval(exp,ctx);
 			if(SAO_ARGV(d)) sao_stdout("%llu: ",microtime());
-			if((SAO_ARGV(i)||SAO_ARGV(d))&&rt){sao_print("=>", rt); sao_stdout("\n");}
+			if((SAO_ARGV(i)||SAO_ARGV(d))){sao_print("=>", rt); sao_stdout("\n");}
 		}else{
 			rt = exp;
-			if((SAO_ARGV(i)||SAO_ARGV(d))){
+			if(SAO_ARGV(i)||SAO_ARGV(d)){
 				sao_print("==>", rt); sao_stdout("\n");
 			}
 		}
