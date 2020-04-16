@@ -290,7 +290,7 @@ p_sao_obj sao_read_list(sao_stream * fw)
 }
 void sao_comment(sao_stream * fw) { int c; for (;;) { c = sao_deq_c(fw); if (c == '\n' || c == SAO_EOF) return; } }
 double sao_eps = 0.0000001;
-p_sao_obj sao_default_convert(ffic_string str){
+p_sao_obj sao_convert_default(ffic_string str){
 	if(str){
 		if(str[0]=='"'){
 			return sao_new_string(str);
@@ -308,7 +308,6 @@ p_sao_obj sao_default_convert(ffic_string str){
 	}
 	return SAO_NULL;
 }
-p_sao_obj(*sao_str_convert)(ffic_string) = sao_default_convert;
 void sao_print_default(ffic_string str, p_sao_obj el){
 	if (str) sao_stdout("%s ", str);
 	if (!el) { return; }
@@ -362,7 +361,10 @@ void sao_print_default(ffic_string str, p_sao_obj el){
 			sao_stdout("%s", el->_raw); break;
 	}
 }
+p_sao_obj sao_eval_default(p_sao_obj exp, p_sao_obj ctx){ return exp; }
+p_sao_obj(*sao_str_convert)(ffic_string) = sao_convert_default;
 void(*sao_print)(ffic_string,p_sao_obj) = sao_print_default;
+p_sao_obj(*sao_eval)(p_sao_obj,p_sao_obj) = sao_eval_default;
 #define SAO_MAX_BUF_LEN 2048 //TODO support longer string..
 p_sao_obj sao_load_expr(sao_stream * fw) {
 	int c;

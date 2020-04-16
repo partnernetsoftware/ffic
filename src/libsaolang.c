@@ -96,7 +96,7 @@ p_sao_obj sao_not_false(p_sao_obj x) {
 	else if (x->_type == type_long && x->_long == 0) rt = SAO_NULL;
 	return rt;
 }
-p_sao_obj sao_eval(p_sao_obj exp, p_sao_obj ctx);
+//p_sao_obj sao_eval(p_sao_obj exp, p_sao_obj ctx);
 p_sao_obj sao_eval_list(p_sao_obj exp, p_sao_obj ctx) {
 	if (!(exp)) return SAO_NULL;
 	return cons(sao_eval(car(exp), ctx), sao_eval_list(cdr(exp), ctx));
@@ -145,7 +145,8 @@ p_sao_obj sao_tbl_resize(p_sao_obj holder,int size){
 	}
 	return holder;
 }
-p_sao_obj sao_eval(p_sao_obj exp, p_sao_obj ctx) {
+p_sao_obj _sao_eval(p_sao_obj exp, p_sao_obj ctx)
+{
 tail:
 	if (!(exp)) { return SAO_NULL; }
 	else if (exp->_type == type_long || exp->_type == type_string) { return exp; }//TODO
@@ -467,6 +468,7 @@ p_sao_obj native_c_int(p_sao_obj args) {
 p_sao_obj saolang_init()
 {
 	sao_print = _sao_print;
+	sao_eval = _sao_eval;
 	
 //	ffic_func printf = libc(printf);
 //	printf("saolang_init() type_ctype=%d,type_table=%d\n",type_ctype,type_table);
