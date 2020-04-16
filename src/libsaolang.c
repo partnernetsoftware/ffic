@@ -1,4 +1,4 @@
-#define LIST_SAO_TAG true,false,set,let,var,if,lambda,begin,or,ok,else,cond,error,procedure
+#define LIST_SAO_TAG true,false,set,let,var,if,lambda,begin,or,else,cond,error,procedure
 SAO_ITR(define_sao_tag, SAO_EXPAND(LIST_SAO_TAG));
 
 #define sao_new_table(s) sao_new((sao_obj){._type=type_table, ._size=s})
@@ -153,7 +153,7 @@ tail:
 				p_sao_obj closure = sao_eval(sao_new_lambda(cdr(_cadr), cddr(exp)), ctx);
 				sao_var(car(_cadr), closure, ctx);
 			}
-			return SAO_TAG_ok;
+			return SAO_TAG_true;
 		}
 		else if (sao_is_eq(_car, SAO_TAG_begin)) {
 			p_sao_obj args = cdr(exp);
@@ -189,7 +189,7 @@ tail:
 					sao_eval(sao_new_lambda(cdr(_cadr), cddr(exp)), ctx);
 				sao_set_var(car(_cadr), closure, ctx);
 			}
-			return SAO_TAG_ok;
+			return SAO_TAG_true;
 		}
 		else if (sao_is_eq(_car, SAO_TAG_let)) { /* convert to lambda, TODO merge with? */
 			p_sao_obj idx;
@@ -434,7 +434,7 @@ p_sao_obj native_vset(p_sao_obj args){
 	if (!(caddr(args))) return SAO_NULL;
 	if (key->_integer >= vct->_len) return SAO_NULL;
 	car(args)->_vector[key->_integer] = caddr(args);
-	return SAO_TAG_ok;
+	return SAO_TAG_true;
 }
 p_sao_obj native_print(p_sao_obj args) {
 	sao_out_expr(0, car(args));

@@ -349,9 +349,9 @@ p_sao_obj sao_load_expr(sao_stream * fw)
    case '\n':
    case '\r':
     sao_read_line(fw);continue;
+   case 0:
    case ' ':
    case '\t':
-   case 0:
    case ',':
     if(theSymbol) break;
     continue;
@@ -389,7 +389,8 @@ p_sao_obj sao_load_expr(sao_stream * fw)
       buf[i++] = sao_deq_c(fw);
      }
      theSymbol = sao_str_convert(buf);
-     if (libc_(libc_strchr,"strchr")(" \t\r\n(", sao_peek(fw))) continue;
+     while (cc=sao_peek(fw), libc_(libc_strchr,"strchr")(" \t", cc)) { sao_deq_c(fw); }
+     if (libc_(libc_strchr,"strchr")(",\r\n(", sao_peek(fw))) continue;
     }
   }
   break;
