@@ -198,11 +198,11 @@ tail:
 		}
 		else if (sao_is_eq(_car, SAO_TAG_set)) { //TODO works in current ctx
 			if (sao_is_atom(_cadr)){
-				sao_set_var(_cadr, sao_eval(caddr(exp), ctx), ctx);
+				sao_set(_cadr, sao_eval(caddr(exp), ctx), ctx);
 			} else {
 				p_sao_obj closure =
 					sao_eval(sao_new_lambda(cdr(_cadr), cddr(exp)), ctx);
-				sao_set_var(car(_cadr), closure, ctx);
+				sao_set(car(_cadr), closure, ctx);
 			}
 			return SAO_TAG_true;
 		}

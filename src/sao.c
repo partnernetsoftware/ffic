@@ -38,7 +38,6 @@
 //////////////////////////////////////////////////////////////////////////////
 #define DEFINE_ENUM_LIBC(n) libc_##n,
 enum { SAO_ITR(DEFINE_ENUM_LIBC,fprintf,malloc,memset,memcpy,strcpy,strlen,strdup,strcmp,strchr,strcat,printf,putc,getc,isalnum,isdigit,isalpha,fopen,fread,fgets,fclose,feof,fputc,fflush,free,system,atol,atoi,atof,  usleep,msleep,sleep,setmode,fileno,stdin,stdout,stderr,microtime,exit) };
-//https://github.com/CheezeCake/string.asm/blob/master/src/x86/strchr.s
 #define libc(f) libc_(libc_##f,#f)
 #include "ffic.h" //github.com/partnernetsoftware/ffic/blob/master/src/ffic.h
 ffic_func libc_a[libc_exit+1];
@@ -63,14 +62,8 @@ int argta[argt_h+1];
 #define SAO_ARGV(x) argta[argt_##x]
 define_map(stream, file,char);//
 define_map(type,   list,long,double,symbol,string);
-
-//enum { SAO_ITR1(define_enum_item,n,__VA_ARGS__) 
-//define_enum_t
-
 typedef struct _sao_obj sao_obj,*p_sao_obj;
 typedef p_sao_obj (*native_t)(p_sao_obj );
-
-//TODO the _table can be merge to _vector....
 #define SAO_OBJ_V union {\
 	struct { p_sao_obj car; p_sao_obj cdr; }; \
 	struct { p_sao_obj* _vector; long _len; };\
@@ -81,9 +74,7 @@ typedef p_sao_obj (*native_t)(p_sao_obj );
 	double _double;\
 }
 struct _sao_obj { union{ void* ptr; int _type; }; ffic_string _raw; SAO_OBJ_V; };
-
 //typedef SAO_OBJ_V sao_obj_v, *p_sao_obj_v;
-
 p_sao_obj sao_new(sao_obj tpl) {
 	//TODO gc()
 	sao_obj * ret = libc(malloc)(sizeof(sao_obj));
@@ -94,10 +85,6 @@ p_sao_obj sao_new(sao_obj tpl) {
 			ret->_string=libc(strdup)(ret->_string);
 			ret->_raw=libc(strdup)(ret->_string);
 			break;
-//		case type_vector:
-//			ret->_vector = SAO_NEW_C(p_sao_obj,ret->_len);break;//
-//		case type_table:
-//			ret->_table = SAO_NEW_C(p_sao_obj,ret->_size);break;//
 	}
 	return ret;
 }
@@ -112,12 +99,9 @@ typedef struct {
 	FileChar * ptr_head;
 	FileChar * ptr_last;
 } sao_stream;
-
 p_sao_obj sao_load_expr(sao_stream * fw);
-
 ffic_func_d atof;
 ffic_func_l atol;
-
 #define sao_is_list(x) (x&&!x->_type)
 #define sao_is_atom(x) (x&&x->_type)
 #define sao_is_digit(c) ((long)libc(isdigit)(c))
@@ -128,7 +112,6 @@ ffic_func_l atol;
 #define sao_new_string(s) sao_new((sao_obj){._type=type_string, ._string=s})
 #define sao_new_long(i) sao_new((sao_obj){._type=type_long, ._long=i})
 #define sao_new_double(d) sao_new((sao_obj){._type=type_double, ._double=d})
-
 p_sao_obj cons(p_sao_obj car, p_sao_obj cdr) { p_sao_obj ret = sao_new_list(car,cdr);return ret; }
 p_sao_obj car(p_sao_obj x) { return sao_is_list(x)?x->car:SAO_NULL; }
 p_sao_obj cdr(p_sao_obj x) { return sao_is_list(x)?x->cdr:SAO_NULL; }
@@ -141,7 +124,6 @@ p_sao_obj caddr(p_sao_obj x) { return (sao_is_list(x)&&sao_is_list(x->cdr)&&sao_
 p_sao_obj cdddr(p_sao_obj x) { return (sao_is_list(x)&&sao_is_list(x->cdr)&&sao_is_list(x->cdr->cdr))? x->cdr->cdr->cdr:SAO_NULL; }
 p_sao_obj cdadr(p_sao_obj x) { return (sao_is_list(x)&&sao_is_list(x->cdr)&&sao_is_list(x->cdr->car))? x->cdr->car->cdr:SAO_NULL; }
 p_sao_obj cadddr(p_sao_obj x) { return (sao_is_list(x)&&sao_is_list(x->cdr)&&sao_is_list(x->cdr->cdr)&&sao_is_list(x->cdr->cdr->cdr))? x->cdr->cdr->cdr->car:SAO_NULL; }
-
 p_sao_obj sao_is_eq(p_sao_obj x, p_sao_obj y) {
 	do{
 		if (x == y) return x;
@@ -158,12 +140,11 @@ p_sao_obj sao_is_eq(p_sao_obj x, p_sao_obj y) {
 }
 p_sao_obj sao_append(p_sao_obj L1, p_sao_obj L2) { return (L1)?cons(car(L1), sao_append(cdr(L1), L2)) : L2; }
 p_sao_obj sao_reverse(p_sao_obj L, p_sao_obj F) { return (!L) ? F: sao_reverse(cdr(L), cons(car(L), F)); }
-//p_sao_obj sao_is_tagged(p_sao_obj cell, p_sao_obj tag) { return (cell&&!cell->_type) ? sao_is_eq(car(cell),tag) : SAO_NULL; }
 p_sao_obj sao_is_tagged(p_sao_obj cell, p_sao_obj tag) { return sao_is_list(cell) ? sao_is_eq(car(cell),tag) : SAO_NULL; }
 int sao_list_len(p_sao_obj expr) { return (expr) ? (1+sao_list_len(cdr(expr))):0; } //TODO improve ?
 int sao_deq_c(sao_stream *fw)
 {
-	int c = '\n';//
+	int c = '\n';
 	FileChar * ptr_head = fw->ptr_head;
 	if(ptr_head!=SAO_NULL){ c = ptr_head->c; fw->ptr_head=ptr_head->ptr_next; }
 	return c;
@@ -242,8 +223,8 @@ p_sao_obj sao_get_var(p_sao_obj var, p_sao_obj ctx) {
 	}
 	return SAO_NULL;
 }
-//TODO replace var->val when found.
-p_sao_obj sao_set_var(p_sao_obj var, p_sao_obj val, p_sao_obj ctx) {
+//:replace var->val when found.
+p_sao_obj sao_set(p_sao_obj var, p_sao_obj val, p_sao_obj ctx) {
 	while ((ctx)) {
 		p_sao_obj frame = car(ctx);
 		p_sao_obj vars = car(frame);
@@ -251,7 +232,7 @@ p_sao_obj sao_set_var(p_sao_obj var, p_sao_obj val, p_sao_obj ctx) {
 		while ((vars)) {
 			if (sao_is_eq(car(vars), var)) {
 				vals->car = val;
-				return car(vals);
+				return car(vals);//
 				//return SAO_NULL;
 			}
 			vars = cdr(vars);
@@ -261,7 +242,7 @@ p_sao_obj sao_set_var(p_sao_obj var, p_sao_obj val, p_sao_obj ctx) {
 	}
 	return val;
 }
-//TODO  merge with 
+//TODO  merge with sao_set
 p_sao_obj sao_var(p_sao_obj var, p_sao_obj val, p_sao_obj ctx)
 {
 	if(!ctx) sao_error("ASSERT: sao_var() need ctx");
