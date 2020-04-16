@@ -132,8 +132,7 @@ p_sao_obj sao_tbl_resize(p_sao_obj holder,int size){
 	}
 	return holder;
 }
-p_sao_obj sao_eval(p_sao_obj exp, p_sao_obj ctx)
-{
+p_sao_obj sao_eval(p_sao_obj exp, p_sao_obj ctx) {
 tail:
 	if (!(exp)) { return SAO_NULL; }
 	else if (exp->_type == type_long || exp->_type == type_string) { return exp; }//TODO
@@ -247,7 +246,7 @@ p_sao_obj sao_type_assert(const ffic_string func, p_sao_obj obj, int type)
 #define SAO_ASSERT_TYPE(x, t) (sao_type_assert((ffic_string)__func__, x, t))
 
 p_sao_obj native_type(p_sao_obj args) { return sao_new_symbol(type_names[car(args)->_type]); }
-p_sao_obj native_global(p_sao_obj args) { return SAO_TAG_global; }
+//p_sao_obj native_global(p_sao_obj args) { return SAO_TAG_global; }
 p_sao_obj native_list(p_sao_obj args) { return (args); }
 p_sao_obj native_cons(p_sao_obj args) { return cons(car(args), cadr(args)); }
 p_sao_obj native_car(p_sao_obj args) { if(SAO_ARGV(s)) SAO_ASSERT_TYPE(car(args), type_list); return caar(args); }
@@ -470,7 +469,8 @@ p_sao_obj saolang_init()
 			atom,eq,car,cdr,cons,//function from LISP
 			);
 	SAO_ITR(add_sym_list,
-			exit,shell,ffi,global,//sys
+			exit,shell,ffi,//sys
+			//global,
 			type,cons,setcar,setcdr,//core
 			list,vector,vget,vset,//data structure
 			load,print,read,//io

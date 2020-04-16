@@ -368,8 +368,7 @@ void sao_print_default(ffic_string str, p_sao_obj el){
 }
 void(*sao_print)(ffic_string,p_sao_obj) = sao_print_default;
 #define SAO_MAX_BUF_LEN 2048 //TODO support longer string..
-p_sao_obj sao_load_expr(sao_stream * fw)
-{
+p_sao_obj sao_load_expr(sao_stream * fw) {
 	int c;
 	p_sao_obj theSymbol = SAO_NULL;
 	while( (c = sao_deq_c(fw))!=SAO_EOF ) {
@@ -416,7 +415,11 @@ p_sao_obj sao_load_expr(sao_stream * fw)
 					}
 					theSymbol = sao_str_convert(buf);
 					while (cc=sao_peek(fw), libc(strchr)(" \t", cc)) sao_deq_c(fw);
-					if (libc(strchr)(",\r\n(", sao_peek(fw))) continue;
+					if(SAO_ARGV(i)){//don't eat line mode for i mode
+						if (libc(strchr)(",(", sao_peek(fw))) continue;
+					}else{
+						if (libc(strchr)(",\r\n(", sao_peek(fw))) continue;
+					}
 				}
 		}//switch
 		break;

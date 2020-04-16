@@ -1,4 +1,9 @@
+#global()
+
 load("lib.sao")
+
+#print(global)
+global()
 
 print("what is this");
 
