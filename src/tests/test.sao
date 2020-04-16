@@ -3,7 +3,7 @@
 load("lib.sao")
 
 #print(global)
-global()
+#global()
 
 print("what is this");
 

@@ -12,21 +12,32 @@ SAO_ITR(define_sao_tag, SAO_EXPAND(LIST_SAO_TAG));
 
 //TODO has bug to fix, don't use seriously.
 void _sao_print(ffic_string str, p_sao_obj el){
-	if (str) sao_stdout("%s ", str);
-	//if (!(el)) { sao_stdout("'()"); return; }//TODO
-	if (!(el)) { return; }
+
+	if(!el) return sao_print_default(str, el);
+	switch (el->_type) {
+		case type_string:
+		case type_symbol:
+		case type_long:
+		case type_double:
+			return sao_print_default(str, el);
+	}
+
+//	if (str) sao_stdout("%s ", str);
+//	//if (!(el)) { sao_stdout("'()"); return; }//TODO
+//	if (!(el)) { return; }
+
 	//if(el->_raw) sao_stdout(" {%s<%s>} ",el->_raw,type_names[el->_type]);
 	switch (el->_type) {
 		case type_ctype://TODO can it be same as symbol or ctype
 			sao_stdout("<ctype>"); break;
-		case type_string:
-			sao_stdout("\"%s\"", el->_string); break;
-		case type_symbol:
-			sao_stdout("%s", el->_string); break;
-		case type_long:
-			sao_stdout("%ld", el->_long); break;
-		case type_double:
-			sao_stdout("%g", el->_double); break;
+//		case type_string:
+//			sao_stdout("\"%s\"", el->_string); break;
+//		case type_symbol:
+//			sao_stdout("%s", el->_string); break;
+//		case type_long:
+//			sao_stdout("%ld", el->_long); break;
+//		case type_double:
+//			sao_stdout("%g", el->_double); break;
 		case type_native:
 			sao_stdout("<function>"); break;
 		case type_table:
@@ -39,14 +50,16 @@ void _sao_print(ffic_string str, p_sao_obj el){
 			int skip=0;
 			p_sao_obj ptr = el;
 			if(!SAO_ARGV(l)){
-				//if(!caller_string){
-				//	sao_stdout(" [%s] ",caller_string);
+				////if(!caller_string){
+				////	sao_stdout(" [%s] ",caller_string);
+				////}
+				////else
+				//if (ptr && ptr->car && type_symbol == ptr->car->_type){
+				//		_sao_print(0, ptr->car);//
+				//		skip=1;
 				//}
-				//else
-				if (ptr && ptr->car && type_symbol == ptr->car->_type){
-						_sao_print(0, ptr->car);//
-						skip=1;
-				}
+					_sao_print(0, car(ptr));//
+					skip=1;
 			}
 			sao_stdout("(");
 			while (ptr) {

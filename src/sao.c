@@ -321,21 +321,17 @@ void sao_print_default(ffic_string str, p_sao_obj el){
 			sao_stdout("%g", el->_double); break;
 		case type_list:
 			{
-//			if (sao_is_tagged(el, SAO_TAG_procedure)) {
-//				sao_stdout("<closure>");//TODO mereg with lambda?
-//				return;
-//			}
 				int skip=0;
 				p_sao_obj ptr = el;
 				if(!SAO_ARGV(l)){
-					//if(!caller_string){
-					//	sao_stdout(" [%s] ",caller_string);
+					//if (ptr && ptr->car && type_symbol == ptr->car->_type){
+					//		sao_print_default(0, ptr->car);//
+					//		skip=1;
 					//}
-					//else
-					if (ptr && ptr->car && type_symbol == ptr->car->_type){
-							sao_print_default(0, ptr->car);//
-							skip=1;
-					}
+					//if (car(ptr)){
+					sao_print_default(0, car(ptr));//
+					skip=1;
+					//}
 				}
 				sao_stdout("(");
 				while (ptr) {
@@ -403,6 +399,9 @@ p_sao_obj sao_load_expr(sao_stream * fw) {
 				{
 					p_sao_obj list = sao_read_list(fw);
 					if(SAO_ARGV(l)){ return list; }//LISP
+					//sao_print("\n list=>",list);
+					//sao_print("\n theSymbol=>",theSymbol);
+					//sao_print("\n cons(theSymbol,list)=>",cons(theSymbol,list));
 					return cons(theSymbol,list);
 				}	
 			default:
@@ -510,4 +509,3 @@ int main(int argc,char **argv, char** envp) {
 	libc(fclose)(fp); libc(free)(fw);
 	return 0;
 }
-
