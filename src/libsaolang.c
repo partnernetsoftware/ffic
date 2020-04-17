@@ -69,6 +69,9 @@ void _sao_print(ffic_string str, p_sao_obj el){
 				}
 				sao_stdout(b?")":"]");
 			}
+			break;
+		default:
+			sao_stdout("<_%d>", el->_type); //
 	}
 }
 //TODO 
@@ -81,8 +84,13 @@ p_sao_obj sao_not_false(p_sao_obj x) {
 	return rt;
 }
 p_sao_obj sao_eval_list(p_sao_obj exp, p_sao_obj ctx) {
-	if (!(exp)) return SAO_NULL;
-	return cons(sao_eval(car(exp), ctx), sao_eval_list(cdr(exp), ctx));
+	if (!exp) return SAO_NULL;
+	p_sao_obj _car = sao_eval(car(exp), ctx);
+	p_sao_obj _cdr = sao_eval_list(cdr(exp), ctx);
+//	sao_print("DEBUG{",_car);
+//	sao_print(",",_car);
+//	sao_print("}",0);
+	return cons(_car, _cdr);
 }
 long sao_vector_hash(const ffic_string s, int ht_len) {
 	long h = 0;
@@ -216,31 +224,49 @@ tail:
 			goto tail;
 		}else
 		{ /* procedure( parameters, body-expr, ctx) */
+			if(!_car){
+				return exp;//
+			}
 			p_sao_obj proc = sao_eval(_car, ctx);
 			if (!proc) {
-				if(SAO_ARGV(s)){
-					sao_print("WARNING: not found correct native to run:", exp);
-					sao_stdout("\n");
-				}
+				//if(SAO_ARGV(s)){
+				sao_print("WARNING: not found correct native to run:", exp);
+				sao_stdout("\n");
+				//}
 				return SAO_NULL;
 			}
-			p_sao_obj args = sao_eval_list(cdr(exp), ctx);
-			if (proc->_type == type_native){ return proc->_native(args); }//TODO if empty native but ffi, should auto load into _native 
+			//sao_print("DEBUG 399 {",proc);
+			//sao_print(" }\n",0);
+			if (proc->_type == type_native){
+				//sao_print("DEBUG 398 {",cdr(exp));
+				//sao_print(" }\n",0);
+				p_sao_obj args = sao_eval_list(cdr(exp), ctx);
+				//sao_print("DEBUG: calling native with:{", _car);
+				//sao_stdout("}");
+				return proc->_native(args);
+			}//TODO if empty native but ffi, should auto load into _native 
 			if ( sao_is_eq(car(proc), SAO_TAG_procedure))
 			{
+				p_sao_obj args = sao_eval_list(cdr(exp), ctx);
 				ctx = sao_expand(cadr(proc), args, cadddr(proc));
 				exp = cons(SAO_TAG_begin, caddr(proc)); /* body-expr */
 				goto tail;
+			}else{
+				//sao_stdout("DEBUG 400 [%d,%d]\n",proc->_type,proc->_native);
+				//sao_print("DEBUG 400 {",proc);
+				//sao_print(" }\n",0);
+				return exp;
 			}
-			//sao_stdout("DEBUG 800 native[%d,%d]\n",proc->_type,proc->_native);
 		}
+		//sao_warn("DEBUG 400: sao_is_list SAO_NULL?\n");
 	}
 	else{
-		sao_print("DEBUG: unhandle atom",exp);
+		sao_print("DEBUG 401: unhandle atom { ",exp);
+		sao_print(" }\n",0);
 	}
-	//sao_stdout("\n");
+	sao_stdout("\n");
 	//return SAO_TAG_false;
-	return SAO_NULL;//must
+	return SAO_NULL;
 }
 
 p_sao_obj sao_type_assert(const ffic_string func, p_sao_obj obj, int type)
