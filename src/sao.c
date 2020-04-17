@@ -62,13 +62,12 @@ define_map(argt, i,p,d,v,e,s,l,h);
 int argta[argt_h+1];
 #define SAO_ARGV(x) argta[argt_##x]
 define_map(stream, file,char);//
-define_map(type,   list,long,double,symbol,string);
+define_map(type,   list,vector,long,double,symbol,string);
 typedef struct _sao_obj sao_obj,*p_sao_obj;
 typedef p_sao_obj (*native_t)(p_sao_obj );
 #define SAO_OBJ_V union {\
 	struct { p_sao_obj car; p_sao_obj cdr; }; \
-/*	struct { p_sao_obj* _vector; long _len; };*/\
-	struct { p_sao_obj* _table; long _size; };\
+	struct { p_sao_obj* _vector; long _size; };\
 	struct { ffic_string _string; long _depth;};\
 	struct { native_t _native; ffic_string _ffi;};\
 	long _long;\
@@ -90,7 +89,7 @@ p_sao_obj sao_new(sao_obj tpl) {
 	return ret;
 }
 #define define_sao_tag(n) p_sao_obj SAO_TAG_##n=SAO_NULL;
-SAO_ITR(define_sao_tag, list,argv,global,quote);
+SAO_ITR(define_sao_tag, vector,argv,global,quote);
 typedef struct _FileChar { int c; struct _FileChar * ptr_prev; struct _FileChar * ptr_next; } FileChar;
 typedef struct {
 	stream_t _type;
@@ -406,7 +405,7 @@ p_sao_obj sao_load_expr(sao_stream * fw) {
 				{
 					p_sao_obj list = sao_read_list(fw);
 					if(SAO_ARGV(l)){ return list; }//LISP SPEC
-					p_sao_obj rt = cons(SAO_TAG_list,list);
+					p_sao_obj rt = cons(SAO_TAG_vector,list);
 					return rt;
 				}
 			default:
@@ -464,8 +463,7 @@ int main(int argc,char **argv, char** envp) {
 	SAO_TAG_global = sao_expand(SAO_NULL, SAO_NULL, SAO_NULL);
 	SAO_TAG_argv = sao_expand(SAO_NULL, SAO_NULL, SAO_NULL);
 	SAO_TAG_quote=sao_new_symbol("quote");sao_var(SAO_TAG_quote,SAO_TAG_quote,SAO_TAG_global);
-	//TODO to change to type vector??
-	SAO_TAG_list=sao_new_symbol("list");sao_var(SAO_TAG_list,SAO_TAG_list,SAO_TAG_global);
+	SAO_TAG_vector=sao_new_symbol("vector");sao_var(SAO_TAG_vector,SAO_TAG_vector,SAO_TAG_global);
 
 	ffic_string script_file = "-";
 	int found_any = 0;

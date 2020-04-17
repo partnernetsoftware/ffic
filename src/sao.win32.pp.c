@@ -120,10 +120,10 @@ void* sao_calloc(long _sizeof){return libc_(libc_memset,"memset")(libc_(libc_mal
 typedef enum { argt_i, argt_p, argt_d, argt_v, argt_e, argt_s, argt_l, argt_h, } argt_t; ffic_string argt_names[] = { "i", "p", "d", "v", "e", "s", "l", "h", };;
 int argta[argt_h+1];
 typedef enum { stream_file, stream_char, } stream_t; ffic_string stream_names[] = { "file", "char", };;
-typedef enum { type_list, type_long, type_double, type_symbol, type_string, } type_t; ffic_string type_names[] = { "list", "long", "double", "symbol", "string", };;
+typedef enum { type_list, type_vector, type_long, type_double, type_symbol, type_string, } type_t; ffic_string type_names[] = { "list", "vector", "long", "double", "symbol", "string", };;
 typedef struct _sao_obj sao_obj,*p_sao_obj;
 typedef p_sao_obj (*native_t)(p_sao_obj );
-struct _sao_obj { union{ void* ptr; int _type; }; ffic_string _raw; union { struct { p_sao_obj car; p_sao_obj cdr; }; struct { p_sao_obj* _table; long _size; }; struct { ffic_string _string; long _depth;}; struct { native_t _native; ffic_string _ffi;}; long _long; double _double;}; };
+struct _sao_obj { union{ void* ptr; int _type; }; ffic_string _raw; union { struct { p_sao_obj car; p_sao_obj cdr; }; struct { p_sao_obj* _vector; long _size; }; struct { ffic_string _string; long _depth;}; struct { native_t _native; ffic_string _ffi;}; long _long; double _double;}; };
 p_sao_obj sao_new(sao_obj tpl) {
  sao_obj * ret = libc_(libc_malloc,"malloc")(sizeof(sao_obj));
  libc_(libc_memcpy,"memcpy")(ret,&tpl,sizeof(sao_obj));
@@ -136,7 +136,7 @@ p_sao_obj sao_new(sao_obj tpl) {
  }
  return ret;
 }
-p_sao_obj SAO_TAG_list=(void*)0; p_sao_obj SAO_TAG_argv=(void*)0; p_sao_obj SAO_TAG_global=(void*)0; p_sao_obj SAO_TAG_quote=(void*)0;;
+p_sao_obj SAO_TAG_vector=(void*)0; p_sao_obj SAO_TAG_argv=(void*)0; p_sao_obj SAO_TAG_global=(void*)0; p_sao_obj SAO_TAG_quote=(void*)0;;
 typedef struct _FileChar { int c; struct _FileChar * ptr_prev; struct _FileChar * ptr_next; } FileChar;
 typedef struct {
  stream_t _type;
@@ -428,7 +428,7 @@ p_sao_obj sao_load_expr(sao_stream * fw) {
     {
      p_sao_obj list = sao_read_list(fw);
      if(argta[argt_l]){ return list; }
-     p_sao_obj rt = cons(SAO_TAG_list,list);
+     p_sao_obj rt = cons(SAO_TAG_vector,list);
      return rt;
     }
    default:
@@ -453,7 +453,7 @@ p_sao_obj sao_load_expr(sao_stream * fw) {
  return theSymbol;
 }
 typedef enum { ctype_long, ctype_double, ctype_int, ctype_float, ctype_i64, ctype_u64, ctype_string, ctype_struct, ctype_pointer, } ctype_t; ffic_string ctype_names[] = { "long", "double", "int", "float", "i64", "u64", "string", "struct", "pointer", };;
-enum { type_ctype=1+type_string, type_native, type_table, };
+enum { type_ctype=1+type_string, type_native, };
 p_sao_obj SAO_TAG_true=(void*)0; p_sao_obj SAO_TAG_false=(void*)0; p_sao_obj SAO_TAG_set=(void*)0; p_sao_obj SAO_TAG_let=(void*)0; p_sao_obj SAO_TAG_var=(void*)0; p_sao_obj SAO_TAG_if=(void*)0; p_sao_obj SAO_TAG_lambda=(void*)0; p_sao_obj SAO_TAG_begin=(void*)0; p_sao_obj SAO_TAG_or=(void*)0; p_sao_obj SAO_TAG_else=(void*)0; p_sao_obj SAO_TAG_cond=(void*)0; p_sao_obj SAO_TAG_error=(void*)0; p_sao_obj SAO_TAG_procedure=(void*)0;;
 void _sao_print(ffic_string str, p_sao_obj el){
  if(!el) return sao_print_default(str, el);
@@ -470,7 +470,7 @@ void _sao_print(ffic_string str, p_sao_obj el){
    libc_(libc_printf,"printf")("<ctype>"); break;
   case type_native:
    libc_(libc_printf,"printf")("<function>"); break;
-  case type_table:
+  case type_vector:
    libc_(libc_printf,"printf")("<table %d>", el->_size); break;
   case type_list:
    if ( sao_is_eq(car(el),SAO_TAG_procedure)) {
@@ -519,37 +519,37 @@ p_sao_obj sao_eval_list(p_sao_obj exp, p_sao_obj ctx) {
  if (!(exp)) return (void*)0;
  return cons(sao_eval(car(exp), ctx), sao_eval_list(cdr(exp), ctx));
 }
-long sao_table_hash(const ffic_string s, int ht_size) {
+long sao_vector_hash(const ffic_string s, int ht_size) {
  long h = 0;
  ffic_string u = s;
  while (*u) { h = (h * 256 + (*u)) % ht_size; u++; }
  return h;
 }
-p_sao_obj sao_table_lookup(p_sao_obj holder,ffic_string s) {
- if(!holder) do{libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"sao_table_lookup(holder)\n");libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"\n");libc_(libc_exit,"exit")(1);}while(0);
- p_sao_obj* the_table = holder->_table;
- if(!the_table) do{libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"empty _table?");libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"\n");libc_(libc_exit,"exit")(1);}while(0);
- if(!holder->_size) do{libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"empty _table.size?");libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"\n");libc_(libc_exit,"exit")(1);}while(0);
- long h = sao_table_hash(s, holder->_size);
- return the_table[h];
+p_sao_obj sao_vector_lookup(p_sao_obj holder,ffic_string s) {
+ if(!holder) do{libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"sao_vector_lookup(holder)\n");libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"\n");libc_(libc_exit,"exit")(1);}while(0);
+ p_sao_obj* the_vector = holder->_vector;
+ if(!the_vector) do{libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"empty _vector?");libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"\n");libc_(libc_exit,"exit")(1);}while(0);
+ if(!holder->_size) do{libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"empty _vector.size?");libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"\n");libc_(libc_exit,"exit")(1);}while(0);
+ long h = sao_vector_hash(s, holder->_size);
+ return the_vector[h];
 }
-p_sao_obj sao_table_insert(p_sao_obj holder,p_sao_obj key_obj){
- if(!holder) do{libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"sao_table_insert(holder)\n");libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"\n");libc_(libc_exit,"exit")(1);}while(0);
- if(!key_obj) do{libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"sao_table_insert(key_obj)\n");libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"\n");libc_(libc_exit,"exit")(1);}while(0);
- p_sao_obj* the_table = holder->_table;
- if(!the_table) do{libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"empty _table?");libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"\n");libc_(libc_exit,"exit")(1);}while(0);
- if(!holder->_size) do{libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"empty _table.size?");libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"\n");libc_(libc_exit,"exit")(1);}while(0);
- long h = sao_table_hash(key_obj->_string, holder->_size);
- if(the_table[h]){
+p_sao_obj sao_vector_insert(p_sao_obj holder,p_sao_obj key_obj){
+ if(!holder) do{libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"sao_vector_insert(holder)\n");libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"\n");libc_(libc_exit,"exit")(1);}while(0);
+ if(!key_obj) do{libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"sao_vector_insert(key_obj)\n");libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"\n");libc_(libc_exit,"exit")(1);}while(0);
+ p_sao_obj* the_vector = holder->_vector;
+ if(!the_vector) do{libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"empty _vector?");libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"\n");libc_(libc_exit,"exit")(1);}while(0);
+ if(!holder->_size) do{libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"empty _vector.size?");libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"\n");libc_(libc_exit,"exit")(1);}while(0);
+ long h = sao_vector_hash(key_obj->_string, holder->_size);
+ if(the_vector[h]){
  }
- the_table[h]= key_obj;
+ the_vector[h]= key_obj;
  return holder;
 }
 p_sao_obj sao_tbl_resize(p_sao_obj holder,int size){
  if(!holder)
-  holder = sao_new((sao_obj){._type=type_table, ._size=size,._table=sao_calloc( sizeof(p_sao_obj) *(size) )});
+  holder = sao_new((sao_obj){._type=type_vector, ._size=size,._vector=sao_calloc( sizeof(p_sao_obj) *(size) )});
  else{
-  holder->_table = sao_calloc( sizeof(p_sao_obj) *(size) );
+  holder->_vector = sao_calloc( sizeof(p_sao_obj) *(size) );
   holder->_size = size;
  }
  return holder;
@@ -564,7 +564,7 @@ tail:
    if(argta[argt_s]){
     do{libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"ERROR: symbol(%s) not found.\n",exp->_string);libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"\n");libc_(libc_exit,"exit")(1);}while(0);
    }else{
-    libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"WARN: symbol(%s) not found.\n",exp->_string);;
+    libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"WARN: sao_get_var() failed for symbol(%s).\n",exp->_string);;
    }
   }
   return sym;
@@ -572,7 +572,7 @@ tail:
  else if((exp&&!exp->_type)){
   p_sao_obj _car = car(exp);
   p_sao_obj _cadr = cadr(exp);
-  if (sao_is_eq(_car, SAO_TAG_list)) { return cdr(exp); }
+  if (sao_is_eq(_car, SAO_TAG_vector)) { return cdr(exp); }
   if (sao_is_eq(_car, SAO_TAG_quote)) { return _cadr; }
   else if (sao_is_eq(_car, SAO_TAG_lambda)) { return cons(SAO_TAG_procedure, cons(_cadr, cons(cddr(exp), cons(ctx, (void*)0)))); }
   else if (sao_is_eq(_car, SAO_TAG_var)) {
@@ -676,7 +676,7 @@ p_sao_obj native_car(p_sao_obj args) { if(argta[argt_s]) (sao_type_assert((ffic_
 p_sao_obj native_cdr(p_sao_obj args) { if(argta[argt_s]) (sao_type_assert((ffic_string)__func__, car(args), type_list)); return cdar(args); }
 p_sao_obj native_setcar(p_sao_obj args) { (sao_type_assert((ffic_string)__func__, car(args), type_list)); (args->car->car = (cadr(args))); return (void*)0; }
 p_sao_obj native_setcdr(p_sao_obj args) { (sao_type_assert((ffic_string)__func__, car(args), type_list)); (args->car->cdr = (cadr(args))); return (void*)0; }
-p_sao_obj native_is_null(p_sao_obj args) { return !(car(args)) ? SAO_TAG_true : SAO_TAG_false; }
+p_sao_obj native_is_null(p_sao_obj args) { return (car(args)) ? SAO_TAG_false : SAO_TAG_true; }
 p_sao_obj native_pairq(p_sao_obj args) {
  if (car(args)->_type != type_list) return SAO_TAG_false;
  return ((caar(args)&&caar(args)->_type) && (cdar(args)&&cdar(args)->_type)) ? SAO_TAG_true : SAO_TAG_false;
@@ -708,12 +708,12 @@ p_sao_obj native_same(p_sao_obj args) {
   }
   return SAO_TAG_true;
  }
- if ((car(args)->_type == type_table) && (cadr(args)->_type == type_table)) {
+ if ((car(args)->_type == type_vector) && (cadr(args)->_type == type_vector)) {
   if (car(args)->_size != cadr(args)->_size) {
    return SAO_TAG_false;
   }
-  p_sao_obj *va = car(args)->_table;
-  p_sao_obj *vb = cadr(args)->_table;
+  p_sao_obj *va = car(args)->_vector;
+  p_sao_obj *vb = cadr(args)->_vector;
   int i = 0;
   for (i = 0; i < car(args)->_size; i++) {
    if (!sao_is_eq(*(va + i), *(vb + i))) {
@@ -827,20 +827,20 @@ p_sao_obj native_load(p_sao_obj args) {
 }
 p_sao_obj native_vector(p_sao_obj args) {
  p_sao_obj sym = (sao_type_assert((ffic_string)__func__, car(args), type_long));
- return sao_new((sao_obj){._type=type_table, ._size=sym->_long,._table=sao_calloc( sizeof(p_sao_obj) *(sym->_long) )});
+ return sao_new((sao_obj){._type=type_vector, ._size=sym->_long,._vector=sao_calloc( sizeof(p_sao_obj) *(sym->_long) )});
 }
 p_sao_obj native_vget(p_sao_obj args) {
- p_sao_obj vct = (sao_type_assert((ffic_string)__func__, car(args), type_table));
+ p_sao_obj vct = (sao_type_assert((ffic_string)__func__, car(args), type_vector));
  p_sao_obj key = (sao_type_assert((ffic_string)__func__, cadr(args), type_long));
  if (key->_long >= vct->_size) return (void*)0;
- return vct->_table[key->_long];
+ return vct->_vector[key->_long];
 }
 p_sao_obj native_vset(p_sao_obj args){
- p_sao_obj vct = (sao_type_assert((ffic_string)__func__, car(args), type_table));
+ p_sao_obj vct = (sao_type_assert((ffic_string)__func__, car(args), type_vector));
  p_sao_obj key = (sao_type_assert((ffic_string)__func__, cadr(args), type_long));
  if (!(caddr(args))) return (void*)0;
  if (key->_long >= vct->_size) return (void*)0;
- car(args)->_table[key->_long] = caddr(args);
+ car(args)->_vector[key->_long] = caddr(args);
  return SAO_TAG_true;
 }
 p_sao_obj native_print(p_sao_obj args) {
@@ -903,7 +903,7 @@ int main(int argc,char **argv, char** envp) {
  SAO_TAG_global = sao_expand((void*)0, (void*)0, (void*)0);
  SAO_TAG_argv = sao_expand((void*)0, (void*)0, (void*)0);
  SAO_TAG_quote=sao_new((sao_obj){._type=type_symbol,._string="quote"});sao_var(SAO_TAG_quote,SAO_TAG_quote,SAO_TAG_global);
- SAO_TAG_list=sao_new((sao_obj){._type=type_symbol,._string="list"});sao_var(SAO_TAG_list,SAO_TAG_list,SAO_TAG_global);
+ SAO_TAG_vector=sao_new((sao_obj){._type=type_symbol,._string="vector"});sao_var(SAO_TAG_vector,SAO_TAG_vector,SAO_TAG_global);
  ffic_string script_file = "-";
  int found_any = 0;
  if(argc>1){

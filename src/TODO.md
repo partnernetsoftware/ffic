@@ -1,5 +1,31 @@
 # TODO
 
+## resign
+
+```
+
+$sym( ... $args )
+
+sao_obj(
+ ...args
+)
+
+type:
+
+vector[]
+vector()
+
+autonomy, paradigm
+$sym(...$args)
+
+_raw
+_sym
+_car car of list
+_cdr rest of list
+
+
+```
+
 ## sao
 
 autonomy, paradigm

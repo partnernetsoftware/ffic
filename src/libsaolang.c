@@ -1,10 +1,10 @@
 define_map(ctype,  long,double,int,float,i64,u64,string,struct,pointer);//etc TODO
-enum { type_ctype=1+type_string, type_native, type_table, };
+enum { type_ctype=1+type_string, type_native, };
 
 #define LIST_SAO_TAG true,false,set,let,var,if,lambda,begin,or,else,cond,error,procedure
 SAO_ITR(define_sao_tag, SAO_EXPAND(LIST_SAO_TAG));
 
-#define sao_new_table(s) sao_new((sao_obj){._type=type_table, ._size=s,._table=SAO_NEW_C(p_sao_obj,s)})
+#define sao_new_vector(s) sao_new((sao_obj){._type=type_vector, ._size=s,._vector=SAO_NEW_C(p_sao_obj,s)})
 #define sao_new_native(x,n) sao_new((sao_obj){._type=type_native, ._native=x,._ffi=n})
 #define sao_new_lambda(params,body) cons(SAO_TAG_lambda, cons(params,body))
 #define sao_new_procedure(params,body,ctx) cons(SAO_TAG_procedure, cons(params, cons(body, cons(ctx, SAO_NULL))))
@@ -37,7 +37,7 @@ void _sao_print(ffic_string str, p_sao_obj el){
 //			sao_stdout("%g", el->_double); break;
 		case type_native:
 			sao_stdout("<function>"); break;
-		case type_table:
+		case type_vector:
 			sao_stdout("<table %d>", el->_size); break;
 		case type_list:
 			if ( sao_is_eq(car(el),SAO_TAG_procedure)) {
@@ -90,46 +90,46 @@ p_sao_obj sao_eval_list(p_sao_obj exp, p_sao_obj ctx) {
 	if (!(exp)) return SAO_NULL;
 	return cons(sao_eval(car(exp), ctx), sao_eval_list(cdr(exp), ctx));
 }
-long sao_table_hash(const ffic_string s, int ht_size) {
+long sao_vector_hash(const ffic_string s, int ht_size) {
 	long h = 0;
 	ffic_string u = s;
 	while (*u) { h = (h * 256 + (*u)) % ht_size; u++; }
 	return h;
 }
-p_sao_obj sao_table_lookup(p_sao_obj holder,ffic_string s) {
-	if(!holder) sao_error("sao_table_lookup(holder)\n");
-	p_sao_obj* the_table = holder->_table;
-	if(!the_table) sao_error("empty _table?");
-	if(!holder->_size) sao_error("empty _table.size?");
-	long h = sao_table_hash(s, holder->_size);
-	return the_table[h];
+p_sao_obj sao_vector_lookup(p_sao_obj holder,ffic_string s) {
+	if(!holder) sao_error("sao_vector_lookup(holder)\n");
+	p_sao_obj* the_vector = holder->_vector;
+	if(!the_vector) sao_error("empty _vector?");
+	if(!holder->_size) sao_error("empty _vector.size?");
+	long h = sao_vector_hash(s, holder->_size);
+	return the_vector[h];
 }
-p_sao_obj sao_table_insert(p_sao_obj holder,p_sao_obj key_obj){
-	if(!holder) sao_error("sao_table_insert(holder)\n");
-	if(!key_obj) sao_error("sao_table_insert(key_obj)\n");
+p_sao_obj sao_vector_insert(p_sao_obj holder,p_sao_obj key_obj){
+	if(!holder) sao_error("sao_vector_insert(holder)\n");
+	if(!key_obj) sao_error("sao_vector_insert(key_obj)\n");
 
-	p_sao_obj* the_table = holder->_table;
-	if(!the_table) sao_error("empty _table?");
-	if(!holder->_size) sao_error("empty _table.size?");
-	long h = sao_table_hash(key_obj->_string, holder->_size);
-	if(the_table[h]){
-		//sao_warn("TODO sao_table_insert table need to resize (%d,%s)?\n",h,key_obj->_string);
+	p_sao_obj* the_vector = holder->_vector;
+	if(!the_vector) sao_error("empty _vector?");
+	if(!holder->_size) sao_error("empty _vector.size?");
+	long h = sao_vector_hash(key_obj->_string, holder->_size);
+	if(the_vector[h]){
+		//sao_warn("TODO sao_vector_insert table need to resize (%d,%s)?\n",h,key_obj->_string);
 	}
-	//if(!the_table || (SAO_NULL != the_table[h] && SAO_NULL!=the_table[h]->_string)){
+	//if(!the_vector || (SAO_NULL != the_vector[h] && SAO_NULL!=the_vector[h]->_string)){
 	//	int size = 2*(holder->size+1)-1 ;
 	//	sao_tbl_resize(holder, size);
-	//	the_table = sao_tbl_resize(holder, key_obj);//again
+	//	the_vector = sao_tbl_resize(holder, key_obj);//again
 	//}
-	the_table[h]= key_obj;
+	the_vector[h]= key_obj;
 	return holder;
 }
 p_sao_obj sao_tbl_resize(p_sao_obj holder,int size){
 	//if(!holder)
 	if(!holder)
-		holder = sao_new_table(size);
+		holder = sao_new_vector(size);
 	//TMP...(fake resize first) TODO to implement the real resize soon
 	else{
-		holder->_table = SAO_NEW_C(p_sao_obj,size);//TMP
+		holder->_vector = SAO_NEW_C(p_sao_obj,size);//TMP
 		holder->_size = size;
 	}
 	return holder;
@@ -154,7 +154,7 @@ tail:
 	else if(sao_is_list(exp)){
 		p_sao_obj _car = car(exp);
 		p_sao_obj _cadr = cadr(exp);
-		if (sao_is_eq(_car, SAO_TAG_list)) { return cdr(exp); }//alias as native_list()...
+		if (sao_is_eq(_car, SAO_TAG_vector)) { return cdr(exp); }
 		if (sao_is_eq(_car, SAO_TAG_quote)) { return _cadr; }
 		else if (sao_is_eq(_car, SAO_TAG_lambda)) { return sao_new_procedure(_cadr, cddr(exp), ctx); }
 		else if (sao_is_eq(_car, SAO_TAG_var)) {
@@ -260,7 +260,7 @@ p_sao_obj sao_type_assert(const ffic_string func, p_sao_obj obj, int type)
 
 p_sao_obj native_type(p_sao_obj args) { return sao_new_symbol(type_names[car(args)->_type]); }
 p_sao_obj native_global(p_sao_obj args) { return SAO_TAG_global; }
-//p_sao_obj native_list(p_sao_obj args) { return (args); }
+p_sao_obj native_list(p_sao_obj args) { return (args); }//TODO remove as vector[] is ok
 p_sao_obj native_cons(p_sao_obj args) { return cons(car(args), cadr(args)); }
 p_sao_obj native_car(p_sao_obj args) { if(SAO_ARGV(s)) SAO_ASSERT_TYPE(car(args), type_list); return caar(args); }
 p_sao_obj native_cdr(p_sao_obj args) { if(SAO_ARGV(s)) SAO_ASSERT_TYPE(car(args), type_list); return cdar(args); }
@@ -301,12 +301,12 @@ p_sao_obj native_same(p_sao_obj args) {
 		}
 		return SAO_TAG_true;
 	}
-	if ((car(args)->_type == type_table) && (cadr(args)->_type == type_table)) {
+	if ((car(args)->_type == type_vector) && (cadr(args)->_type == type_vector)) {
 		if (car(args)->_size != cadr(args)->_size) {
 			return SAO_TAG_false;
 		}
-		p_sao_obj *va = car(args)->_table;
-		p_sao_obj *vb = cadr(args)->_table;
+		p_sao_obj *va = car(args)->_vector;
+		p_sao_obj *vb = cadr(args)->_vector;
 		int i = 0;
 		for (i = 0; i < car(args)->_size; i++) {
 			if (!sao_is_eq(*(va + i), *(vb + i))) {
@@ -431,20 +431,20 @@ p_sao_obj native_load(p_sao_obj args) { //TODO merge with native_read() 1!
 }
 p_sao_obj native_vector(p_sao_obj args) {
 	p_sao_obj sym = SAO_ASSERT_TYPE(car(args), type_long);
-	return sao_new_table(sym->_long);
+	return sao_new_vector(sym->_long);
 }
 p_sao_obj native_vget(p_sao_obj args) {
-	p_sao_obj vct = SAO_ASSERT_TYPE(car(args), type_table);
+	p_sao_obj vct = SAO_ASSERT_TYPE(car(args), type_vector);
 	p_sao_obj key = SAO_ASSERT_TYPE(cadr(args), type_long);
 	if (key->_long >= vct->_size) return SAO_NULL;
-	return vct->_table[key->_long];
+	return vct->_vector[key->_long];
 }
 p_sao_obj native_vset(p_sao_obj args){
-	p_sao_obj vct = SAO_ASSERT_TYPE(car(args), type_table);
+	p_sao_obj vct = SAO_ASSERT_TYPE(car(args), type_vector);
 	p_sao_obj key = SAO_ASSERT_TYPE(cadr(args), type_long);
 	if (!(caddr(args))) return SAO_NULL;
 	if (key->_long >= vct->_size) return SAO_NULL;
-	car(args)->_table[key->_long] = caddr(args);
+	car(args)->_vector[key->_long] = caddr(args);
 	return SAO_TAG_true;
 }
 p_sao_obj native_print(p_sao_obj args) {
@@ -471,12 +471,12 @@ p_sao_obj saolang_init()
 	sao_eval = _sao_eval;
 	
 //	ffic_func printf = libc(printf);
-//	printf("saolang_init() type_ctype=%d,type_table=%d\n",type_ctype,type_table);
+//	printf("saolang_init() type_ctype=%d,type_vector=%d\n",type_ctype,type_vector);
 
 	SAO_ITR(sao_add_sym_x, SAO_EXPAND(LIST_SAO_TAG));
 
 	//p_sao_obj g_symbol_holder = SAO_NULL;
-	//g_symbol_holder = sao_new_table(65536-1);//TODO auto expand for the tables
+	//g_symbol_holder = sao_new_vector(65536-1);//TODO auto expand for the tables
 	SAO_ITR(add_sym_list, print,lt,add,sub,exit);//minimum for fib.sao
 	//CommonLisp: format,defun
 	//Clojure:defn
@@ -487,7 +487,7 @@ p_sao_obj saolang_init()
 			exit,shell,ffi,//sys
 			global,//FOR DEV MODE
 			type,cons,setcar,setcdr,//core
-			//list,
+			list,//TODO will be removed soon
 			vector,vget,vset,//data structure
 			load,print,read,//io
 			add,sub,mul,div,cmp,lt,gt,//logic,
@@ -498,17 +498,17 @@ p_sao_obj saolang_init()
 }
 
 //TODO jot the symbol depth
-//	p_sao_obj ret = sao_table_lookup(g_symbol_holder,s);
+//	p_sao_obj ret = sao_vector_lookup(g_symbol_holder,s);
 //	if (!(ret)) {
 //		ret = sao_alloc(type_symbol);
 //		ret->_string = libc(strdup)(s);
 //		//ht_insert(ret);
-//		sao_table_insert(g_symbol_holder,ret);
+//		sao_vector_insert(g_symbol_holder,ret);
 //	}else{
 //		//TODO need using depth also?
 //		if(!libc(strcmp)(ret->_string,s)){
-//			//sao_warn("sao_table_insert again same for (%s)?\n",s);
-//			//sao_table_insert(g_symbol_holder,ret);
+//			//sao_warn("sao_vector_insert again same for (%s)?\n",s);
+//			//sao_vector_insert(g_symbol_holder,ret);
 //		}else{
 //			sao_error("g_symbol_holder full? (%s,%s)\n",ret->_string,s);
 //		//	int newsize = 2*(gHTable_size+1)-1 ;

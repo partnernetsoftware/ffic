@@ -3,12 +3,15 @@ extern void*(*ffic())();//ok
 #define libc(f) ffic("c",#f)
 
 #define OUTS(x) libc(printf)(#x "=%s\n", #x);
-#define OUTD(x) libc(printf)(#x "=%d\n", x);
-#define FOUTD(x) libc(fprintf)(libc(stderr),#x "=%d\n", x);
+#define OUTD(x) libc(printf)(#x "=%ld\n", x);
+#define FOUTD(x) libc(fprintf)(libc(stderr),#x "=%ld\n", x);
 int main(){
 //	ffic_func printf = libc(printf);
 //	ffic_func fprintf = libc(fprintf);
 //	ffic_func stderr = libc(stderr);
+
+	OUTD(ffic);
+	OUTD( ((long)6)&((long)(128-1)) );
 
 	OUTS(hello 42);
 	OUTD(sizeof(void*));
