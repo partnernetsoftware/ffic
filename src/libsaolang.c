@@ -23,10 +23,7 @@ void _sao_print(ffic_string str, p_sao_obj el){
 	}
 
 	if (str) sao_stdout("%s ", str);
-//	//if (!(el)) { sao_stdout("'()"); return; }//TODO
-//	if (!(el)) { return; }
 
-	//if(el->_raw) sao_stdout(" {%s<%s>} ",el->_raw,type_names[el->_type]);
 	switch (el->_type) {
 		case type_ctype://TODO can it be same as symbol or ctype
 			sao_stdout("<ctype>"); break;
@@ -43,7 +40,7 @@ void _sao_print(ffic_string str, p_sao_obj el){
 		case type_table:
 			sao_stdout("<table %d>", el->_size); break;
 		case type_list:
-			if (sao_is_tagged(el, SAO_TAG_procedure)) {
+			if ( sao_is_eq(car(el),SAO_TAG_procedure)) {
 				sao_stdout("<closure>");//TODO mereg with lambda?
 				return;
 			}
@@ -178,7 +175,8 @@ tail:
 		else if (sao_is_eq(_car, SAO_TAG_cond)) {
 			p_sao_obj branch = cdr(exp);
 			for (; (branch); branch = cdr(branch)) {
-				if (sao_is_tagged(car(branch), SAO_TAG_else) || sao_not_false(sao_eval(caar(branch), ctx))) {
+				if ( sao_is_eq(caar(branch), SAO_TAG_else) || sao_not_false(sao_eval(caar(branch), ctx)))
+				{
 					exp = cons(SAO_TAG_begin, cdar(branch));
 					goto tail;
 				}
@@ -209,19 +207,19 @@ tail:
 			for (idx = _cadr; (idx); idx = cdr(idx)) { vars = cons(caar(idx), vars); vals = cons(cadar(idx), vals); }
 			exp = cons(sao_new_lambda(vars, cddr(exp)), vals);
 			goto tail;
-		}
+		}else
 		{ /* procedure( parameters, body-expr, ctx) */
 			p_sao_obj proc = sao_eval(_car, ctx);
 			p_sao_obj args = sao_eval_list(cdr(exp), ctx);
 			if (!proc) {
 				if(SAO_ARGV(s)){
-					sao_print("WARNING: Invalid arguments to sao_eval:", exp);
+					sao_print("WARNING: not found correct native to run:", exp);
 					sao_stdout("\n");
 				}
-				return SAO_NULL;//should null?
+				return SAO_NULL;
 			}
 			if (proc->_type == type_native){ return proc->_native(args); }//TODO if empty native but ffi, should auto load into _native 
-			if (sao_is_tagged(proc, SAO_TAG_procedure))
+			if ( sao_is_eq(car(proc), SAO_TAG_procedure))
 			{
 				ctx = sao_expand(cadr(proc), args, cadddr(proc));
 				exp = cons(SAO_TAG_begin, caddr(proc)); /* body-expr */
@@ -278,7 +276,8 @@ p_sao_obj native_atom(p_sao_obj expr) {
 	return sao_is_atom(car(expr)) ? SAO_TAG_true : SAO_TAG_false;
 }
 p_sao_obj native_eq(p_sao_obj args) { return sao_is_eq(car(args), cadr(args)) ? SAO_TAG_true : SAO_TAG_false; }
-//TODO to change name ( avoid eq)
+
+//eq+
 p_sao_obj native_same(p_sao_obj args) {
 	if (sao_is_eq(car(args), cadr(args))) return SAO_TAG_true;
 	if ((car(args)->_type == type_list) && (cadr(args)->_type == type_list)) {

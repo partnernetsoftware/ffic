@@ -1,4 +1,4 @@
-//WARNING: do not go production unless gc() is done!
+//WARNING: dont go production unless gc() is done
 #define SAO_VERSION "0.0.8"
 #define SAO_CAT(a, ...) SAO_PRIMITIVE_CAT(a, __VA_ARGS__)
 #define SAO_PRIMITIVE_CAT(a, ...) a ## __VA_ARGS__
@@ -107,7 +107,8 @@ ffic_func_l atol;
 #define sao_is_digit(c) ((long)libc(isdigit)(c))
 #define sao_is_alpha(c) ((long)libc(isalpha)(c))
 #define sao_is_alphanumber(c) ((long)libc(isalnum)(c))
-#define sao_new_list(a,d) sao_new((sao_obj){._type=type_list,.car=a,.cdr=d})
+//#define sao_new_list(a,d) sao_new((sao_obj){._type=type_list,.car=a,.cdr=d})
+#define sao_new_list(a,d) sao_new((sao_obj){.car=a,.cdr=d})
 #define sao_new_symbol(s) sao_new((sao_obj){._type=type_symbol,._string=s})
 #define sao_new_string(s) sao_new((sao_obj){._type=type_string, ._string=s})
 #define sao_new_long(i) sao_new((sao_obj){._type=type_long, ._long=i})
@@ -133,14 +134,14 @@ p_sao_obj sao_is_eq(p_sao_obj x, p_sao_obj y) {
 			case type_long: if(x->_long == y->_long) return x;
 			case type_symbol:
 			case type_string: if(!libc(strcmp)(x->_string, y->_string)) return x;
-			default: break;
+			//default: break;//don't compare
 		}
 	}while(0);
 	return SAO_NULL;
 }
 p_sao_obj sao_append(p_sao_obj L1, p_sao_obj L2) { return (L1)?cons(car(L1), sao_append(cdr(L1), L2)) : L2; }
 p_sao_obj sao_reverse(p_sao_obj L, p_sao_obj F) { return (!L) ? F: sao_reverse(cdr(L), cons(car(L), F)); }
-p_sao_obj sao_is_tagged(p_sao_obj cell, p_sao_obj tag) { return sao_is_list(cell) ? sao_is_eq(car(cell),tag) : SAO_NULL; }
+//p_sao_obj sao_is_tagged(p_sao_obj cell, p_sao_obj tag) { return sao_is_list(cell) ? sao_is_eq(car(cell),tag) : SAO_NULL; }
 int sao_list_len(p_sao_obj expr) { return (expr) ? (1+sao_list_len(cdr(expr))):0; } //TODO improve ?
 int sao_deq_c(sao_stream *fw)
 {
@@ -214,8 +215,7 @@ p_sao_obj sao_get_var(p_sao_obj var, p_sao_obj ctx) {
 		p_sao_obj vars = car(frame);
 		p_sao_obj vals = cdr(frame);
 		while ((vars)) {
-			if (sao_is_eq(car(vars), var))
-				return car(vals);
+			if (sao_is_eq(car(vars), var)) return car(vals);
 			vars = cdr(vars);
 			vals = cdr(vals);
 		}

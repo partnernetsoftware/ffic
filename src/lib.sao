@@ -26,7 +26,8 @@ var( max( list_of_numbers)
   var( max_iter( best remaining)
     cond( (is_null( remaining) best)
       (gt( car( remaining) best) max_iter( car( remaining) cdr( remaining)))
-      else( max_iter( best cdr( remaining)))))
+      else( max_iter( best cdr( remaining)))
+			))
   max_iter( car( list_of_numbers) cdr( list_of_numbers)))
 
 # Return the minimum value from a list of integers
@@ -34,7 +35,8 @@ var( min( list_of_numbers)
   var( min_iter( best remaining)
     cond( (is_null( remaining) best)
       (lt( car( remaining) best) min_iter( car( remaining) cdr( remaining)))
-      else( min_iter( best cdr( remaining)))))
+      else( min_iter( best cdr( remaining)))
+			))
   min_iter( car( list_of_numbers) cdr( list_of_numbers)))
 
 # Map a function f onto list a

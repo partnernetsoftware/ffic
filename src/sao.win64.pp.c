@@ -18,9 +18,10 @@ typedef signed short int ffic_i16;
 typedef unsigned short int ffic_u16;
 typedef signed int ffic_i32;
 typedef unsigned int ffic_u32;
-typedef signed long int ffic_ipt;
 typedef signed long int ffic_i64;
 typedef unsigned long int ffic_u64;
+typedef signed long int ffic_ipt;
+typedef unsigned long int ffic_upt;
 extern ffic_ptr LoadLibraryA(const char*);
 extern ffic_ptr GetProcAddress(ffic_ptr,const char*);
 extern int printf(const char*,...);
@@ -147,7 +148,7 @@ typedef struct {
 p_sao_obj sao_load_expr(sao_stream * fw);
 ffic_func_d atof;
 ffic_func_l atol;
-p_sao_obj cons(p_sao_obj car, p_sao_obj cdr) { p_sao_obj ret = sao_new((sao_obj){._type=type_list,.car=car,.cdr=cdr});return ret; }
+p_sao_obj cons(p_sao_obj car, p_sao_obj cdr) { p_sao_obj ret = sao_new((sao_obj){.car=car,.cdr=cdr});return ret; }
 p_sao_obj car(p_sao_obj x) { return (x&&!x->_type)?x->car:(void*)0; }
 p_sao_obj cdr(p_sao_obj x) { return (x&&!x->_type)?x->cdr:(void*)0; }
 p_sao_obj caar(p_sao_obj x) { return ((x&&!x->_type)&&(x->car&&!x->car->_type))? x->car->car : (void*)0; }
@@ -168,14 +169,12 @@ p_sao_obj sao_is_eq(p_sao_obj x, p_sao_obj y) {
    case type_long: if(x->_long == y->_long) return x;
    case type_symbol:
    case type_string: if(!libc_(libc_strcmp,"strcmp")(x->_string, y->_string)) return x;
-   default: break;
   }
  }while(0);
  return (void*)0;
 }
 p_sao_obj sao_append(p_sao_obj L1, p_sao_obj L2) { return (L1)?cons(car(L1), sao_append(cdr(L1), L2)) : L2; }
 p_sao_obj sao_reverse(p_sao_obj L, p_sao_obj F) { return (!L) ? F: sao_reverse(cdr(L), cons(car(L), F)); }
-p_sao_obj sao_is_tagged(p_sao_obj cell, p_sao_obj tag) { return (cell&&!cell->_type) ? sao_is_eq(car(cell),tag) : (void*)0; }
 int sao_list_len(p_sao_obj expr) { return (expr) ? (1+sao_list_len(cdr(expr))):0; }
 int sao_deq_c(sao_stream *fw)
 {
@@ -245,8 +244,7 @@ p_sao_obj sao_get_var(p_sao_obj var, p_sao_obj ctx) {
   p_sao_obj vars = car(frame);
   p_sao_obj vals = cdr(frame);
   while ((vars)) {
-   if (sao_is_eq(car(vars), var))
-    return car(vals);
+   if (sao_is_eq(car(vars), var)) return car(vals);
    vars = cdr(vars);
    vals = cdr(vals);
   }
@@ -420,7 +418,11 @@ p_sao_obj sao_load_expr(sao_stream * fw) {
     {
      p_sao_obj list = sao_read_list(fw);
      if(argta[argt_l]){ return list; }
-     return cons(theSymbol,list);
+     if(!theSymbol){
+      theSymbol = sao_new((sao_obj){._type=type_symbol,._string="list"});
+     }
+     p_sao_obj rt = cons(theSymbol,list);
+     return rt;
     }
    default:
     {
@@ -455,6 +457,7 @@ void _sao_print(ffic_string str, p_sao_obj el){
   case type_double:
    return sao_print_default(str, el);
  }
+ if (str) libc_(libc_printf,"printf")("%s ", str);
  switch (el->_type) {
   case type_ctype:
    libc_(libc_printf,"printf")("<ctype>"); break;
@@ -463,7 +466,7 @@ void _sao_print(ffic_string str, p_sao_obj el){
   case type_table:
    libc_(libc_printf,"printf")("<table %d>", el->_size); break;
   case type_list:
-   if (sao_is_tagged(el, SAO_TAG_procedure)) {
+   if ( sao_is_eq(car(el),SAO_TAG_procedure)) {
     libc_(libc_printf,"printf")("<closure>");
     return;
    }
@@ -544,10 +547,9 @@ p_sao_obj sao_tbl_resize(p_sao_obj holder,int size){
  }
  return holder;
 }
-p_sao_obj _sao_eval(p_sao_obj exp, p_sao_obj ctx)
-{
+p_sao_obj _sao_eval(p_sao_obj exp, p_sao_obj ctx) {
 tail:
- if (!(exp)) { return (void*)0; }
+ if (!exp) { return (void*)0; }
  else if (exp->_type == type_long || exp->_type == type_string) { return exp; }
  else if (exp->_type == type_symbol) {
   p_sao_obj sym = sao_get_var(exp, ctx);
@@ -585,7 +587,8 @@ tail:
   else if (sao_is_eq(_car, SAO_TAG_cond)) {
    p_sao_obj branch = cdr(exp);
    for (; (branch); branch = cdr(branch)) {
-    if (sao_is_tagged(car(branch), SAO_TAG_else) || sao_not_false(sao_eval(caar(branch), ctx))) {
+    if ( sao_is_eq(caar(branch), SAO_TAG_else) || sao_not_false(sao_eval(caar(branch), ctx)))
+    {
      exp = cons(SAO_TAG_begin, cdar(branch));
      goto tail;
     }
@@ -615,19 +618,19 @@ tail:
    for (idx = _cadr; (idx); idx = cdr(idx)) { vars = cons(caar(idx), vars); vals = cons(cadar(idx), vals); }
    exp = cons(cons(SAO_TAG_lambda, cons(vars,cddr(exp))), vals);
    goto tail;
-  }
+  }else
   {
    p_sao_obj proc = sao_eval(_car, ctx);
    p_sao_obj args = sao_eval_list(cdr(exp), ctx);
    if (!proc) {
     if(argta[argt_s]){
-     sao_print("WARNING: Invalid arguments to sao_eval:", exp);
+     sao_print("WARNING: not found correct native to run:", exp);
      libc_(libc_printf,"printf")("\n");
     }
     return (void*)0;
    }
    if (proc->_type == type_native){ return proc->_native(args); }
-   if (sao_is_tagged(proc, SAO_TAG_procedure))
+   if ( sao_is_eq(car(proc), SAO_TAG_procedure))
    {
     ctx = sao_expand(cadr(proc), args, cadddr(proc));
     exp = cons(SAO_TAG_begin, caddr(proc));
@@ -863,10 +866,10 @@ p_sao_obj sao_parse( sao_stream * fw, p_sao_obj ctx ) {
   if (ctx){
    rt = sao_eval(exp,ctx);
    if(argta[argt_d]) libc_(libc_printf,"printf")("%llu: ",microtime());
-   if((argta[argt_i]||argta[argt_d])&&rt){sao_print("=>", rt); libc_(libc_printf,"printf")("\n");}
+   if((argta[argt_i]||argta[argt_d])){sao_print("=>", rt); libc_(libc_printf,"printf")("\n");}
   }else{
    rt = exp;
-   if((argta[argt_i]||argta[argt_d])){
+   if(argta[argt_i]||argta[argt_d]){
     sao_print("==>", rt); libc_(libc_printf,"printf")("\n");
    }
   }
