@@ -67,7 +67,7 @@ typedef struct _sao_obj sao_obj,*p_sao_obj;
 typedef p_sao_obj (*native_t)(p_sao_obj );
 #define SAO_OBJ_V union {\
 	struct { p_sao_obj car; p_sao_obj cdr; }; \
-	struct { p_sao_obj* _vector; long _size; };\
+	struct { p_sao_obj* _vector; long _len; };\
 	struct { ffic_string _string; long _depth;};\
 	struct { native_t _native; ffic_string _ffi;};\
 	long _long;\

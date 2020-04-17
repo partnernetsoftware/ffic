@@ -123,7 +123,7 @@ typedef enum { stream_file, stream_char, } stream_t; ffic_string stream_names[] 
 typedef enum { type_list, type_vector, type_long, type_double, type_symbol, type_string, } type_t; ffic_string type_names[] = { "list", "vector", "long", "double", "symbol", "string", };;
 typedef struct _sao_obj sao_obj,*p_sao_obj;
 typedef p_sao_obj (*native_t)(p_sao_obj );
-struct _sao_obj { union{ void* ptr; int _type; }; ffic_string _raw; union { struct { p_sao_obj car; p_sao_obj cdr; }; struct { p_sao_obj* _vector; long _size; }; struct { ffic_string _string; long _depth;}; struct { native_t _native; ffic_string _ffi;}; long _long; double _double;}; };
+struct _sao_obj { union{ void* ptr; int _type; }; ffic_string _raw; union { struct { p_sao_obj car; p_sao_obj cdr; }; struct { p_sao_obj* _vector; long _len; }; struct { ffic_string _string; long _depth;}; struct { native_t _native; ffic_string _ffi;}; long _long; double _double;}; };
 p_sao_obj sao_new(sao_obj tpl) {
  sao_obj * ret = libc_(libc_malloc,"malloc")(sizeof(sao_obj));
  libc_(libc_memcpy,"memcpy")(ret,&tpl,sizeof(sao_obj));
@@ -471,7 +471,7 @@ void _sao_print(ffic_string str, p_sao_obj el){
   case type_native:
    libc_(libc_printf,"printf")("<function>"); break;
   case type_vector:
-   libc_(libc_printf,"printf")("<table %d>", el->_size); break;
+   libc_(libc_printf,"printf")("<table %d>", el->_len); break;
   case type_list:
    if ( sao_is_eq(car(el),SAO_TAG_procedure)) {
     libc_(libc_printf,"printf")("<closure>");
@@ -519,18 +519,18 @@ p_sao_obj sao_eval_list(p_sao_obj exp, p_sao_obj ctx) {
  if (!(exp)) return (void*)0;
  return cons(sao_eval(car(exp), ctx), sao_eval_list(cdr(exp), ctx));
 }
-long sao_vector_hash(const ffic_string s, int ht_size) {
+long sao_vector_hash(const ffic_string s, int ht_len) {
  long h = 0;
  ffic_string u = s;
- while (*u) { h = (h * 256 + (*u)) % ht_size; u++; }
+ while (*u) { h = (h * 256 + (*u)) % ht_len; u++; }
  return h;
 }
 p_sao_obj sao_vector_lookup(p_sao_obj holder,ffic_string s) {
  if(!holder) do{libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"sao_vector_lookup(holder)\n");libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"\n");libc_(libc_exit,"exit")(1);}while(0);
  p_sao_obj* the_vector = holder->_vector;
  if(!the_vector) do{libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"empty _vector?");libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"\n");libc_(libc_exit,"exit")(1);}while(0);
- if(!holder->_size) do{libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"empty _vector.size?");libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"\n");libc_(libc_exit,"exit")(1);}while(0);
- long h = sao_vector_hash(s, holder->_size);
+ if(!holder->_len) do{libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"empty _vector._len?");libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"\n");libc_(libc_exit,"exit")(1);}while(0);
+ long h = sao_vector_hash(s, holder->_len);
  return the_vector[h];
 }
 p_sao_obj sao_vector_insert(p_sao_obj holder,p_sao_obj key_obj){
@@ -538,19 +538,19 @@ p_sao_obj sao_vector_insert(p_sao_obj holder,p_sao_obj key_obj){
  if(!key_obj) do{libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"sao_vector_insert(key_obj)\n");libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"\n");libc_(libc_exit,"exit")(1);}while(0);
  p_sao_obj* the_vector = holder->_vector;
  if(!the_vector) do{libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"empty _vector?");libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"\n");libc_(libc_exit,"exit")(1);}while(0);
- if(!holder->_size) do{libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"empty _vector.size?");libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"\n");libc_(libc_exit,"exit")(1);}while(0);
- long h = sao_vector_hash(key_obj->_string, holder->_size);
+ if(!holder->_len) do{libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"empty _vector._len?");libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"\n");libc_(libc_exit,"exit")(1);}while(0);
+ long h = sao_vector_hash(key_obj->_string, holder->_len);
  if(the_vector[h]){
  }
  the_vector[h]= key_obj;
  return holder;
 }
-p_sao_obj sao_tbl_resize(p_sao_obj holder,int size){
+p_sao_obj sao_tbl_relen(p_sao_obj holder,int _len){
  if(!holder)
-  holder = sao_new((sao_obj){._type=type_vector, ._size=size,._vector=sao_calloc( sizeof(p_sao_obj) *(size) )});
+  holder = sao_new((sao_obj){._type=type_vector, ._len=_len,._vector=sao_calloc( sizeof(p_sao_obj) *(_len) )});
  else{
-  holder->_vector = sao_calloc( sizeof(p_sao_obj) *(size) );
-  holder->_size = size;
+  holder->_vector = sao_calloc( sizeof(p_sao_obj) *(_len) );
+  holder->_len = _len;
  }
  return holder;
 }
@@ -709,13 +709,13 @@ p_sao_obj native_same(p_sao_obj args) {
   return SAO_TAG_true;
  }
  if ((car(args)->_type == type_vector) && (cadr(args)->_type == type_vector)) {
-  if (car(args)->_size != cadr(args)->_size) {
+  if (car(args)->_len != cadr(args)->_len) {
    return SAO_TAG_false;
   }
   p_sao_obj *va = car(args)->_vector;
   p_sao_obj *vb = cadr(args)->_vector;
   int i = 0;
-  for (i = 0; i < car(args)->_size; i++) {
+  for (i = 0; i < car(args)->_len; i++) {
    if (!sao_is_eq(*(va + i), *(vb + i))) {
     return SAO_TAG_false;
    }
@@ -827,19 +827,19 @@ p_sao_obj native_load(p_sao_obj args) {
 }
 p_sao_obj native_vector(p_sao_obj args) {
  p_sao_obj sym = (sao_type_assert((ffic_string)__func__, car(args), type_long));
- return sao_new((sao_obj){._type=type_vector, ._size=sym->_long,._vector=sao_calloc( sizeof(p_sao_obj) *(sym->_long) )});
+ return sao_new((sao_obj){._type=type_vector, ._len=sym->_long,._vector=sao_calloc( sizeof(p_sao_obj) *(sym->_long) )});
 }
 p_sao_obj native_vget(p_sao_obj args) {
  p_sao_obj vct = (sao_type_assert((ffic_string)__func__, car(args), type_vector));
  p_sao_obj key = (sao_type_assert((ffic_string)__func__, cadr(args), type_long));
- if (key->_long >= vct->_size) return (void*)0;
+ if (key->_long >= vct->_len) return (void*)0;
  return vct->_vector[key->_long];
 }
 p_sao_obj native_vset(p_sao_obj args){
  p_sao_obj vct = (sao_type_assert((ffic_string)__func__, car(args), type_vector));
  p_sao_obj key = (sao_type_assert((ffic_string)__func__, cadr(args), type_long));
  if (!(caddr(args))) return (void*)0;
- if (key->_long >= vct->_size) return (void*)0;
+ if (key->_long >= vct->_len) return (void*)0;
  car(args)->_vector[key->_long] = caddr(args);
  return SAO_TAG_true;
 }

@@ -4,7 +4,7 @@ enum { type_ctype=1+type_string, type_native, };
 #define LIST_SAO_TAG true,false,set,let,var,if,lambda,begin,or,else,cond,error,procedure
 SAO_ITR(define_sao_tag, SAO_EXPAND(LIST_SAO_TAG));
 
-#define sao_new_vector(s) sao_new((sao_obj){._type=type_vector, ._size=s,._vector=SAO_NEW_C(p_sao_obj,s)})
+#define sao_new_vector(s) sao_new((sao_obj){._type=type_vector, ._len=s,._vector=SAO_NEW_C(p_sao_obj,s)})
 #define sao_new_native(x,n) sao_new((sao_obj){._type=type_native, ._native=x,._ffi=n})
 #define sao_new_lambda(params,body) cons(SAO_TAG_lambda, cons(params,body))
 #define sao_new_procedure(params,body,ctx) cons(SAO_TAG_procedure, cons(params, cons(body, cons(ctx, SAO_NULL))))
@@ -38,7 +38,7 @@ void _sao_print(ffic_string str, p_sao_obj el){
 		case type_native:
 			sao_stdout("<function>"); break;
 		case type_vector:
-			sao_stdout("<table %d>", el->_size); break;
+			sao_stdout("<table %d>", el->_len); break;
 		case type_list:
 			if ( sao_is_eq(car(el),SAO_TAG_procedure)) {
 				sao_stdout("<closure>");//TODO mereg with lambda?
@@ -90,18 +90,18 @@ p_sao_obj sao_eval_list(p_sao_obj exp, p_sao_obj ctx) {
 	if (!(exp)) return SAO_NULL;
 	return cons(sao_eval(car(exp), ctx), sao_eval_list(cdr(exp), ctx));
 }
-long sao_vector_hash(const ffic_string s, int ht_size) {
+long sao_vector_hash(const ffic_string s, int ht_len) {
 	long h = 0;
 	ffic_string u = s;
-	while (*u) { h = (h * 256 + (*u)) % ht_size; u++; }
+	while (*u) { h = (h * 256 + (*u)) % ht_len; u++; }
 	return h;
 }
 p_sao_obj sao_vector_lookup(p_sao_obj holder,ffic_string s) {
 	if(!holder) sao_error("sao_vector_lookup(holder)\n");
 	p_sao_obj* the_vector = holder->_vector;
 	if(!the_vector) sao_error("empty _vector?");
-	if(!holder->_size) sao_error("empty _vector.size?");
-	long h = sao_vector_hash(s, holder->_size);
+	if(!holder->_len) sao_error("empty _vector._len?");
+	long h = sao_vector_hash(s, holder->_len);
 	return the_vector[h];
 }
 p_sao_obj sao_vector_insert(p_sao_obj holder,p_sao_obj key_obj){
@@ -110,27 +110,27 @@ p_sao_obj sao_vector_insert(p_sao_obj holder,p_sao_obj key_obj){
 
 	p_sao_obj* the_vector = holder->_vector;
 	if(!the_vector) sao_error("empty _vector?");
-	if(!holder->_size) sao_error("empty _vector.size?");
-	long h = sao_vector_hash(key_obj->_string, holder->_size);
+	if(!holder->_len) sao_error("empty _vector._len?");
+	long h = sao_vector_hash(key_obj->_string, holder->_len);
 	if(the_vector[h]){
-		//sao_warn("TODO sao_vector_insert table need to resize (%d,%s)?\n",h,key_obj->_string);
+		//sao_warn("TODO sao_vector_insert table need to relen (%d,%s)?\n",h,key_obj->_string);
 	}
 	//if(!the_vector || (SAO_NULL != the_vector[h] && SAO_NULL!=the_vector[h]->_string)){
-	//	int size = 2*(holder->size+1)-1 ;
-	//	sao_tbl_resize(holder, size);
-	//	the_vector = sao_tbl_resize(holder, key_obj);//again
+	//	int _len= 2*(holder->_len+1)-1 ;
+	//	sao_tbl_relen(holder, _len);
+	//	the_vector = sao_tbl_relen(holder, key_obj);//again
 	//}
 	the_vector[h]= key_obj;
 	return holder;
 }
-p_sao_obj sao_tbl_resize(p_sao_obj holder,int size){
+p_sao_obj sao_tbl_relen(p_sao_obj holder,int _len){
 	//if(!holder)
 	if(!holder)
-		holder = sao_new_vector(size);
-	//TMP...(fake resize first) TODO to implement the real resize soon
+		holder = sao_new_vector(_len);
+	//TMP...(fake relen first) TODO to implement the real relen soon
 	else{
-		holder->_vector = SAO_NEW_C(p_sao_obj,size);//TMP
-		holder->_size = size;
+		holder->_vector = SAO_NEW_C(p_sao_obj,_len);//TMP
+		holder->_len = _len;
 	}
 	return holder;
 }
@@ -302,13 +302,13 @@ p_sao_obj native_same(p_sao_obj args) {
 		return SAO_TAG_true;
 	}
 	if ((car(args)->_type == type_vector) && (cadr(args)->_type == type_vector)) {
-		if (car(args)->_size != cadr(args)->_size) {
+		if (car(args)->_len != cadr(args)->_len) {
 			return SAO_TAG_false;
 		}
 		p_sao_obj *va = car(args)->_vector;
 		p_sao_obj *vb = cadr(args)->_vector;
 		int i = 0;
-		for (i = 0; i < car(args)->_size; i++) {
+		for (i = 0; i < car(args)->_len; i++) {
 			if (!sao_is_eq(*(va + i), *(vb + i))) {
 				return SAO_TAG_false;
 			}
@@ -436,14 +436,14 @@ p_sao_obj native_vector(p_sao_obj args) {
 p_sao_obj native_vget(p_sao_obj args) {
 	p_sao_obj vct = SAO_ASSERT_TYPE(car(args), type_vector);
 	p_sao_obj key = SAO_ASSERT_TYPE(cadr(args), type_long);
-	if (key->_long >= vct->_size) return SAO_NULL;
+	if (key->_long >= vct->_len) return SAO_NULL;
 	return vct->_vector[key->_long];
 }
 p_sao_obj native_vset(p_sao_obj args){
 	p_sao_obj vct = SAO_ASSERT_TYPE(car(args), type_vector);
 	p_sao_obj key = SAO_ASSERT_TYPE(cadr(args), type_long);
 	if (!(caddr(args))) return SAO_NULL;
-	if (key->_long >= vct->_size) return SAO_NULL;
+	if (key->_long >= vct->_len) return SAO_NULL;
 	car(args)->_vector[key->_long] = caddr(args);
 	return SAO_TAG_true;
 }
@@ -511,8 +511,8 @@ p_sao_obj saolang_init()
 //			//sao_vector_insert(g_symbol_holder,ret);
 //		}else{
 //			sao_error("g_symbol_holder full? (%s,%s)\n",ret->_string,s);
-//		//	int newsize = 2*(gHTable_size+1)-1 ;
-//		//	ht_resize( newsize );
+//		//	int newlen = 2*(gHTable_len+1)-1 ;
+//		//	ht_relen( newlen );
 //		//	return sao_new_symbol(s);
 //		}
 //	}
