@@ -382,7 +382,21 @@ p_sao_obj sao_load_expr(sao_stream * fw) {
 					}
 					return sao_new_string(buf);
 				}
+				//TODO json-object {}
+//			case '}':
+//				return SAO_NULL;
+//			case '{':
+//				{
+//					p_sao_obj list = sao_read_list(fw);
+//					if(SAO_ARGV(l)){ return list; }//LISP SPEC
+//					p_sao_obj rt = cons(theSymbol,list);
+//					return rt;
+//				}
+			//case ':'://TODO json-object key
+				//break
+			case ']':
 			case ')':
+			case '>':
 				return SAO_NULL;
 			case '(':
 				{
@@ -391,17 +405,20 @@ p_sao_obj sao_load_expr(sao_stream * fw) {
 					p_sao_obj rt = cons(theSymbol,list);
 					return rt;
 				}
-			case '>':
 				return SAO_NULL;
-			case '<'://
+			case '['://
+				{
+					p_sao_obj list = sao_read_list(fw);
+					if(SAO_ARGV(l)){ return list; }//LISP SPEC
+					p_sao_obj rt = cons(SAO_NULL,list);
+					return rt;
+				}
+			case '<'://vector shorthand syntax suger
 				{
 					if(SAO_ARGV(l)){//LISP
 						p_sao_obj list = sao_read_list(fw);
-						//return cons(SAO_TAG_vector,list);
-						return cons(SAO_NULL,list);
+						return cons(SAO_TAG_vector,list);
 					}
-					//p_sao_obj list = sao_read_list(fw);
-					//return cons(SAO_NULL,list);
 					p_sao_obj vector = sao_read_vector(fw);
 					return vector;
 				}
@@ -409,16 +426,16 @@ p_sao_obj sao_load_expr(sao_stream * fw) {
 				{
 					char buf[SAO_MAX_BUF_LEN] = {c};
 					int i = 1, cc;
-					while (cc=sao_peek(fw), !sao_strchr(" \t,()[]<>\r\n", cc)) {
+					while (cc=sao_peek(fw), !sao_strchr(" \t,()[]{}<>\r\n", cc)) {
 						if (i >= SAO_MAX_BUF_LEN) sao_error("Symbol name too long - maximum length %d characters",SAO_MAX_BUF_LEN);
 						buf[i++] = sao_deq_c(fw);
 					}
 					theSymbol = sao_str_convert(buf);
 					while (cc=sao_peek(fw), sao_strchr(" \t", cc)) sao_deq_c(fw);
 					if(SAO_ARGV(i)){//don't eat line mode for i mode
-						if (sao_strchr(",([<", sao_peek(fw))) continue;
+						if (sao_strchr(",([<{", sao_peek(fw))) continue;
 					}else{
-						if (sao_strchr(",\r\n([<", sao_peek(fw))) continue;
+						if (sao_strchr(",\r\n([<{", sao_peek(fw))) continue;
 					}
 				}
 		}//switch
