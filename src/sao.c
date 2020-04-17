@@ -330,54 +330,23 @@ void sao_print_default(ffic_string str, p_sao_obj el){
 	switch (el->_type) {
 		case type_string:
 			sao_stdout("\"%s\"", el->_string); break;
+			//sao_stdout("\"%s\"", el->_raw); break;
+		case type_symbol:
+			sao_stdout("%s", el->_raw); break;
 		case type_long:
 			sao_stdout("%ld", el->_long); break;
 		case type_double:
 			sao_stdout("%g", el->_double); break;
 		case type_vector:
-			//sao_stdout("<vector %d>", el->_len); break;
-			sao_stdout("[");
+			sao_stdout("<");
 			for(int i=0;i<el->_len;i++){
 				sao_print(0,el->_vector[i]);
 				sao_stdout(",");//TMP
 			}
-			sao_stdout("]");
+			sao_stdout(">");
 			break;
-		case type_list:
-			{
-				int skip=0;
-				p_sao_obj ptr = el;
-				if(!SAO_ARGV(l)){
-					sao_print(0, car(ptr));//
-					skip=1;
-				}
-				sao_stdout("(");
-				while (ptr) {
-					if(!SAO_ARGV(l)){
-						if(skip==1){
-							skip=0;
-						}else{
-							sao_stdout(" ");
-							sao_print(0, ptr->car);
-						}
-					}else{
-						sao_stdout(" ");
-						sao_print(0, ptr->car);
-					}
-					if ((ptr->cdr)) {
-						if (ptr->cdr->_type == type_list) {
-							ptr = ptr->cdr;
-						} else {
-							sao_print(".", ptr->cdr);
-							break;
-						}
-					} else
-						break;
-				}
-				sao_stdout(")");
-			}
 		default:
-			sao_stdout("%s", el->_raw); break;
+			sao_stdout("<%d>", el->_type); break;
 	}
 }
 p_sao_obj sao_eval_default(p_sao_obj exp, p_sao_obj ctx){ return exp; }
@@ -422,14 +391,17 @@ p_sao_obj sao_load_expr(sao_stream * fw) {
 					p_sao_obj rt = cons(theSymbol,list);
 					return rt;
 				}
-			case ']':
+			case '>':
 				return SAO_NULL;
-			case '[':
+			case '<'://
 				{
 					if(SAO_ARGV(l)){//LISP
 						p_sao_obj list = sao_read_list(fw);
-						return cons(SAO_TAG_vector,list);
+						//return cons(SAO_TAG_vector,list);
+						return cons(SAO_NULL,list);
 					}
+					//p_sao_obj list = sao_read_list(fw);
+					//return cons(SAO_NULL,list);
 					p_sao_obj vector = sao_read_vector(fw);
 					return vector;
 				}
@@ -437,16 +409,16 @@ p_sao_obj sao_load_expr(sao_stream * fw) {
 				{
 					char buf[SAO_MAX_BUF_LEN] = {c};
 					int i = 1, cc;
-					while (cc=sao_peek(fw), !sao_strchr(" \t,()[]\r\n", cc)) {
+					while (cc=sao_peek(fw), !sao_strchr(" \t,()[]<>\r\n", cc)) {
 						if (i >= SAO_MAX_BUF_LEN) sao_error("Symbol name too long - maximum length %d characters",SAO_MAX_BUF_LEN);
 						buf[i++] = sao_deq_c(fw);
 					}
 					theSymbol = sao_str_convert(buf);
 					while (cc=sao_peek(fw), sao_strchr(" \t", cc)) sao_deq_c(fw);
 					if(SAO_ARGV(i)){//don't eat line mode for i mode
-						if (sao_strchr(",([", sao_peek(fw))) continue;
+						if (sao_strchr(",([<", sao_peek(fw))) continue;
 					}else{
-						if (sao_strchr(",\r\n([", sao_peek(fw))) continue;
+						if (sao_strchr(",\r\n([<", sao_peek(fw))) continue;
 					}
 				}
 		}//switch

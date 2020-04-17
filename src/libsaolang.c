@@ -27,53 +27,48 @@ void _sao_print(ffic_string str, p_sao_obj el){
 	switch (el->_type) {
 		case type_ctype://TODO can it be same as symbol or ctype
 			sao_stdout("<ctype>"); break;
-//		case type_string:
-//			sao_stdout("\"%s\"", el->_string); break;
-//		case type_symbol:
-//			sao_stdout("%s", el->_string); break;
-//		case type_long:
-//			sao_stdout("%ld", el->_long); break;
-//		case type_double:
-//			sao_stdout("%g", el->_double); break;
-//		case type_vector:
-//			sao_stdout("<vector %d>", el->_len); break;
 		case type_native:
 			sao_stdout("<function>"); break;
 		case type_list:
-			if ( sao_is_eq(car(el),SAO_TAG_procedure)) {
-				sao_stdout("<closure>");//TODO mereg with lambda?
-				return;
-			}
-			int skip=0;
-			p_sao_obj ptr = el;
-			if(!SAO_ARGV(l)){
-					_sao_print(0, car(ptr));//
-					skip=1;
-			}
-			sao_stdout("(");
-			while (ptr) {
+			{
+				//sao_stdout("[el->_type=%d]",el->_type);
+				int b = (el->car)?1:0;
+				//sao_stdout("[el->car=%d,b=%d]",el->car,b);
+				if ( sao_is_eq(car(el),SAO_TAG_procedure)) {
+					sao_stdout("<closure>");//TODO mereg with lambda?
+					return;
+				}
+				int skip=0;
+				p_sao_obj ptr = el;
 				if(!SAO_ARGV(l)){
-					if(skip==1){
-						skip=0;
+					sao_print(0, car(ptr));//
+					skip=1;
+				}
+				sao_stdout(b?"(":"[");
+				while (ptr) {
+					if(!SAO_ARGV(l)){
+						if(skip==1){
+							skip=0;
+						}else{
+							sao_stdout(" ");
+							sao_print(0, ptr->car);
+						}
 					}else{
 						sao_stdout(" ");
-						_sao_print(0, ptr->car);
+						sao_print(0, ptr->car);
 					}
-				}else{
-					sao_stdout(" ");
-					_sao_print(0, ptr->car);
-				}
-				if ((ptr->cdr)) {
-					if (ptr->cdr->_type == type_list) {
-						ptr = ptr->cdr;
-					} else {
-						_sao_print(".", ptr->cdr);
+					if ((ptr->cdr)) {
+						if (ptr->cdr->_type == type_list) {
+							ptr = ptr->cdr;
+						} else {
+							sao_print(".", ptr->cdr);
+							break;
+						}
+					} else
 						break;
-					}
-				} else
-					break;
+				}
+				sao_stdout(b?")":"]");
 			}
-			sao_stdout(")");
 	}
 }
 //TODO 
@@ -85,7 +80,6 @@ p_sao_obj sao_not_false(p_sao_obj x) {
 	else if (x->_type == type_long && x->_long == 0) rt = SAO_NULL;
 	return rt;
 }
-//p_sao_obj sao_eval(p_sao_obj exp, p_sao_obj ctx);
 p_sao_obj sao_eval_list(p_sao_obj exp, p_sao_obj ctx) {
 	if (!(exp)) return SAO_NULL;
 	return cons(sao_eval(car(exp), ctx), sao_eval_list(cdr(exp), ctx));
@@ -136,7 +130,6 @@ p_sao_obj sao_tbl_relen(p_sao_obj holder,int _len){
 }
 p_sao_obj _sao_eval(p_sao_obj exp, p_sao_obj ctx) {
 tail:
-	//sao_print("\n DEBUG _sao_eval=>",exp);
 	if (!exp) { return SAO_NULL; }
 	else if (exp->_type == type_long || exp->_type == type_string) { return exp; }//TODO
 	else if (exp->_type == type_vector) {
@@ -152,7 +145,6 @@ tail:
 				sao_error("ERROR: symbol(%s) not found.\n",exp->_string);
 			}else{
 				sao_warn("WARN: sao_get_var() failed for symbol(%s).\n",exp->_string);
-				//sao_print("with ctx=",ctx);
 			}
 		}
 		return sym;
