@@ -464,6 +464,7 @@ int main(int argc,char **argv, char** envp) {
 	SAO_TAG_global = sao_expand(SAO_NULL, SAO_NULL, SAO_NULL);
 	SAO_TAG_argv = sao_expand(SAO_NULL, SAO_NULL, SAO_NULL);
 	SAO_TAG_quote=sao_new_symbol("quote");sao_var(SAO_TAG_quote,SAO_TAG_quote,SAO_TAG_global);
+	//TODO to change to type vector??
 	SAO_TAG_list=sao_new_symbol("list");sao_var(SAO_TAG_list,SAO_TAG_list,SAO_TAG_global);
 
 	ffic_string script_file = "-";

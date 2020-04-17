@@ -21,7 +21,7 @@ var( ge gteq)
 var( le lteq)
 var( nc notcmp)
 
-# Return the maximum value from a list of integers
+## Return the maximum value from a list of integers
 var( max( list_of_numbers)
   var( max_iter( best remaining)
     cond( (is_null( remaining) best)
@@ -30,7 +30,7 @@ var( max( list_of_numbers)
 			))
   max_iter( car( list_of_numbers) cdr( list_of_numbers)))
 
-# Return the minimum value from a list of integers
+## Return the minimum value from a list of integers
 var( min( list_of_numbers)
   var( min_iter( best remaining)
     cond( (is_null( remaining) best)
@@ -153,7 +153,7 @@ var( mutate_procedure_body( name new_body) setcar( cddr( name) list( new_body)))
 var( mutate_procedure_args( name new_args) setcar( cdr( name) new_args))
 
 var( construct_procedure( args body env)
-  let( (new_proc( cons( *procedure cons( ^() cons( ^() cons( ^()))))))
+  let( (new_proc( cons( procedure cons( ^() cons( ^() cons( ^()))))))
     mutate_procedure_args( new_proc args)
     mutate_procedure_body( new_proc body)
     mutate_procedure_env( new_proc env)
@@ -186,20 +186,4 @@ var( make_withdraw( balance)
         balance)
       "Insufficient funds")))
 
-# Various tests
-var( x ^1( 2 3))
-var( factorial lambda(n() if( cmp( n 0) 1 mul( n factorial( sub( n 1))))))
-var( add1 lambda(n() add( 1 n)))
-var( sum_of_squares( num_list)
-  var( sos_helper lambda( remaining( sum_so_far)
-      if( is_null( remaining) 
-        sum_so_far 
-        sos_helper( cdr( remaining) add( sum_so_far mul( car( remaining) car( remaining)))))))
-  sos_helper( num_list 0))
-
-# Procedure with no args
-var( new_env() cons( cons( ^() ^()) ^()))
-# Construct a procedure with macro
-var( new_func construct_procedure( ^a() ^cons( a 10) global()))
-var( with_macros construct_procedure( ^x() if_zero( ^x ^ZERO) global()))
 

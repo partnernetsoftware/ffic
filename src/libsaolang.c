@@ -141,11 +141,20 @@ tail:
 	else if (exp->_type == type_long || exp->_type == type_string) { return exp; }//TODO
 	else if (exp->_type == type_symbol) {
 		p_sao_obj sym = sao_get_var(exp, ctx);
-		if (!sym) { if(SAO_ARGV(s)){ sao_error("ERROR: symbol(%s) not found.\n",exp->_string); } } return sym;
+		if (!sym) {
+			if(SAO_ARGV(s)){
+				sao_error("ERROR: symbol(%s) not found.\n",exp->_string);
+			}else{
+				sao_warn("WARN: sao_get_var() failed for symbol(%s).\n",exp->_string);
+				//sao_print("with ctx=",ctx);
+			}
+		}
+		return sym;
 	}
 	else if(sao_is_list(exp)){
 		p_sao_obj _car = car(exp);
 		p_sao_obj _cadr = cadr(exp);
+		if (sao_is_eq(_car, SAO_TAG_list)) { return cdr(exp); }//alias as native_list()...
 		if (sao_is_eq(_car, SAO_TAG_quote)) { return _cadr; }
 		else if (sao_is_eq(_car, SAO_TAG_lambda)) { return sao_new_procedure(_cadr, cddr(exp), ctx); }
 		else if (sao_is_eq(_car, SAO_TAG_var)) {
@@ -250,14 +259,14 @@ p_sao_obj sao_type_assert(const ffic_string func, p_sao_obj obj, int type)
 #define SAO_ASSERT_TYPE(x, t) (sao_type_assert((ffic_string)__func__, x, t))
 
 p_sao_obj native_type(p_sao_obj args) { return sao_new_symbol(type_names[car(args)->_type]); }
-//p_sao_obj native_global(p_sao_obj args) { return SAO_TAG_global; }
-p_sao_obj native_list(p_sao_obj args) { return (args); }
+p_sao_obj native_global(p_sao_obj args) { return SAO_TAG_global; }
+//p_sao_obj native_list(p_sao_obj args) { return (args); }
 p_sao_obj native_cons(p_sao_obj args) { return cons(car(args), cadr(args)); }
 p_sao_obj native_car(p_sao_obj args) { if(SAO_ARGV(s)) SAO_ASSERT_TYPE(car(args), type_list); return caar(args); }
 p_sao_obj native_cdr(p_sao_obj args) { if(SAO_ARGV(s)) SAO_ASSERT_TYPE(car(args), type_list); return cdar(args); }
 p_sao_obj native_setcar(p_sao_obj args) { SAO_ASSERT_TYPE(car(args), type_list); (args->car->car = (cadr(args))); return SAO_NULL; }
 p_sao_obj native_setcdr(p_sao_obj args) { SAO_ASSERT_TYPE(car(args), type_list); (args->car->cdr = (cadr(args))); return SAO_NULL; }
-p_sao_obj native_is_null(p_sao_obj args) { return !(car(args)) ? SAO_TAG_true : SAO_TAG_false; }
+p_sao_obj native_is_null(p_sao_obj args) { return (car(args)) ? SAO_TAG_false : SAO_TAG_true; }
 p_sao_obj native_pairq(p_sao_obj args) {
 	if (car(args)->_type != type_list) return SAO_TAG_false;
 	return (sao_is_atom(caar(args)) && sao_is_atom(cdar(args))) ? SAO_TAG_true : SAO_TAG_false;
@@ -476,9 +485,10 @@ p_sao_obj saolang_init()
 			);
 	SAO_ITR(add_sym_list,
 			exit,shell,ffi,//sys
-			//global,
+			global,//FOR DEV MODE
 			type,cons,setcar,setcdr,//core
-			list,vector,vget,vset,//data structure
+			//list,
+			vector,vget,vset,//data structure
 			load,print,read,//io
 			add,sub,mul,div,cmp,lt,gt,//logic,
 			is_null,is_list,pairq,eq,same,//helpers
