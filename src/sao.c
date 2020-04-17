@@ -443,7 +443,7 @@ p_sao_obj sao_load_expr(sao_stream * fw) {
 	}
 	return theSymbol;
 }
-#include "libsaolang.c" //@ref sao_eval() and saolang_init() 
+#include "libsaolang.c"
 p_sao_obj sao_parse( sao_stream * fw, p_sao_obj ctx ) {
 	sao_read_line(fw);
 	ffic_u64 (*microtime)() = ( ffic_u64(*)() ) libc(microtime);

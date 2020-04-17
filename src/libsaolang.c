@@ -149,18 +149,33 @@ tail:
 	else if (exp->_type == type_symbol) {
 		p_sao_obj sym = sao_get_var(exp, ctx);
 		if (!sym) {
-			if(SAO_ARGV(s)){
-				sao_error("ERROR: symbol(%s) not found.\n",exp->_string);
-			}else{
-				sao_warn("WARN: sao_get_var() failed for symbol(%s).\n",exp->_string);
-			}
+			//if(SAO_ARGV(s)){
+			//	sao_error("ERROR: symbol(%s) not found.\n",exp->_string);
+			//}else{
+			sao_warn("WARN: sao_get_var() failed for symbol(%s).\n",exp->_string);//TODO
+			//}
+			//return exp;
 		}
 		return sym;
 	}
 	else if(sao_is_list(exp)){
 		p_sao_obj _car = car(exp);
 		p_sao_obj _cadr = cadr(exp);
-		if (sao_is_eq(_car, SAO_TAG_vector)) { return cdr(exp); }
+		if (sao_is_eq(_car, SAO_TAG_vector)) {//TODO need improve 
+			p_sao_obj _cdr = cdr(exp);
+			//return _cdr;
+			p_sao_obj vector_a[512];
+			int i=0;
+			for (;;) {
+				if(!car(_cdr)) break;
+				vector_a[i++] = car(_cdr);
+				if(i>=512) sao_error("vector len > 512...");//TODO improve later
+				_cdr = cdr(_cdr);
+			}
+			p_sao_obj rt = sao_new_vector(i);
+			for(int j=0;j<i;j++){ rt->_vector[j]=vector_a[j]; }
+			return rt;
+		}
 		if (sao_is_eq(_car, SAO_TAG_quote)) { return _cadr; }
 		else if (sao_is_eq(_car, SAO_TAG_lambda)) { return sao_new_procedure(_cadr, cddr(exp), ctx); }
 		else if (sao_is_eq(_car, SAO_TAG_var)) {
@@ -223,28 +238,26 @@ tail:
 			exp = cons(sao_new_lambda(vars, cddr(exp)), vals);
 			goto tail;
 		}else
-		{ /* procedure( parameters, body-expr, ctx) */
+		{
 			if(!_car){
-				return exp;//
+				return exp;// for []?
 			}
 			p_sao_obj proc = sao_eval(_car, ctx);
 			if (!proc) {
 				//if(SAO_ARGV(s)){
-				sao_print("WARNING: not found correct native to run:", exp);
+				sao_print("WARN: fail of", exp);//TODO
 				sao_stdout("\n");
 				//}
-				return SAO_NULL;
+				//return SAO_NULL;
+				//return exp;
+				return SAO_TAG_false;//TODO
 			}
-			//sao_print("DEBUG 399 {",proc);
-			//sao_print(" }\n",0);
 			if (proc->_type == type_native){
-				//sao_print("DEBUG 398 {",cdr(exp));
-				//sao_print(" }\n",0);
 				p_sao_obj args = sao_eval_list(cdr(exp), ctx);
-				//sao_print("DEBUG: calling native with:{", _car);
-				//sao_stdout("}");
 				return proc->_native(args);
-			}//TODO if empty native but ffi, should auto load into _native 
+			}
+			//TODO if empty native but ffi, should auto load into _native 
+
 			if ( sao_is_eq(car(proc), SAO_TAG_procedure))
 			{
 				p_sao_obj args = sao_eval_list(cdr(exp), ctx);
@@ -252,10 +265,7 @@ tail:
 				exp = cons(SAO_TAG_begin, caddr(proc)); /* body-expr */
 				goto tail;
 			}else{
-				//sao_stdout("DEBUG 400 [%d,%d]\n",proc->_type,proc->_native);
-				//sao_print("DEBUG 400 {",proc);
-				//sao_print(" }\n",0);
-				return exp;
+				//return exp;
 			}
 		}
 		//sao_warn("DEBUG 400: sao_is_list SAO_NULL?\n");
@@ -266,7 +276,8 @@ tail:
 	}
 	sao_stdout("\n");
 	//return SAO_TAG_false;
-	return SAO_NULL;
+	//return SAO_NULL;
+	return exp;//
 }
 
 p_sao_obj sao_type_assert(const ffic_string func, p_sao_obj obj, int type)
@@ -284,7 +295,9 @@ p_sao_obj sao_type_assert(const ffic_string func, p_sao_obj obj, int type)
 
 p_sao_obj native_type(p_sao_obj args) { return sao_new_symbol(type_names[car(args)->_type]); }
 p_sao_obj native_global(p_sao_obj args) { return SAO_TAG_global; }
-p_sao_obj native_list(p_sao_obj args) { return (args); }//TODO remove as vector[] is ok
+
+//TODO try convert to vector?
+p_sao_obj native_list(p_sao_obj args) { return (args); }
 p_sao_obj native_cons(p_sao_obj args) { return cons(car(args), cadr(args)); }
 p_sao_obj native_car(p_sao_obj args) { if(SAO_ARGV(s)) SAO_ASSERT_TYPE(car(args), type_list); return caar(args); }
 p_sao_obj native_cdr(p_sao_obj args) { if(SAO_ARGV(s)) SAO_ASSERT_TYPE(car(args), type_list); return cdar(args); }
@@ -453,10 +466,10 @@ p_sao_obj native_load(p_sao_obj args) { //TODO merge with native_read() 1!
 	libc(fclose)(fp);
 	return ret;
 }
-p_sao_obj native_vector(p_sao_obj args) {
-	p_sao_obj sym = SAO_ASSERT_TYPE(car(args), type_long);
-	return sao_new_vector(sym->_long);
-}
+//p_sao_obj native_vector(p_sao_obj args) {
+//	p_sao_obj sym = SAO_ASSERT_TYPE(car(args), type_long);
+//	return sao_new_vector(sym->_long);
+//}
 p_sao_obj native_vget(p_sao_obj args) {
 	p_sao_obj vct = SAO_ASSERT_TYPE(car(args), type_vector);
 	p_sao_obj key = SAO_ASSERT_TYPE(cadr(args), type_long);
@@ -517,7 +530,8 @@ p_sao_obj saolang_init()
 			global,//FOR DEV MODE
 			type,cons,setcar,setcdr,//core
 			list,//TODO will be removed soon
-			vector,vget,vset,//data structure
+			//vector,
+			//vget,vset,//data structure TODO
 			load,print,read,//io
 			add,sub,mul,div,cmp,lt,gt,//logic,
 			is_null,is_list,pairq,eq,same,//helpers

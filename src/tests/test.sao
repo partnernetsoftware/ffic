@@ -1,4 +1,23 @@
-print([1 2 3 4])
+##var(die lambda( s1() print(s1) ))
+var(die(s1) print(s1) exit())
+##die("wtf")
+
+var(ensure(r) if(expr print(r) exit() ))
+
+is_null(false)
+eq(false is_null(false))
+ensure( eq(false is_null(false)) )
+
+is_null(true)
+is_null()
+vector(2 3 4)
+is_null(cdr( vector(2 3 4) ))
+list(2 3 4)
+cdr( list(2 3 4) )
+[2 3 4]
+cdr( [2 3 4] )
+
+print([2 3 4])
 
 (1 2)
 1(2)
@@ -49,8 +68,6 @@ var (
 )
 fib(12)                                   # 144
 
-cdr( vector(1 2 3 4) )
-cdr( [1 2 3 4] )
 
 var( x list(1 2 3))
 #var( x ^1( 2 3))
@@ -58,6 +75,7 @@ var( x list(1 2 3))
 
 print(x) # output list(1 2 3)
 
+#var(factorial(n) if( cmp( n 0) 1 mul( n factorial( sub( n 1))))
 var( factorial lambda(n() if( cmp( n 0) 1 mul( n factorial( sub( n 1))))))
 
 #var( add1 lambda(n() add( 1 n)))
@@ -82,8 +100,9 @@ var( new_env() cons( cons( ^() ^()) ^()))
 # Construct a procedure with macro
 var( new_func construct_procedure( ^a() ^cons( a 10) global()))
 var( with_macros construct_procedure( ^x() if_zero( ^x ^ZERO) global()))
-sum_of_squares( list(1 2 3 4) )           # 30
-#sum_of_squares( [1 2 3 4] )           # 30
+list(2 3 4)
+sum_of_squares( list(2 3 4) )           # 4+9+16=29
+#sum_of_squares( [2 3 4] )           # 30
 
 c_int("12345")
 
