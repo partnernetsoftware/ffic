@@ -4,7 +4,6 @@ enum { type_ctype=1+type_string, type_native, };
 #define LIST_SAO_TAG true,false,set,let,var,if,lambda,begin,or,else,cond,error,procedure
 SAO_ITR(define_sao_tag, SAO_EXPAND(LIST_SAO_TAG));
 
-#define sao_new_vector(s) sao_new((sao_obj){._type=type_vector, ._len=s,._vector=SAO_NEW_C(p_sao_obj,s)})
 #define sao_new_native(x,n) sao_new((sao_obj){._type=type_native, ._native=x,._ffi=n})
 #define sao_new_lambda(params,body) cons(SAO_TAG_lambda, cons(params,body))
 #define sao_new_procedure(params,body,ctx) cons(SAO_TAG_procedure, cons(params, cons(body, cons(ctx, SAO_NULL))))
@@ -19,6 +18,7 @@ void _sao_print(ffic_string str, p_sao_obj el){
 		case type_symbol:
 		case type_long:
 		case type_double:
+		case type_vector:
 			return sao_print_default(str, el);
 	}
 
@@ -35,10 +35,10 @@ void _sao_print(ffic_string str, p_sao_obj el){
 //			sao_stdout("%ld", el->_long); break;
 //		case type_double:
 //			sao_stdout("%g", el->_double); break;
+//		case type_vector:
+//			sao_stdout("<vector %d>", el->_len); break;
 		case type_native:
 			sao_stdout("<function>"); break;
-		case type_vector:
-			sao_stdout("<table %d>", el->_len); break;
 		case type_list:
 			if ( sao_is_eq(car(el),SAO_TAG_procedure)) {
 				sao_stdout("<closure>");//TODO mereg with lambda?
@@ -139,6 +139,12 @@ tail:
 	//sao_print("\n DEBUG _sao_eval=>",exp);
 	if (!exp) { return SAO_NULL; }
 	else if (exp->_type == type_long || exp->_type == type_string) { return exp; }//TODO
+	else if (exp->_type == type_vector) {
+		for(int i=0;i<exp->_len;i++){
+			exp->_vector[i] = sao_eval( exp->_vector[i],ctx);
+		}
+		return exp;
+	}
 	else if (exp->_type == type_symbol) {
 		p_sao_obj sym = sao_get_var(exp, ctx);
 		if (!sym) {
@@ -219,7 +225,6 @@ tail:
 		}else
 		{ /* procedure( parameters, body-expr, ctx) */
 			p_sao_obj proc = sao_eval(_car, ctx);
-			p_sao_obj args = sao_eval_list(cdr(exp), ctx);
 			if (!proc) {
 				if(SAO_ARGV(s)){
 					sao_print("WARNING: not found correct native to run:", exp);
@@ -227,6 +232,7 @@ tail:
 				}
 				return SAO_NULL;
 			}
+			p_sao_obj args = sao_eval_list(cdr(exp), ctx);
 			if (proc->_type == type_native){ return proc->_native(args); }//TODO if empty native but ffi, should auto load into _native 
 			if ( sao_is_eq(car(proc), SAO_TAG_procedure))
 			{
@@ -240,7 +246,7 @@ tail:
 	else{
 		sao_print("DEBUG: unhandle atom",exp);
 	}
-	sao_stdout("\n");
+	//sao_stdout("\n");
 	//return SAO_TAG_false;
 	return SAO_NULL;//must
 }

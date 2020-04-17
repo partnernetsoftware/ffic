@@ -159,7 +159,7 @@ var( construct_procedure( args body env)
     mutate_procedure_env( new_proc env)
     new_proc))
 
-var( if_zero( x then) list( *if list( *eq x 0) then))
+var( if_zero( x then) list( if list( eq x 0) then))
 
 var( gen_accum( number)
   lambda( amount()

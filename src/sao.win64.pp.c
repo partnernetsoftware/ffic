@@ -313,6 +313,20 @@ p_sao_obj sao_read_list(sao_stream * fw)
  }
  return (void*)0;
 }
+p_sao_obj sao_read_vector(sao_stream * fw)
+{
+ p_sao_obj vector_a[512];
+ int i=0;
+ for (;;) {
+  p_sao_obj obj = sao_load_expr(fw);
+  if(!obj) break;
+  vector_a[i++] = obj;
+  if(i>=512) do{libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"vector len > 512...");libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"\n");libc_(libc_exit,"exit")(1);}while(0);
+ }
+ p_sao_obj rt = sao_new((sao_obj){._type=type_vector, ._len=i,._vector=sao_calloc( sizeof(p_sao_obj) *(i) )});
+ for(int j=0;j<i;j++){ rt->_vector[j]=vector_a[j]; }
+ return rt;
+}
 void sao_comment(sao_stream * fw) { int c; for (;;) { c = sao_deq_c(fw); if (c == '\n' || c == (-1)) return; } }
 double sao_eps = 0.0000001;
 p_sao_obj sao_convert_default(ffic_string str){
@@ -426,10 +440,12 @@ p_sao_obj sao_load_expr(sao_stream * fw) {
     return (void*)0;
    case '[':
     {
-     p_sao_obj list = sao_read_list(fw);
-     if(argta[argt_l]){ return list; }
-     p_sao_obj rt = cons(SAO_TAG_vector,list);
-     return rt;
+     if(argta[argt_l]){
+      p_sao_obj list = sao_read_list(fw);
+      return cons(SAO_TAG_vector,list);
+     }
+     p_sao_obj vector = sao_read_vector(fw);
+     return vector;
     }
    default:
     {
@@ -471,7 +487,7 @@ void _sao_print(ffic_string str, p_sao_obj el){
   case type_native:
    libc_(libc_printf,"printf")("<function>"); break;
   case type_vector:
-   libc_(libc_printf,"printf")("<table %d>", el->_len); break;
+   libc_(libc_printf,"printf")("<vector %d>", el->_len); break;
   case type_list:
    if ( sao_is_eq(car(el),SAO_TAG_procedure)) {
     libc_(libc_printf,"printf")("<closure>");
@@ -558,6 +574,9 @@ p_sao_obj _sao_eval(p_sao_obj exp, p_sao_obj ctx) {
 tail:
  if (!exp) { return (void*)0; }
  else if (exp->_type == type_long || exp->_type == type_string) { return exp; }
+ else if (exp->_type == type_vector) {
+  sao_print("DEBUG: todo handle vector",exp);
+ }
  else if (exp->_type == type_symbol) {
   p_sao_obj sym = sao_get_var(exp, ctx);
   if (!sym) {
@@ -656,7 +675,6 @@ tail:
  else{
   sao_print("DEBUG: unhandle atom",exp);
  }
- libc_(libc_printf,"printf")("\n");
  return (void*)0;
 }
 p_sao_obj sao_type_assert(const ffic_string func, p_sao_obj obj, int type)

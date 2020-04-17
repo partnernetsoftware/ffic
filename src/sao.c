@@ -109,8 +109,8 @@ ffic_func_i sao_strcmp;
 #define sao_is_digit(c) ((long)libc(isdigit)(c))
 #define sao_is_alpha(c) ((long)libc(isalpha)(c))
 #define sao_is_alphanumber(c) ((long)libc(isalnum)(c))
-//#define sao_new_list(a,d) sao_new((sao_obj){._type=type_list,.car=a,.cdr=d})
 #define sao_new_list(a,d) sao_new((sao_obj){.car=a,.cdr=d})
+#define sao_new_vector(s) sao_new((sao_obj){._type=type_vector, ._len=s,._vector=SAO_NEW_C(p_sao_obj,s)})
 #define sao_new_symbol(s) sao_new((sao_obj){._type=type_symbol,._string=s})
 #define sao_new_string(s) sao_new((sao_obj){._type=type_string, ._string=s})
 #define sao_new_long(i) sao_new((sao_obj){._type=type_long, ._long=i})
@@ -289,6 +289,20 @@ p_sao_obj sao_read_list(sao_stream * fw)
 	}
 	return SAO_NULL;
 }
+p_sao_obj sao_read_vector(sao_stream * fw)
+{
+	p_sao_obj vector_a[512];
+	int i=0;
+	for (;;) {
+		p_sao_obj	obj = sao_load_expr(fw);
+		if(!obj) break;
+		vector_a[i++] = obj;
+		if(i>=512) sao_error("vector len > 512...");//TODO improve later
+	}
+	p_sao_obj rt = sao_new_vector(i);
+	for(int j=0;j<i;j++){ rt->_vector[j]=vector_a[j]; }
+	return rt;
+}
 void sao_comment(sao_stream * fw) { int c; for (;;) { c = sao_deq_c(fw); if (c == '\n' || c == SAO_EOF) return; } }
 double sao_eps = 0.0000001;
 p_sao_obj sao_convert_default(ffic_string str){
@@ -309,6 +323,7 @@ p_sao_obj sao_convert_default(ffic_string str){
 	}
 	return SAO_NULL;
 }
+void(*sao_print)(ffic_string,p_sao_obj);//= sao_print_default;
 void sao_print_default(ffic_string str, p_sao_obj el){
 	if (str) sao_stdout("%s ", str);
 	if (!el) { return; }
@@ -319,12 +334,21 @@ void sao_print_default(ffic_string str, p_sao_obj el){
 			sao_stdout("%ld", el->_long); break;
 		case type_double:
 			sao_stdout("%g", el->_double); break;
+		case type_vector:
+			//sao_stdout("<vector %d>", el->_len); break;
+			sao_stdout("[");
+			for(int i=0;i<el->_len;i++){
+				sao_print(0,el->_vector[i]);
+				sao_stdout(",");//TMP
+			}
+			sao_stdout("]");
+			break;
 		case type_list:
 			{
 				int skip=0;
 				p_sao_obj ptr = el;
 				if(!SAO_ARGV(l)){
-					sao_print_default(0, car(ptr));//
+					sao_print(0, car(ptr));//
 					skip=1;
 				}
 				sao_stdout("(");
@@ -334,17 +358,17 @@ void sao_print_default(ffic_string str, p_sao_obj el){
 							skip=0;
 						}else{
 							sao_stdout(" ");
-							sao_print_default(0, ptr->car);
+							sao_print(0, ptr->car);
 						}
 					}else{
 						sao_stdout(" ");
-						sao_print_default(0, ptr->car);
+						sao_print(0, ptr->car);
 					}
 					if ((ptr->cdr)) {
 						if (ptr->cdr->_type == type_list) {
 							ptr = ptr->cdr;
 						} else {
-							sao_print_default(".", ptr->cdr);
+							sao_print(".", ptr->cdr);
 							break;
 						}
 					} else
@@ -358,7 +382,6 @@ void sao_print_default(ffic_string str, p_sao_obj el){
 }
 p_sao_obj sao_eval_default(p_sao_obj exp, p_sao_obj ctx){ return exp; }
 p_sao_obj(*sao_str_convert)(ffic_string) = sao_convert_default;
-void(*sao_print)(ffic_string,p_sao_obj) = sao_print_default;
 p_sao_obj(*sao_eval)(p_sao_obj,p_sao_obj) = sao_eval_default;
 #define SAO_MAX_BUF_LEN 2048 //TODO support longer string..
 p_sao_obj sao_load_expr(sao_stream * fw) {
@@ -403,10 +426,12 @@ p_sao_obj sao_load_expr(sao_stream * fw) {
 				return SAO_NULL;
 			case '[':
 				{
-					p_sao_obj list = sao_read_list(fw);
-					if(SAO_ARGV(l)){ return list; }//LISP SPEC
-					p_sao_obj rt = cons(SAO_TAG_vector,list);
-					return rt;
+					if(SAO_ARGV(l)){//LISP
+						p_sao_obj list = sao_read_list(fw);
+						return cons(SAO_TAG_vector,list);
+					}
+					p_sao_obj vector = sao_read_vector(fw);
+					return vector;
 				}
 			default:
 				{
@@ -454,6 +479,8 @@ p_sao_obj sao_parse( sao_stream * fw, p_sao_obj ctx ) {
 void print_version(){ sao_stdout(" SaoLang (R) v" SAO_VERSION " - Wanjo Chan (c) 2020\n"); }
 void print_help(){ sao_stdout("Usage	 : sao [options] [script.sao | -]]\nOptions	 :\n	h:	Help\n	v:	Version\n	i:	Interactive\n	p:	Print final result\n	d:	Dev only\n	e:	Eval\n	s:	Strict mode\n	l:	Lisp syntax\n"); }
 int main(int argc,char **argv, char** envp) {
+	sao_print = sao_print_default;
+
 	sao_strcmp = (ffic_func_i) libc(strcmp);
 	sao_atof   = (ffic_func_d) libc(atof);
 	sao_atol   = (ffic_func_l) libc(atol);

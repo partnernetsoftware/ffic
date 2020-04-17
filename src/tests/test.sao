@@ -1,9 +1,9 @@
 (1 2)
 1(2)
-list(1 2)
-[1 2]
 
-(print (1 2))
+list(1 2)
+vector(1 2)
+[1 2]
 
 #global()
 
@@ -24,11 +24,10 @@ range(5)
 print([4,5])                            # 4
 
 car(list(4,5))                            # 4
-car([4,5])                            # 4
-
+//car([4,5])                            # 4
 #car(4,5)                            # 4
 caar( list(list(4,5),6) )                 # 4
-caar( [[4,5],6] )                 # 4
+//caar( [[4,5],6] )                 # 4
 #caar( (4,5),6 )                 # 4
 cadar( list(list(4,5),6) )                # 5
 #cadar( ((4,5),6) )                # 5
@@ -47,7 +46,8 @@ var (
 )
 fib(12)                                   # 144
 
-cdr( list(1 2 3 4) )
+cdr( vector(1 2 3 4) )
+cdr( [1 2 3 4] )
 
 var( x list(1 2 3))
 #var( x ^1( 2 3))
@@ -80,7 +80,7 @@ var( new_env() cons( cons( ^() ^()) ^()))
 var( new_func construct_procedure( ^a() ^cons( a 10) global()))
 var( with_macros construct_procedure( ^x() if_zero( ^x ^ZERO) global()))
 sum_of_squares( list(1 2 3 4) )           # 30
-sum_of_squares( [1 2 3 4] )           # 30
+//sum_of_squares( [1 2 3 4] )           # 30
 
 c_int("12345")
 
