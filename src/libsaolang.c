@@ -445,10 +445,15 @@ p_sao_obj native_vset(p_sao_obj args){
 	car(args)->_vector[key->_long] = caddr(args);
 	return SAO_TAG_true;
 }
-p_sao_obj native_print(p_sao_obj args) {
-	sao_print(0, car(args));
+p_sao_obj native_print(p_sao_obj list) {
+	p_sao_obj _car;
+	while ((_car=car(list))) {
+		sao_print(" ",_car);
+		list = cdr(list);
+	}
 	sao_stdout("\n");
-	return SAO_NULL;
+	//return SAO_NULL;
+	return SAO_TAG_true;
 }
 p_sao_obj native_c_int(p_sao_obj args) {
 	p_sao_obj _car;
