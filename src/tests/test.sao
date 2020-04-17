@@ -5,13 +5,23 @@ load("lib.sao")
 #print(global)
 #global()
 
-print("what is this");
+print("what is this")
 
-if(1 true false) #true
+eq(if(1 true false),false) #false
+eq(if(0 true false),false) #true
+
+range(5)
+
+[6,7,8]
+
+print([4,5])                            # 4
 
 car(list(4,5))                            # 4
+car([4,5])                            # 4
+
 #car(4,5)                            # 4
 caar( list(list(4,5),6) )                 # 4
+caar( [[4,5],6] )                 # 4
 #caar( (4,5),6 )                 # 4
 cadar( list(list(4,5),6) )                # 5
 #cadar( ((4,5),6) )                # 5
@@ -32,7 +42,7 @@ fib(12)                                   # 144
 
 cdr( list(1 2 3 4) )
 sum_of_squares( list(1 2 3 4) )           # 30
-#sum_of_squares( (1 2 3 4) )           # 30
+sum_of_squares( [1 2 3 4] )           # 30
 
 c_int("12345")
 

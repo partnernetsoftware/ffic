@@ -35,6 +35,7 @@
 #define SAO_WHILE_INDIRECT1() SAO_WHILE1
 #define SAO_ITR(mmm,qqq,...) SAO_EVAL( SAO_WHILE( mmm,qqq,__VA_ARGS__ ) )
 #define SAO_ITR1(mmm,mm1,qqq,...) SAO_EVAL( SAO_WHILE1( mmm,mm1,qqq,__VA_ARGS__) )
+#define SAO_QUOTE(sth) #sth
 //////////////////////////////////////////////////////////////////////////////
 #define DEFINE_ENUM_LIBC(n) libc_##n,
 enum { SAO_ITR(DEFINE_ENUM_LIBC,fprintf,malloc,memset,memcpy,strcpy,strlen,strdup,strcmp,strchr,strcat,printf,putc,getc,isalnum,isdigit,isalpha,fopen,fread,fgets,fclose,feof,fputc,fflush,free,system,atol,atoi,atof,  usleep,msleep,sleep,setmode,fileno,stdin,stdout,stderr,microtime,exit) };
@@ -89,7 +90,7 @@ p_sao_obj sao_new(sao_obj tpl) {
 	return ret;
 }
 #define define_sao_tag(n) p_sao_obj SAO_TAG_##n=SAO_NULL;
-SAO_ITR(define_sao_tag, argv,global,quote);
+SAO_ITR(define_sao_tag, list,argv,global,quote);
 typedef struct _FileChar { int c; struct _FileChar * ptr_prev; struct _FileChar * ptr_next; } FileChar;
 typedef struct {
 	stream_t _type;
@@ -100,8 +101,10 @@ typedef struct {
 	FileChar * ptr_last;
 } sao_stream;
 p_sao_obj sao_load_expr(sao_stream * fw);
-ffic_func_d atof;
-ffic_func_l atol;
+ffic_func_d sao_atof;
+ffic_func_l sao_atol;
+ffic_func_i sao_strchr;
+ffic_func_i sao_strcmp;
 #define sao_is_list(x) (x&&!x->_type)
 #define sao_is_atom(x) (x&&x->_type)
 #define sao_is_digit(c) ((long)libc(isdigit)(c))
@@ -133,7 +136,7 @@ p_sao_obj sao_is_eq(p_sao_obj x, p_sao_obj y) {
 		switch (x->_type) {
 			case type_long: if(x->_long == y->_long) return x;
 			case type_symbol:
-			case type_string: if(!libc(strcmp)(x->_string, y->_string)) return x;
+			case type_string: if(!sao_strcmp(x->_string, y->_string)) return x;
 			//default: break;//don't compare
 		}
 	}while(0);
@@ -282,8 +285,7 @@ p_sao_obj sao_read_list(sao_stream * fw)
 	p_sao_obj cell = SAO_NULL;
 	for (;;) {
 		obj = sao_load_expr(fw);
-		if (!(obj))
-			return sao_reverse(cell, SAO_NULL);
+		if (!obj) return sao_reverse(cell, SAO_NULL);
 		cell = cons(obj, cell);
 	}
 	return SAO_NULL;
@@ -295,8 +297,8 @@ p_sao_obj sao_convert_default(ffic_string str){
 		if(str[0]=='"'){
 			return sao_new_string(str);
 		}else if((str[0]=='-'&&sao_is_digit(str[1]))||sao_is_digit(str[0])){ //TODO speed up later.
-			long l_val = atol(str);
-			double d_val = atof(str);
+			long l_val = sao_atol(str);
+			double d_val = sao_atof(str);
 			double d_diff = (d_val - l_val);
 			p_sao_obj rt;
 			rt = (d_diff>=-sao_eps && d_diff<=sao_eps) ?  sao_new_long(l_val) : sao_new_double(d_val);
@@ -394,32 +396,33 @@ p_sao_obj sao_load_expr(sao_stream * fw) {
 			case '(':
 				{
 					p_sao_obj list = sao_read_list(fw);
-					if(SAO_ARGV(l)){ return list; }//LISP
-					//sao_print("\n list=>",list);
-					//sao_print("\n theSymbol=>",theSymbol);
-					//sao_print("\n cons(theSymbol,list)=>",cons(theSymbol,list));
-					if(!theSymbol){
-						//sao_print("\n list=>",list);
-						theSymbol = sao_new_symbol("list");
-					}
+					if(SAO_ARGV(l)){ return list; }//LISP SPEC
 					p_sao_obj rt = cons(theSymbol,list);
-					//sao_print("\n rt=>",rt);
 					return rt;
-				}	
+				}
+			case ']':
+				return SAO_NULL;
+			case '[':
+				{
+					p_sao_obj list = sao_read_list(fw);
+					if(SAO_ARGV(l)){ return list; }//LISP SPEC
+					p_sao_obj rt = cons(SAO_TAG_list,list);
+					return rt;
+				}
 			default:
 				{
 					char buf[SAO_MAX_BUF_LEN] = {c};
 					int i = 1, cc;
-					while (cc=sao_peek(fw), !libc(strchr)(" \t(),\r\n", cc)) {
+					while (cc=sao_peek(fw), !sao_strchr(" \t,()[]\r\n", cc)) {
 						if (i >= SAO_MAX_BUF_LEN) sao_error("Symbol name too long - maximum length %d characters",SAO_MAX_BUF_LEN);
 						buf[i++] = sao_deq_c(fw);
 					}
 					theSymbol = sao_str_convert(buf);
-					while (cc=sao_peek(fw), libc(strchr)(" \t", cc)) sao_deq_c(fw);
+					while (cc=sao_peek(fw), sao_strchr(" \t", cc)) sao_deq_c(fw);
 					if(SAO_ARGV(i)){//don't eat line mode for i mode
-						if (libc(strchr)(",(", sao_peek(fw))) continue;
+						if (sao_strchr(",([", sao_peek(fw))) continue;
 					}else{
-						if (libc(strchr)(",\r\n(", sao_peek(fw))) continue;
+						if (sao_strchr(",\r\n([", sao_peek(fw))) continue;
 					}
 				}
 		}//switch
@@ -452,13 +455,17 @@ p_sao_obj sao_parse( sao_stream * fw, p_sao_obj ctx ) {
 void print_version(){ sao_stdout(" SaoLang (R) v" SAO_VERSION " - Wanjo Chan (c) 2020\n"); }
 void print_help(){ sao_stdout("Usage	 : sao [options] [script.sao | -]]\nOptions	 :\n	h:	Help\n	v:	Version\n	i:	Interactive\n	p:	Print final result\n	d:	Dev only\n	e:	Eval\n	s:	Strict mode\n	l:	Lisp syntax\n"); }
 int main(int argc,char **argv, char** envp) {
-	ffic_func strcmp = libc(strcmp);
-	atof= (ffic_func_d) libc(atof);
-	atol= (ffic_func_l) libc(atol);
+	sao_strcmp = (ffic_func_i) libc(strcmp);
+	sao_atof   = (ffic_func_d) libc(atof);
+	sao_atol   = (ffic_func_l) libc(atol);
+	sao_strchr = (ffic_func_i) libc(strchr);
 	libc(setmode)(libc(fileno)(libc(stdin)),0x8000/*O_BINARY*/);
+
 	SAO_TAG_global = sao_expand(SAO_NULL, SAO_NULL, SAO_NULL);
 	SAO_TAG_argv = sao_expand(SAO_NULL, SAO_NULL, SAO_NULL);
 	SAO_TAG_quote=sao_new_symbol("quote");sao_var(SAO_TAG_quote,SAO_TAG_quote,SAO_TAG_global);
+	SAO_TAG_list=sao_new_symbol("list");sao_var(SAO_TAG_list,SAO_TAG_list,SAO_TAG_global);
+
 	ffic_string script_file = "-";
 	int found_any = 0;
 	if(argc>1){
@@ -477,14 +484,14 @@ int main(int argc,char **argv, char** envp) {
 				p_sao_obj _caar = car(_car);
 				if(_caar){ string_or_name = _caar->_raw; }
 				p_sao_obj _cadar = cadr(_car);
-				if(_cadar) l_val = atol(_cadar->_raw);
+				if(_cadar) l_val = sao_atol(_cadar->_raw);
 			}else{
 				if(_car) string_or_name = _car->_raw;
 			}
 			if(string_or_name){
 				sao_var(sao_new_symbol(string_or_name), sao_new_long(l_val), SAO_TAG_argv);
 				int found = 0;
-				for(int i=0;i<=argt_h;i++) if(!strcmp(string_or_name,argt_names[i])){ argta[i]+=l_val; found=1;break; }
+				for(int i=0;i<=argt_h;i++) if(!sao_strcmp(string_or_name,argt_names[i])){ argta[i]+=l_val; found=1;break; }
 				if(!found) script_file = string_or_name; else found_any++;
 			}
 			pos = cdr(pos);
@@ -493,7 +500,7 @@ int main(int argc,char **argv, char** envp) {
 		sao_var(SAO_TAG_argv,SAO_TAG_argv,SAO_TAG_global);//for later use
 	}
 	void* fp;
-	if(!strcmp("-",script_file)){
+	if(!sao_strcmp("-",script_file)){
 		fp = libc(stdin);
 		if(!found_any){ print_help();SAO_ARGV(i)++; SAO_ARGV(v)++; }
 		else { if(SAO_ARGV(i)){SAO_ARGV(v)++; found_any++;} }
