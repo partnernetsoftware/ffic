@@ -2,7 +2,7 @@
 var(die(s1) print(s1) exit())
 ##die("wtf")
 
-var(ensure(r) if(expr print(r) exit() ))
+var(ensure(r) if(r print(r) exit("ko") ))
 
 is_null(false)
 eq(false is_null(false))

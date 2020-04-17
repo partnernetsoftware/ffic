@@ -177,7 +177,15 @@ tail:
 			return rt;
 		}
 		if (sao_is_eq(_car, SAO_TAG_quote)) { return _cadr; }
-		else if (sao_is_eq(_car, SAO_TAG_lambda)) { return sao_new_procedure(_cadr, cddr(exp), ctx); }
+		else if (sao_is_eq(_car, SAO_TAG_lambda)) {
+			p_sao_obj _cddr = cddr(exp);
+			//TODO skip for the ^()
+			//if (!_cadr){
+			//_cadr = cadr(exp));
+			//_cddr = cdddr(exp));
+			//}
+			return sao_new_procedure(_cadr, cddr(exp), ctx);
+		}
 		else if (sao_is_eq(_car, SAO_TAG_var)) {
 			if (sao_is_atom(_cadr)) sao_var(_cadr, sao_eval(caddr(exp), ctx), ctx);
 			else {
