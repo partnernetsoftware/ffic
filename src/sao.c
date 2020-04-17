@@ -406,14 +406,15 @@ p_sao_obj sao_load_expr(sao_stream * fw) {
 					return rt;
 				}
 				return SAO_NULL;
-			case '['://
+			case '['://alias of list(), but have problem when output here...
 				{
 					p_sao_obj list = sao_read_list(fw);
 					if(SAO_ARGV(l)){ return list; }//LISP SPEC
-					p_sao_obj rt = cons(SAO_NULL,list);
+					//p_sao_obj rt = cons(SAO_NULL,list);//!!!
+					p_sao_obj rt = cons(sao_new_symbol("list"),list);//@ref sao_eval
 					return rt;
 				}
-			case '<'://vector shorthand syntax suger
+			case '<'://vector shorthand syntax suger, but is it ok for empty list??
 				{
 					if(SAO_ARGV(l)){//LISP
 						p_sao_obj list = sao_read_list(fw);
