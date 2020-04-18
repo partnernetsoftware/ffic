@@ -9,7 +9,6 @@ SAO_ITR(define_sao_tag, SAO_EXPAND(LIST_SAO_TAG));
 #define sao_new_procedure(params,body,ctx) cons(SAO_TAG_procedure, cons(params, cons(body, cons(ctx, SAO_NULL))))
 #define sao_add_sym_x(x) SAO_TAG_##x=sao_new_symbol(#x);sao_var(SAO_TAG_##x,SAO_TAG_##x,SAO_TAG_global);
 
-//TODO has bug to fix, don't use seriously.
 void _sao_print(ffic_string str, p_sao_obj el){
 	if(!el) return sao_print_default(str, el);
 	switch (el->_type) {
@@ -116,21 +115,21 @@ p_sao_obj sao_vector_insert(p_sao_obj holder,p_sao_obj key_obj){
 	if(!holder->_len) sao_error("empty _vector._len?");
 	long h = sao_vector_hash(key_obj->_string, holder->_len);
 	if(the_vector[h]){
-		//sao_warn("TODO sao_vector_insert table need to relen (%d,%s)?\n",h,key_obj->_string);
+		//sao_warn("TODO sao_vector_insert table need to resize (%d,%s)?\n",h,key_obj->_string);
 	}
 	//if(!the_vector || (SAO_NULL != the_vector[h] && SAO_NULL!=the_vector[h]->_string)){
 	//	int _len= 2*(holder->_len+1)-1 ;
-	//	sao_tbl_relen(holder, _len);
-	//	the_vector = sao_tbl_relen(holder, key_obj);//again
+	//	sao_tbl_resize(holder, _len);
+	//	the_vector = sao_tbl_resize(holder, key_obj);//again
 	//}
 	the_vector[h]= key_obj;
 	return holder;
 }
-p_sao_obj sao_tbl_relen(p_sao_obj holder,int _len){
+p_sao_obj sao_tbl_resize(p_sao_obj holder,int _len){
 	//if(!holder)
 	if(!holder)
 		holder = sao_new_vector(_len);
-	//TMP...(fake relen first) TODO to implement the real relen soon
+	//TMP...(fake resize first) TODO to implement the real resize soon
 	else{
 		holder->_vector = SAO_NEW_C(p_sao_obj,_len);//TMP
 		holder->_len = _len;
@@ -192,16 +191,16 @@ tail:
 		}
 		else if (sao_is_eq(_car, SAO_TAG_begin)) {
 			p_sao_obj args = cdr(exp);
-//				sao_print("\n; DEBUG args ",args);
-//				sao_print("\n; \n",0);
+			//				sao_print("\n; DEBUG args ",args);
+			//				sao_print("\n; \n",0);
 			for (; (cdr(args)); args = cdr(args)){
-//				sao_print("\n; DEBUG args ",args);
-//				sao_print("\n; \n",0);
+				//				sao_print("\n; DEBUG args ",args);
+				//				sao_print("\n; \n",0);
 				sao_eval(car(args), ctx);
 			}
 			exp = car(args);
-//				sao_print("\n; DEBUG exp ",exp);
-//				sao_print("\n; \n",0);
+			//				sao_print("\n; DEBUG exp ",exp);
+			//				sao_print("\n; \n",0);
 			goto tail;
 		}
 		else if (sao_is_eq(_car, SAO_TAG_if)) {
@@ -476,7 +475,6 @@ p_sao_obj native_mul(p_sao_obj list,p_sao_obj ctx) {
 	return SAO_NULL;
 }
 //////////////////////////////////////////////////////////////////////////////
-//TODO tmp cat...(has mem leak)
 char* sao_strcat(char * dst, char * src){
 	char *target = libc(malloc)((long)libc(strlen)(dst) + (long)libc(strlen)(src) + 1);
 	libc(strcpy)(target, dst);
@@ -613,7 +611,7 @@ p_sao_obj saolang_init()
 //		}else{
 //			sao_error("g_symbol_holder full? (%s,%s)\n",ret->_string,s);
 //		//	int newlen = 2*(gHTable_len+1)-1 ;
-//		//	ht_relen( newlen );
+//		//	ht_resize( newlen );
 //		//	return sao_new_symbol(s);
 //		}
 //	}
