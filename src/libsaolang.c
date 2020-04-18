@@ -430,15 +430,30 @@ p_sao_obj native_div(p_sao_obj list) {
 	return sao_new_long(total);
 }
 p_sao_obj native_mul(p_sao_obj list) {
-	SAO_ASSERT_TYPE(car(list), type_long);
-	long total = car(list)->_long;
-	list = cdr(list);
-	while ((list)) {
-		SAO_ASSERT_TYPE(car(list), type_long);
-		total *= car(list)->_long;
+	p_sao_obj _car = car(list);
+	//SAO_ASSERT_TYPE(_car, type_long);
+	if(!_car) return SAO_NULL;//TODO nothing/nil should print sth (but null not good)
+	if(_car->_type == type_long){
+		long total = _car->_long;
 		list = cdr(list);
+		while ((list)) {
+			//SAO_ASSERT_TYPE(car(list), type_long);
+			_car  = car(list);
+			if(!_car) break;
+			if(_car->_type != type_long){
+				sao_warn("WARN: mul() is not yet support type of (%d)\n", _car->_type);
+				break;
+			}
+			total *= _car->_long;
+			list = cdr(list);
+		}
+		return sao_new_long(total);
+	}else if(_car->_type == type_vector){
+		sao_warn("WARN: Matrix Calc is coming soon");
+	}else{
+		sao_warn("WARN: mul() is not yet support type of (%d)\n", _car->_type);
 	}
-	return sao_new_long(total);
+	return SAO_NULL;
 }
 //////////////////////////////////////////////////////////////////////////////
 //TODO tmp cat...(has mem leak)
