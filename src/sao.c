@@ -339,12 +339,13 @@ void sao_print_default(ffic_string str, p_sao_obj el){
 		case type_double:
 			sao_stdout("%g", el->_double); break;
 		case type_vector:
-			sao_stdout("<");
+			sao_stdout("[");
 			for(int i=0;i<el->_len;i++){
 				sao_print(0,el->_vector[i]);
+				if(i+1<el->_len)
 				sao_stdout(",");//TMP
 			}
-			sao_stdout(">");
+			sao_stdout("]");
 			break;
 		default:
 			sao_stdout("<%d>", el->_type); break;
@@ -397,7 +398,7 @@ p_sao_obj sao_load_expr(sao_stream * fw) {
 				//break
 			case ']':
 			case ')':
-			case '>':
+//			case '>':
 				return SAO_NULL;
 			case '(':
 				{
@@ -407,15 +408,15 @@ p_sao_obj sao_load_expr(sao_stream * fw) {
 					return rt;
 				}
 				return SAO_NULL;
-			case '['://alias of list(), but have problem when output here...
-				{
-					p_sao_obj list = sao_read_list(fw);
-					if(SAO_ARGV(l)){ return list; }//LISP SPEC
-					//p_sao_obj rt = cons(SAO_NULL,list);//!!!
-					p_sao_obj rt = cons(sao_new_symbol("list"),list);//@ref sao_eval
-					return rt;
-				}
-			case '<'://vector shorthand syntax suger, but is it ok for empty list??
+//			case '<'://alias of list(), but have problem when output here...
+//				{
+//					p_sao_obj list = sao_read_list(fw);
+//					if(SAO_ARGV(l)){ return list; }//LISP SPEC
+//					//p_sao_obj rt = cons(SAO_NULL,list);//!!!
+//					p_sao_obj rt = cons(sao_new_symbol("list"),list);//@ref sao_eval
+//					return rt;
+//				}
+			case '[':
 				{
 					if(SAO_ARGV(l)){//LISP
 						p_sao_obj list = sao_read_list(fw);
@@ -428,7 +429,7 @@ p_sao_obj sao_load_expr(sao_stream * fw) {
 				{
 					char buf[SAO_MAX_BUF_LEN] = {c};
 					int i = 1, cc;
-					while (cc=sao_peek(fw), !sao_strchr(" \t,()[]{}<>\r\n", cc)) {
+					while (cc=sao_peek(fw), !sao_strchr(" \t,()[]{}\r\n", cc)) {
 						if (i >= SAO_MAX_BUF_LEN) sao_error("Symbol name too long - maximum length %d characters",SAO_MAX_BUF_LEN);
 						buf[i++] = sao_deq_c(fw);
 					}
