@@ -19,7 +19,7 @@ void _sao_print(ffic_string str, p_sao_obj el){
 		case type_vector:
 			return sao_print_default(str, el);
 	}
-	if (str) sao_stdout("%s ", str);
+	if (str) sao_stdout(str);
 	switch (el->_type) {
 		case type_ctype://TODO 
 			sao_stdout("<ctype>"); break;
@@ -27,46 +27,41 @@ void _sao_print(ffic_string str, p_sao_obj el){
 			sao_stdout("<native>"); break;
 		case type_list:
 			{
-				//sao_stdout("[el->_type=%d]",el->_type);
-				//sao_stdout("[el->car=%d,b=%d]",el->car,b);
 				if ( sao_is_eq(car(el),SAO_TAG_procedure)) {
 					sao_stdout("<closure>");//TODO mereg with lambda?
 					return;
 				}
-				int b = (el->car)?1:0;
 				int skip=0;
-				p_sao_obj ptr = el;
+				p_sao_obj ptr = el;//(el->car)?el:el->cdr;//
 				if(!SAO_ARGV(l)){
-					if(b==1){
-						sao_print(0, car(ptr));//
-						skip=1;
-					}
+					sao_print(0, car(ptr));//
+					skip=1;
 				}
-				//sao_stdout(b?"(":"[");
 				sao_stdout("(");
+				int t = 0;
 				while (ptr) {
-					if(!SAO_ARGV(l)){
+					if(t==1) sao_stdout(",");
+					if(SAO_ARGV(l)){
+						sao_print(0, ptr->car);
+						if(t==0) t=1;
+					}else{
 						if(skip==1){
 							skip=0;
 						}else{
-							sao_stdout(" ");
 							sao_print(0, ptr->car);
+							if(t==0) t=1;
 						}
-					}else{
-						sao_stdout(" ");
-						sao_print(0, ptr->car);
 					}
-					if ((ptr->cdr)) {
+					if (ptr->cdr) {
 						if (ptr->cdr->_type == type_list) {
 							ptr = ptr->cdr;
-						} else {
+						} else { //TODO
 							sao_print(".", ptr->cdr);
 							break;
 						}
 					} else
 						break;
 				}
-				//sao_stdout(b?")":"]");
 				sao_stdout(")");
 			}
 			break;
@@ -287,8 +282,8 @@ tail:
 				break;
 			}
 		default:
-			sao_print("TODO { ",expr);
-			sao_print(" }\n",0);
+			sao_print("TODO {",expr);
+			sao_print("}\n",0);
 	}
 	return expr;
 	//if (expr->_type == type_long || expr->_type == type_string) {
@@ -434,8 +429,8 @@ tail:
 	//		//sao_warn("DEBUG 400: sao_is_list SAO_NULL?\n");
 	//	}
 	//	else{
-	//		sao_print("TODO { ",expr);
-	//		sao_print(" }\n",0);
+	//		sao_print("TODO {",expr);
+	//		sao_print("}\n",0);
 	//	}
 	//	sao_stdout("\n");
 	//return SAO_TAG_false;
@@ -685,13 +680,16 @@ p_sao_obj native_vset(p_sao_obj args,p_sao_obj ctx){
 	return SAO_TAG_true;
 }
 p_sao_obj native_print(p_sao_obj list,p_sao_obj ctx) {
+	//sao_print(0,list);
+	//return SAO_TAG_true;
+	int t = 0;
 	p_sao_obj _car;
 	while ((_car=car(list))) {
-		sao_print(" ",_car);
+		sao_print(t?",":0,_car);
+		t=1;
 		list = cdr(list);
 	}
 	sao_stdout("\n");
-	//return SAO_NULL;
 	return SAO_TAG_true;
 }
 p_sao_obj native_c_int(p_sao_obj args,p_sao_obj ctx) {

@@ -324,9 +324,9 @@ p_sao_obj sao_convert_default(ffic_string str){
 	}
 	return SAO_NULL;
 }
-void(*sao_print)(ffic_string,p_sao_obj);//= sao_print_default;
+void(*sao_print)(ffic_string,p_sao_obj);
 void sao_print_default(ffic_string str, p_sao_obj el){
-	if (str) sao_stdout("%s ", str);
+	if (str) sao_stdout(str);
 	if (!el) return;
 	switch (el->_type) {
 		case type_string:
