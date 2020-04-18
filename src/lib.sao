@@ -22,65 +22,65 @@ var( le lteq)
 var( nc notcmp)
 
 ## Return the maximum value from a list of integers
-var( max( list_of_numbers)
-  var( max_iter( best remaining)
-    cond( (is_null( remaining) best)
-      (gt( car( remaining) best) max_iter( car( remaining) cdr( remaining)))
-      else( max_iter( best cdr( remaining)))
-			))
-  max_iter( car( list_of_numbers) cdr( list_of_numbers)))
+#var( max( list_of_numbers)
+#  var( max_iter( best remaining)
+#    cond( (is_null( remaining) best)
+#      (gt( car( remaining) best) max_iter( car( remaining) cdr( remaining)))
+#      else( max_iter( best cdr( remaining)))
+#			))
+#  max_iter( car( list_of_numbers) cdr( list_of_numbers)))
 
 ## Return the minimum value from a list of integers
-var( min( list_of_numbers)
-  var( min_iter( best remaining)
-    cond( (is_null( remaining) best)
-      (lt( car( remaining) best) min_iter( car( remaining) cdr( remaining)))
-      else( min_iter( best cdr( remaining)))
-			))
-  min_iter( car( list_of_numbers) cdr( list_of_numbers)))
+#var( min( list_of_numbers)
+#  var( min_iter( best remaining)
+#    cond( (is_null( remaining) best)
+#      (lt( car( remaining) best) min_iter( car( remaining) cdr( remaining)))
+#      else( min_iter( best cdr( remaining)))
+#			))
+#  min_iter( car( list_of_numbers) cdr( list_of_numbers)))
 
 # Map a function f onto list a
-var( map lambda( f( a)
-    if( is_null( a) 
-      ^()
-      cons( f( car( a)) map( f cdr( a))))))
+#var( map lambda( f( a)
+#    if( is_null( a) 
+#      ^()
+#      cons( f( car( a)) map( f cdr( a))))))
 
-# Provide the association pair of key from list
-var( assoc( key list)
-  if( is_null( list)
-    ^()
-    if( eq( key car( car( list))) 
-      car( list)
-      assoc( key cdr( list)))))
-
-# Lambda key_list with dispatch
-var( make_key_list()
-  let( (list( ^())) 
-    var( get_val lambda( var() 
-        assoc( var list)))
-    var( add_key lambda( var( val)
-        set( list cons( cons( var val) list))))
-    var( dispatch( m)
-      if( eq( m ^add) add_key
-        if( eq( m ^get) get_val 
-          list)))
-    dispatch))
+## Provide the association pair of key from list
+#var( assoc( key list)
+#  if( is_null( list)
+#    ^()
+#    if( eq( key car( car( list))) 
+#      car( list)
+#      assoc( key cdr( list)))))
+#
+## Lambda key_list with dispatch
+#var( make_key_list()
+#  let( (list( ^())) 
+#    var( get_val lambda( var() 
+#        assoc( var list)))
+#    var( add_key lambda( var( val)
+#        set( list cons( cons( var val) list))))
+#    var( dispatch( m)
+#      if( eq( m ^add) add_key
+#        if( eq( m ^get) get_val 
+#          list)))
+#    dispatch))
 
 # Lambda stack with dispatch
-var( make_stack()
-  let( (stack( ^()))
-    var( push lambda( x() 
-        set( stack cons( x stack))
-        stack))
-    var( pop lambda( x()
-        var( q car( stack))
-        set( stack cdr( stack))
-        q))
-    var( dispatch( m)
-      if( eq( m ^push) push
-        if( eq( m ^pop) pop 
-          stack)))
-    dispatch))
+#var( make_stack()
+#  let( (stack( ^()))
+#    var( push lambda( x() 
+#        set( stack cons( x stack))
+#        stack))
+#    var( pop lambda( x()
+#        var( q car( stack))
+#        set( stack cdr( stack))
+#        q))
+#    var( dispatch( m)
+#      if( eq( m ^push) push
+#        if( eq( m ^pop) pop 
+#          stack)))
+#    dispatch))
 # Returns the last item in a list or pair.
 # Pointer to cdr if list, Pointer to object if pair
 var( last_item_in_list lambda( list()
@@ -144,8 +144,7 @@ var( mod( a b)
       iter( sub( rem div) div)))
   iter( a b))
 
-# A couple macros
-# Because this is LISP and we can...
+# macros
 var( procedure_body lambda( proc() caddr( proc)))
 var( procedure_args lambda( proc() cadr( proc)))
 var( mutate_procedure_env( name new_env) setcar( cdddr( name) new_env))

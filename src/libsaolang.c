@@ -3,7 +3,7 @@ enum { type_ctype=1+type_string, type_native, };
 // true,false; var,set,let; if,else,or,cond; procedure,lambda;
 //#define LIST_SAO_TAG true,false,set,let,var,if,lambda,begin,or,else,cond,procedure
 // true,false; (dec/def/assign) var,set,let; (branch) if,else,cond; procedure,lambda;
-#define LIST_SAO_TAG true,false,set,let,var,if,lambda,begin,else,cond,procedure
+#define LIST_SAO_TAG true,false,set,let,var,if,lambda,begin,procedure
 SAO_ITR(define_sao_tag, SAO_EXPAND(LIST_SAO_TAG));
 
 #define sao_new_native(x,n) sao_new((sao_obj){._type=type_native, ._native=x,._ffi=n})
@@ -188,10 +188,13 @@ tail:
 				}
 				else if (sao_is_eq(_car, SAO_TAG_begin)) {
 					p_sao_obj args = cdr(expr);
+					//sao_print("\nDEBUG 102 ",args);
 					for (; (cdr(args)); args = cdr(args)){
+						//sao_print("\nDEBUG 103 ",args);
 						sao_eval(car(args), ctx);
 					}
 					expr = car(args);
+					//sao_print("\nDEBUG 104 ",expr);
 					goto tail;
 				}
 				else if (sao_is_eq(_car, SAO_TAG_if)) { //if((predicate),(when_true),(when_false))
@@ -204,18 +207,20 @@ tail:
 				//	expr = (sao_not_false(predicate)) ? caddr(expr) : cadddr(expr);
 				//	goto tail;
 				//}
-				else if (sao_is_eq(_car, SAO_TAG_cond)) {
-					p_sao_obj branch = cdr(expr);
-					for (; (branch); branch = cdr(branch)) {
-						if ( sao_is_eq(caar(branch), SAO_TAG_else) || sao_not_false(sao_eval(caar(branch), ctx)))
-						{
-							expr = cons(SAO_TAG_begin, cdar(branch));
-							goto tail;
-						}
-					}
-					return SAO_NULL;
-					//return SAO_TAG_false;//should null??
-				}
+				///else if (sao_is_eq(_car, SAO_TAG_cond)) {
+				///	p_sao_obj branch = cdr(expr);
+				///	for (; (branch); branch = cdr(branch) ) {
+				///		//sao_print("\nDEBUG 100 ",branch);
+				///		if ( sao_is_eq(caar(branch), SAO_TAG_else) || sao_not_false(sao_eval(caar(branch), ctx)))
+				///		{
+				///			expr = cons(SAO_TAG_begin, cdar(branch));
+				///			//sao_print("\nDEBUG 101 goto",0);
+				///			goto tail;
+				///		}
+				///	}
+				///	return SAO_NULL;
+				///	//return SAO_TAG_false;//should null??
+				///}
 				else if (sao_is_eq(_car, SAO_TAG_set)) { //TODO works in current ctx
 					if (sao_is_atom(_cadr)){
 						sao_set(_cadr, sao_eval(caddr(expr), ctx), ctx);
@@ -247,7 +252,7 @@ tail:
 					p_sao_obj proc = sao_eval(_car, ctx);
 					if (!proc) {
 						//if(SAO_ARGV(s)){
-						sao_print("WARN: fail of", expr);//TODO
+						sao_print("WARN: 404 ", expr);//TODO
 						sao_stdout("\n");
 						//}
 						//return SAO_NULL;
@@ -271,9 +276,9 @@ tail:
 						//sao_print("\n; DEBUG _cadr_proc ",_cadr_proc);
 						//sao_print("\n; ",0);
 						ctx = sao_expand(_cadr_proc, args, cadddr(proc));//TODO to improve ctx
-						expr = cons(SAO_TAG_begin, caddr(proc)); /* body-exprr */
+						expr = cons(SAO_TAG_begin, caddr(proc));
 						goto tail;
-					}else{
+					//}else{
 						//return expr;
 					}
 				}

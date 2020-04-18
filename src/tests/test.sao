@@ -36,8 +36,20 @@ print("what is this")
 eq(if(1 true false),false) #false
 eq(if(0 true false),false) #true
 
-# TODO
+#min( (7 5 3 4 1 6) )
+#max( (4 5) )
+##min_iter( (3) (4) )
+##min( list(4 5) )
+##exit()
+### TODO
 range(5)
+range_from(4,8)
+reverse(range_from(4,8))
+
+#pow(3,3) #27
+mod(5,3) #2
+
+#last_item_in_list((5,6,7,8))
 
 car(list(4,5))                            # 4
 caar( list(list(4,5),6) )                 # 4
@@ -97,6 +109,8 @@ var( new_env() cons( cons( ^() ^()) ^()))
 # Construct a procedure with macro
 var( new_func construct_procedure( ^a() ^cons( a 10) global()))
 var( with_macros construct_procedure( ^x() if_zero( ^x ^ZERO) global()))
+new_func()
+with_macros()
 list(2 3 4)
 sum_of_squares( list(2 3 4) )           # 4+9+16=29
 
