@@ -64,7 +64,7 @@ int argta[argt_h+1];
 define_map(stream, file,char);//
 define_map(type,   list,vector,long,double,symbol,string);
 typedef struct _sao_obj sao_obj,*p_sao_obj;
-typedef p_sao_obj (*native_t)(p_sao_obj );
+typedef p_sao_obj (*native_t)(p_sao_obj args,p_sao_obj ctx);
 #define SAO_OBJ_V union {\
 	struct { p_sao_obj car; p_sao_obj cdr; }; \
 	struct { p_sao_obj* _vector; long _len; };\
@@ -482,12 +482,11 @@ int main(int argc,char **argv, char** envp) {
 	SAO_TAG_argv = sao_expand(SAO_NULL, SAO_NULL, SAO_NULL);
 	SAO_TAG_quote=sao_new_symbol("quote");sao_var(SAO_TAG_quote,SAO_TAG_quote,SAO_TAG_global);
 	SAO_TAG_vector=sao_new_symbol("vector");sao_var(SAO_TAG_vector,SAO_TAG_vector,SAO_TAG_global);
-
 	ffic_string script_file = "-";
 	int found_any = 0;
 	if(argc>1){
-		char argv_line[512] = "_(";
-		ffic_string argv_ptr = &argv_line[2];
+		//char argv_line[512] = "_("; ffic_string argv_ptr = &argv_line[2];
+		char argv_line[512] = "("; ffic_string argv_ptr = &argv_line[1];
 		for(int i=1;i<argc;i++){ (*argv_ptr++)=' ';ffic_string wk=argv[i];while(*wk) (*argv_ptr++)=(*wk++);}
 		*argv_ptr++ = ')'; *argv_ptr++ = '\0';
 		sao_stream * fw = sao_stream_new(argv_line,stream_char);
@@ -530,6 +529,9 @@ int main(int argc,char **argv, char** envp) {
 	sao_stream * fw = sao_stream_new(fp,stream_file);
 	p_sao_obj ctx = SAO_NULL;
 	ctx = saolang_init();//TODO can be override by argv:c(name)
+//	sao_print("\nDEBUG argv=",SAO_TAG_argv);
+//	sao_print("\nDEBUG global=",SAO_TAG_global);
+//	sao_print("\n",0);
 	p_sao_obj result = sao_parse( fw, ctx );
 	if(SAO_ARGV(p)){ sao_print(0,result);sao_stdout("\n"); }
 	libc(fclose)(fp); libc(free)(fw);

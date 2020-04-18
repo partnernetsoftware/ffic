@@ -11,7 +11,6 @@ SAO_ITR(define_sao_tag, SAO_EXPAND(LIST_SAO_TAG));
 
 //TODO has bug to fix, don't use seriously.
 void _sao_print(ffic_string str, p_sao_obj el){
-
 	if(!el) return sao_print_default(str, el);
 	switch (el->_type) {
 		case type_string:
@@ -21,14 +20,12 @@ void _sao_print(ffic_string str, p_sao_obj el){
 		case type_vector:
 			return sao_print_default(str, el);
 	}
-
 	if (str) sao_stdout("%s ", str);
-
 	switch (el->_type) {
-		case type_ctype://TODO can it be same as symbol or ctype
+		case type_ctype://TODO 
 			sao_stdout("<ctype>"); break;
 		case type_native:
-			sao_stdout("<function>"); break;
+			sao_stdout("<native>"); break;
 		case type_list:
 			{
 				//sao_stdout("[el->_type=%d]",el->_type);
@@ -269,7 +266,7 @@ tail:
 			}
 			p_sao_obj args = sao_eval_list(cdr(exp), ctx);
 			if (proc->_type == type_native){
-				return proc->_native(args);
+				return proc->_native(args,ctx);
 			}
 			//TODO if empty native but ffi, should auto load into _native 
 
@@ -315,38 +312,46 @@ p_sao_obj sao_type_assert(const ffic_string func, p_sao_obj obj, int type)
 }
 #define SAO_ASSERT_TYPE(x, t) (sao_type_assert((ffic_string)__func__, x, t))
 
-p_sao_obj native_type(p_sao_obj args) { return sao_new_symbol(type_names[car(args)->_type]); }
-p_sao_obj native_global(p_sao_obj args) { return SAO_TAG_global; }
+p_sao_obj native_type(p_sao_obj args,p_sao_obj ctx) { return sao_new_symbol(type_names[car(args)->_type]); }
+p_sao_obj native_global(p_sao_obj args,p_sao_obj ctx) { return SAO_TAG_global; }
 
-//TODO try convert to vector?
-p_sao_obj native_list(p_sao_obj args) { return (args); }
-p_sao_obj native_cons(p_sao_obj args) { return cons(car(args), cadr(args)); }
-p_sao_obj native_car(p_sao_obj args) { if(SAO_ARGV(s)) SAO_ASSERT_TYPE(car(args), type_list); return caar(args); }
-p_sao_obj native_cdr(p_sao_obj args) { if(SAO_ARGV(s)) SAO_ASSERT_TYPE(car(args), type_list); return cdar(args); }
-p_sao_obj native_setcar(p_sao_obj args) { SAO_ASSERT_TYPE(car(args), type_list); (args->car->car = (cadr(args))); return SAO_NULL; }
-p_sao_obj native_setcdr(p_sao_obj args) { SAO_ASSERT_TYPE(car(args), type_list); (args->car->cdr = (cadr(args))); return SAO_NULL; }
-p_sao_obj native_is_null(p_sao_obj args) { return (car(args)) ? SAO_TAG_false : SAO_TAG_true; }
-p_sao_obj native_pairq(p_sao_obj args) {
+//p_sao_obj native_var(p_sao_obj args, p_sao_obj ctx) {
+//	//p_sao_obj args = sao_eval_list(cdr(exp), ctx);
+//	if (sao_is_atom(_cadr)) sao_var(_cadr, sao_eval(caddr(exp), ctx), ctx);
+//	else {
+//		p_sao_obj closure = sao_eval(sao_new_lambda(cdr(_cadr), cddr(exp)), ctx);
+//		sao_var(car(_cadr), closure, ctx);
+//	}
+//	return SAO_TAG_true;
+//}
+p_sao_obj native_list(p_sao_obj args,p_sao_obj ctx) { return (args); }
+p_sao_obj native_cons(p_sao_obj args,p_sao_obj ctx) { return cons(car(args), cadr(args)); }
+p_sao_obj native_car(p_sao_obj args,p_sao_obj ctx) { if(SAO_ARGV(s)) SAO_ASSERT_TYPE(car(args), type_list); return caar(args); }
+p_sao_obj native_cdr(p_sao_obj args,p_sao_obj ctx) { if(SAO_ARGV(s)) SAO_ASSERT_TYPE(car(args), type_list); return cdar(args); }
+p_sao_obj native_setcar(p_sao_obj args,p_sao_obj ctx) { SAO_ASSERT_TYPE(car(args), type_list); (args->car->car = (cadr(args))); return SAO_NULL; }
+p_sao_obj native_setcdr(p_sao_obj args,p_sao_obj ctx) { SAO_ASSERT_TYPE(car(args), type_list); (args->car->cdr = (cadr(args))); return SAO_NULL; }
+p_sao_obj native_is_null(p_sao_obj args,p_sao_obj ctx) { return (car(args)) ? SAO_TAG_false : SAO_TAG_true; }
+p_sao_obj native_pairq(p_sao_obj args,p_sao_obj ctx) {
 	if (car(args)->_type != type_list) return SAO_TAG_false;
 	return (sao_is_atom(caar(args)) && sao_is_atom(cdar(args))) ? SAO_TAG_true : SAO_TAG_false;
 }
-p_sao_obj native_is_list(p_sao_obj args) {
+p_sao_obj native_is_list(p_sao_obj args,p_sao_obj ctx) {
 	p_sao_obj list;
 	if (car(args)->_type != type_list)
 		return SAO_TAG_false;
 	for (list = car(args); (list); list = list->cdr)
 		if ((list->cdr) && (list->cdr->_type != type_list))
 			return SAO_TAG_false;
-	return (car(args)->_type == type_list && native_pairq(args) != SAO_TAG_true) ? SAO_TAG_true : SAO_TAG_false;
+	return (car(args)->_type == type_list && native_pairq(args,ctx) != SAO_TAG_true) ? SAO_TAG_true : SAO_TAG_false;
 }
-p_sao_obj native_atom(p_sao_obj expr) {
+p_sao_obj native_atom(p_sao_obj expr,p_sao_obj ctx) {
 	//sao_stderr("debug native_atom\n",expr);
 	return sao_is_atom(car(expr)) ? SAO_TAG_true : SAO_TAG_false;
 }
-p_sao_obj native_eq(p_sao_obj args) { return sao_is_eq(car(args), cadr(args)) ? SAO_TAG_true : SAO_TAG_false; }
+p_sao_obj native_eq(p_sao_obj args,p_sao_obj ctx) { return sao_is_eq(car(args), cadr(args)) ? SAO_TAG_true : SAO_TAG_false; }
 
 //eq+
-p_sao_obj native_same(p_sao_obj args) {
+p_sao_obj native_same(p_sao_obj args,p_sao_obj ctx) {
 	if (sao_is_eq(car(args), cadr(args))) return SAO_TAG_true;
 	if ((car(args)->_type == type_list) && (cadr(args)->_type == type_list)) {
 		p_sao_obj a, b;
@@ -377,7 +382,7 @@ p_sao_obj native_same(p_sao_obj args) {
 	return SAO_TAG_false;
 }
 //////////////////////////////////////////////////////////////////////////////
-p_sao_obj native_cmp(p_sao_obj args) {
+p_sao_obj native_cmp(p_sao_obj args,p_sao_obj ctx) {
 	//sao_stderr("debug native_cmp(%d)\n",args->_type);
 //	return SAO_TAG_true;
 	//TODO REDESIGN !!!
@@ -385,17 +390,17 @@ p_sao_obj native_cmp(p_sao_obj args) {
 	return (car(args)->_long == cadr(args)->_long) ? SAO_TAG_true : SAO_TAG_false;
 }
 //p_sao_obj native_not(p_sao_obj args) { return native_cmp(args); }
-p_sao_obj native_gt(p_sao_obj sexp) {
+p_sao_obj native_gt(p_sao_obj sexp,p_sao_obj ctx) {
 	SAO_ASSERT_TYPE(car(sexp), type_long);
 	SAO_ASSERT_TYPE(cadr(sexp), type_long);
 	return (car(sexp)->_long > cadr(sexp)->_long) ? SAO_TAG_true : SAO_TAG_false;
 }
-p_sao_obj native_lt(p_sao_obj sexp) {
+p_sao_obj native_lt(p_sao_obj sexp,p_sao_obj ctx) {
 	SAO_ASSERT_TYPE(car(sexp), type_long);
 	SAO_ASSERT_TYPE(cadr(sexp), type_long);
 	return (car(sexp)->_long < cadr(sexp)->_long) ? SAO_TAG_true : SAO_TAG_false;
 }
-p_sao_obj native_add(p_sao_obj list) {
+p_sao_obj native_add(p_sao_obj list,p_sao_obj ctx) {
 	SAO_ASSERT_TYPE(car(list), type_long);
 	long total = car(list)->_long;
 	list = cdr(list);
@@ -407,7 +412,7 @@ p_sao_obj native_add(p_sao_obj list) {
 	}
 	return sao_new_long(total);
 }
-p_sao_obj native_sub(p_sao_obj list) {
+p_sao_obj native_sub(p_sao_obj list,p_sao_obj ctx) {
 	SAO_ASSERT_TYPE(car(list), type_long);
 	long total = car(list)->_long;
 	list = cdr(list);
@@ -418,7 +423,7 @@ p_sao_obj native_sub(p_sao_obj list) {
 	}
 	return sao_new_long(total);
 }
-p_sao_obj native_div(p_sao_obj list) {
+p_sao_obj native_div(p_sao_obj list,p_sao_obj ctx) {
 	SAO_ASSERT_TYPE(car(list), type_long);
 	long total = car(list)->_long;
 	list = cdr(list);
@@ -429,7 +434,7 @@ p_sao_obj native_div(p_sao_obj list) {
 	}
 	return sao_new_long(total);
 }
-p_sao_obj native_mul(p_sao_obj list) {
+p_sao_obj native_mul(p_sao_obj list,p_sao_obj ctx) {
 	p_sao_obj _car = car(list);
 	//SAO_ASSERT_TYPE(_car, type_long);
 	if(!_car) return SAO_NULL;//TODO nothing/nil should print sth (but null not good)
@@ -463,7 +468,7 @@ char* sao_strcat(char * dst, char * src){
 	libc(strcat)(target, src); 
 	return target;
 }
-p_sao_obj native_shell(p_sao_obj args) {
+p_sao_obj native_shell(p_sao_obj args,p_sao_obj ctx) {
 	p_sao_obj _car;
 	p_sao_obj _cdr = args;
 	char * cmd=SAO_NULL;
@@ -476,15 +481,15 @@ p_sao_obj native_shell(p_sao_obj args) {
 	if(cmd) libc(system)(cmd);//TODO return result as data.
 	return SAO_TAG_true;
 }
-p_sao_obj native_ffi(p_sao_obj args) {
+p_sao_obj native_ffi(p_sao_obj args,p_sao_obj ctx) {
 	sao_print("ffi todo",args);
 	//libc(system)("ls");
 	return SAO_TAG_true;
 }
-p_sao_obj native_exit(p_sao_obj args) { libc(exit)(0); return SAO_NULL; }
+p_sao_obj native_exit(p_sao_obj args,p_sao_obj ctx) { libc(exit)(0); return SAO_NULL; }
 //TODO merge read/load
-p_sao_obj native_read(p_sao_obj args) { return sao_load_expr(sao_stream_new(libc(stdin),stream_file)); }
-p_sao_obj native_load(p_sao_obj args) { //TODO merge with native_read() 1!
+p_sao_obj native_read(p_sao_obj args,p_sao_obj ctx) { return sao_load_expr(sao_stream_new(libc(stdin),stream_file)); }
+p_sao_obj native_load(p_sao_obj args,p_sao_obj ctx) { //TODO merge with native_read() 1!
 	p_sao_obj exp;
 	p_sao_obj ret = SAO_NULL;
 	ffic_string filename = car(args)->_string;
@@ -503,17 +508,17 @@ p_sao_obj native_load(p_sao_obj args) { //TODO merge with native_read() 1!
 	libc(fclose)(fp);
 	return ret;
 }
-//p_sao_obj native_vector(p_sao_obj args) {
+//p_sao_obj native_vector(p_sao_obj args,p_sao_obj ctx) {
 //	p_sao_obj sym = SAO_ASSERT_TYPE(car(args), type_long);
 //	return sao_new_vector(sym->_long);
 //}
-p_sao_obj native_vget(p_sao_obj args) {
+p_sao_obj native_vget(p_sao_obj args,p_sao_obj ctx) {
 	p_sao_obj vct = SAO_ASSERT_TYPE(car(args), type_vector);
 	p_sao_obj key = SAO_ASSERT_TYPE(cadr(args), type_long);
 	if (key->_long >= vct->_len) return SAO_NULL;
 	return vct->_vector[key->_long];
 }
-p_sao_obj native_vset(p_sao_obj args){
+p_sao_obj native_vset(p_sao_obj args,p_sao_obj ctx){
 	p_sao_obj vct = SAO_ASSERT_TYPE(car(args), type_vector);
 	p_sao_obj key = SAO_ASSERT_TYPE(cadr(args), type_long);
 	if (!(caddr(args))) return SAO_NULL;
@@ -521,7 +526,7 @@ p_sao_obj native_vset(p_sao_obj args){
 	car(args)->_vector[key->_long] = caddr(args);
 	return SAO_TAG_true;
 }
-p_sao_obj native_print(p_sao_obj list) {
+p_sao_obj native_print(p_sao_obj list,p_sao_obj ctx) {
 	p_sao_obj _car;
 	while ((_car=car(list))) {
 		sao_print(" ",_car);
@@ -531,7 +536,7 @@ p_sao_obj native_print(p_sao_obj list) {
 	//return SAO_NULL;
 	return SAO_TAG_true;
 }
-p_sao_obj native_c_int(p_sao_obj args) {
+p_sao_obj native_c_int(p_sao_obj args,p_sao_obj ctx) {
 	p_sao_obj _car;
 	p_sao_obj _cdr = args;
 	char * s=SAO_NULL;
