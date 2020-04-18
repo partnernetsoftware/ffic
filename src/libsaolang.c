@@ -32,19 +32,22 @@ void _sao_print(ffic_string str, p_sao_obj el){
 		case type_list:
 			{
 				//sao_stdout("[el->_type=%d]",el->_type);
-				int b = (el->car)?1:0;
 				//sao_stdout("[el->car=%d,b=%d]",el->car,b);
 				if ( sao_is_eq(car(el),SAO_TAG_procedure)) {
 					sao_stdout("<closure>");//TODO mereg with lambda?
 					return;
 				}
+				int b = (el->car)?1:0;
 				int skip=0;
 				p_sao_obj ptr = el;
 				if(!SAO_ARGV(l)){
-					sao_print(0, car(ptr));//
-					skip=1;
+					if(b==1){
+						sao_print(0, car(ptr));//
+						skip=1;
+					}
 				}
-				sao_stdout(b?"(":"[");
+				//sao_stdout(b?"(":"[");
+				sao_stdout("(");
 				while (ptr) {
 					if(!SAO_ARGV(l)){
 						if(skip==1){
@@ -67,7 +70,8 @@ void _sao_print(ffic_string str, p_sao_obj el){
 					} else
 						break;
 				}
-				sao_stdout(b?")":"]");
+				//sao_stdout(b?")":"]");
+				sao_stdout(")");
 			}
 			break;
 		default:
