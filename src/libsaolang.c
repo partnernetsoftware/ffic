@@ -136,166 +136,310 @@ p_sao_obj sao_tbl_resize(p_sao_obj holder,int _len){
 	}
 	return holder;
 }
-p_sao_obj _sao_eval(p_sao_obj exp, p_sao_obj ctx) {
+p_sao_obj _sao_eval(p_sao_obj expr, p_sao_obj ctx) {
 tail:
-	if (!exp) { return SAO_NULL; }
-	else if (exp->_type == type_long || exp->_type == type_string) { return exp; }//TODO
-	else if (exp->_type == type_vector) {
-		for(int i=0;i<exp->_len;i++){
-			exp->_vector[i] = sao_eval( exp->_vector[i],ctx);
-		}
-		return exp;
-	}
-	else if (exp->_type == type_symbol) {
-		p_sao_obj sym = sao_get_var(exp, ctx);
-		if (!sym) {
-			//if(SAO_ARGV(s)){
-			//	sao_error("ERROR: symbol(%s) not found.\n",exp->_string);
-			//}else{
-			sao_warn("WARN: sao_get_var() failed for symbol(%s).\n",exp->_string);//TODO
-			//}
-			//return exp;
-		}
-		return sym;
-	}
-	else if(sao_is_list(exp)){
-		p_sao_obj _car = car(exp);
-		p_sao_obj _cadr = cadr(exp);
-		if (sao_is_eq(_car, SAO_TAG_vector)) {//TODO need improve 
-			p_sao_obj _cdr = cdr(exp);
-			//return _cdr;
-			p_sao_obj vector_a[512];
-			int i=0;
-			for (;;) {
-				if(!car(_cdr)) break;
-				vector_a[i++] = car(_cdr);
-				if(i>=512) sao_error("vector len > 512...");//TODO improve later
-				_cdr = cdr(_cdr);
+	if (!expr) return SAO_NULL; 
+	switch(expr->_type){
+		case type_long:
+		case type_double:
+		case type_string:
+			break;
+		case type_vector:
+			for(int i=0;i<expr->_len;i++){ expr->_vector[i] = sao_eval(expr->_vector[i],ctx); }
+			return expr;
+		case type_symbol:
+			{
+				p_sao_obj sym = sao_get_var(expr, ctx);
+				if (!sym) sao_warn("WARN: sao_get_var(%s)\n",expr->_string);//TODO
+				return sym;
 			}
-			p_sao_obj rt = sao_new_vector(i);
-			for(int j=0;j<i;j++){ rt->_vector[j]=vector_a[j]; }
-			return rt;
-		}
-		if (sao_is_eq(_car, SAO_TAG_quote)) { return _cadr; }
-		else if (sao_is_eq(_car, SAO_TAG_lambda)) {
-			p_sao_obj _cddr = cddr(exp);
-			return sao_new_procedure(_cadr, _cddr, ctx);
-		}
-		else if (sao_is_eq(_car, SAO_TAG_var)) {
-			if (sao_is_atom(_cadr)) sao_var(_cadr, sao_eval(caddr(exp), ctx), ctx);
-			else {
-				p_sao_obj closure = sao_eval(sao_new_lambda(cdr(_cadr), cddr(exp)), ctx);
-				sao_var(car(_cadr), closure, ctx);
-			}
-			return SAO_TAG_true;
-		}
-		else if (sao_is_eq(_car, SAO_TAG_begin)) {
-			p_sao_obj args = cdr(exp);
-			//				sao_print("\n; DEBUG args ",args);
-			//				sao_print("\n; \n",0);
-			for (; (cdr(args)); args = cdr(args)){
-				//				sao_print("\n; DEBUG args ",args);
-				//				sao_print("\n; \n",0);
-				sao_eval(car(args), ctx);
-			}
-			exp = car(args);
-			//				sao_print("\n; DEBUG exp ",exp);
-			//				sao_print("\n; \n",0);
-			goto tail;
-		}
-		else if (sao_is_eq(_car, SAO_TAG_if)) {
-			p_sao_obj predicate = sao_eval(_cadr, ctx);
-			exp = (sao_not_false(predicate)) ? caddr(exp) : cadddr(exp);
-			goto tail;
-		}
-		else if (sao_is_eq(_car, SAO_TAG_or)) {
-			p_sao_obj predicate = sao_eval(_cadr, ctx);
-			exp = (sao_not_false(predicate)) ? caddr(exp) : cadddr(exp);
-			goto tail;
-		}
-		else if (sao_is_eq(_car, SAO_TAG_cond)) {
-			p_sao_obj branch = cdr(exp);
-			for (; (branch); branch = cdr(branch)) {
-				if ( sao_is_eq(caar(branch), SAO_TAG_else) || sao_not_false(sao_eval(caar(branch), ctx)))
-				{
-					exp = cons(SAO_TAG_begin, cdar(branch));
+		case type_list:
+			{
+				p_sao_obj _car = car(expr);
+				p_sao_obj _cadr = cadr(expr);
+				if (sao_is_eq(_car, SAO_TAG_vector)) {//TODO need improve 
+					p_sao_obj _cdr = cdr(expr);
+					//return _cdr;
+					p_sao_obj vector_a[512];
+					int i=0;
+					for (;;) {
+						if(!car(_cdr)) break;
+						vector_a[i++] = car(_cdr);
+						if(i>=512) sao_error("vector len > 512...");//TODO improve later
+						_cdr = cdr(_cdr);
+					}
+					p_sao_obj rt = sao_new_vector(i);
+					for(int j=0;j<i;j++){ rt->_vector[j]=vector_a[j]; }
+					return rt;
+				}
+				if (sao_is_eq(_car, SAO_TAG_quote)) { return _cadr; }
+				else if (sao_is_eq(_car, SAO_TAG_lambda)) {
+					p_sao_obj _cddr = cddr(expr);
+					return sao_new_procedure(_cadr, _cddr, ctx);
+				}
+				else if (sao_is_eq(_car, SAO_TAG_var)) {
+					if (sao_is_atom(_cadr)) sao_var(_cadr, sao_eval(caddr(expr), ctx), ctx);
+					else {
+						p_sao_obj closure = sao_eval(sao_new_lambda(cdr(_cadr), cddr(expr)), ctx);
+						sao_var(car(_cadr), closure, ctx);
+					}
+					return SAO_TAG_true;
+				}
+				else if (sao_is_eq(_car, SAO_TAG_begin)) {
+					p_sao_obj args = cdr(expr);
+					//				sao_print("\n; DEBUG args ",args);
+					//				sao_print("\n; \n",0);
+					for (; (cdr(args)); args = cdr(args)){
+						//				sao_print("\n; DEBUG args ",args);
+						//				sao_print("\n; \n",0);
+						sao_eval(car(args), ctx);
+					}
+					expr = car(args);
+					//				sao_print("\n; DEBUG expr ",expr);
+					//				sao_print("\n; \n",0);
 					goto tail;
 				}
-			}
-			return SAO_NULL;
-			//return SAO_TAG_false;//should null??
-		}
-		else if (sao_is_eq(_car, SAO_TAG_set)) { //TODO works in current ctx
-			if (sao_is_atom(_cadr)){
-				sao_set(_cadr, sao_eval(caddr(exp), ctx), ctx);
-			} else {
-				p_sao_obj closure =
-					sao_eval(sao_new_lambda(cdr(_cadr), cddr(exp)), ctx);
-				sao_set(car(_cadr), closure, ctx);
-			}
-			return SAO_TAG_true;
-		}
-		else if (sao_is_eq(_car, SAO_TAG_let)) { /* convert to lambda, TODO merge with? */
-			p_sao_obj idx;
-			p_sao_obj vars = SAO_NULL, vals = SAO_NULL;
-			if (!_cadr) return SAO_NULL;//
-			if (sao_is_atom(_cadr)) {
-				for (idx = caddr(exp); (idx); idx = cdr(idx)) { vars = cons(caar(idx), vars); vals = cons(cadar(idx), vals); }
-				sao_var(_cadr, sao_eval(sao_new_lambda(vars, cdddr(exp)), sao_expand(vars, vals, ctx)), ctx);
-				exp = cons(_cadr, vals);
-				goto tail;
-			}
-			for (idx = _cadr; (idx); idx = cdr(idx)) { vars = cons(caar(idx), vars); vals = cons(cadar(idx), vals); }
-			exp = cons(sao_new_lambda(vars, cddr(exp)), vals);
-			goto tail;
-		}else
-		{
-			if(!_car){
-				return exp;// for []?
-			}
-			p_sao_obj proc = sao_eval(_car, ctx);
-			if (!proc) {
-				//if(SAO_ARGV(s)){
-				sao_print("WARN: fail of", exp);//TODO
-				sao_stdout("\n");
-				//}
-				//return SAO_NULL;
-				//return exp;
-				return SAO_TAG_false;//TODO
-			}
-			p_sao_obj args = sao_eval_list(cdr(exp), ctx);
-			if (proc->_type == type_native){
-				return proc->_native(args,ctx);
-			}
-			//TODO if empty native but ffi, should auto load into _native 
-
-			if ( sao_is_eq(car(proc), SAO_TAG_procedure))
-			{
-				p_sao_obj _cadr_proc = cadr(proc);
-				//sao_print("\n; DEBUG _cadr_proc ",_cadr_proc);
-				//sao_print("\n; ",0);
-				if(!car(_cadr_proc)){//for NULL() case...
-					_cadr_proc = cdr(_cadr_proc);
+				else if (sao_is_eq(_car, SAO_TAG_if)) {
+					p_sao_obj predicate = sao_eval(_cadr, ctx);
+					expr = (sao_not_false(predicate)) ? caddr(expr) : cadddr(expr);
+					goto tail;
 				}
-				//sao_print("\n; DEBUG _cadr_proc ",_cadr_proc);
-				//sao_print("\n; ",0);
-				ctx = sao_expand(_cadr_proc, args, cadddr(proc));//TODO to improve ctx
-				exp = cons(SAO_TAG_begin, caddr(proc)); /* body-expr */
-				goto tail;
-			}else{
-				//return exp;
+				else if (sao_is_eq(_car, SAO_TAG_or)) {
+					p_sao_obj predicate = sao_eval(_cadr, ctx);
+					expr = (sao_not_false(predicate)) ? caddr(expr) : cadddr(expr);
+					goto tail;
+				}
+				else if (sao_is_eq(_car, SAO_TAG_cond)) {
+					p_sao_obj branch = cdr(expr);
+					for (; (branch); branch = cdr(branch)) {
+						if ( sao_is_eq(caar(branch), SAO_TAG_else) || sao_not_false(sao_eval(caar(branch), ctx)))
+						{
+							expr = cons(SAO_TAG_begin, cdar(branch));
+							goto tail;
+						}
+					}
+					return SAO_NULL;
+					//return SAO_TAG_false;//should null??
+				}
+				else if (sao_is_eq(_car, SAO_TAG_set)) { //TODO works in current ctx
+					if (sao_is_atom(_cadr)){
+						sao_set(_cadr, sao_eval(caddr(expr), ctx), ctx);
+					} else {
+						p_sao_obj closure =
+							sao_eval(sao_new_lambda(cdr(_cadr), cddr(expr)), ctx);
+						sao_set(car(_cadr), closure, ctx);
+					}
+					return SAO_TAG_true;
+				}
+				else if (sao_is_eq(_car, SAO_TAG_let)) { /* convert to lambda, TODO merge with? */
+					p_sao_obj idx;
+					p_sao_obj vars = SAO_NULL, vals = SAO_NULL;
+					if (!_cadr) return SAO_NULL;//
+					if (sao_is_atom(_cadr)) {
+						for (idx = caddr(expr); (idx); idx = cdr(idx)) { vars = cons(caar(idx), vars); vals = cons(cadar(idx), vals); }
+						sao_var(_cadr, sao_eval(sao_new_lambda(vars, cdddr(expr)), sao_expand(vars, vals, ctx)), ctx);
+						expr = cons(_cadr, vals);
+						goto tail;
+					}
+					for (idx = _cadr; (idx); idx = cdr(idx)) { vars = cons(caar(idx), vars); vals = cons(cadar(idx), vals); }
+					expr = cons(sao_new_lambda(vars, cddr(expr)), vals);
+					goto tail;
+				}else
+				{
+					if(!_car){
+						return expr;// for []?
+					}
+					p_sao_obj proc = sao_eval(_car, ctx);
+					if (!proc) {
+						//if(SAO_ARGV(s)){
+						sao_print("WARN: fail of", expr);//TODO
+						sao_stdout("\n");
+						//}
+						//return SAO_NULL;
+						//return expr;
+						return SAO_TAG_false;//TODO
+					}
+					p_sao_obj args = sao_eval_list(cdr(expr), ctx);
+					if (proc->_type == type_native){
+						return proc->_native(args,ctx);
+					}
+					//TODO if empty native but ffi, should auto load into _native 
+
+					if ( sao_is_eq(car(proc), SAO_TAG_procedure))
+					{
+						p_sao_obj _cadr_proc = cadr(proc);
+						//sao_print("\n; DEBUG _cadr_proc ",_cadr_proc);
+						//sao_print("\n; ",0);
+						if(!car(_cadr_proc)){//for NULL() case...
+							_cadr_proc = cdr(_cadr_proc);
+						}
+						//sao_print("\n; DEBUG _cadr_proc ",_cadr_proc);
+						//sao_print("\n; ",0);
+						ctx = sao_expand(_cadr_proc, args, cadddr(proc));//TODO to improve ctx
+						expr = cons(SAO_TAG_begin, caddr(proc)); /* body-exprr */
+						goto tail;
+					}else{
+						//return expr;
+					}
+				}
+				//sao_warn("DEBUG 400: sao_is_list SAO_NULL?\n");
+				break;
 			}
-		}
-		//sao_warn("DEBUG 400: sao_is_list SAO_NULL?\n");
+		default:
+			sao_print("TODO { ",expr);
+			sao_print(" }\n",0);
 	}
-	else{
-		sao_print("DEBUG 401: unhandle atom { ",exp);
-		sao_print(" }\n",0);
-	}
-	sao_stdout("\n");
+	return expr;
+	//if (expr->_type == type_long || expr->_type == type_string) {
+	//	return expr; }//TODO
+	//else if (expr->_type == type_vector) {
+	//	for(int i=0;i<expr->_len;i++){ expr->_vector[i] = sao_eval( expr->_vector[i],ctx); }
+	//	return expr;
+	//}
+	//else
+	//if (expr->_type == type_symbol) {
+	//	p_sao_obj sym = sao_get_var(expr, ctx);
+	//	if (!sym) sao_warn("WARN: sao_get_var(%s)\n",expr->_string);//TODO
+	//	return sym;
+	//}
+	//	else if(sao_is_list(expr)){
+	//		p_sao_obj _car = car(expr);
+	//		p_sao_obj _cadr = cadr(expr);
+	//		if (sao_is_eq(_car, SAO_TAG_vector)) {//TODO need improve 
+	//			p_sao_obj _cdr = cdr(expr);
+	//			//return _cdr;
+	//			p_sao_obj vector_a[512];
+	//			int i=0;
+	//			for (;;) {
+	//				if(!car(_cdr)) break;
+	//				vector_a[i++] = car(_cdr);
+	//				if(i>=512) sao_error("vector len > 512...");//TODO improve later
+	//				_cdr = cdr(_cdr);
+	//			}
+	//			p_sao_obj rt = sao_new_vector(i);
+	//			for(int j=0;j<i;j++){ rt->_vector[j]=vector_a[j]; }
+	//			return rt;
+	//		}
+	//		if (sao_is_eq(_car, SAO_TAG_quote)) { return _cadr; }
+	//		else if (sao_is_eq(_car, SAO_TAG_lambda)) {
+	//			p_sao_obj _cddr = cddr(expr);
+	//			return sao_new_procedure(_cadr, _cddr, ctx);
+	//		}
+	//		else if (sao_is_eq(_car, SAO_TAG_var)) {
+	//			if (sao_is_atom(_cadr)) sao_var(_cadr, sao_eval(caddr(expr), ctx), ctx);
+	//			else {
+	//				p_sao_obj closure = sao_eval(sao_new_lambda(cdr(_cadr), cddr(expr)), ctx);
+	//				sao_var(car(_cadr), closure, ctx);
+	//			}
+	//			return SAO_TAG_true;
+	//		}
+	//		else if (sao_is_eq(_car, SAO_TAG_begin)) {
+	//			p_sao_obj args = cdr(expr);
+	//			//				sao_print("\n; DEBUG args ",args);
+	//			//				sao_print("\n; \n",0);
+	//			for (; (cdr(args)); args = cdr(args)){
+	//				//				sao_print("\n; DEBUG args ",args);
+	//				//				sao_print("\n; \n",0);
+	//				sao_eval(car(args), ctx);
+	//			}
+	//			expr = car(args);
+	//			//				sao_print("\n; DEBUG expr ",expr);
+	//			//				sao_print("\n; \n",0);
+	//			goto tail;
+	//		}
+	//		else if (sao_is_eq(_car, SAO_TAG_if)) {
+	//			p_sao_obj predicate = sao_eval(_cadr, ctx);
+	//			expr = (sao_not_false(predicate)) ? caddr(expr) : cadddr(expr);
+	//			goto tail;
+	//		}
+	//		else if (sao_is_eq(_car, SAO_TAG_or)) {
+	//			p_sao_obj predicate = sao_eval(_cadr, ctx);
+	//			expr = (sao_not_false(predicate)) ? caddr(expr) : cadddr(expr);
+	//			goto tail;
+	//		}
+	//		else if (sao_is_eq(_car, SAO_TAG_cond)) {
+	//			p_sao_obj branch = cdr(expr);
+	//			for (; (branch); branch = cdr(branch)) {
+	//				if ( sao_is_eq(caar(branch), SAO_TAG_else) || sao_not_false(sao_eval(caar(branch), ctx)))
+	//				{
+	//					expr = cons(SAO_TAG_begin, cdar(branch));
+	//					goto tail;
+	//				}
+	//			}
+	//			return SAO_NULL;
+	//			//return SAO_TAG_false;//should null??
+	//		}
+	//		else if (sao_is_eq(_car, SAO_TAG_set)) { //TODO works in current ctx
+	//			if (sao_is_atom(_cadr)){
+	//				sao_set(_cadr, sao_eval(caddr(expr), ctx), ctx);
+	//			} else {
+	//				p_sao_obj closure =
+	//					sao_eval(sao_new_lambda(cdr(_cadr), cddr(expr)), ctx);
+	//				sao_set(car(_cadr), closure, ctx);
+	//			}
+	//			return SAO_TAG_true;
+	//		}
+	//		else if (sao_is_eq(_car, SAO_TAG_let)) { /* convert to lambda, TODO merge with? */
+	//			p_sao_obj idx;
+	//			p_sao_obj vars = SAO_NULL, vals = SAO_NULL;
+	//			if (!_cadr) return SAO_NULL;//
+	//			if (sao_is_atom(_cadr)) {
+	//				for (idx = caddr(expr); (idx); idx = cdr(idx)) { vars = cons(caar(idx), vars); vals = cons(cadar(idx), vals); }
+	//				sao_var(_cadr, sao_eval(sao_new_lambda(vars, cdddr(expr)), sao_expand(vars, vals, ctx)), ctx);
+	//				expr = cons(_cadr, vals);
+	//				goto tail;
+	//			}
+	//			for (idx = _cadr; (idx); idx = cdr(idx)) { vars = cons(caar(idx), vars); vals = cons(cadar(idx), vals); }
+	//			expr = cons(sao_new_lambda(vars, cddr(expr)), vals);
+	//			goto tail;
+	//		}else
+	//		{
+	//			if(!_car){
+	//				return expr;// for []?
+	//			}
+	//			p_sao_obj proc = sao_eval(_car, ctx);
+	//			if (!proc) {
+	//				//if(SAO_ARGV(s)){
+	//				sao_print("WARN: fail of", expr);//TODO
+	//				sao_stdout("\n");
+	//				//}
+	//				//return SAO_NULL;
+	//				//return expr;
+	//				return SAO_TAG_false;//TODO
+	//			}
+	//			p_sao_obj args = sao_eval_list(cdr(expr), ctx);
+	//			if (proc->_type == type_native){
+	//				return proc->_native(args,ctx);
+	//			}
+	//			//TODO if empty native but ffi, should auto load into _native 
+	//
+	//			if ( sao_is_eq(car(proc), SAO_TAG_procedure))
+	//			{
+	//				p_sao_obj _cadr_proc = cadr(proc);
+	//				//sao_print("\n; DEBUG _cadr_proc ",_cadr_proc);
+	//				//sao_print("\n; ",0);
+	//				if(!car(_cadr_proc)){//for NULL() case...
+	//					_cadr_proc = cdr(_cadr_proc);
+	//				}
+	//				//sao_print("\n; DEBUG _cadr_proc ",_cadr_proc);
+	//				//sao_print("\n; ",0);
+	//				ctx = sao_expand(_cadr_proc, args, cadddr(proc));//TODO to improve ctx
+	//				expr = cons(SAO_TAG_begin, caddr(proc)); /* body-exprr */
+	//				goto tail;
+	//			}else{
+	//				//return expr;
+	//			}
+	//		}
+	//		//sao_warn("DEBUG 400: sao_is_list SAO_NULL?\n");
+	//	}
+	//	else{
+	//		sao_print("TODO { ",expr);
+	//		sao_print(" }\n",0);
+	//	}
+	//	sao_stdout("\n");
 	//return SAO_TAG_false;
 	//return SAO_NULL;
-	return exp;//
+	//	return expr;//
 }
 
 p_sao_obj sao_type_assert(const ffic_string func, p_sao_obj obj, int type)
