@@ -314,7 +314,22 @@ p_sao_obj sao_type_assert(const ffic_string func, p_sao_obj obj, int type)
 
 p_sao_obj native_type(p_sao_obj args,p_sao_obj ctx) { return sao_new_symbol(type_names[car(args)->_type]); }
 p_sao_obj native_global(p_sao_obj args,p_sao_obj ctx) { return SAO_TAG_global; }
-
+p_sao_obj native_debug(p_sao_obj args,p_sao_obj ctx) {
+	sao_print("\nnative_debug.args=",args);
+	sao_print("\nnative_debug.ctx=",ctx);
+	//sao_print("\n",0);
+	//sao_stdout("\nlong=%d\n",car(args)->v._long);
+	p_sao_obj _car = car(args);
+	if(_car){
+		if (_car->_type == type_long){
+			sao_stdout("\nlong=%ld\n",car(args)->v._long);
+		}else{
+			sao_stdout("\n native_debug TODO type(%d)",_car->_type);
+		}
+	}else
+		sao_stdout("\n native_debug TODO no args");
+	return SAO_TAG_true;
+}
 //p_sao_obj native_var(p_sao_obj args, p_sao_obj ctx) {
 //	//p_sao_obj args = sao_eval_list(cdr(exp), ctx);
 //	if (sao_is_atom(_cadr)) sao_var(_cadr, sao_eval(caddr(exp), ctx), ctx);
@@ -571,6 +586,7 @@ p_sao_obj saolang_init()
 			exit,shell,ffi,//sys
 			global,//FOR DEV MODE
 			type,cons,setcar,setcdr,//core
+			debug,
 			list,//TODO will be removed soon
 			//vector,
 			//vget,vset,//data structure TODO

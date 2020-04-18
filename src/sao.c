@@ -63,6 +63,7 @@ int argta[argt_h+1];
 #define SAO_ARGV(x) argta[argt_##x]
 define_map(stream, file,char);//
 define_map(type,   list,vector,long,double,symbol,string);
+typedef struct _sao_obj_v sao_obj_v, *p_sao_obj_v;
 typedef struct _sao_obj sao_obj,*p_sao_obj;
 typedef p_sao_obj (*native_t)(p_sao_obj args,p_sao_obj ctx);
 #define SAO_OBJ_V union {\
@@ -73,8 +74,8 @@ typedef p_sao_obj (*native_t)(p_sao_obj args,p_sao_obj ctx);
 	long _long;\
 	double _double;\
 }
-struct _sao_obj { union{ void* ptr; int _type; }; ffic_string _raw; SAO_OBJ_V; };
-//typedef SAO_OBJ_V sao_obj_v, *p_sao_obj_v;
+struct _sao_obj_v { SAO_OBJ_V; };
+struct _sao_obj { union{ void* ptr; int _type; }; ffic_string _raw; union{ SAO_OBJ_V; sao_obj_v v;}; };
 p_sao_obj sao_new(sao_obj tpl) {
 	//TODO gc()
 	sao_obj * ret = libc(malloc)(sizeof(sao_obj));
