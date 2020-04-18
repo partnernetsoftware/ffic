@@ -327,7 +327,7 @@ p_sao_obj sao_convert_default(ffic_string str){
 void(*sao_print)(ffic_string,p_sao_obj);//= sao_print_default;
 void sao_print_default(ffic_string str, p_sao_obj el){
 	if (str) sao_stdout("%s ", str);
-	if (!el) { return; }
+	if (!el) return;
 	switch (el->_type) {
 		case type_string:
 			sao_stdout("\"%s\"", el->_string); break;
@@ -459,7 +459,7 @@ p_sao_obj sao_parse( sao_stream * fw, p_sao_obj ctx ) {
 		if (ctx){
 			rt = sao_eval(exp,ctx);
 			if(SAO_ARGV(d)) sao_stdout("%llu: ",microtime());
-			if((SAO_ARGV(i)||SAO_ARGV(d))){sao_print("=>", rt); sao_stdout("\n");}
+			if((SAO_ARGV(i)||SAO_ARGV(d))){sao_print("=>", rt); sao_stdout("%s",rt?"\n":"null\n");}
 		}else{
 			rt = exp;
 			if(SAO_ARGV(i)||SAO_ARGV(d)){

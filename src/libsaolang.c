@@ -148,11 +148,12 @@ tail:
 			for(int i=0;i<expr->_len;i++){ expr->_vector[i] = sao_eval(expr->_vector[i],ctx); }
 			return expr;
 		case type_symbol:
-			{
-				p_sao_obj sym = sao_get_var(expr, ctx);
-				if (!sym) sao_warn("WARN: sao_get_var(%s)\n",expr->_string);//TODO
-				return sym;
-			}
+			return sao_get_var(expr, ctx);
+			//{
+			//	p_sao_obj sym = sao_get_var(expr, ctx);
+			//	if (!sym) sao_warn("WARN: sao_get_var(%s)\n",expr->_string);//TODO
+			//	return sym;
+			//}
 		case type_list:
 			{
 				p_sao_obj _car = car(expr);
