@@ -185,23 +185,17 @@ int sao_read_line(sao_stream* fw) //TODO int * line_num
 		int LINE_LEN = 1024;//TODO
 		SAO_NEW_OBJECT(char,line,LINE_LEN);
 		if(fw->_type==stream_file){
-			if(SAO_ARGV(i)){
-				sao_stdout("> ");
-			}
+			if(SAO_ARGV(i)){ sao_stdout("> "); }
 			fgets(line,LINE_LEN,fw->fp);
 			long strlen_line = (long) strlen(line);
 			if(strlen_line>0){
-				for(int i=0;i<strlen_line;i++)
-				{
-					if('\n'==sao_enq_c(fw,line[i])){ line_num++; }
-				}
+				for(int i=0;i<strlen_line;i++) { if('\n'==sao_enq_c(fw,line[i])){ line_num++; } }
 			}else{
 				sao_enq_c(fw,SAO_EOF);
 			}
 		}else{
 			while( *(fw->pos)!=0 ){
 				if('\n'==sao_enq_c(fw,(*(fw->pos)))){ line_num++; }
-				//sao_stderr(".");
 				fw->pos++;
 			}
 			sao_enq_c(fw,SAO_EOF);

@@ -1,7 +1,9 @@
 define_map(ctype,  long,double,int,float,i64,u64,string,struct,pointer);//etc TODO
 enum { type_ctype=1+type_string, type_native, };
 // true,false; var,set,let; if,else,or,cond; procedure,lambda;
-#define LIST_SAO_TAG true,false,set,let,var,if,lambda,begin,or,else,cond,procedure
+//#define LIST_SAO_TAG true,false,set,let,var,if,lambda,begin,or,else,cond,procedure
+// true,false; (dec/def/assign) var,set,let; (branch) if,else,cond; procedure,lambda;
+#define LIST_SAO_TAG true,false,set,let,var,if,lambda,begin,else,cond,procedure
 SAO_ITR(define_sao_tag, SAO_EXPAND(LIST_SAO_TAG));
 
 #define sao_new_native(x,n) sao_new((sao_obj){._type=type_native, ._native=x,._ffi=n})
@@ -156,8 +158,8 @@ tail:
 			{
 				p_sao_obj _car = car(expr);
 				p_sao_obj _cadr = cadr(expr);
+				p_sao_obj _cdr = cdr(expr);
 				if (sao_is_eq(_car, SAO_TAG_vector)) {//TODO need improve 
-					p_sao_obj _cdr = cdr(expr);
 					//return _cdr;
 					p_sao_obj vector_a[512];
 					int i=0;
@@ -192,16 +194,16 @@ tail:
 					expr = car(args);
 					goto tail;
 				}
-				else if (sao_is_eq(_car, SAO_TAG_if)) {
+				else if (sao_is_eq(_car, SAO_TAG_if)) { //if((predicate),(when_true),(when_false))
 					p_sao_obj predicate = sao_eval(_cadr, ctx);
 					expr = (sao_not_false(predicate)) ? caddr(expr) : cadddr(expr);
 					goto tail;
 				}
-				else if (sao_is_eq(_car, SAO_TAG_or)) {
-					p_sao_obj predicate = sao_eval(_cadr, ctx);
-					expr = (sao_not_false(predicate)) ? caddr(expr) : cadddr(expr);
-					goto tail;
-				}
+				//else if (sao_is_eq(_car, SAO_TAG_or)) {
+				//	p_sao_obj predicate = sao_eval(_cadr, ctx);
+				//	expr = (sao_not_false(predicate)) ? caddr(expr) : cadddr(expr);
+				//	goto tail;
+				//}
 				else if (sao_is_eq(_car, SAO_TAG_cond)) {
 					p_sao_obj branch = cdr(expr);
 					for (; (branch); branch = cdr(branch)) {
@@ -240,7 +242,7 @@ tail:
 				}else
 				{
 					if(!_car){
-						return expr;// for []?
+						return cons(SAO_NULL,sao_eval_list(_cdr, ctx));
 					}
 					p_sao_obj proc = sao_eval(_car, ctx);
 					if (!proc) {
