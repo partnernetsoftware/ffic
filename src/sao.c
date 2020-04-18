@@ -433,11 +433,12 @@ p_sao_obj sao_load_expr(sao_stream * fw) {
 					}
 					theSymbol = sao_str_convert(buf);
 					while (cc=sao_peek(fw), sao_strchr(" \t", cc)) sao_deq_c(fw);
-					if(SAO_ARGV(i)) { //don't eat \r\n when i mode
-						if (sao_strchr(",({", sao_peek(fw))) continue;
-					}else{
-						if (sao_strchr(",\r\n({", sao_peek(fw))) continue;
-					}
+					if (sao_strchr((SAO_ARGV(i))?",({":"\r\n,({",sao_peek(fw))) continue;
+					//if(SAO_ARGV(i)) { //don't eat \r\n when i mode
+					//	if (sao_strchr(",({", sao_peek(fw))) continue;
+					//}else{
+					//	if (sao_strchr(",\r\n({", sao_peek(fw))) continue;
+					//}
 				}
 		}//switch
 		break;

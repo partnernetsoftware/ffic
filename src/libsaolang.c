@@ -183,12 +183,7 @@ tail:
 		if (sao_is_eq(_car, SAO_TAG_quote)) { return _cadr; }
 		else if (sao_is_eq(_car, SAO_TAG_lambda)) {
 			p_sao_obj _cddr = cddr(exp);
-			//TODO skip for the ^()
-			//if (!_cadr){
-			//_cadr = cadr(exp));
-			//_cddr = cdddr(exp));
-			//}
-			return sao_new_procedure(_cadr, cddr(exp), ctx);
+			return sao_new_procedure(_cadr, _cddr, ctx);
 		}
 		else if (sao_is_eq(_car, SAO_TAG_var)) {
 			if (sao_is_atom(_cadr)) sao_var(_cadr, sao_eval(caddr(exp), ctx), ctx);
@@ -200,8 +195,16 @@ tail:
 		}
 		else if (sao_is_eq(_car, SAO_TAG_begin)) {
 			p_sao_obj args = cdr(exp);
-			for (; (cdr(args)); args = cdr(args)) sao_eval(car(args), ctx);
+//				sao_print("\n; DEBUG args ",args);
+//				sao_print("\n; \n",0);
+			for (; (cdr(args)); args = cdr(args)){
+//				sao_print("\n; DEBUG args ",args);
+//				sao_print("\n; \n",0);
+				sao_eval(car(args), ctx);
+			}
 			exp = car(args);
+//				sao_print("\n; DEBUG exp ",exp);
+//				sao_print("\n; \n",0);
 			goto tail;
 		}
 		else if (sao_is_eq(_car, SAO_TAG_if)) {
@@ -264,16 +267,23 @@ tail:
 				//return exp;
 				return SAO_TAG_false;//TODO
 			}
+			p_sao_obj args = sao_eval_list(cdr(exp), ctx);
 			if (proc->_type == type_native){
-				p_sao_obj args = sao_eval_list(cdr(exp), ctx);
 				return proc->_native(args);
 			}
 			//TODO if empty native but ffi, should auto load into _native 
 
 			if ( sao_is_eq(car(proc), SAO_TAG_procedure))
 			{
-				p_sao_obj args = sao_eval_list(cdr(exp), ctx);
-				ctx = sao_expand(cadr(proc), args, cadddr(proc));
+				p_sao_obj _cadr_proc = cadr(proc);
+				//sao_print("\n; DEBUG _cadr_proc ",_cadr_proc);
+				//sao_print("\n; ",0);
+				if(!car(_cadr_proc)){//for NULL() case...
+					_cadr_proc = cdr(_cadr_proc);
+				}
+				//sao_print("\n; DEBUG _cadr_proc ",_cadr_proc);
+				//sao_print("\n; ",0);
+				ctx = sao_expand(_cadr_proc, args, cadddr(proc));//TODO to improve ctx
 				exp = cons(SAO_TAG_begin, caddr(proc)); /* body-expr */
 				goto tail;
 			}else{
