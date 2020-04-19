@@ -1,15 +1,14 @@
 define_map(ctype,  long,double,int,float,i64,u64,string,struct,pointer);//etc TODO
 enum { type_ctype=1+type_string, type_native, };
-// true,false; var,set,let; if,else,or,cond; procedure,lambda;
-//#define LIST_SAO_TAG true,false,set,let,var,if,lambda,begin,or,else,cond,procedure
-// true,false; (dec/def/assign) var,set,let; (branch) if,else,cond; procedure,lambda;
-#define LIST_SAO_TAG true,false,set,let,var,if,lambda,begin,procedure
+#define LIST_SAO_TAG true,false,set,let,var,if,lambda,procedure
 SAO_ITR(define_sao_tag, SAO_EXPAND(LIST_SAO_TAG));
 
+#define sao_new_vector(s) sao_new((sao_obj){._type=type_vector, ._len=s,._vector=SAO_NEW_C(p_sao_obj,s)})
 #define sao_new_native(x,n) sao_new((sao_obj){._type=type_native, ._native=x,._ffi=n})
 #define sao_new_lambda(params,body) cons(SAO_TAG_lambda, cons(params,body))
 #define sao_new_procedure(params,body,ctx) cons(SAO_TAG_procedure, cons(params, cons(body, cons(ctx, SAO_TAG_nil))))
-#define sao_add_sym_x(x) SAO_TAG_##x=sao_new_symbol(#x);sao_var(SAO_TAG_##x,SAO_TAG_##x,SAO_TAG_global);
+//#define sao_add_sym_x(x) SAO_TAG_##x=sao_new_symbol(#x);sao_var(SAO_TAG_##x,SAO_TAG_##x,SAO_TAG_global);
+#define add_sym_list(n) sao_var(sao_new_symbol(#n), sao_new_native(native_##n,#n), SAO_TAG_global);
 
 void _sao_print(ffic_string str, p_sao_obj el){
 
@@ -588,7 +587,6 @@ p_sao_obj native_c_int(p_sao_obj args,p_sao_obj ctx) {
 	libc(printf)("\n native_c_int=%s\n",s);
 	return SAO_TAG_nil;
 }
-#define add_sym_list(n) sao_var(sao_new_symbol(#n), sao_new_native(native_##n,#n), SAO_TAG_global);
 p_sao_obj saolang_init()
 {
 	sao_print = _sao_print;
