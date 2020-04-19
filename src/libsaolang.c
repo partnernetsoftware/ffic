@@ -1,6 +1,6 @@
 define_map(ctype,  long,double,int,float,i64,u64,string,struct,pointer);//etc TODO
 enum { type_ctype=1+type_string, type_native, };
-#define LIST_SAO_TAG true,false,set,let,var,if,lambda,procedure
+#define LIST_SAO_TAG true,false,set,let,var,if,lambda,procedure,at
 SAO_ITR(define_sao_tag, SAO_EXPAND(LIST_SAO_TAG));
 
 #define sao_new_vector(s) sao_new((sao_obj){._type=type_vector, ._len=s,._vector=SAO_NEW_C(p_sao_obj,s)})
@@ -146,7 +146,7 @@ tail:
 					p_sao_obj _cddr = cddr(expr);
 					return sao_new_procedure(_cadr, _cddr, ctx);
 				}
-				else if (sao_is_eq(_car, SAO_TAG_var)) {
+				else if (sao_is_eq(_car, SAO_TAG_var) || sao_is_eq(_car,SAO_TAG_at)) {
 					if (sao_is_atom(_cadr)) sao_var(_cadr, sao_eval(caddr(expr), ctx), ctx);
 					else {
 						p_sao_obj closure = sao_eval(sao_new_lambda(cdr(_cadr), cddr(expr)), ctx);
@@ -288,15 +288,21 @@ p_sao_obj native_debug(p_sao_obj args,p_sao_obj ctx) {
 		sao_stdout("\n native_debug TODO no args");
 	return SAO_TAG_true;
 }
-//p_sao_obj native_var(p_sao_obj args, p_sao_obj ctx) {
-//	//p_sao_obj args = sao_eval_list(cdr(exp), ctx);
-//	if (sao_is_atom(_cadr)) sao_var(_cadr, sao_eval(caddr(exp), ctx), ctx);
-//	else {
-//		p_sao_obj closure = sao_eval(sao_new_lambda(cdr(_cadr), cddr(exp)), ctx);
-//		sao_var(car(_cadr), closure, ctx);
-//	}
-//	return SAO_TAG_true;
-//}
+p_sao_obj native_var(p_sao_obj args, p_sao_obj ctx) {
+	//p_sao_obj args = sao_eval_list(cdr(expr), ctx);
+	p_sao_obj _cadr = car(args);
+	p_sao_obj _cdr = args;
+	if (sao_is_atom(_cadr)){
+		//sao_var(_cadr, sao_eval(cadr(args), ctx), ctx);
+		sao_stdout("DEBUG 201",0);
+	}
+	else {
+		sao_print("DEBUG 202 args",args);
+		//p_sao_obj closure = sao_eval(sao_new_lambda(cdr(_cadr), cdr(args)), ctx);
+	//	sao_var(car(_cadr), closure, ctx);
+	}
+	return SAO_TAG_true;
+}
 p_sao_obj native_list(p_sao_obj args,p_sao_obj ctx) { return (args); }
 p_sao_obj native_cons(p_sao_obj args,p_sao_obj ctx) {
 	p_sao_obj _cadr = cadr(args);
@@ -552,6 +558,7 @@ p_sao_obj saolang_init()
 	sao_print = _sao_print;
 	sao_eval = _sao_eval;
 	SAO_ITR(sao_add_sym_x, SAO_EXPAND(LIST_SAO_TAG));
+	SAO_TAG_at=sao_new_symbol("@");sao_var(SAO_TAG_at,SAO_TAG_at,SAO_TAG_global);
 
 	//p_sao_obj g_symbol_holder = SAO_TAG_nil;
 	//g_symbol_holder = sao_new_vector(65536-1);//TODO auto expand for the tables
@@ -571,6 +578,12 @@ p_sao_obj saolang_init()
 			add,sub,mul,div,cmp,lt,gt,//logic,
 			is_nil,is_list,pairq,eq,same,//helpers
 			);
+	//var(fb(n),if(lt(n,3),1,+(fb(-(n,1)),fb(-(n,2)))))
+	sao_var(sao_new_symbol("+"), sao_new_native(native_add,"+"), SAO_TAG_global);
+	sao_var(sao_new_symbol("-"), sao_new_native(native_sub,"-"), SAO_TAG_global);
+	sao_var(sao_new_symbol("*"), sao_new_native(native_mul,"*"), SAO_TAG_global);
+	sao_var(sao_new_symbol("/"), sao_new_native(native_div,"/"), SAO_TAG_global);
+	sao_var(sao_new_symbol("@"), sao_new_native(native_var,"@"), SAO_TAG_global);
 	SAO_ITR(add_sym_list, c_int);
 	return SAO_TAG_global;
 }
