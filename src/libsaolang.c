@@ -8,7 +8,7 @@ SAO_ITR(define_sao_tag, SAO_EXPAND(LIST_SAO_TAG));
 
 #define sao_new_native(x,n) sao_new((sao_obj){._type=type_native, ._native=x,._ffi=n})
 #define sao_new_lambda(params,body) cons(SAO_TAG_lambda, cons(params,body))
-#define sao_new_procedure(params,body,ctx) cons(SAO_TAG_procedure, cons(params, cons(body, cons(ctx, SAO_NULL))))
+#define sao_new_procedure(params,body,ctx) cons(SAO_TAG_procedure, cons(params, cons(body, cons(ctx, SAO_TAG_nil))))
 #define sao_add_sym_x(x) SAO_TAG_##x=sao_new_symbol(#x);sao_var(SAO_TAG_##x,SAO_TAG_##x,SAO_TAG_global);
 
 void _sao_print(ffic_string str, p_sao_obj el){
@@ -76,12 +76,12 @@ void _sao_print(ffic_string str, p_sao_obj el){
 //make libsaolang.(dylib|dll|so) for ffic loading
 p_sao_obj sao_not_false(p_sao_obj x) {
 	p_sao_obj rt = x;
-	if (!x || sao_is_eq(x, SAO_TAG_false)) rt = SAO_NULL;
-	else if (x->_type == type_long && x->_long == 0) rt = SAO_NULL;
+	if (!x || sao_is_eq(x, SAO_TAG_false)) rt = SAO_TAG_nil;
+	else if (x->_type == type_long && x->_long == 0) rt = SAO_TAG_nil;
 	return rt;
 }
 p_sao_obj sao_eval_list(p_sao_obj exp, p_sao_obj ctx) {
-	if (!exp) return SAO_NULL;
+	if (!exp) return SAO_TAG_nil;
 	p_sao_obj _car = sao_eval(car(exp), ctx);
 	p_sao_obj _cdr = sao_eval_list(cdr(exp), ctx);
 //	sao_print("DEBUG{",_car);
@@ -114,7 +114,7 @@ p_sao_obj sao_vector_insert(p_sao_obj holder,p_sao_obj key_obj){
 	if(the_vector[h]){
 		//sao_warn("TODO sao_vector_insert table need to resize (%d,%s)?\n",h,key_obj->_string);
 	}
-	//if(!the_vector || (SAO_NULL != the_vector[h] && SAO_NULL!=the_vector[h]->_string)){
+	//if(!the_vector || (SAO_TAG_nil!= the_vector[h] && SAO_TAG_nil!=the_vector[h]->_string)){
 	//	int _len= 2*(holder->_len+1)-1 ;
 	//	sao_tbl_resize(holder, _len);
 	//	the_vector = sao_tbl_resize(holder, key_obj);//again
@@ -135,7 +135,7 @@ p_sao_obj sao_tbl_resize(p_sao_obj holder,int _len){
 }
 p_sao_obj _sao_eval(p_sao_obj expr, p_sao_obj ctx) {
 tail:
-	if (!expr) return SAO_NULL; 
+	if (!expr) return SAO_TAG_nil; 
 	switch(expr->_type){
 		case type_long:
 		case type_double:
@@ -218,7 +218,7 @@ tail:
 				///			goto tail;
 				///		}
 				///	}
-				///	return SAO_NULL;
+				///	return SAO_TAG_nil;
 				///	//return SAO_TAG_false;//should null??
 				///}
 				else if (sao_is_eq(_car, SAO_TAG_set)) { //TODO works in current ctx
@@ -233,8 +233,8 @@ tail:
 				}
 				else if (sao_is_eq(_car, SAO_TAG_let)) { /* convert to lambda, TODO merge with? */
 					p_sao_obj idx;
-					p_sao_obj vars = SAO_NULL, vals = SAO_NULL;
-					if (!_cadr) return SAO_NULL;//
+					p_sao_obj vars = SAO_TAG_nil, vals = SAO_TAG_nil;
+					if (!_cadr) return SAO_TAG_nil;//
 					if (sao_is_atom(_cadr)) {
 						for (idx = caddr(expr); (idx); idx = cdr(idx)) { vars = cons(caar(idx), vars); vals = cons(cadar(idx), vals); }
 						sao_var(_cadr, sao_eval(sao_new_lambda(vars, cdddr(expr)), sao_expand(vars, vals, ctx)), ctx);
@@ -247,7 +247,7 @@ tail:
 				}else
 				{
 					if(!_car){
-						return cons(SAO_NULL,sao_eval_list(_cdr, ctx));
+						return cons(SAO_TAG_nil,sao_eval_list(_cdr, ctx));
 					}
 					p_sao_obj proc = sao_eval(_car, ctx);
 					if (!proc) {
@@ -255,7 +255,7 @@ tail:
 						sao_print("WARN: 404 ", expr);//TODO
 						sao_stdout("\n");
 						//}
-						//return SAO_NULL;
+						//return SAO_TAG_nil;
 						//return expr;
 						return SAO_TAG_false;//TODO
 					}
@@ -282,7 +282,7 @@ tail:
 						//return expr;
 					}
 				}
-				//sao_warn("DEBUG 400: sao_is_list SAO_NULL?\n");
+				//sao_warn("DEBUG 400: sao_is_list SAO_TAG_nil?\n");
 				break;
 			}
 		default:
@@ -295,8 +295,8 @@ tail:
 p_sao_obj sao_type_assert(const ffic_string func, p_sao_obj obj, int type)
 {
 	if (!obj) {
-		//sao_stderr("Invalid argument to function %s: SAO_NULL\n", func); libc(exit)(1);
-		sao_error("Invalid argument to function %s: SAO_NULL\n", func);
+		//sao_stderr("Invalid argument to function %s: SAO_TAG_nil\n", func); libc(exit)(1);
+		sao_error("Invalid argument to function %s: SAO_TAG_nil\n", func);
 	} else if (obj->_type != type) {
 		//sao_stderr( "ERR: function %s. expected %s got %s\n", func, type_names[type], type_names[obj->_type]); libc(exit)(1);
 		sao_error( "ERR: function %s. expected %s got %s\n", func, type_names[type], type_names[obj->_type]);
@@ -336,8 +336,8 @@ p_sao_obj native_list(p_sao_obj args,p_sao_obj ctx) { return (args); }
 p_sao_obj native_cons(p_sao_obj args,p_sao_obj ctx) { return cons(car(args), cadr(args)); }
 p_sao_obj native_car(p_sao_obj args,p_sao_obj ctx) { if(SAO_ARGV(s)) SAO_ASSERT_TYPE(car(args), type_list); return caar(args); }
 p_sao_obj native_cdr(p_sao_obj args,p_sao_obj ctx) { if(SAO_ARGV(s)) SAO_ASSERT_TYPE(car(args), type_list); return cdar(args); }
-p_sao_obj native_setcar(p_sao_obj args,p_sao_obj ctx) { SAO_ASSERT_TYPE(car(args), type_list); (args->car->car = (cadr(args))); return SAO_NULL; }
-p_sao_obj native_setcdr(p_sao_obj args,p_sao_obj ctx) { SAO_ASSERT_TYPE(car(args), type_list); (args->car->cdr = (cadr(args))); return SAO_NULL; }
+p_sao_obj native_setcar(p_sao_obj args,p_sao_obj ctx) { SAO_ASSERT_TYPE(car(args), type_list); (args->car->car = (cadr(args))); return SAO_TAG_nil; }
+p_sao_obj native_setcdr(p_sao_obj args,p_sao_obj ctx) { SAO_ASSERT_TYPE(car(args), type_list); (args->car->cdr = (cadr(args))); return SAO_TAG_nil; }
 p_sao_obj native_is_null(p_sao_obj args,p_sao_obj ctx) { return (car(args)) ? SAO_TAG_false : SAO_TAG_true; }
 p_sao_obj native_pairq(p_sao_obj args,p_sao_obj ctx) {
 	if (car(args)->_type != type_list) return SAO_TAG_false;
@@ -445,7 +445,7 @@ p_sao_obj native_div(p_sao_obj list,p_sao_obj ctx) {
 p_sao_obj native_mul(p_sao_obj list,p_sao_obj ctx) {
 	p_sao_obj _car = car(list);
 	//SAO_ASSERT_TYPE(_car, type_long);
-	if(!_car) return SAO_NULL;//TODO nothing/nil should print sth (but null not good)
+	if(!_car) return SAO_TAG_nil;//TODO nothing/nil should print sth (but null not good)
 	if(_car->_type == type_long){
 		long total = _car->_long;
 		list = cdr(list);
@@ -466,7 +466,7 @@ p_sao_obj native_mul(p_sao_obj list,p_sao_obj ctx) {
 	}else{
 		sao_warn("WARN: mul() is not yet support type of (%d)\n", _car->_type);
 	}
-	return SAO_NULL;
+	return SAO_TAG_nil;
 }
 //////////////////////////////////////////////////////////////////////////////
 char* sao_strcat(char * dst, char * src){
@@ -493,18 +493,18 @@ p_sao_obj native_ffi(p_sao_obj args,p_sao_obj ctx) {
 	//libc(system)("ls");
 	return SAO_TAG_true;
 }
-p_sao_obj native_exit(p_sao_obj args,p_sao_obj ctx) { libc(exit)(0); return SAO_NULL; }
+p_sao_obj native_exit(p_sao_obj args,p_sao_obj ctx) { libc(exit)(0); return SAO_TAG_nil; }
 //TODO merge read/load
 p_sao_obj native_read(p_sao_obj args,p_sao_obj ctx) { return sao_load_expr(sao_stream_new(libc(stdin),stream_file)); }
 p_sao_obj native_load(p_sao_obj args,p_sao_obj ctx) { //TODO merge with native_read() 1!
 	p_sao_obj exp;
-	p_sao_obj ret = SAO_NULL;
+	p_sao_obj ret = SAO_TAG_nil;
 	ffic_string filename = car(args)->_string;
 	//TODO
 	void*fp = libc(fopen)(filename, "r");
 	if (fp == 0) {
 		sao_stderr("Error opening file %s\n", filename);
-		return SAO_NULL;
+		return SAO_TAG_nil;
 	}
 	sao_stream * fw = sao_stream_new(fp,stream_file);
 	for (;;) {
@@ -522,14 +522,14 @@ p_sao_obj native_load(p_sao_obj args,p_sao_obj ctx) { //TODO merge with native_r
 p_sao_obj native_vget(p_sao_obj args,p_sao_obj ctx) {
 	p_sao_obj vct = SAO_ASSERT_TYPE(car(args), type_vector);
 	p_sao_obj key = SAO_ASSERT_TYPE(cadr(args), type_long);
-	if (key->_long >= vct->_len) return SAO_NULL;
+	if (key->_long >= vct->_len) return SAO_TAG_nil;
 	return vct->_vector[key->_long];
 }
 p_sao_obj native_vset(p_sao_obj args,p_sao_obj ctx){
 	p_sao_obj vct = SAO_ASSERT_TYPE(car(args), type_vector);
 	p_sao_obj key = SAO_ASSERT_TYPE(cadr(args), type_long);
-	if (!(caddr(args))) return SAO_NULL;
-	if (key->_long >= vct->_len) return SAO_NULL;
+	if (!(caddr(args))) return SAO_TAG_nil;
+	if (key->_long >= vct->_len) return SAO_TAG_nil;
 	car(args)->_vector[key->_long] = caddr(args);
 	return SAO_TAG_true;
 }
@@ -545,7 +545,7 @@ p_sao_obj native_print(p_sao_obj list,p_sao_obj ctx) {
 	}
 	sao_stdout("\n");
 	//return SAO_TAG_true;
-	return SAO_NULL;
+	return SAO_TAG_nil;
 }
 p_sao_obj native_c_int(p_sao_obj args,p_sao_obj ctx) {
 	p_sao_obj _car;
@@ -557,7 +557,7 @@ p_sao_obj native_c_int(p_sao_obj args,p_sao_obj ctx) {
 		_cdr = cdr(_cdr);
 	}
 	libc(printf)("\n native_c_int=%s\n",s);
-	return SAO_NULL;
+	return SAO_TAG_nil;
 }
 #define add_sym_list(n) sao_var(sao_new_symbol(#n), sao_new_native(native_##n,#n), SAO_TAG_global);
 p_sao_obj saolang_init()
@@ -570,7 +570,7 @@ p_sao_obj saolang_init()
 
 	SAO_ITR(sao_add_sym_x, SAO_EXPAND(LIST_SAO_TAG));
 
-	//p_sao_obj g_symbol_holder = SAO_NULL;
+	//p_sao_obj g_symbol_holder = SAO_TAG_nil;
 	//g_symbol_holder = sao_new_vector(65536-1);//TODO auto expand for the tables
 	SAO_ITR(add_sym_list, print,lt,add,sub,exit);//minimum for fib.sao
 	//CommonLisp: format,defun
