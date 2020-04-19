@@ -373,9 +373,8 @@ void sao_print_default(ffic_string str, p_sao_obj el){
 							ptr = ptr->cdr;
 						}
 						else { //TODO !!!
-							sao_print(" ", ptr->cdr);
-							//sao_print("DEBUG{", ptr->cdr);
-							//sao_stdout("}");
+							sao_print(",", ptr->cdr);
+							sao_stdout(" ");
 							break;
 						}
 					} else

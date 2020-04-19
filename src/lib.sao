@@ -98,11 +98,8 @@ var( range( number)
       cons( start range_helper( add( 1 start) max))))
   range_helper( 0 number))
 
-# Returns a list from 0_number()
-var( range_from( start finish)
-  if( cmp( start finish)
-    finish
-    cons( start range_from( add( 1 start) finish))))
+#var(range_from(start,finish),if(cmp(start,finish),cons(finish,nil),cons(start,range_from(add(1,start),finish))))
+var(range_from(start,finish),if(cmp(start,finish),finish,cons(start,range_from(add(1,start),finish))))
 
 # Tail recursive length
 var( length( list)
@@ -121,13 +118,26 @@ var( append lambda( list1( list2)
     append_helper( list1 list2)))
 
 # Reverse list
-var( reverse( list)
-  var( reverse_iter( remaining first) 
-    if( is_nil( remaining)
-      first
-      reverse_iter( cdr( remaining) cons( car( remaining) first))))
-  reverse_iter( list ^()))
-
+#	var(reverse(_list)
+#			var(reverse_iter(remaining,first) 
+#				if(is_nil( remaining)
+#					print("first=",first),
+#					reverse_iter(cdr(remaining),cons(car(remaining),first)))
+#				)
+#			print("_list=",_list);
+#			reverse_iter(_list ^()))
+var( reverse( _list)
+#print("_list=",_list)
+		var( reverse_iter( remaining first) 
+#print("remaining=",remaining,",first=",first)
+			if( is_nil( remaining)
+#print("=>",first)
+				(print("car(remaining)=",car(remaining)),reverse_iter( cdr( remaining) cons( car( remaining) first)))
+				) #if
+			) #var
+		#reverse_iter(_list ^())
+		reverse_iter(_list nil)
+	 )
 var( pow( num exp) 
   var( iter( a b) 
     if( eq( b 1) 

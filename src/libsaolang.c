@@ -331,7 +331,10 @@ p_sao_obj native_debug(p_sao_obj args,p_sao_obj ctx) {
 //	return SAO_TAG_true;
 //}
 p_sao_obj native_list(p_sao_obj args,p_sao_obj ctx) { return (args); }
-p_sao_obj native_cons(p_sao_obj args,p_sao_obj ctx) { return cons(car(args), cadr(args)); }
+p_sao_obj native_cons(p_sao_obj args,p_sao_obj ctx) {
+	p_sao_obj _cadr = cadr(args);
+	if(!sao_is_list(_cadr)) _cadr = cons(_cadr,SAO_TAG_nil);
+	return cons(car(args), _cadr); }
 p_sao_obj native_car(p_sao_obj args,p_sao_obj ctx) {
 	if(SAO_ARGV(s)) SAO_ASSERT_TYPE(car(args), type_list); return caar(args);
 }
@@ -341,9 +344,10 @@ p_sao_obj native_cdr(p_sao_obj args,p_sao_obj ctx) {
 p_sao_obj native_setcar(p_sao_obj args,p_sao_obj ctx) { SAO_ASSERT_TYPE(car(args), type_list); (args->car->car = (cadr(args))); return SAO_TAG_nil; }
 p_sao_obj native_setcdr(p_sao_obj args,p_sao_obj ctx) { SAO_ASSERT_TYPE(car(args), type_list); (args->car->cdr = (cadr(args))); return SAO_TAG_nil; }
 //p_sao_obj native_is_nil(p_sao_obj args,p_sao_obj ctx) { return (car(args)) ? SAO_TAG_false : SAO_TAG_true; }
-p_sao_obj native_is_nil(p_sao_obj args,p_sao_obj ctx) { 
+p_sao_obj native_is_nil(p_sao_obj args,p_sao_obj ctx) {
 	if(!args) return SAO_TAG_true;
-	if(sao_is_list(args) && !car(args) && !cdr(args)) return SAO_TAG_true;
+	//if(sao_is_list(args) && !car(args) && !cdr(args)) return SAO_TAG_true;
+	if(sao_is_list(args) && !car(args)) return SAO_TAG_true;
 	return SAO_TAG_false;
 }
 p_sao_obj native_pairq(p_sao_obj args,p_sao_obj ctx) {
@@ -410,7 +414,10 @@ p_sao_obj native_cmp(p_sao_obj args,p_sao_obj ctx) {
 	}
 	long _a_l = _a ? _a->_long:0,
 			 _b_l = _b ? _b->_long:0;
-	return (_a_l==_b_l) ? SAO_TAG_true : SAO_TAG_false;
+	p_sao_obj rt = (_a_l==_b_l) ? SAO_TAG_true : SAO_TAG_false;
+	//sao_print("cmp.rt=",rt);
+	//sao_stdout(",DEBUG _a_l=%d,_b_l=%d\n",_a_l,_b_l);
+	return rt;
 }
 //p_sao_obj native_not(p_sao_obj args) { return native_cmp(args); }
 p_sao_obj native_gt(p_sao_obj sexp,p_sao_obj ctx) {
