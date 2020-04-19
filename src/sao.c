@@ -263,25 +263,6 @@ sao_stream * sao_stream_new(void* fp,stream_t type)
 	fw->_type = type;
 	return fw;
 }
-//sao_stream * sao_stream_delete(sao_stream* fw) //TODO clean up 
-int sao_peek(sao_stream * fw)
-{
-	int c = 0;
-	FileChar * ptr_head = fw->ptr_head;
-	if(ptr_head!=0){ c = ptr_head->c; }
-	return c;
-}
-p_sao_obj sao_read_list(sao_stream * fw)
-{
-	p_sao_obj obj;
-	p_sao_obj cell = SAO_TAG_nil;
-	for (;;) {
-		obj = sao_load_expr(fw);
-		if (!obj || obj==SAO_TAG_end) return sao_reverse(cell, SAO_TAG_nil);
-		cell = cons(obj, cell);
-	}
-	return SAO_TAG_nil;
-}
 double sao_eps = 0.0000001;
 p_sao_obj sao_convert_default(ffic_string str){
 	if(str){
@@ -352,6 +333,25 @@ p_sao_obj sao_eval_default(p_sao_obj exp, p_sao_obj ctx){ return exp; }
 p_sao_obj(*sao_str_convert)(ffic_string) = sao_convert_default;
 p_sao_obj(*sao_eval)(p_sao_obj,p_sao_obj) = sao_eval_default;
 #define SAO_MAX_BUF_LEN 2048 //TODO support longer string..
+//sao_stream * sao_stream_delete(sao_stream* fw) //TODO clean up 
+int sao_peek(sao_stream * fw)
+{
+	int c = 0;
+	FileChar * ptr_head = fw->ptr_head;
+	if(ptr_head!=0){ c = ptr_head->c; }
+	return c;
+}
+p_sao_obj sao_read_list(sao_stream * fw)
+{
+	p_sao_obj rt = SAO_TAG_nil;
+	for (p_sao_obj obj,cell=SAO_TAG_nil;;) {
+		obj = sao_load_expr(fw);
+		if (!obj || obj==SAO_TAG_end) { rt = sao_reverse(cell, SAO_TAG_nil); break; }
+		cell = cons(obj, cell);
+	}
+	if(rt==SAO_TAG_nil) rt = cons(SAO_TAG_nil,SAO_TAG_nil);
+	return rt;
+}
 p_sao_obj sao_load_expr(sao_stream * fw) {
 	int c;
 	p_sao_obj theSymbol = SAO_TAG_nil;
@@ -377,8 +377,7 @@ p_sao_obj sao_load_expr(sao_stream * fw) {
 				{
 					p_sao_obj list = sao_read_list(fw);
 					if(SAO_ARGV(l)){ return list; }//LISP
-					if(theSymbol) return cons(theSymbol,list);
-					else return list;
+					return (theSymbol) ? cons(theSymbol,list) : list;
 				}
 			case '[':return cons(SAO_TAG_vector,sao_read_list(fw));
 			default:
@@ -404,7 +403,7 @@ p_sao_obj sao_parse( sao_stream * fw, p_sao_obj ctx ) {
 	sao_read_line(fw);
 	ffic_u64 (*microtime)() = ( ffic_u64(*)() ) libc(microtime);
 	p_sao_obj rt = SAO_TAG_nil;
-	p_sao_obj exp;
+	p_sao_obj exp = SAO_TAG_nil;
 	while((exp=sao_load_expr(fw))){
 		if(SAO_ARGV(d)) sao_stdout("%llu: ",microtime());
 		if(SAO_ARGV(i)||SAO_ARGV(d)){ sao_print("<=", exp); sao_stdout("\n"); }
