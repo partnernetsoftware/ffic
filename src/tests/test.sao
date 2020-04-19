@@ -70,13 +70,26 @@ nc(3 3)                               # false
 lt(2,3) #true
 le(2,2) #true
 
-var(
-fib(n),if(lt(n,3),1,add(fib(sub(n,1)),fib(sub(n,2))))
-)
+# TODO http://blog.zhengyi.one/fibonacci-in-logn.html
+# https://blog.csdn.net/Hackbuteer1/article/details/6684867
+#def Fibonacci_recursion_fast(n):
+#    if n == 0:
+#        return 0
+#    if n == 1:
+#        return 1
+#    k = (n + 1) / 2 if n % 2 else n / 2
+#    fib_k = Fibonacci_recursion_fast(k)
+#    fib_k_1 = Fibonacci_recursion_fast(k - 1)
+#    return fib_k**2 + fib_k_1**2 if n % 2 else (2 * fib_k_1 + fib_k) * fib_k
+#@(ff(n),if(cmp(n,0),0,if(cmp(n,1),1,(@(k,(n + 1) / 2 if n % 2 else n / 2),fib_k,fib_k_1)))
+var(fib(n),if(lt(n,3),1,add(fib(sub(n,1)),fib(sub(n,2)))))
 fib(11) #89
 
 var(fibonacci(n),if(lt(n,3),1,add(fibonacci(sub(n,1)),fibonacci(sub(n,2)))))
 fibonacci(12)
+@(fb(n),if(lt(n,3),1,+(fb(-(n,1)),fb(-(n,2)))))
+fb(20)
+
 var(factorial(n),if(cmp(n,0),1,mul(n,factorial(sub(n 1)))))
 factorial(5)
 
