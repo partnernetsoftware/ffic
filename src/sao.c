@@ -371,8 +371,11 @@ void sao_print_default(ffic_string str, p_sao_obj el){
 					if (ptr->cdr) {
 						if (ptr->cdr->_type == type_list) {
 							ptr = ptr->cdr;
-						} else { //TODO
-							sao_print(".", ptr->cdr);
+						}
+						else { //TODO !!!
+							sao_print(" ", ptr->cdr);
+							//sao_print("DEBUG{", ptr->cdr);
+							//sao_stdout("}");
 							break;
 						}
 					} else
@@ -563,7 +566,6 @@ int main(int argc,char **argv, char** envp) {
 	ctx = saolang_init();//TODO can be override by argv:c(name)
 //	sao_print("\nDEBUG argv=",SAO_TAG_argv);
 //	sao_print("\nDEBUG global=",SAO_TAG_global);
-//	sao_print("\n",0);
 	p_sao_obj result = sao_parse( fw, ctx );
 	if(SAO_ARGV(p)){ sao_print(0,result);sao_stdout("\n"); }
 	libc(fclose)(fp); libc(free)(fw);

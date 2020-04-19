@@ -47,8 +47,10 @@ eq(if(0 true false),false) #true
 ##exit()
 ### TODO
 range(5)
-range_from(4,8)
-reverse(range_from(4,8))
+range_from(1,5)
+(1,2,3,4,5)
+reverse((1,2,3,4,5))
+reverse(range_from(1,5))
 
 #pow(3,3) #27
 mod(5,3) #2
