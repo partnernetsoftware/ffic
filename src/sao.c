@@ -519,15 +519,18 @@ int main(int argc,char **argv, char** envp) {
 	ffic_string script_file = "-";
 	int found_any = 0;
 	if(argc>1){
-		char argv_line[512] = "_("; ffic_string argv_ptr = &argv_line[2];
-		//char argv_line[512] = "("; ffic_string argv_ptr = &argv_line[1];
+		char argv_line[512] = "("; ffic_string argv_ptr = &argv_line[1];
 		for(int i=1;i<argc;i++){ (*argv_ptr++)=' ';ffic_string wk=argv[i];while(*wk) (*argv_ptr++)=(*wk++);}
 		*argv_ptr++ = ')'; *argv_ptr++ = '\0';
 		sao_stream * fw = sao_stream_new(argv_line,stream_char);
 		p_sao_obj arg_expr = sao_load_expr( fw );
-		p_sao_obj pos = cdr(arg_expr);
+//		sao_stdout("\nargv_line=%s",argv_line);
+//		sao_print("\nDEBUG arg_expr=",arg_expr);
+		p_sao_obj pos = arg_expr;
 		while(pos){
 			p_sao_obj _car = car(pos);
+			pos = cdr(pos);
+			if(!_car) continue;
 			ffic_string string_or_name=SAO_NULL;
 			long l_val = 1;
 			if(sao_is_list(_car)){
@@ -544,7 +547,6 @@ int main(int argc,char **argv, char** envp) {
 				for(int i=0;i<=argt_h;i++) if(!sao_strcmp(string_or_name,argt_names[i])){ argta[i]+=l_val; found=1;break; }
 				if(!found) script_file = string_or_name; else found_any++;
 			}
-			pos = cdr(pos);
 		}
 		libc(free)(fw);//
 		sao_var(SAO_TAG_argv,SAO_TAG_argv,SAO_TAG_global);//for later use
