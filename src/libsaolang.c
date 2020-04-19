@@ -18,57 +18,25 @@ void _sao_print(ffic_string str, p_sao_obj el){
 		case type_symbol:
 		case type_long:
 		case type_double:
-		case type_vector:
 		case type_list:
 			return sao_print_default(str, el);
 	}
 	//
 	if (str) sao_stdout(str);
 	switch (el->_type) {
+		case type_vector:
+			sao_stdout("[");
+			for(int i=0;i<el->_len;i++){
+				sao_print(0,el->_vector[i]);
+				if(i+1<el->_len)
+				sao_stdout(",");
+			}
+			sao_stdout("]");
+			break;
 		case type_ctype://TODO 
 			sao_stdout("<ctype>"); break;
 		case type_native:
 			sao_stdout("<native>"); break;
-//		case type_list:
-//			{
-//				if ( sao_is_eq(car(el),SAO_TAG_procedure)) {
-//					sao_stdout("<closure>");//TODO mereg with lambda?
-//					return;
-//				}
-//				int skip=0;
-//				p_sao_obj ptr = el;//(el->car)?el:el->cdr;//
-//				if(!SAO_ARGV(l)){
-//					sao_print(0, car(ptr));//
-//					skip=1;
-//				}
-//				sao_stdout("(");
-//				int t = 0;
-//				while (ptr) {
-//					if(t==1) sao_stdout(",");
-//					if(SAO_ARGV(l)){
-//						sao_print(0, ptr->car);
-//						if(t==0) t=1;
-//					}else{
-//						if(skip==1){
-//							skip=0;
-//						}else{
-//							sao_print(0, ptr->car);
-//							if(t==0) t=1;
-//						}
-//					}
-//					if (ptr->cdr) {
-//						if (ptr->cdr->_type == type_list) {
-//							ptr = ptr->cdr;
-//						} else { //TODO
-//							sao_print(".", ptr->cdr);
-//							break;
-//						}
-//					} else
-//						break;
-//				}
-//				sao_stdout(")");
-//			}
-//			break;
 		default:
 			sao_stdout("<TODO _%d>", el->_type); //
 	}
@@ -536,10 +504,6 @@ p_sao_obj native_load(p_sao_obj args,p_sao_obj ctx) { //TODO merge with native_r
 	libc(fclose)(fp);
 	return ret;
 }
-//p_sao_obj native_vector(p_sao_obj args,p_sao_obj ctx) {
-//	p_sao_obj sym = SAO_ASSERT_TYPE(car(args), type_long);
-//	return sao_new_vector(sym->_long);
-//}
 p_sao_obj native_vget(p_sao_obj args,p_sao_obj ctx) {
 	p_sao_obj vct = SAO_ASSERT_TYPE(car(args), type_vector);
 	p_sao_obj key = SAO_ASSERT_TYPE(cadr(args), type_long);
@@ -559,13 +523,9 @@ p_sao_obj native_print(p_sao_obj list,p_sao_obj ctx) {
 	p_sao_obj _car;
 	p_sao_obj _last = list;
 	if(sao_is_list(list)){
-		//sao_print("\n# DEBUG native_print() list=",list);
-		//sao_stdout("\n");
-		//sao_print("\n# DEBUG native_print() car(list)=",car(list));
 		while ((_car=car(list))) {
 			sao_print(t?" ":0,_car);
 			_last = _car;
-			//sao_print("\n# DEBUG native_print() _last=",_last);
 			t=1;
 			list = cdr(list);
 		}
@@ -591,17 +551,11 @@ p_sao_obj saolang_init()
 {
 	sao_print = _sao_print;
 	sao_eval = _sao_eval;
-	
-//	ffic_func printf = libc(printf);
-//	printf("saolang_init() type_ctype=%d,type_vector=%d\n",type_ctype,type_vector);
-
 	SAO_ITR(sao_add_sym_x, SAO_EXPAND(LIST_SAO_TAG));
 
 	//p_sao_obj g_symbol_holder = SAO_TAG_nil;
 	//g_symbol_holder = sao_new_vector(65536-1);//TODO auto expand for the tables
 	SAO_ITR(add_sym_list, print,lt,add,sub,exit);//minimum for fib.sao
-	//CommonLisp: format,defun
-	//Clojure:defn
 	SAO_ITR(add_sym_list, //quote,cond,var(i.e. define),
 			atom,eq,car,cdr,cons,//function from LISP
 			);
@@ -621,6 +575,7 @@ p_sao_obj saolang_init()
 	return SAO_TAG_global;
 }
 
+#if 0
 //TODO jot the symbol depth
 //	p_sao_obj ret = sao_vector_lookup(g_symbol_holder,s);
 //	if (!(ret)) {
@@ -640,5 +595,4 @@ p_sao_obj saolang_init()
 //		//	return sao_new_symbol(s);
 //		}
 //	}
-
-
+#endif

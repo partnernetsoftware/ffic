@@ -314,15 +314,6 @@ void sao_print_default(ffic_string str, p_sao_obj el){
 			sao_stdout("%ld", el->_long); break;
 		case type_double:
 			sao_stdout("%g", el->_double); break;
-		case type_vector:
-			sao_stdout("[");
-			for(int i=0;i<el->_len;i++){
-				sao_print(0,el->_vector[i]);
-				if(i+1<el->_len)
-				sao_stdout(",");
-			}
-			sao_stdout("]");
-			break;
 		case type_list:
 			{
 				int skip=0;
