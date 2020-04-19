@@ -12,6 +12,7 @@ SAO_ITR(define_sao_tag, SAO_EXPAND(LIST_SAO_TAG));
 #define sao_add_sym_x(x) SAO_TAG_##x=sao_new_symbol(#x);sao_var(SAO_TAG_##x,SAO_TAG_##x,SAO_TAG_global);
 
 void _sao_print(ffic_string str, p_sao_obj el){
+
 	if(!el) return sao_print_default(str, el);
 	switch (el->_type) {
 		case type_string:
@@ -19,59 +20,60 @@ void _sao_print(ffic_string str, p_sao_obj el){
 		case type_long:
 		case type_double:
 		case type_vector:
+		case type_list:
 			return sao_print_default(str, el);
 	}
+	//
 	if (str) sao_stdout(str);
 	switch (el->_type) {
 		case type_ctype://TODO 
 			sao_stdout("<ctype>"); break;
 		case type_native:
 			sao_stdout("<native>"); break;
-		case type_list:
-			{
-				if ( sao_is_eq(car(el),SAO_TAG_procedure)) {
-					sao_stdout("<closure>");//TODO mereg with lambda?
-					return;
-				}
-				int skip=0;
-				p_sao_obj ptr = el;//(el->car)?el:el->cdr;//
-				if(!SAO_ARGV(l)){
-					sao_print(0, car(ptr));//
-					skip=1;
-				}
-				sao_stdout("(");
-				int t = 0;
-				while (ptr) {
-					if(t==1) sao_stdout(",");
-					if(SAO_ARGV(l)){
-						sao_print(0, ptr->car);
-						if(t==0) t=1;
-					}else{
-						if(skip==1){
-							skip=0;
-						}else{
-							sao_print(0, ptr->car);
-							if(t==0) t=1;
-						}
-					}
-					if (ptr->cdr) {
-						if (ptr->cdr->_type == type_list) {
-							ptr = ptr->cdr;
-						} else { //TODO
-							sao_print(".", ptr->cdr);
-							break;
-						}
-					} else
-						break;
-				}
-				sao_stdout(")");
-			}
-			break;
+//		case type_list:
+//			{
+//				if ( sao_is_eq(car(el),SAO_TAG_procedure)) {
+//					sao_stdout("<closure>");//TODO mereg with lambda?
+//					return;
+//				}
+//				int skip=0;
+//				p_sao_obj ptr = el;//(el->car)?el:el->cdr;//
+//				if(!SAO_ARGV(l)){
+//					sao_print(0, car(ptr));//
+//					skip=1;
+//				}
+//				sao_stdout("(");
+//				int t = 0;
+//				while (ptr) {
+//					if(t==1) sao_stdout(",");
+//					if(SAO_ARGV(l)){
+//						sao_print(0, ptr->car);
+//						if(t==0) t=1;
+//					}else{
+//						if(skip==1){
+//							skip=0;
+//						}else{
+//							sao_print(0, ptr->car);
+//							if(t==0) t=1;
+//						}
+//					}
+//					if (ptr->cdr) {
+//						if (ptr->cdr->_type == type_list) {
+//							ptr = ptr->cdr;
+//						} else { //TODO
+//							sao_print(".", ptr->cdr);
+//							break;
+//						}
+//					} else
+//						break;
+//				}
+//				sao_stdout(")");
+//			}
+//			break;
 		default:
-			sao_stdout("<_%d>", el->_type); //
+			sao_stdout("<TODO _%d>", el->_type); //
 	}
 }
-//TODO 
 //#include "ffic.h"
 //make libsaolang.(dylib|dll|so) for ffic loading
 p_sao_obj sao_not_false(p_sao_obj x) {
@@ -219,7 +221,7 @@ tail:
 				///		}
 				///	}
 				///	return SAO_TAG_nil;
-				///	//return SAO_TAG_false;//should null??
+				///	//return SAO_TAG_false;//should nil??
 				///}
 				else if (sao_is_eq(_car, SAO_TAG_set)) { //TODO works in current ctx
 					if (sao_is_atom(_cadr)){
@@ -252,12 +254,13 @@ tail:
 					p_sao_obj proc = sao_eval(_car, ctx);
 					if (!proc) {
 						//if(SAO_ARGV(s)){
-						sao_print("WARN: 404 ", expr);//TODO
+						sao_print("WARN: 404 ", expr);//
 						sao_stdout("\n");
 						//}
-						//return SAO_TAG_nil;
+						return SAO_TAG_nil;
+						//return SAO_NULL;
 						//return expr;
-						return SAO_TAG_false;//TODO
+						//return SAO_TAG_false;//TODO
 					}
 					p_sao_obj args = sao_eval_list(cdr(expr), ctx);
 					if (proc->_type == type_native){
@@ -338,7 +341,7 @@ p_sao_obj native_car(p_sao_obj args,p_sao_obj ctx) { if(SAO_ARGV(s)) SAO_ASSERT_
 p_sao_obj native_cdr(p_sao_obj args,p_sao_obj ctx) { if(SAO_ARGV(s)) SAO_ASSERT_TYPE(car(args), type_list); return cdar(args); }
 p_sao_obj native_setcar(p_sao_obj args,p_sao_obj ctx) { SAO_ASSERT_TYPE(car(args), type_list); (args->car->car = (cadr(args))); return SAO_TAG_nil; }
 p_sao_obj native_setcdr(p_sao_obj args,p_sao_obj ctx) { SAO_ASSERT_TYPE(car(args), type_list); (args->car->cdr = (cadr(args))); return SAO_TAG_nil; }
-p_sao_obj native_is_null(p_sao_obj args,p_sao_obj ctx) { return (car(args)) ? SAO_TAG_false : SAO_TAG_true; }
+p_sao_obj native_is_nil(p_sao_obj args,p_sao_obj ctx) { return (car(args)) ? SAO_TAG_false : SAO_TAG_true; }
 p_sao_obj native_pairq(p_sao_obj args,p_sao_obj ctx) {
 	if (car(args)->_type != type_list) return SAO_TAG_false;
 	return (sao_is_atom(caar(args)) && sao_is_atom(cdar(args))) ? SAO_TAG_true : SAO_TAG_false;
@@ -445,7 +448,7 @@ p_sao_obj native_div(p_sao_obj list,p_sao_obj ctx) {
 p_sao_obj native_mul(p_sao_obj list,p_sao_obj ctx) {
 	p_sao_obj _car = car(list);
 	//SAO_ASSERT_TYPE(_car, type_long);
-	if(!_car) return SAO_TAG_nil;//TODO nothing/nil should print sth (but null not good)
+	if(!_car) return SAO_TAG_nil;
 	if(_car->_type == type_long){
 		long total = _car->_long;
 		list = cdr(list);
@@ -588,7 +591,7 @@ p_sao_obj saolang_init()
 			//vget,vset,//data structure TODO
 			load,print,read,//io
 			add,sub,mul,div,cmp,lt,gt,//logic,
-			is_null,is_list,pairq,eq,same,//helpers
+			is_nil,is_list,pairq,eq,same,//helpers
 			);
 	SAO_ITR(add_sym_list, c_int);
 	return SAO_TAG_global;

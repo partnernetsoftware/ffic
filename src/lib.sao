@@ -24,7 +24,7 @@ var( nc notcmp)
 ## Return the maximum value from a list of integers
 #var( max( list_of_numbers)
 #  var( max_iter( best remaining)
-#    cond( (is_null( remaining) best)
+#    cond( (is_nil( remaining) best)
 #      (gt( car( remaining) best) max_iter( car( remaining) cdr( remaining)))
 #      else( max_iter( best cdr( remaining)))
 #			))
@@ -33,7 +33,7 @@ var( nc notcmp)
 ## Return the minimum value from a list of integers
 #var( min( list_of_numbers)
 #  var( min_iter( best remaining)
-#    cond( (is_null( remaining) best)
+#    cond( (is_nil( remaining) best)
 #      (lt( car( remaining) best) min_iter( car( remaining) cdr( remaining)))
 #      else( min_iter( best cdr( remaining)))
 #			))
@@ -41,13 +41,13 @@ var( nc notcmp)
 
 # Map a function f onto list a
 #var( map lambda( f( a)
-#    if( is_null( a) 
+#    if( is_nil( a) 
 #      ^()
 #      cons( f( car( a)) map( f cdr( a))))))
 
 ## Provide the association pair of key from list
 #var( assoc( key list)
-#  if( is_null( list)
+#  if( is_nil( list)
 #    ^()
 #    if( eq( key car( car( list))) 
 #      car( list)
@@ -85,7 +85,7 @@ var( nc notcmp)
 # Pointer to cdr if list, Pointer to object if pair
 var( last_item_in_list lambda( list()
     var( helper( remaining)
-      if( is_null( cdr( remaining))
+      if( is_nil( cdr( remaining))
         remaining
         helper( cdr( remaining))))
     helper( list)))
@@ -107,7 +107,7 @@ var( range_from( start finish)
 # Tail recursive length
 var( length( list)
   var( length_helper( accum remaining)
-    if( is_null( remaining)
+    if( is_nil( remaining)
       accum
       length_helper( add( 1 accum) cdr( remaining))))
   length_helper( 1 cdr( list)))
@@ -115,7 +115,7 @@ var( length( list)
 # Append list2 to list1
 var( append lambda( list1( list2) 
     var( append_helper( l1 l2)
-      if( is_null( l1)
+      if( is_nil( l1)
         l2
         cons( car( l1) append_helper( cdr( l1) l2))))
     append_helper( list1 list2)))
@@ -123,7 +123,7 @@ var( append lambda( list1( list2)
 # Reverse list
 var( reverse( list)
   var( reverse_iter( remaining first) 
-    if( is_null( remaining)
+    if( is_nil( remaining)
       first
       reverse_iter( cdr( remaining) cons( car( remaining) first))))
   reverse_iter( list ^()))

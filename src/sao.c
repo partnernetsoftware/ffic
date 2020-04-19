@@ -107,6 +107,7 @@ ffic_func_i sao_strchr;
 ffic_func_i sao_strcmp;
 #define sao_is_list(x) (x&&!x->_type)
 #define sao_is_atom(x) (x&&x->_type)
+#define sao_is_symbol(x) (x&&x->_type==type_symbol)
 #define sao_is_digit(c) ((long)libc(isdigit)(c))
 #define sao_is_alpha(c) ((long)libc(isalpha)(c))
 #define sao_is_alphanumber(c) ((long)libc(isalnum)(c))
@@ -318,10 +319,10 @@ p_sao_obj sao_convert_default(ffic_string str){
 	}
 	return SAO_TAG_nil;
 }
-void(*sao_print)(ffic_string,p_sao_obj);
+static void(*sao_print)(ffic_string,p_sao_obj);
 void sao_print_default(ffic_string str, p_sao_obj el){
 	if (str) sao_stdout(str);
-	if (!el) return;
+	if (!el) {sao_stdout("nil");return;}
 	switch (el->_type) {
 		case type_string:
 			sao_stdout("\"%s\"", el->_string); break;
@@ -341,6 +342,45 @@ void sao_print_default(ffic_string str, p_sao_obj el){
 			}
 			sao_stdout("]");
 			break;
+		case type_list:
+			{
+				int skip=0;
+				p_sao_obj ptr = el;//(el->car)?el:el->cdr;//
+				if(!SAO_ARGV(l)){
+					p_sao_obj _car = car(ptr);
+					if(!_car || sao_is_symbol(_car)){
+						sao_print(0, _car);//
+						skip=1;
+					}
+				}
+				sao_stdout("(");
+				int t = 0;
+				while (ptr) {
+					if(t==1) sao_stdout(",");
+					if(SAO_ARGV(l)){
+						sao_print(0, ptr->car);
+						if(t==0) t=1;
+					}else{
+						if(skip==1){
+							skip=0;
+						}else{
+							sao_print(0, ptr->car);
+							if(t==0) t=1;
+						}
+					}
+					if (ptr->cdr) {
+						if (ptr->cdr->_type == type_list) {
+							ptr = ptr->cdr;
+						} else { //TODO
+							sao_print(".", ptr->cdr);
+							break;
+						}
+					} else
+						break;
+				}
+				sao_stdout(")");
+				break;
+			}
 		default:
 			sao_stdout("<%d>", el->_type); break;
 	}
@@ -398,8 +438,9 @@ p_sao_obj sao_load_expr(sao_stream * fw) {
 				{
 					p_sao_obj list = sao_read_list(fw);
 					if(SAO_ARGV(l)){ return list; }//LISP SPEC
-					p_sao_obj rt = cons(theSymbol,list);
-					return rt;
+					//return cons(theSymbol,list);
+					if(theSymbol) return cons(theSymbol,list);
+					else return list;
 				}
 				return SAO_TAG_nil;
 //			case '<'://alias of list(), but have problem when output here...
@@ -448,7 +489,7 @@ p_sao_obj sao_parse( sao_stream * fw, p_sao_obj ctx ) {
 		if (ctx){
 			rt = sao_eval(exp,ctx);
 			if(SAO_ARGV(d)) sao_stdout("%llu: ",microtime());
-			if((SAO_ARGV(i)||SAO_ARGV(d))){sao_print("=>", rt); sao_stdout("%s",rt?"\n":"null\n");}
+			if((SAO_ARGV(i)||SAO_ARGV(d))){sao_print("=>", rt); sao_stdout("%s","\n");}
 		}else{
 			rt = exp;
 			if(SAO_ARGV(i)||SAO_ARGV(d)){
@@ -476,8 +517,8 @@ int main(int argc,char **argv, char** envp) {
 	ffic_string script_file = "-";
 	int found_any = 0;
 	if(argc>1){
-		//char argv_line[512] = "_("; ffic_string argv_ptr = &argv_line[2];
-		char argv_line[512] = "("; ffic_string argv_ptr = &argv_line[1];
+		char argv_line[512] = "_("; ffic_string argv_ptr = &argv_line[2];
+		//char argv_line[512] = "("; ffic_string argv_ptr = &argv_line[1];
 		for(int i=1;i<argc;i++){ (*argv_ptr++)=' ';ffic_string wk=argv[i];while(*wk) (*argv_ptr++)=(*wk++);}
 		*argv_ptr++ = ')'; *argv_ptr++ = '\0';
 		sao_stream * fw = sao_stream_new(argv_line,stream_char);

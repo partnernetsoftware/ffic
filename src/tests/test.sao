@@ -4,14 +4,18 @@ var(die(s1) print(s1) exit())
 
 var(ensure(r) if(r print(r) exit("ko") ))
 
-is_null(false)
-eq(false is_null(false))
-ensure( eq(false is_null(false)) )
+eq(false is_nil(false))
+ensure( eq(false is_nil(false)) )
 
-is_null(true)
-is_null()
+is_nil(false)
+is_nil(true)
+is_nil()
+is_nil(nil)
+nil()
+is_nil(nil())
+
 vector(2 3 4)
-is_null(cdr( vector(2 3 4) ))
+is_nil(cdr( vector(2 3 4) ))
 list(2 3 4)
 cdr( list(2 3 4) )
 
@@ -93,13 +97,13 @@ var(add1 lambda(n() add(1 n)))
 add1(3)
 
 var( sos_helper lambda( remaining(sum_so_far)
-      if( is_null( remaining) 
+      if( is_nil( remaining) 
         sum_so_far 
         sos_helper( cdr( remaining) add( sum_so_far mul( car( remaining) car( remaining)))))))
 
 var( sum_of_squares( num_list)
 #  var( sos_helper lambda( remaining( sum_so_far)
-#      if( is_null( remaining) 
+#      if( is_nil( remaining) 
 #        sum_so_far 
 #        sos_helper( cdr( remaining) add( sum_so_far mul( car( remaining) car( remaining)))))))
   sos_helper( num_list 0))
