@@ -117,7 +117,7 @@ ffic_func_i sao_strcmp;
 #define sao_new_string(s) sao_new((sao_obj){._type=type_string, ._string=s})
 #define sao_new_long(i) sao_new((sao_obj){._type=type_long, ._long=i})
 #define sao_new_double(d) sao_new((sao_obj){._type=type_double, ._double=d})
-p_sao_obj cons(p_sao_obj car, p_sao_obj cdr){return sao_new_list(car,cdr);}
+p_sao_obj cons(p_sao_obj a, p_sao_obj d){return sao_new_list(a,d);}
 p_sao_obj car(p_sao_obj x) { return sao_is_list(x)?x->car:SAO_TAG_nil; }
 p_sao_obj cdr(p_sao_obj x) { return sao_is_list(x)?x->cdr:SAO_TAG_nil; }
 p_sao_obj caar(p_sao_obj x) { return (sao_is_list(x)&&sao_is_list(x->car))? x->car->car : SAO_TAG_nil; }

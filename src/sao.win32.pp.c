@@ -152,7 +152,7 @@ ffic_func_d sao_atof;
 ffic_func_l sao_atol;
 ffic_func_i sao_strchr;
 ffic_func_i sao_strcmp;
-p_sao_obj cons(p_sao_obj car, p_sao_obj cdr){return sao_new((sao_obj){.car=car,.cdr=cdr});}
+p_sao_obj cons(p_sao_obj a, p_sao_obj d){return sao_new((sao_obj){.car=a,.cdr=d});}
 p_sao_obj car(p_sao_obj x) { return (x&&!x->_type)?x->car:SAO_TAG_nil; }
 p_sao_obj cdr(p_sao_obj x) { return (x&&!x->_type)?x->cdr:SAO_TAG_nil; }
 p_sao_obj caar(p_sao_obj x) { return ((x&&!x->_type)&&(x->car&&!x->car->_type))? x->car->car : SAO_TAG_nil; }
@@ -310,20 +310,6 @@ p_sao_obj sao_read_list(sao_stream * fw)
  }
  return SAO_TAG_nil;
 }
-p_sao_obj sao_read_vector(sao_stream * fw)
-{
- p_sao_obj vector_a[512];
- int i=0;
- for (;;) {
-  p_sao_obj obj = sao_load_expr(fw);
-  if(!obj) break;
-  vector_a[i++] = obj;
-  if(i>=512) do{libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"vector len > 512...");libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"\n");libc_(libc_exit,"exit")(1);}while(0);
- }
- p_sao_obj rt = sao_new((sao_obj){._type=type_vector, ._len=i,._vector=sao_calloc( sizeof(p_sao_obj) *(i) )});
- for(int j=0;j<i;j++){ rt->_vector[j]=vector_a[j]; }
- return rt;
-}
 double sao_eps = 0.0000001;
 p_sao_obj sao_convert_default(ffic_string str){
  if(str){
@@ -351,7 +337,7 @@ void sao_print_default(ffic_string str, p_sao_obj el){
   case type_string:
    libc_(libc_printf,"printf")("\"%s\"", el->_string); break;
   case type_symbol:
-   libc_(libc_printf,"printf")("%s", el->_raw); break;
+   libc_(libc_printf,"printf")("%s", el->_string); break;
   case type_long:
    libc_(libc_printf,"printf")("%ld", el->_long); break;
   case type_double:
@@ -460,7 +446,17 @@ p_sao_obj sao_load_expr(sao_stream * fw) {
       p_sao_obj list = sao_read_list(fw);
       return cons(SAO_TAG_vector,list);
      }
-     return sao_read_vector(fw);
+     p_sao_obj vector_a[512];
+     int i=0;
+     for (;;) {
+      p_sao_obj obj = sao_load_expr(fw);
+      if(!obj) break;
+      vector_a[i++] = obj;
+      if(i>=512) do{libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"vector len > 512...");libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"\n");libc_(libc_exit,"exit")(1);}while(0);
+     }
+     p_sao_obj rt = sao_new((sao_obj){._type=type_vector, ._len=i,._vector=sao_calloc( sizeof(p_sao_obj) *(i) )});
+     for(int j=0;j<i;j++){ rt->_vector[j]=vector_a[j]; }
+     return rt;
     }
    default:
     {
@@ -988,11 +984,11 @@ int main(int argc,char **argv, char** envp) {
    long l_val = 1;
    if((_car&&!_car->_type)){
     p_sao_obj _caar = car(_car);
-    if(_caar){ string_or_name = _caar->_raw; }
+    if(_caar){ string_or_name = _caar->_string; }
     p_sao_obj _cadar = cadr(_car);
-    if(_cadar) l_val = sao_atol(_cadar->_raw);
+    if(_cadar) l_val = sao_atol(_cadar->_string);
    }else{
-    if(_car) string_or_name = _car->_raw;
+    if(_car) string_or_name = _car->_string;
    }
    if(string_or_name){
     sao_var(sao_new((sao_obj){._type=type_symbol,._string=string_or_name}), sao_new((sao_obj){._type=type_long, ._long=l_val}), SAO_TAG_argv);
