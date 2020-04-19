@@ -117,7 +117,7 @@ ffic_func_i sao_strcmp;
 #define sao_new_string(s) sao_new((sao_obj){._type=type_string, ._string=s})
 #define sao_new_long(i) sao_new((sao_obj){._type=type_long, ._long=i})
 #define sao_new_double(d) sao_new((sao_obj){._type=type_double, ._double=d})
-p_sao_obj cons(p_sao_obj car, p_sao_obj cdr) { p_sao_obj ret = sao_new_list(car,cdr);return ret; }
+p_sao_obj cons(p_sao_obj car, p_sao_obj cdr){return sao_new_list(car,cdr);}
 p_sao_obj car(p_sao_obj x) { return sao_is_list(x)?x->car:SAO_TAG_nil; }
 p_sao_obj cdr(p_sao_obj x) { return sao_is_list(x)?x->cdr:SAO_TAG_nil; }
 p_sao_obj caar(p_sao_obj x) { return (sao_is_list(x)&&sao_is_list(x->car))? x->car->car : SAO_TAG_nil; }
@@ -138,7 +138,6 @@ p_sao_obj sao_is_eq(p_sao_obj x, p_sao_obj y) {
 			case type_long: if(x->_long == y->_long) return x;
 			case type_symbol:
 			case type_string: if(!sao_strcmp(x->_string, y->_string)) return x;
-			//default: break;//don't compare
 		}
 	}while(0);
 	return SAO_TAG_nil;
@@ -146,7 +145,7 @@ p_sao_obj sao_is_eq(p_sao_obj x, p_sao_obj y) {
 p_sao_obj sao_append(p_sao_obj L1, p_sao_obj L2) { return (L1)?cons(car(L1), sao_append(cdr(L1), L2)) : L2; }
 p_sao_obj sao_reverse(p_sao_obj L, p_sao_obj F) { return (!L) ? F: sao_reverse(cdr(L), cons(car(L), F)); }
 //p_sao_obj sao_is_tagged(p_sao_obj cell, p_sao_obj tag) { return sao_is_list(cell) ? sao_is_eq(car(cell),tag) : SAO_TAG_nil; }
-int sao_list_len(p_sao_obj expr) { return (expr) ? (1+sao_list_len(cdr(expr))):0; } //TODO improve ?
+int sao_list_len(p_sao_obj expr) { return (expr) ? (1+sao_list_len(cdr(expr))):0; } 
 int sao_deq_c(sao_stream *fw)
 {
 	int c = '\n';
@@ -273,7 +272,6 @@ int sao_peek(sao_stream * fw)
 	if(ptr_head!=0){ c = ptr_head->c; }
 	return c;
 }
-// TODO read number(expecially float/double)
 p_sao_obj sao_read_list(sao_stream * fw)
 {
 	p_sao_obj obj;
@@ -285,21 +283,6 @@ p_sao_obj sao_read_list(sao_stream * fw)
 	}
 	return SAO_TAG_nil;
 }
-p_sao_obj sao_read_vector(sao_stream * fw)
-{
-	p_sao_obj vector_a[512];
-	int i=0;
-	for (;;) {
-		p_sao_obj	obj = sao_load_expr(fw);
-		if(!obj) break;
-		vector_a[i++] = obj;
-		if(i>=512) sao_error("vector len > 512...");//TODO improve later
-	}
-	p_sao_obj rt = sao_new_vector(i);
-	for(int j=0;j<i;j++){ rt->_vector[j]=vector_a[j]; }
-	return rt;
-}
-void sao_comment(sao_stream * fw) { int c; for (;;) { c = sao_deq_c(fw); if (c == '\n' || c == SAO_EOF) return; } }
 double sao_eps = 0.0000001;
 p_sao_obj sao_convert_default(ffic_string str){
 	if(str){
@@ -326,9 +309,8 @@ void sao_print_default(ffic_string str, p_sao_obj el){
 	switch (el->_type) {
 		case type_string:
 			sao_stdout("\"%s\"", el->_string); break;
-			//sao_stdout("\"%s\"", el->_raw); break;
 		case type_symbol:
-			sao_stdout("%s", el->_raw); break;
+			sao_stdout("%s", el->_string); break;
 		case type_long:
 			sao_stdout("%ld", el->_long); break;
 		case type_double:
@@ -338,7 +320,7 @@ void sao_print_default(ffic_string str, p_sao_obj el){
 			for(int i=0;i<el->_len;i++){
 				sao_print(0,el->_vector[i]);
 				if(i+1<el->_len)
-				sao_stdout(",");//TMP
+				sao_stdout(",");
 			}
 			sao_stdout("]");
 			break;
@@ -407,7 +389,9 @@ p_sao_obj sao_load_expr(sao_stream * fw) {
 				continue;
 			case ';':
 			case '#':
-				sao_comment(fw);continue;
+				//sao_comment(fw);
+				for (int c=0;!(c == '\n' || c == SAO_EOF);c = sao_deq_c(fw));
+				continue;
 			case '^':
 				return cons(SAO_TAG_quote, cons(sao_load_expr(fw), SAO_TAG_nil));
 			case '\"':
@@ -434,33 +418,33 @@ p_sao_obj sao_load_expr(sao_stream * fw) {
 				//break
 			case ']':
 			case ')':
-//			case '>':
 				return SAO_TAG_nil;
 			case '(':
 				{
 					p_sao_obj list = sao_read_list(fw);
-					if(SAO_ARGV(l)){ return list; }//LISP SPEC
+					if(SAO_ARGV(l)){ return list; }//LISP
 					//return cons(theSymbol,list);
 					if(theSymbol) return cons(theSymbol,list);
 					else return list;
 				}
 				return SAO_TAG_nil;
-//			case '<'://alias of list(), but have problem when output here...
-//				{
-//					p_sao_obj list = sao_read_list(fw);
-//					if(SAO_ARGV(l)){ return list; }//LISP SPEC
-//					//p_sao_obj rt = cons(SAO_TAG_nil,list);//!!!
-//					p_sao_obj rt = cons(sao_new_symbol("list"),list);//@ref sao_eval
-//					return rt;
-//				}
-			case '[':
+			case '['://vector
 				{
 					if(SAO_ARGV(l)){//LISP
 						p_sao_obj list = sao_read_list(fw);
 						return cons(SAO_TAG_vector,list);
 					}
-					p_sao_obj vector = sao_read_vector(fw);
-					return vector;
+					p_sao_obj vector_a[512];
+					int i=0;
+					for (;;) {
+						p_sao_obj	obj = sao_load_expr(fw);
+						if(!obj) break;
+						vector_a[i++] = obj;
+						if(i>=512) sao_error("vector len > 512...");//TODO improve later
+					}
+					p_sao_obj rt = sao_new_vector(i);
+					for(int j=0;j<i;j++){ rt->_vector[j]=vector_a[j]; }
+					return rt;
 				}
 			default:
 				{
@@ -524,8 +508,6 @@ int main(int argc,char **argv, char** envp) {
 		*argv_ptr++ = ')'; *argv_ptr++ = '\0';
 		sao_stream * fw = sao_stream_new(argv_line,stream_char);
 		p_sao_obj arg_expr = sao_load_expr( fw );
-//		sao_stdout("\nargv_line=%s",argv_line);
-//		sao_print("\nDEBUG arg_expr=",arg_expr);
 		p_sao_obj pos = arg_expr;
 		while(pos){
 			p_sao_obj _car = car(pos);
@@ -535,11 +517,11 @@ int main(int argc,char **argv, char** envp) {
 			long l_val = 1;
 			if(sao_is_list(_car)){
 				p_sao_obj _caar = car(_car);
-				if(_caar){ string_or_name = _caar->_raw; }
+				if(_caar){ string_or_name = _caar->_string; }
 				p_sao_obj _cadar = cadr(_car);
-				if(_cadar) l_val = sao_atol(_cadar->_raw);
+				if(_cadar) l_val = sao_atol(_cadar->_string);
 			}else{
-				if(_car) string_or_name = _car->_raw;
+				if(_car) string_or_name = _car->_string;
 			}
 			if(string_or_name){
 				sao_var(sao_new_symbol(string_or_name), sao_new_long(l_val), SAO_TAG_argv);
@@ -565,8 +547,6 @@ int main(int argc,char **argv, char** envp) {
 	sao_stream * fw = sao_stream_new(fp,stream_file);
 	p_sao_obj ctx = SAO_TAG_nil;
 	ctx = saolang_init();//TODO can be override by argv:c(name)
-//	sao_print("\nDEBUG argv=",SAO_TAG_argv);
-//	sao_print("\nDEBUG global=",SAO_TAG_global);
 	p_sao_obj result = sao_parse( fw, ctx );
 	if(SAO_ARGV(p)){ sao_print(0,result);sao_stdout("\n"); }
 	libc(fclose)(fp); libc(free)(fw);
