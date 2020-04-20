@@ -38,7 +38,7 @@
 #define SAO_QUOTE(sth) #sth
 //////////////////////////////////////////////////////////////////////////////
 #define DEFINE_ENUM_LIBC(n) libc_##n,
-enum { SAO_ITR(DEFINE_ENUM_LIBC,fprintf,malloc,memset,memcpy,strcpy,strlen,strdup,strcmp,strchr,strcat,printf,putc,getc,isalnum,isdigit,isalpha,fopen,fread,fgets,fclose,feof,fputc,fflush,free,system,atol,atoi,atof,  usleep,msleep,sleep,setmode,fileno,stdin,stdout,stderr,microtime,exit) };
+enum { SAO_ITR(DEFINE_ENUM_LIBC,fprintf,malloc,memset,memcpy,strcpy,strlen,strdup,strcmp,strchr,strcat,printf,putc,getc,isalnum,isdigit,isalpha,fopen,fread,fgets,fgetc,fclose,feof,fputc,fflush,free,system,atol,atoi,atof,  usleep,msleep,sleep,setmode,fileno,stdin,stdout,stderr,microtime,exit) };
 #define libc(f) libc_(libc_##f,#f)
 #include "ffic.h" //github.com/partnernetsoftware/ffic/blob/master/src/ffic.h
 ffic_func libc_a[libc_exit+1];
@@ -69,7 +69,8 @@ typedef p_sao_obj (*native_t)(p_sao_obj args,p_sao_obj ctx);
 #define SAO_OBJ_V union {\
 	struct { p_sao_obj car; p_sao_obj cdr; }; \
 	struct { p_sao_obj* _vector; long _len; };\
-	struct { ffic_string _string; long _depth;};\
+	struct { char* _string; long _depth;};\
+	struct { int* _wstring; long _wdepth;};\
 	struct { native_t _native; ffic_string _ffi;};\
 	long _long;\
 	double _double;\
@@ -162,6 +163,17 @@ int sao_enq_c(sao_stream* fw,int k){
 	fw->ptr_last = fc;
 	return k;
 }
+int sao_clen(int val) {
+	if (val < 128) {
+		return 1;
+	} else if (val < 224) {
+		return 2;
+	} else if (val < 240) {
+		return 3;
+	} else {
+		return 4;
+	}
+}
 int sao_read_line(sao_stream* fw) //TODO int * line_num
 {
 	int line_num = 0;
@@ -179,7 +191,9 @@ int sao_read_line(sao_stream* fw) //TODO int * line_num
 			}
 		}
 		//TODO UTF8 support
-		ffic_func fgets = libc(fgets);
+		ffic_func putc = libc(putc);
+		ffic_func_i fgetc = (ffic_func_i) libc(fgetc);
+		//ffic_func fgets = libc(fgets);
 		ffic_func strlen = libc(strlen);
 		int LINE_LEN = 1024;//TODO
 		SAO_NEW_OBJECT(char,line,LINE_LEN);
