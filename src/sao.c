@@ -468,7 +468,10 @@ int main(int argc,char **argv, char** envp) {
 			if(string_or_name){
 				sao_var(sao_new_symbol(string_or_name), sao_new_long(l_val), SAO_TAG_argv);
 				int found = 0;
-				for(int i=0;i<=argt_h;i++) if(!sao_strcmp(string_or_name,argt_names[i])){ argta[i]+=l_val; found=1;break; }
+				if(!sao_strcmp(string_or_name,"-")){ found_any++; }
+				else{
+					for(int i=0;i<=argt_h;i++) if(!sao_strcmp(string_or_name,argt_names[i])){ argta[i]+=l_val; found++;break; }
+				}
 				if(!found) script_file = string_or_name; else found_any++;
 			}
 		}
