@@ -102,7 +102,7 @@ p_sao_obj sao_tbl_resize(p_sao_obj holder,int _len){
 	return holder;
 }
 p_sao_obj _sao_eval(p_sao_obj expr, p_sao_obj ctx) {
-tail:
+tail://tail loop to save recursive stacks
 	if (!expr) return SAO_TAG_nil; 
 	switch(expr->_type){
 		case type_long:
@@ -305,9 +305,18 @@ p_sao_obj native_var(p_sao_obj args, p_sao_obj ctx) {
 }
 p_sao_obj native_list(p_sao_obj args,p_sao_obj ctx) { return (args); }
 p_sao_obj native_cons(p_sao_obj args,p_sao_obj ctx) {
+	p_sao_obj _car = car(args);
 	p_sao_obj _cadr = cadr(args);
-	if(!sao_is_list(_cadr)) _cadr = cons(_cadr,SAO_TAG_nil);
-	return cons(car(args), _cadr); }
+	//if(!_car) return _cadr;
+	//if(!_cadr){ return _car; }
+	//if(!sao_is_list(_cadr)) _cadr = cons(_cadr,SAO_TAG_nil);//TMP
+	p_sao_obj rt = cons(_car, _cadr);
+	sao_print("\n native_cons._car=",_car);
+	sao_print("\n native_cons._cadr=",_cadr);
+	sao_print("\n native_cons.rt=",rt);
+	sao_stdout("\n");
+	return rt;
+}
 p_sao_obj native_car(p_sao_obj args,p_sao_obj ctx) {
 	if(SAO_ARGV(s)) SAO_ASSERT_TYPE(car(args), type_list); return caar(args);
 }
@@ -317,6 +326,30 @@ p_sao_obj native_cdr(p_sao_obj args,p_sao_obj ctx) {
 p_sao_obj native_setcar(p_sao_obj args,p_sao_obj ctx) { SAO_ASSERT_TYPE(car(args), type_list); (args->car->car = (cadr(args))); return SAO_TAG_nil; }
 p_sao_obj native_setcdr(p_sao_obj args,p_sao_obj ctx) { SAO_ASSERT_TYPE(car(args), type_list); (args->car->cdr = (cadr(args))); return SAO_TAG_nil; }
 //p_sao_obj native_is_nil(p_sao_obj args,p_sao_obj ctx) { return (car(args)) ? SAO_TAG_false : SAO_TAG_true; }
+p_sao_obj sao_is_empty(p_sao_obj ee){
+	if(!ee) return SAO_TAG_true;
+	switch(ee->_type){
+		case type_list:
+			if(!sao_is_empty(car(ee))) return SAO_TAG_nil;
+			if(!sao_is_empty(cdr(ee))) return SAO_TAG_nil;
+			//sao_print("\n DEBUG native_is_empty().car(ee)=",car(ee));
+			//sao_print("\n DEBUG native_is_empty().sao_is_empty(car(ee))=",sao_is_empty(car(ee)));
+			//sao_print("\n DEBUG native_is_empty().cdr(ee)=",cdr(ee));
+			//sao_print("\n DEBUG native_is_empty().sao_is_empty(cdr(ee))=",sao_is_empty(cdr(ee)));
+			return SAO_TAG_true;
+			break;
+		case type_string:
+			if(libc(strlen)(ee->_string)) return SAO_TAG_true;
+	}
+	return SAO_TAG_nil;//nil=>false
+}
+p_sao_obj native_is_empty(p_sao_obj args,p_sao_obj ctx) {
+	if(!sao_is_list(args)) sao_error("native_is_empty.args must be list");
+	p_sao_obj _car = car(args);
+	//p_sao_obj _cadr = cadr(args);
+	if(!sao_is_empty(_car)) return SAO_TAG_false;
+	return SAO_TAG_true;
+}
 p_sao_obj native_is_nil(p_sao_obj args,p_sao_obj ctx) {
 	if(!args) return SAO_TAG_true;
 	//if(sao_is_list(args) && !car(args) && !cdr(args)) return SAO_TAG_true;
@@ -340,6 +373,9 @@ p_sao_obj native_atom(p_sao_obj expr,p_sao_obj ctx) {
 	//sao_stderr("debug native_atom\n",expr);
 	return sao_is_atom(car(expr)) ? SAO_TAG_true : SAO_TAG_false;
 }
+//===
+//p_sao_obj native_eeq(p_sao_obj args,p_sao_obj ctx) { return sao_is_eq(car(args), cadr(args)) ? SAO_TAG_true : SAO_TAG_false; }
+//==
 p_sao_obj native_eq(p_sao_obj args,p_sao_obj ctx) { return sao_is_eq(car(args), cadr(args)) ? SAO_TAG_true : SAO_TAG_false; }
 
 //eq+
@@ -374,6 +410,7 @@ p_sao_obj native_same(p_sao_obj args,p_sao_obj ctx) {
 	return SAO_TAG_false;
 }
 //////////////////////////////////////////////////////////////////////////////
+//FOR int only, should change to "eqi"/"eqd"/"eqn" ?
 p_sao_obj native_cmp(p_sao_obj args,p_sao_obj ctx) {
 	p_sao_obj _a = car(args);
 	p_sao_obj _b = cadr(args);
@@ -576,7 +613,7 @@ p_sao_obj saolang_init()
 			//vget,vset,//data structure TODO
 			load,print,read,//io
 			add,sub,mul,div,cmp,lt,gt,//logic,
-			is_nil,is_list,pairq,eq,same,//helpers
+			is_empty,is_nil,is_list,pairq,eq,same,//helpers
 			);
 	//var(fb(n),if(lt(n,3),1,+(fb(-(n,1)),fb(-(n,2)))))
 	sao_var(sao_new_symbol("+"), sao_new_native(native_add,"+"), SAO_TAG_global);

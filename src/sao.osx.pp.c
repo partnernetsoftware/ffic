@@ -1,4 +1,4 @@
-enum { libc_fprintf, libc_malloc, libc_memset, libc_memcpy, libc_strcpy, libc_strlen, libc_strdup, libc_strcmp, libc_strchr, libc_strcat, libc_printf, libc_putc, libc_getc, libc_isalnum, libc_isdigit, libc_isalpha, libc_fopen, libc_fread, libc_fgets, libc_fclose, libc_feof, libc_fputc, libc_fflush, libc_free, libc_system, libc_atol, libc_atoi, libc_atof, libc_usleep, libc_msleep, libc_sleep, libc_setmode, libc_fileno, libc_stdin, libc_stdout, libc_stderr, libc_microtime, libc_exit, };
+enum { libc_fprintf, libc_malloc, libc_memset, libc_memcpy, libc_strcpy, libc_strlen, libc_strdup, libc_strcmp, libc_strchr, libc_strcat, libc_printf, libc_putc, libc_getc, libc_isalnum, libc_isdigit, libc_isalpha, libc_fopen, libc_fread, libc_fgets, libc_fgetc, libc_fclose, libc_feof, libc_fputc, libc_fflush, libc_free, libc_system, libc_atol, libc_atoi, libc_atof, libc_usleep, libc_msleep, libc_sleep, libc_setmode, libc_fileno, libc_stdin, libc_stdout, libc_stderr, libc_microtime, libc_exit, };
 typedef void* ffic_ptr;
 typedef ffic_ptr(*ffic_func)();
 typedef double (*ffic_func_d)();
@@ -124,8 +124,8 @@ typedef enum { type_list, type_vector, type_long, type_double, type_symbol, type
 typedef struct _sao_obj_v sao_obj_v, *p_sao_obj_v;
 typedef struct _sao_obj sao_obj,*p_sao_obj;
 typedef p_sao_obj (*native_t)(p_sao_obj args,p_sao_obj ctx);
-struct _sao_obj_v { union { struct { p_sao_obj car; p_sao_obj cdr; }; struct { p_sao_obj* _vector; long _len; }; struct { ffic_string _string; long _depth;}; struct { native_t _native; ffic_string _ffi;}; long _long; double _double;}; };
-struct _sao_obj { union{ void* ptr; int _type; }; ffic_string _raw; union{ union { struct { p_sao_obj car; p_sao_obj cdr; }; struct { p_sao_obj* _vector; long _len; }; struct { ffic_string _string; long _depth;}; struct { native_t _native; ffic_string _ffi;}; long _long; double _double;}; sao_obj_v v;}; };
+struct _sao_obj_v { union { struct { p_sao_obj car; p_sao_obj cdr; }; struct { p_sao_obj* _vector; long _len; }; struct { char* _string; long _depth;}; struct { int* _wstring; long _wdepth;}; struct { native_t _native; ffic_string _ffi;}; long _long; double _double;}; };
+struct _sao_obj { union{ void* ptr; int _type; }; ffic_string _raw; union{ union { struct { p_sao_obj car; p_sao_obj cdr; }; struct { p_sao_obj* _vector; long _len; }; struct { char* _string; long _depth;}; struct { int* _wstring; long _wdepth;}; struct { native_t _native; ffic_string _ffi;}; long _long; double _double;}; sao_obj_v v;}; };
 p_sao_obj sao_new(sao_obj tpl) {
  sao_obj * ret = libc_(libc_malloc,"malloc")(sizeof(sao_obj));
  libc_(libc_memcpy,"memcpy")(ret,&tpl,sizeof(sao_obj));
@@ -212,18 +212,15 @@ int sao_read_line(sao_stream* fw)
     break;
    }
   }
-  ffic_func fgets = libc_(libc_fgets,"fgets");
-  ffic_func strlen = libc_(libc_strlen,"strlen");
-  int LINE_LEN = 1024;
-  char*line=sao_calloc( sizeof(char) *(LINE_LEN) );;
+  ffic_func putc = libc_(libc_putc,"putc");
+  ffic_func_i fgetc = (ffic_func_i) libc_(libc_fgetc,"fgetc");
   if(fw->_type==stream_file){
    if(argta[argt_i]){ libc_(libc_printf,"printf")("> "); }
-   fgets(line,LINE_LEN,fw->fp);
-   long strlen_line = (long) strlen(line);
-   if(strlen_line>0){
-    for(int i=0;i<strlen_line;i++) { if('\n'==sao_enq_c(fw,line[i])){ line_num++; } }
-   }else{
-    sao_enq_c(fw,(-1));
+   for(int c,cc;;){
+    cc = c = fgetc(fw->fp);
+    sao_enq_c(fw,cc);
+    if(c=='\n') line_num++;
+    if(c==(-1)||c=='\n')break;
    }
   }else{
    while( *(fw->pos)!=0 ){
@@ -232,7 +229,6 @@ int sao_read_line(sao_stream* fw)
    }
    sao_enq_c(fw,(-1));
   }
-  libc_(libc_free,"free")(line);
  }while(0);
  return line_num;
 }
@@ -658,9 +654,15 @@ p_sao_obj native_var(p_sao_obj args, p_sao_obj ctx) {
 }
 p_sao_obj native_list(p_sao_obj args,p_sao_obj ctx) { return (args); }
 p_sao_obj native_cons(p_sao_obj args,p_sao_obj ctx) {
+ p_sao_obj _car = car(args);
  p_sao_obj _cadr = cadr(args);
- if(!(_cadr&&!_cadr->_type)) _cadr = cons(_cadr,SAO_TAG_nil);
- return cons(car(args), _cadr); }
+ p_sao_obj rt = cons(_car, _cadr);
+ sao_print("\n native_cons._car=",_car);
+ sao_print("\n native_cons._cadr=",_cadr);
+ sao_print("\n native_cons.rt=",rt);
+ libc_(libc_printf,"printf")("\n");
+ return rt;
+}
 p_sao_obj native_car(p_sao_obj args,p_sao_obj ctx) {
  if(argta[argt_s]) (sao_type_assert((ffic_string)__func__, car(args), type_list)); return caar(args);
 }
@@ -669,6 +671,11 @@ p_sao_obj native_cdr(p_sao_obj args,p_sao_obj ctx) {
 }
 p_sao_obj native_setcar(p_sao_obj args,p_sao_obj ctx) { (sao_type_assert((ffic_string)__func__, car(args), type_list)); (args->car->car = (cadr(args))); return SAO_TAG_nil; }
 p_sao_obj native_setcdr(p_sao_obj args,p_sao_obj ctx) { (sao_type_assert((ffic_string)__func__, car(args), type_list)); (args->car->cdr = (cadr(args))); return SAO_TAG_nil; }
+p_sao_obj native_is_empty(p_sao_obj args,p_sao_obj ctx) {
+ if(!args) return SAO_TAG_true;
+ if((args&&!args->_type) && !car(args) && !cdr(args)) return SAO_TAG_true;
+ return SAO_TAG_false;
+}
 p_sao_obj native_is_nil(p_sao_obj args,p_sao_obj ctx) {
  if(!args) return SAO_TAG_true;
  if((args&&!args->_type) && !car(args)) return SAO_TAG_true;
