@@ -1,3 +1,5 @@
+print("中文")
+
 ##var(die lambda( s1() print(s1) ))
 var(die(s1) print(s1) exit())
 ##die("wtf")
@@ -47,10 +49,12 @@ eq(if(0 true false),false) #true
 ##exit()
 ### TODO
 range(5)
+reverse(range(5))
 range_from(1,5)
 (1,2,3,4,5)
 reverse((1,2,3,4,5))
 reverse(range_from(1,5))
+reverse(reverse(range_from(1,5)))
 
 #pow(3,3) #27
 mod(5,3) #2

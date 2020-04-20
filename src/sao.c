@@ -163,18 +163,13 @@ int sao_enq_c(sao_stream* fw,int k){
 	fw->ptr_last = fc;
 	return k;
 }
-int sao_clen(int val) {
-	if (val < 128) {
-		return 1;
-	} else if (val < 224) {
-		return 2;
-	} else if (val < 240) {
-		return 3;
-	} else {
-		return 4;
-	}
-}
-int sao_read_line(sao_stream* fw) //TODO int * line_num
+//int sao_clen(int val) {
+//	if (val < 128) { return 1;
+//	} else if (val < 224) { return 2;
+//	} else if (val < 240) { return 3;
+//	} else { return 4; }
+//}
+int sao_read_line(sao_stream* fw) 
 {
 	int line_num = 0;
 	ffic_func feof = libc(feof);
@@ -190,27 +185,16 @@ int sao_read_line(sao_stream* fw) //TODO int * line_num
 				break;
 			}
 		}
-		//TODO UTF8 support
 		ffic_func putc = libc(putc);
 		ffic_func_i fgetc = (ffic_func_i) libc(fgetc);
-		//ffic_func fgets = libc(fgets);
-		//ffic_func strlen = libc(strlen);
-		//int LINE_LEN = 1024;//TODO
-		//SAO_NEW_OBJECT(char,line,LINE_LEN);
 		if(fw->_type==stream_file){
 			if(SAO_ARGV(i)){ sao_stdout("> "); }
-			//fgets(line,LINE_LEN,fw->fp);
-			//long strlen_line = (long) strlen(line);
-			//if(strlen_line>0){
-			//	for(int i=0;i<strlen_line;i++) { if('\n'==sao_enq_c(fw,line[i])){ line_num++; } }
-			//}else{
-			//	sao_enq_c(fw,SAO_EOF);
-			//}
 			for(int c,cc;;){
 				cc = c = fgetc(fw->fp);
 				sao_enq_c(fw,cc);
+				if(c=='\n') line_num++;
 				if(c==SAO_EOF||c=='\n')break;
-			}			
+			}
 		}else{
 			while( *(fw->pos)!=0 ){
 				if('\n'==sao_enq_c(fw,(*(fw->pos)))){ line_num++; }
@@ -218,7 +202,6 @@ int sao_read_line(sao_stream* fw) //TODO int * line_num
 			}
 			sao_enq_c(fw,SAO_EOF);
 		}
-		//libc(free)(line);//TODO SAO_DELETE_OBJECT
 	}while(0);
 	return line_num;
 }
