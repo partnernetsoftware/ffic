@@ -129,9 +129,10 @@ var( append lambda( list1( list2)
 #			reverse_iter(_list ^()))
 var( reverse( _list)
 		var( reverse_iter( remaining first) 
+			print("remaining=>",remaining,"first=>",first)
 			if( is_empty( remaining)
-				first
-				reverse_iter( cdr( remaining) cons( car( remaining) first))
+				first 
+				reverse_iter(cdr(remaining),cons(car(remaining),first))
 				) #if
 			) #var
 		reverse_iter(_list ^())

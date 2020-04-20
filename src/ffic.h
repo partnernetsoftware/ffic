@@ -8,6 +8,7 @@ typedef long (*ffic_func_l)();
 typedef int (*ffic_func_i)();
 typedef float (*ffic_func_f)();
 typedef char* ffic_string;
+typedef int* ffic_wstring;
 #define ffic_tmp_string(n) ((char[n]){0})
 typedef enum { ffic_os_unknown, ffic_os_win, ffic_os_osx, ffic_os_unx, } ffic_os_t;
 #ifdef _WIN32
