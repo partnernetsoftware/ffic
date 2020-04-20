@@ -1,4 +1,7 @@
-print("中文")
+"English String"
+"中文字串"
+print("English String")
+print("中文字串")
 
 ##var(die lambda( s1() print(s1) ))
 var(die(s1) print(s1) exit())
@@ -48,11 +51,14 @@ eq(if(0 true false),false) #true
 ##min( list(4 5) )
 ##exit()
 ### TODO
-range(5)
-reverse(range(5))
 range_from(1,5)
 (1,2,3,4,5)
 reverse((1,2,3,4,5))
+
+range(5)
+reverse(range(5))
+
+reverse(reverse((1,2,3,4,5)))
 reverse(range_from(1,5))
 reverse(reverse(range_from(1,5)))
 

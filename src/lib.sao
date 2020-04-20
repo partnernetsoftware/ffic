@@ -90,17 +90,11 @@ var( last_item_in_list lambda( list()
         helper( cdr( remaining))))
     helper( list)))
 
-# Returns a list from 0_number()
-var( range( number) 
-  var( range_helper( start max)
-    if( cmp( start max)
-      #cons( max ^())
-      max 
-      cons( start range_helper( add( 1 start) max))))
-  range_helper( 0 number))
-
 #var(range_from(start,finish),if(cmp(start,finish),cons(finish,nil),cons(start,range_from(add(1,start),finish))))
 var(range_from(start,finish),if(cmp(start,finish),finish,cons(start,range_from(add(1,start),finish))))
+
+#var(range(number),var(range_helper(start,max),if(cmp(start,max),max,cons(start,range_helper(add(1,start),max)))),range_helper(0,number))
+var(range(n),range_from(0,n))
 
 # Tail recursive length
 var( length( list)
@@ -128,15 +122,15 @@ var( append lambda( list1( list2)
 #			print("_list=",_list);
 #			reverse_iter(_list ^()))
 var( reverse( _list)
-		var( reverse_iter( remaining first) 
-			print("remaining=>",remaining,"first=>",first)
-			if( is_empty( remaining)
+		var(reverse_iter(remaining,first),
+#			print("remaining=>",remaining,"first=>",first)
+			if( is_nil( remaining)
 				first 
 				reverse_iter(cdr(remaining),cons(car(remaining),first))
 				) #if
 			) #var
-		reverse_iter(_list ^())
-		#reverse_iter(_list nil)
+		#reverse_iter(_list ^())
+		reverse_iter(_list nil)
 	 )
 var( pow( num exp) 
   var( iter( a b) 

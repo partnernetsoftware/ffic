@@ -71,8 +71,8 @@ typedef p_sao_obj (*native_t)(p_sao_obj args,p_sao_obj ctx);
 	struct { p_sao_obj car; p_sao_obj cdr; }; \
 	struct { union {\
 		p_sao_obj* _vector; \
-		char* _string;\
-		int* _wstring;\
+		ffic_string _string;\
+		ffic_wstring _wstring;\
 	}; long _len; };\
 	struct { native_t _native; ffic_string _ffi;};\
 	long _long;\
@@ -209,7 +209,7 @@ int sao_read_line(sao_stream* fw)
 	return line_num;
 }
 //////////////////////////////////////////////////////////////////////////////
-p_sao_obj sao_expand(p_sao_obj var, p_sao_obj val, p_sao_obj ctx) { return cons(cons(var, val), ctx); }
+//p_sao_obj sao_expand(p_sao_obj var, p_sao_obj val, p_sao_obj ctx) { return cons(cons(var, val), ctx); }
 p_sao_obj sao_get_var(p_sao_obj var, p_sao_obj ctx) {
 	while ((ctx)) {
 		p_sao_obj frame = car(ctx);
@@ -295,7 +295,11 @@ void sao_print_default(ffic_string str, p_sao_obj el){
 		case type_string:
 			sao_stdout("\"%s\"", el->_string); break;
 		case type_symbol:
-			sao_stdout("%s", el->_string); break;
+			if(el->_string){
+				sao_stdout("%s", el->_string);
+			}else
+				sao_stdout("()");
+			break;
 		case type_long:
 			sao_stdout("%ld", el->_long); break;
 		case type_double:
@@ -320,7 +324,9 @@ void sao_print_default(ffic_string str, p_sao_obj el){
 						if(t==0) t=1;
 					}else{
 						if(skip==1){ skip=0;
-						}else{ sao_print(0, ptr->car); if(t==0) t=1; }
+						}else{ sao_print(0, ptr->car); if(t==0) t=1;
+							//sao_print("<cdr=%d>",ptr->cdr);
+						}
 					}
 					if (ptr->cdr) {
 						if (ptr->cdr->_type == type_list) { ptr = ptr->cdr; }
@@ -434,9 +440,17 @@ int main(int argc,char **argv, char** envp) {
 	sao_atol   = (ffic_func_l) libc(atol);
 	sao_strchr = (ffic_func_i) libc(strchr);
 	libc(setmode)(libc(fileno)(libc(stdin)),0x8000/*O_BINARY*/);
-	SAO_TAG_global = sao_expand(SAO_TAG_nil, SAO_TAG_nil, SAO_TAG_nil);
-	sao_var(SAO_TAG_nil,SAO_NULL,SAO_TAG_global);
-	SAO_TAG_argv = sao_expand(SAO_TAG_nil, SAO_TAG_nil, SAO_TAG_nil);
+	SAO_TAG_global = cons(cons(SAO_TAG_nil, SAO_TAG_nil), SAO_TAG_nil);
+	//SAO_TAG_global = sao_expand(SAO_TAG_nil, SAO_TAG_nil, SAO_TAG_nil);
+
+	//TMP TEST
+	//sao_var(sao_new_symbol("nil"),SAO_NULL,SAO_TAG_global);
+
+	//SAO_TAG_argv = sao_expand(SAO_TAG_nil, SAO_TAG_nil, SAO_TAG_nil);
+	SAO_TAG_argv = cons(cons(SAO_TAG_nil, SAO_TAG_nil), SAO_TAG_nil);
+	//sao_print("DEBUG argv={",SAO_TAG_argv);
+	//sao_stdout("}\n");
+
 	SAO_ITR(sao_add_sym_x, quote,vector,table,begin,end);
 	ffic_string script_file = "-";
 	int found_any = 0;
