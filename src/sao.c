@@ -66,11 +66,14 @@ define_map(type,   list,vector,long,double,symbol,string);
 typedef struct _sao_obj_v sao_obj_v, *p_sao_obj_v;
 typedef struct _sao_obj sao_obj,*p_sao_obj;
 typedef p_sao_obj (*native_t)(p_sao_obj args,p_sao_obj ctx);
+//TODO merege _len /_depth/_wdepth/
 #define SAO_OBJ_V union {\
 	struct { p_sao_obj car; p_sao_obj cdr; }; \
-	struct { p_sao_obj* _vector; long _len; };\
-	struct { char* _string; long _depth;};\
-	struct { int* _wstring; long _wdepth;};\
+	struct { union {\
+		p_sao_obj* _vector; \
+		char* _string;\
+		int* _wstring;\
+	}; long _len; };\
 	struct { native_t _native; ffic_string _ffi;};\
 	long _long;\
 	double _double;\
@@ -321,7 +324,7 @@ void sao_print_default(ffic_string str, p_sao_obj el){
 					}
 					if (ptr->cdr) {
 						if (ptr->cdr->_type == type_list) { ptr = ptr->cdr; }
-						else { sao_print(",", ptr->cdr); sao_stdout(" "); break; }
+						else { sao_print(", ", ptr->cdr); break; }
 					} else break;
 				}
 				sao_stdout(")");
@@ -432,6 +435,7 @@ int main(int argc,char **argv, char** envp) {
 	sao_strchr = (ffic_func_i) libc(strchr);
 	libc(setmode)(libc(fileno)(libc(stdin)),0x8000/*O_BINARY*/);
 	SAO_TAG_global = sao_expand(SAO_TAG_nil, SAO_TAG_nil, SAO_TAG_nil);
+	sao_var(SAO_TAG_nil,SAO_NULL,SAO_TAG_global);
 	SAO_TAG_argv = sao_expand(SAO_TAG_nil, SAO_TAG_nil, SAO_TAG_nil);
 	SAO_ITR(sao_add_sym_x, quote,vector,table,begin,end);
 	ffic_string script_file = "-";
