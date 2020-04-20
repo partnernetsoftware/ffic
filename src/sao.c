@@ -147,7 +147,6 @@ p_sao_obj sao_is_eq(p_sao_obj x, p_sao_obj y) {
 }
 p_sao_obj sao_append(p_sao_obj L1, p_sao_obj L2) { return (L1)?cons(car(L1), sao_append(cdr(L1), L2)) : L2; }
 p_sao_obj sao_reverse(p_sao_obj L, p_sao_obj F) { return (!L) ? F: sao_reverse(cdr(L), cons(car(L), F)); }
-//p_sao_obj sao_is_tagged(p_sao_obj cell, p_sao_obj tag) { return sao_is_list(cell) ? sao_is_eq(car(cell),tag) : SAO_TAG_nil; }
 int sao_list_len(p_sao_obj expr) { return (expr) ? (1+sao_list_len(cdr(expr))):0; } 
 int sao_deq_c(sao_stream *fw)
 {
@@ -166,12 +165,6 @@ int sao_enq_c(sao_stream* fw,int k){
 	fw->ptr_last = fc;
 	return k;
 }
-//int sao_clen(int val) {
-//	if (val < 128) { return 1;
-//	} else if (val < 224) { return 2;
-//	} else if (val < 240) { return 3;
-//	} else { return 4; }
-//}
 int sao_read_line(sao_stream* fw) 
 {
 	int line_num = 0;
@@ -209,7 +202,7 @@ int sao_read_line(sao_stream* fw)
 	return line_num;
 }
 //////////////////////////////////////////////////////////////////////////////
-//p_sao_obj sao_expand(p_sao_obj var, p_sao_obj val, p_sao_obj ctx) { return cons(cons(var, val), ctx); }
+//@ref sao_eval
 p_sao_obj sao_get_var(p_sao_obj var, p_sao_obj ctx) {
 	while ((ctx)) {
 		p_sao_obj frame = car(ctx);
@@ -260,6 +253,7 @@ p_sao_obj sao_var(p_sao_obj var, p_sao_obj val, p_sao_obj ctx)
 	frame->cdr = cons(val, cdr(frame));
 	return val;
 }
+//////////////////////////////////////////////////////////////////////////////
 sao_stream * sao_stream_new(void* fp,stream_t type)
 {
 	SAO_NEW_OBJECT(sao_stream,fw);
@@ -441,15 +435,7 @@ int main(int argc,char **argv, char** envp) {
 	sao_strchr = (ffic_func_i) libc(strchr);
 	libc(setmode)(libc(fileno)(libc(stdin)),0x8000/*O_BINARY*/);
 	SAO_TAG_global = cons(cons(SAO_TAG_nil, SAO_TAG_nil), SAO_TAG_nil);
-	//SAO_TAG_global = sao_expand(SAO_TAG_nil, SAO_TAG_nil, SAO_TAG_nil);
-
-	//TMP TEST
-	//sao_var(sao_new_symbol("nil"),SAO_NULL,SAO_TAG_global);
-
-	//SAO_TAG_argv = sao_expand(SAO_TAG_nil, SAO_TAG_nil, SAO_TAG_nil);
 	SAO_TAG_argv = cons(cons(SAO_TAG_nil, SAO_TAG_nil), SAO_TAG_nil);
-	//sao_print("DEBUG argv={",SAO_TAG_argv);
-	//sao_stdout("}\n");
 
 	SAO_ITR(sao_add_sym_x, quote,vector,table,begin,end);
 	ffic_string script_file = "-";

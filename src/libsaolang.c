@@ -121,11 +121,6 @@ tail://tail loop to save recursive stacks
 			}
 		case type_symbol:
 			return sao_get_var(expr, ctx);
-			//{
-			//	p_sao_obj sym = sao_get_var(expr, ctx);
-			//	if (!sym) sao_warn("WARN: sao_get_var(%s)\n",expr->_string);//TODO
-			//	return sym;
-			//}
 		case type_list:
 			{
 				p_sao_obj _car = car(expr);
@@ -354,6 +349,7 @@ p_sao_obj sao_is_empty(p_sao_obj ee){
 	return rt;
 }
 p_sao_obj native_is_empty(p_sao_obj args,p_sao_obj ctx) {
+	if(!args) return SAO_TAG_true;
 	if(!sao_is_list(args)) sao_error("native_is_empty.args must be list");
 	p_sao_obj _car = car(args);
 	//p_sao_obj _cadr = cadr(args);
@@ -361,19 +357,19 @@ p_sao_obj native_is_empty(p_sao_obj args,p_sao_obj ctx) {
 	return SAO_TAG_true;
 }
 p_sao_obj native_null(p_sao_obj args,p_sao_obj ctx) { return SAO_TAG_nil; }
+p_sao_obj native_ctx(p_sao_obj args,p_sao_obj ctx) { return ctx; }
 //p_sao_obj native_is_nil(p_sao_obj args,p_sao_obj ctx) { return (car(args)) ? SAO_TAG_false : SAO_TAG_true; }
 p_sao_obj native_is_nil(p_sao_obj args,p_sao_obj ctx) {
 	p_sao_obj rt = SAO_TAG_false;//nil=>false
 	for(;;){
 		if(!args) rt = SAO_TAG_true;
-		//if(sao_is_list(args) && !car(args) && !cdr(args)) return SAO_TAG_true;
-		if(!car(args) && !cdr(args)) rt = SAO_TAG_true;
-		//if(sao_is_list(args) && !car(args)) return SAO_TAG_true;
+		p_sao_obj _car = car(args);
+		if(!_car) rt = SAO_TAG_true;
+		else if(sao_is_list(_car)){
+			if(!car(_car) && !cdr(_car)) rt = SAO_TAG_true;
+		}
 		break;
 	}
-//	sao_print("\n# DEBUG native_is_nil.rt=",rt);
-//	sao_stdout("\n");
-//	//return SAO_TAG_false;
 	return rt;
 }
 p_sao_obj native_pairq(p_sao_obj args,p_sao_obj ctx) {
@@ -631,6 +627,7 @@ p_sao_obj saolang_init()
 			add,sub,mul,div,cmp,lt,gt,//logic,
 			is_empty,is_nil,is_list,pairq,eq,same,//helpers
 			null,
+			ctx,//for debug only...
 			);
 	//@(fb(n),if(lt(n,3),1,+(fb(-(n,1)),fb(-(n,2)))))
 	sao_var(sao_new_symbol("+"), sao_new_native(native_add,"+"), SAO_TAG_global);
@@ -662,4 +659,11 @@ p_sao_obj saolang_init()
 //		//	return sao_new_symbol(s);
 //		}
 //	}
+//int sao_clen(int val) {
+//	if (val < 128) { return 1;
+//	} else if (val < 224) { return 2;
+//	} else if (val < 240) { return 3;
+//	} else { return 4; }
+//}
+
 #endif
