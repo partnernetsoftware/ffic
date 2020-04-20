@@ -12,5 +12,7 @@ int main(){
 
 	for(int i;i<10;i++){ OUTD(i); }
 	for(int i;!(i=='\n'||i==-1);){ i+=1;OUTD(i); }
+
+	for(int i=10;i<10;i++){ OUTD(i); }
 	return 0;
 }

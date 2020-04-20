@@ -287,7 +287,8 @@ void sao_print_default(ffic_string str, p_sao_obj el){
 	if (!el) {sao_stdout("nil");return;}
 	switch (el->_type) {
 		case type_string:
-			sao_stdout("\"%s\"", el->_string); break;
+			//sao_stdout("\"%s\"", el->_string); break;
+			sao_stdout("%s", el->_string); break;
 		case type_symbol:
 			if(el->_string){
 				sao_stdout("%s", el->_string);
@@ -368,11 +369,14 @@ p_sao_obj sao_load_expr(sao_stream * fw) {
 			case '^': return cons(SAO_TAG_quote, cons(sao_load_expr(fw), SAO_TAG_nil));
 			case '\"':
 				{
-					char buf[SAO_MAX_BUF_LEN] = {0}; int i = 0; int c;
-					while ((c = sao_deq_c(fw)) != '\"') {//TODO not yet handling the \\" which to excape the "
-						if (c == SAO_EOF) return SAO_TAG_nil;
+					char buf[SAO_MAX_BUF_LEN] = {0};
+					for(int c,i=0;;){
 						if (i >= SAO_MAX_BUF_LEN) sao_error("String too long - maximum length %d characters",SAO_MAX_BUF_LEN);
-						buf[i++] = (char) c;
+						c=sao_deq_c(fw);
+						if (c == SAO_EOF){ return SAO_TAG_nil; }
+						if(c=='\"') break;
+						if(c=='\\'&&'\"'==sao_peek(fw)) c=sao_deq_c(fw);
+						buf[i++] = c;
 					}
 					return sao_new_string(buf);
 				}
