@@ -385,8 +385,9 @@ p_sao_obj sao_load_expr(sao_stream * fw) {
 			case '(':
 				{
 					p_sao_obj list = sao_read_list(fw);
-					if(SAO_ARGV(l)){ return list; }//LISP
-					return (theSymbol) ? cons(theSymbol,list) : list;
+					return (SAO_ARGV(l) || !theSymbol)? list : cons(theSymbol,list);
+					//if(SAO_ARGV(l)){ return list; }//LISP
+					//return (theSymbol) ? cons(theSymbol,list) : list;
 				}
 			case '[':return cons(SAO_TAG_vector,sao_read_list(fw));
 			default:

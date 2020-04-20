@@ -405,8 +405,7 @@ p_sao_obj sao_load_expr(sao_stream * fw) {
    case '(':
     {
      p_sao_obj list = sao_read_list(fw);
-     if(argta[argt_l]){ return list; }
-     return (theSymbol) ? cons(theSymbol,list) : list;
+     return (argta[argt_l] || !theSymbol)? list : cons(theSymbol,list);
     }
    case '[':return cons(SAO_TAG_vector,sao_read_list(fw));
    default:
@@ -1004,7 +1003,10 @@ int main(int argc,char **argv, char** envp) {
    if(string_or_name){
     sao_var(sao_new((sao_obj){._type=type_symbol,._string=string_or_name}), sao_new((sao_obj){._type=type_long, ._long=l_val}), SAO_TAG_argv);
     int found = 0;
-    for(int i=0;i<=argt_h;i++) if(!sao_strcmp(string_or_name,argt_names[i])){ argta[i]+=l_val; found=1;break; }
+    if(!sao_strcmp(string_or_name,"-")){ found_any++; }
+    else{
+     for(int i=0;i<=argt_h;i++) if(!sao_strcmp(string_or_name,argt_names[i])){ argta[i]+=l_val; found++;break; }
+    }
     if(!found) script_file = string_or_name; else found_any++;
    }
   }

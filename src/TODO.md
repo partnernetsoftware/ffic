@@ -66,3 +66,12 @@ autonomy, paradigm
 
 sao.c for framework
 libsaolang.c for customize the lang
+
+# improve
+
+```
+* native_* => merge into sticky struct;
+* libc macro as c_##m which predefine and delay assign
+* table share vector but different locating method
+
+```
