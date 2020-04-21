@@ -1,3 +1,38 @@
+# SPEC
+
+```
+SaoLang is a customized LISP dialet, but the leading head/first object is show outside.
+
+## english keywords
+
+none
+
+## symbolic keyworkds (global):
+
+| Symbol | meaning | 
+| -- | -- | -- |
+| @@ | nil | |
+| @+() | add() | |
+| @-() | sub() | |
+| @*() | mul() | |
+| @/() | div() | |
+| @() | var() | merge of declare/define/var/set/assign |
+| @?() | if() |
+| ^() | quote() |
+
+
+==()
+	equal
+===()
+  exactly
+
+#
+
+[ vector
+{ table
+
+```
+
 # TODO
 
 ## resign

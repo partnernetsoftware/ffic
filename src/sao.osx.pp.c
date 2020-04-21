@@ -371,12 +371,8 @@ p_sao_obj sao_load_expr(sao_stream * fw) {
     }
    case '}': case ']': case ')': return SAO_TAG_end;
    case '{':return cons(SAO_TAG_table,sao_read_list(fw));
-   case '(':
-    {
-     p_sao_obj list = sao_read_list(fw);
-     return (argta[argt_l] || !theSymbol)? list : cons(theSymbol,list);
-    }
    case '[':return cons(SAO_TAG_vector,sao_read_list(fw));
+   case '(': p_sao_obj list = sao_read_list(fw); return (argta[argt_l] || !theSymbol)? list : cons(theSymbol,list);
    default:
     {
      char buf[2048] = {c};

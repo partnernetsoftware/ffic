@@ -1,97 +1,97 @@
 #########################################################################
 
-@(var,@)
+#@(var,@)
 
-@( caar lambda(a() car( car( a))))
-@( cadr lambda(a() car( cdr( a))))
-@( cdar lambda(a() cdr( car( a))))
-@( cddr lambda(a() cdr( cdr( a))))
-@( cadar lambda(a() car( cdr( car( a)))))
-@( caddr lambda(a() car( cdr( cdr( a)))))
-@( cdddr lambda(a() cdr( cdr( cdr( a)))))
-@( cdadr lambda(a() cdr( car( cdr( a)))))
-@( cadddr lambda(a() car( cdr( cdr( cdr( a))))))
+@(caar lambda(a() car(car(a))))
+@(cadr lambda(a() car(cdr(a))))
+@(cdar lambda(a() cdr(car(a))))
+@(cddr lambda(a() cdr(cdr(a))))
+@(cadar lambda(a() car(cdr(car(a)))))
+@(caddr lambda(a() car(cdr(cdr(a)))))
+@(cdddr lambda(a() cdr(cdr(cdr(a)))))
+@(cdadr lambda(a() cdr(car(cdr(a)))))
+@(cadddr lambda(a() car(cdr(cdr(cdr(a))))))
 
 #########################################################################
-#@( notcmp lambda(a(b)) if( cmp( a b) false true)))
-#@( gteq lambda( a b) if( lt( a b) false true)))
-#@( lteq lambda( a b) if( gt( a b) false true)))
-#@( notcmp( a b) if( cmp( a b) false true))
-@( notcmp( a b) if( cmp( a b) false true))
-@( gteq( a b) if( lt( a b) false true))
-@( lteq( a b) if( gt( a b) false true))
-@( ge gteq)
-@( le lteq)
-@( nc notcmp)
+#@(notcmp lambda(a(b)) if(cmp(a b) false true)))
+#@(gteq lambda(a b) if(lt(a b) false true)))
+#@(lteq lambda(a b) if(gt(a b) false true)))
+#@(notcmp(a b) if(cmp(a b) false true))
+@(notcmp(a b) if(cmp(a b) false true))
+@(gteq(a b) if(lt(a b) false true))
+@(lteq(a b) if(gt(a b) false true))
+@(ge gteq)
+@(le lteq)
+@(nc notcmp)
 
 ## Return the maximum value from a list of integers
-#@( max( list_of_numbers)
-#  @( max_iter( best remaining)
-#    cond( (is_nil( remaining) best)
-#      (gt( car( remaining) best) max_iter( car( remaining) cdr( remaining)))
-#      else( max_iter( best cdr( remaining)))
+#@(max(list_of_numbers)
+#  @(max_iter(best remaining)
+#    cond((is_nil(remaining) best)
+#      (gt(car(remaining) best) max_iter(car(remaining) cdr(remaining)))
+#      else(max_iter(best cdr(remaining)))
 #			))
-#  max_iter( car( list_of_numbers) cdr( list_of_numbers)))
+#  max_iter(car(list_of_numbers) cdr(list_of_numbers)))
 
 ## Return the minimum value from a list of integers
-#@( min( list_of_numbers)
-#  @( min_iter( best remaining)
-#    cond( (is_nil( remaining) best)
-#      (lt( car( remaining) best) min_iter( car( remaining) cdr( remaining)))
-#      else( min_iter( best cdr( remaining)))
+#@(min(list_of_numbers)
+#  @(min_iter(best remaining)
+#    cond((is_nil(remaining) best)
+#      (lt(car(remaining) best) min_iter(car(remaining) cdr(remaining)))
+#      else(min_iter(best cdr(remaining)))
 #			))
-#  min_iter( car( list_of_numbers) cdr( list_of_numbers)))
+#  min_iter(car(list_of_numbers) cdr(list_of_numbers)))
 
 # Map a function f onto list a
-#@( map lambda( f( a)
-#    if( is_nil( a) 
+#@(map lambda(f(a)
+#    if(is_nil(a) 
 #      ^()
-#      cons( f( car( a)) map( f cdr( a))))))
+#      cons(f(car(a)) map(f cdr(a))))))
 
 ## Provide the association pair of key from list
-#@( assoc( key list)
-#  if( is_nil( list)
+#@(assoc(key list)
+#  if(is_nil(list)
 #    ^()
-#    if( eq( key car( car( list))) 
-#      car( list)
-#      assoc( key cdr( list)))))
+#    if(eq(key car(car(list))) 
+#      car(list)
+#      assoc(key cdr(list)))))
 #
 ## Lambda key_list with dispatch
-#@( make_key_list()
-#  let( (list( ^())) 
-#    @( get_val lambda( @() 
-#        assoc( var list)))
-#    @( add_key lambda( @( val)
-#        set( list cons( cons( var val) list))))
-#    @( dispatch( m)
-#      if( eq( m ^add) add_key
-#        if( eq( m ^get) get_val 
+#@(make_key_list()
+#  let((list(^())) 
+#    @(get_val lambda(@() 
+#        assoc(var list)))
+#    @(add_key lambda(@(val)
+#        set(list cons(cons(var val) list))))
+#    @(dispatch(m)
+#      if(eq(m ^add) add_key
+#        if(eq(m ^get) get_val 
 #          list)))
 #    dispatch))
 
 # Lambda stack with dispatch
-#@( make_stack()
-#  let( (stack( ^()))
-#    @( push lambda( x() 
-#        set( stack cons( x stack))
+#@(make_stack()
+#  let((stack(^()))
+#    @(push lambda(x() 
+#        set(stack cons(x stack))
 #        stack))
-#    @( pop lambda( x()
-#        @( q car( stack))
-#        set( stack cdr( stack))
+#    @(pop lambda(x()
+#        @(q car(stack))
+#        set(stack cdr(stack))
 #        q))
-#    @( dispatch( m)
-#      if( eq( m ^push) push
-#        if( eq( m ^pop) pop 
+#    @(dispatch(m)
+#      if(eq(m ^push) push
+#        if(eq(m ^pop) pop 
 #          stack)))
 #    dispatch))
 # Returns the last item in a list or pair.
 # Pointer to cdr if list, Pointer to object if pair
-@( last_item_in_list lambda( list()
-    @( helper( remaining)
-      if( is_nil( cdr( remaining))
+@(last_item_in_list lambda(list()
+    @(helper(remaining)
+      if(is_nil(cdr(remaining))
         remaining
-        helper( cdr( remaining))))
-    helper( list)))
+        helper(cdr(remaining))))
+    helper(list)))
 
 #@(range_from(start,finish),if(cmp(start,finish),cons(finish,nil),cons(start,range_from(add(1,start),finish))))
 @(range_from(start,finish),if(cmp(start,finish),finish,cons(start,range_from(add(1,start),finish))))
@@ -100,95 +100,95 @@
 @(range(n),range_from(0,n))
 
 # Tail recursive length
-@( length( list)
-  @( length_helper( accum remaining)
-    if( is_nil( remaining)
+@(length(list)
+  @(length_helper(accum remaining)
+    if(is_nil(remaining)
       accum
-      length_helper( add( 1 accum) cdr( remaining))))
-  length_helper( 1 cdr( list)))
+      length_helper(add(1 accum) cdr(remaining))))
+  length_helper(1 cdr(list)))
 
 # Append list2 to list1
-@( append lambda( list1( list2) 
-    @( append_helper( l1 l2)
-      if( is_nil( l1)
+@(append lambda(list1(list2) 
+    @(append_helper(l1 l2)
+      if(is_nil(l1)
         l2
-        cons( car( l1) append_helper( cdr( l1) l2))))
-    append_helper( list1 list2)))
+        cons(car(l1) append_helper(cdr(l1) l2))))
+    append_helper(list1 list2)))
 
 # Reverse list
 #	@(reverse(_list)
 #			@(reverse_iter(remaining,first) 
-#				if(is_nil( remaining)
+#				if(is_nil(remaining)
 #					print("first=",first),
 #					reverse_iter(cdr(remaining),cons(car(remaining),first)))
 #				)
 #			print("_list=",_list);
 #			reverse_iter(_list ^()))
-@( reverse( _list)
+@(reverse(_list)
 		@(reverse_iter(remaining,first),
 #			print("remaining=>",remaining,"first=>",first)
-			if( is_nil( remaining)
+			if(is_nil(remaining)
 				first 
 				reverse_iter(cdr(remaining),cons(car(remaining),first))
 				) #if
-			) #var
+			)
 		#reverse_iter(_list ^())
 		reverse_iter(_list nil)
 	 )
-@( pow( num exp) 
-  @( iter( a b) 
-    if( eq( b 1) 
+@(pow(num exp) 
+  @(iter(a b) 
+    if(eq(b 1) 
       a
-      iter( mul( a num) sub( b 1))))
-  if( eq( exp 0)
+      iter(mul(a num) sub(b 1))))
+  if(eq(exp 0)
     1
-    iter( num exp)))
+    iter(num exp)))
 
-@( mod( a b)
-  @( iter( rem div)
-    if( lt( rem div)
+@(mod(a b)
+  @(iter(rem div)
+    if(lt(rem div)
       rem
-      iter( sub( rem div) div)))
-  iter( a b))
+      iter(sub(rem div) div)))
+  iter(a b))
 
 # macros
-@( procedure_body lambda( proc() caddr( proc)))
-@( procedure_args lambda( proc() cadr( proc)))
-@( mutate_procedure_env( name new_env) setcar( cdddr( name) new_env))
-@( mutate_procedure_body( name new_body) setcar( cddr( name) list( new_body)))
-@( mutate_procedure_args( name new_args) setcar( cdr( name) new_args))
+@(procedure_body lambda(proc() caddr(proc)))
+@(procedure_args lambda(proc() cadr(proc)))
+@(mutate_procedure_env(name new_env) setcar(cdddr(name) new_env))
+@(mutate_procedure_body(name new_body) setcar(cddr(name) list(new_body)))
+@(mutate_procedure_args(name new_args) setcar(cdr(name) new_args))
 
-@( construct_procedure( args body env)
-  let( (new_proc( cons( procedure cons( ^() cons( ^() cons( ^()))))))
-    mutate_procedure_args( new_proc args)
-    mutate_procedure_body( new_proc body)
-    mutate_procedure_env( new_proc env)
+@(construct_procedure(args body env)
+  let((new_proc(cons(procedure cons(^() cons(^() cons(^()))))))
+    mutate_procedure_args(new_proc args)
+    mutate_procedure_body(new_proc body)
+    mutate_procedure_env(new_proc env)
     new_proc))
 
-@( if_zero( x then) list( if list( eq x 0) then))
+@(if_zero(x then) list(if list(eq x 0) then))
 
-@( gen_accum( number)
-  lambda( amount()
-    set( number add( number amount))
+@(gen_accum(number)
+  lambda(amount()
+    set(number add(number amount))
     number))
 
 # Everytime new_accum() is called, it's accumulator should be increased by one
-@( new_accum gen_accum( 0))
+@(new_accum gen_accum(0))
 
-# Simple for loop
-@( for lambda( start( end do)
-    @( for_loop( a z)
-      if( cmp( a z)
+# Simple loop
+@(for lambda(start(end do)
+    @(for_loop(a z)
+      if(cmp(a z)
         ^Done;; Last iteration
-        begin( 
+        begin(
           do()
-          for_loop( add( 1 a) z))))
-    for_loop( start end do)))
+          for_loop(add(1 a) z))))
+    for_loop(start end do)))
 
-@( make_withdraw( balance)
-  lambda( amount()
-    if( gt( balance amount)
-      begin( set( balance sub( balance amount))
+@(make_withdraw(balance)
+  lambda(amount()
+    if(gt(balance amount)
+      begin(set(balance sub(balance amount))
         balance)
       "Insufficient funds")))
 

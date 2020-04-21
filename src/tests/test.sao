@@ -1,4 +1,11 @@
+@(true,@1)
+@(false,@0)
 @(var,@)
+
+# @(add,+)
+# @(sub,-)
+# @(mul,*)
+# @(div,/)
 
 "English \"String\""
 "English String"
@@ -6,27 +13,29 @@
 print("English String")
 print("中文字串")
 
-##@(die lambda( s1() print(s1) ))
+##@(die lambda(s1() print(s1) ))
 #@(die(s1) print(s1) exit())
 @(die(s1) print(s1) exit())
 ##die("wtf")
 
 @(ensure(r) if(r print(r) exit("ko") ))
 
-eq(false is_nil(false))
-ensure( eq(false is_nil(false)) )
+eq(@0 is_nil(@0))
+ensure(eq(@0 is_nil(@0)) )
 
-is_nil(false)
-is_nil(true)
+is_nil(@0)
+is_nil(@1)
+is_nil(@1)
+is_nil(@0)
 is_nil()
 is_nil(nil)
 nil()
 is_nil(nil())
 
 vector(2 3 4)
-is_nil(cdr( vector(2 3 4) ))
+is_nil(cdr(vector(2 3 4) ))
 list(2 3 4)
-cdr( list(2 3 4) )
+cdr(list(2 3 4) )
 
 [2 3 4]
 print([2 3 4])
@@ -46,13 +55,13 @@ load("lib.sao")
 
 print("what is this")
 
-eq(if(1 true false),false) #false
-eq(if(0 true false),false) #true
+eq(if(1 @1 @0),@0) #@0
+eq(if(0 @1 @0),@0) #@1
 
-#min( (7 5 3 4 1 6) )
-#max( (4 5) )
-##min_iter( (3) (4) )
-##min( list(4 5) )
+#min((7 5 3 4 1 6) )
+#max((4 5) )
+##min_iter((3) (4) )
+##min(list(4 5) )
 ##exit()
 ### TODO
 range_from(1,5)
@@ -72,17 +81,17 @@ mod(5,3) #2
 #last_item_in_list((5,6,7,8))
 
 car(list(4,5))                            # 4
-caar( list(list(4,5),6) )                 # 4
-cadar( list(list(4,5),6) )                # 5
+caar(list(list(4,5),6) )                 # 4
+cadar(list(list(4,5),6) )                # 5
 
-cmp(2 3)                                  # false
-nc(2 3)                               # true
+cmp(2 3)                                  # @0
+nc(2 3)                               # @1
 
-cmp(3 3)                                  # true
-nc(3 3)                               # false
+cmp(3 3)                                  # @1
+nc(3 3)                               # @0
 
-lt(2,3) #true
-le(2,2) #true
+lt(2,3) #@1
+le(2,2) #@1
 
 # TODO http://blog.zhengyi.one/fibonacci-in-logn.html
 # https://blog.csdn.net/Hackbuteer1/article/details/6684867
@@ -107,45 +116,45 @@ fb(20)
 @(factorial(n),if(cmp(n,0),1,mul(n,factorial(sub(n 1)))))
 factorial(5)
 
-@( x list(1 2 3))
-#@( x ^1( 2 3))
+@(x list(1 2 3))
+#@(x ^1(2 3))
 
 print(x) # output list(1 2 3)
 
 
-#@(factorial lambda(n() if( cmp( n 0) 1 mul( n factorial( sub( n 1))))))
-@(factorial,lambda(n(),if(cmp(n,0),1,mul(n,factorial(sub(n,1)))))) # n=>if(cmp( n 0) 1 mul( n factorial( sub( n 1))))
+#@(factorial lambda(n() if(cmp(n 0) 1 mul(n factorial(sub(n 1))))))
+@(factorial,lambda(n(),if(cmp(n,0),1,mul(n,factorial(sub(n,1)))))) # n=>if(cmp(n 0) 1 mul(n factorial(sub(n 1))))
 factorial(5) #120
 
-@(factorial,lambda((n),if(cmp(n,0),1,mul(n,factorial(sub(n,1)))))) # n=>if(cmp( n 0) 1 mul( n factorial( sub( n 1))))
+@(factorial,lambda((n),if(cmp(n,0),1,mul(n,factorial(sub(n,1)))))) # n=>if(cmp(n 0) 1 mul(n factorial(sub(n 1))))
 factorial(5) #120
 
-#@( add1 lambda(n() add( 1 n)))
+#@(add1 lambda(n() add(1 n)))
 @(add1 lambda(n() add(1 n)))
 
 add1(3)
 
-@( sos_helper lambda( remaining(sum_so_far)
-      if( is_nil( remaining) 
+@(sos_helper lambda(remaining(sum_so_far)
+      if(is_nil(remaining) 
         sum_so_far 
-        sos_helper( cdr( remaining) add( sum_so_far mul( car( remaining) car( remaining)))))))
+        sos_helper(cdr(remaining) add(sum_so_far mul(car(remaining) car(remaining)))))))
 
-@( sum_of_squares( num_list)
-#  @( sos_helper lambda( remaining( sum_so_far)
-#      if( is_nil( remaining) 
+@(sum_of_squares(num_list)
+#  @(sos_helper lambda(remaining(sum_so_far)
+#      if(is_nil(remaining) 
 #        sum_so_far 
-#        sos_helper( cdr( remaining) add( sum_so_far mul( car( remaining) car( remaining)))))))
-  sos_helper( num_list 0))
+#        sos_helper(cdr(remaining) add(sum_so_far mul(car(remaining) car(remaining)))))))
+  sos_helper(num_list 0))
 
 # Procedure with no args
-@( new_env() cons( cons( ^() ^()) ^()))
+@(new_env() cons(cons(^() ^()) ^()))
 # Construct a procedure with macro
-@( new_func construct_procedure( ^a() ^cons( a 10) global()))
-@( with_macros construct_procedure( ^x() if_zero( ^x ^ZERO) global()))
+@(new_func construct_procedure(^a() ^cons(a 10) global()))
+@(with_macros construct_procedure(^x() if_zero(^x ^ZERO) global()))
 new_func()
 with_macros()
 list(2 3 4)
-sum_of_squares( list(2 3 4) )           # 4+9+16=29
+sum_of_squares(list(2 3 4) )           # 4+9+16=29
 
 c_int("12345")
 

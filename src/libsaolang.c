@@ -179,8 +179,7 @@ tail://tail loop to save recursive stacks
 					p_sao_obj _cddr = cddr(expr);
 					return sao_new_procedure(_cadr, _cddr, ctx);
 				}
-				else if (//sao_is_eq(_car, SAO_TAG_var) ||
-						sao_is_eq(_car,SAO_TAG_at)) {
+				else if (sao_is_eq(_car,SAO_TAG_at)) {
 					if (sao_is_atom(_cadr)) sao_var(_cadr, sao_eval(caddr(expr), ctx), ctx);
 					else {
 						sao_var(car(_cadr), sao_eval(sao_new_lambda(cdr(_cadr), cddr(expr)), ctx), ctx);
@@ -319,20 +318,6 @@ p_sao_obj native_debug(p_sao_obj args,p_sao_obj ctx) {
 		sao_stdout("\n native_debug TODO no args");
 	return SAO_TAG_true;
 }
-//p_sao_obj native_var(p_sao_obj args, p_sao_obj ctx) {
-//	//p_sao_obj args = sao_eval_list(cdr(expr), ctx);
-//	p_sao_obj _cadr = car(args);
-//	p_sao_obj _cdr = args;
-//	if (sao_is_atom(_cadr)){
-//		//sao_var(_cadr, sao_eval(cadr(args), ctx), ctx);
-//		sao_stdout("DEBUG 201",0);
-//	}
-//	else {
-//		sao_print("DEBUG 202 args",args);
-//	//	sao_var(car(_cadr), sao_eval(sao_new_lambda(cdr(_cadr), cdr(args)), ctx), ctx);
-//	}
-//	return SAO_TAG_true;
-//}
 p_sao_obj native_list(p_sao_obj args,p_sao_obj ctx) { return (args); }
 p_sao_obj native_cons(p_sao_obj args,p_sao_obj ctx) {
 	return cons(car(args),cadr(args));
@@ -389,8 +374,8 @@ p_sao_obj native_is_empty(p_sao_obj args,p_sao_obj ctx) {
 	if(!sao_is_empty(_car)) return SAO_TAG_false;
 	return SAO_TAG_true;
 }
-p_sao_obj native_null(p_sao_obj args,p_sao_obj ctx) { return SAO_TAG_nil; }
-p_sao_obj native_ctx(p_sao_obj args,p_sao_obj ctx) { return ctx; }
+p_sao_obj native__null(p_sao_obj args,p_sao_obj ctx) { return SAO_TAG_nil; }
+p_sao_obj native__ctx(p_sao_obj args,p_sao_obj ctx) { return ctx; }
 //p_sao_obj native_is_nil(p_sao_obj args,p_sao_obj ctx) { return (car(args)) ? SAO_TAG_false : SAO_TAG_true; }
 p_sao_obj native_is_nil(p_sao_obj args,p_sao_obj ctx) {
 	p_sao_obj rt = SAO_TAG_false;//nil=>false
@@ -638,10 +623,21 @@ p_sao_obj saolang_init()
 {
 	sao_print = _sao_print;
 	sao_eval = _sao_eval;
-	SAO_ITR(sao_add_sym_x, SAO_EXPAND(LIST_SAO_TAG));
+
+//#define LIST_SAO_TAG true,false,set,let,if,lambda,procedure,at
+	//SAO_ITR(sao_add_sym_x, SAO_EXPAND(LIST_SAO_TAG));
+	SAO_ITR(sao_add_sym_x, set,let,lambda,procedure);
 
 	SAO_TAG_at=sao_new_symbol("@");sao_var(SAO_TAG_at,SAO_TAG_at,SAO_TAG_global);
+	SAO_TAG_true=sao_new_symbol("@1");sao_var(SAO_TAG_true,SAO_TAG_true,SAO_TAG_global);
+	SAO_TAG_false=sao_new_symbol("@0");sao_var(SAO_TAG_false,SAO_TAG_false,SAO_TAG_global);
+	SAO_TAG_if=sao_new_symbol("@?");sao_var(SAO_TAG_if,SAO_TAG_if,SAO_TAG_global);
 
+	sao_var(sao_new_symbol("@+"), sao_new_native(native_add,"@+"), SAO_TAG_global);
+	sao_var(sao_new_symbol("@-"), sao_new_native(native_sub,"@-"), SAO_TAG_global);
+	sao_var(sao_new_symbol("@*"), sao_new_native(native_mul,"@*"), SAO_TAG_global);
+	sao_var(sao_new_symbol("@/"), sao_new_native(native_div,"@/"), SAO_TAG_global);
+	
 	//p_sao_obj g_symbol_holder = SAO_TAG_nil;
 	//g_symbol_holder = sao_new_vector(65536-1);//TODO auto expand for the tables
 	SAO_ITR(add_sym_list, print,lt,add,sub,exit);//minimum for fib.sao
@@ -659,15 +655,9 @@ p_sao_obj saolang_init()
 			load,print,read,//io
 			add,sub,mul,div,cmp,lt,gt,//logic,
 			is_empty,is_nil,is_list,pairq,eq,same,//helpers
-			null,
-			ctx,//for debug only...
+			_null,_ctx,//for debug only...
 			);
 	//@(fb(n),if(lt(n,3),1,+(fb(-(n,1)),fb(-(n,2)))))
-	sao_var(sao_new_symbol("+"), sao_new_native(native_add,"+"), SAO_TAG_global);
-	sao_var(sao_new_symbol("-"), sao_new_native(native_sub,"-"), SAO_TAG_global);
-	sao_var(sao_new_symbol("*"), sao_new_native(native_mul,"*"), SAO_TAG_global);
-	sao_var(sao_new_symbol("/"), sao_new_native(native_div,"/"), SAO_TAG_global);
-	//sao_var(sao_new_symbol("@"), sao_new_native(native_var,"@"), SAO_TAG_global);
 	SAO_ITR(add_sym_list, c_int);
 	return SAO_TAG_global;
 }

@@ -62,7 +62,7 @@ define_map(argt, i,p,d,v,e,s,l,h);
 int argta[argt_h+1];
 #define SAO_ARGV(x) argta[argt_##x]
 define_map(stream, file,char);//
-define_map(type,   list,vector,long,double,symbol,string);
+define_map(type,   list,vector,long,double,symbol,string);//TODO move long/double to ctype
 typedef struct _sao_obj_v sao_obj_v, *p_sao_obj_v;
 typedef struct _sao_obj sao_obj,*p_sao_obj;
 typedef p_sao_obj (*native_t)(p_sao_obj args,p_sao_obj ctx);
@@ -249,7 +249,7 @@ p_sao_obj sao_convert_default(ffic_string str){
 static void(*sao_print)(ffic_string,p_sao_obj);
 void sao_print_default(ffic_string str, p_sao_obj el){
 	if (str) sao_stdout(str);
-	if (!el) {sao_stdout("nil");return;}
+	if (!el) {sao_stdout("@@");return;}
 	switch (el->_type) {
 		case type_string:
 			//sao_stdout("\"%s\"", el->_string); break;
@@ -347,14 +347,8 @@ p_sao_obj sao_load_expr(sao_stream * fw) {
 				}
 			case '}': case ']': case ')': return SAO_TAG_end;
 			case '{':return cons(SAO_TAG_table,sao_read_list(fw));
-			case '(':
-				{
-					p_sao_obj list = sao_read_list(fw);
-					return (SAO_ARGV(l) || !theSymbol)? list : cons(theSymbol,list);
-					//if(SAO_ARGV(l)){ return list; }//LISP
-					//return (theSymbol) ? cons(theSymbol,list) : list;
-				}
 			case '[':return cons(SAO_TAG_vector,sao_read_list(fw));
+			case '(': {p_sao_obj list = sao_read_list(fw); return (SAO_ARGV(l) || !theSymbol)? list : cons(theSymbol,list);}
 			default:
 				{
 					char buf[SAO_MAX_BUF_LEN] = {c};
@@ -404,8 +398,8 @@ int main(int argc,char **argv, char** envp) {
 	sao_atol   = (ffic_func_l) libc(atol);
 	sao_strchr = (ffic_func_i) libc(strchr);
 	libc(setmode)(libc(fileno)(libc(stdin)),0x8000/*O_BINARY*/);
-	SAO_TAG_global = cons(cons(SAO_TAG_nil, SAO_TAG_nil), SAO_TAG_nil);//(nil()),(())
-	SAO_TAG_argv = cons(cons(SAO_TAG_nil, SAO_TAG_nil), SAO_TAG_nil);//(nil()),(())
+	SAO_TAG_global = cons(cons(SAO_TAG_nil, SAO_TAG_nil), SAO_TAG_nil);
+	SAO_TAG_argv = cons(cons(SAO_TAG_nil, SAO_TAG_nil), SAO_TAG_nil);
 	SAO_ITR(sao_add_sym_x, quote,vector,table,begin,end);
 	ffic_string script_file = "-";
 	int found_any = 0;
