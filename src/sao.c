@@ -202,41 +202,6 @@ int sao_read_line(sao_stream* fw)
 	return line_num;
 }
 //////////////////////////////////////////////////////////////////////////////
-//@ref sao_eval
-p_sao_obj sao_get_var(p_sao_obj var, p_sao_obj ctx) {
-	while ((ctx)) {
-		p_sao_obj frame = car(ctx);
-		p_sao_obj vars = car(frame);
-		p_sao_obj vals = cdr(frame);
-		while ((vars)) {
-			if (sao_is_eq(car(vars), var)) return car(vals);
-			vars = cdr(vars);
-			vals = cdr(vals);
-		}
-		ctx = cdr(ctx);
-	}
-	return SAO_TAG_nil;
-}
-//:replace var->val when found.
-p_sao_obj sao_set(p_sao_obj var, p_sao_obj val, p_sao_obj ctx) {
-	while ((ctx)) {
-		p_sao_obj frame = car(ctx);
-		p_sao_obj vars = car(frame);
-		p_sao_obj vals = cdr(frame);
-		while ((vars)) {
-			if (sao_is_eq(car(vars), var)) {
-				vals->car = val;
-				return car(vals);//
-				//return SAO_TAG_nil;
-			}
-			vars = cdr(vars);
-			vals = cdr(vals);
-		}
-		ctx = cdr(ctx);
-	}
-	return val;
-}
-//TODO  merge with sao_set
 p_sao_obj sao_var(p_sao_obj var, p_sao_obj val, p_sao_obj ctx)
 {
 	if(!ctx) sao_error("ASSERT: sao_var() need ctx");
@@ -439,9 +404,8 @@ int main(int argc,char **argv, char** envp) {
 	sao_atol   = (ffic_func_l) libc(atol);
 	sao_strchr = (ffic_func_i) libc(strchr);
 	libc(setmode)(libc(fileno)(libc(stdin)),0x8000/*O_BINARY*/);
-	SAO_TAG_global = cons(cons(SAO_TAG_nil, SAO_TAG_nil), SAO_TAG_nil);
-	SAO_TAG_argv = cons(cons(SAO_TAG_nil, SAO_TAG_nil), SAO_TAG_nil);
-
+	SAO_TAG_global = cons(cons(SAO_TAG_nil, SAO_TAG_nil), SAO_TAG_nil);//(nil()),(())
+	SAO_TAG_argv = cons(cons(SAO_TAG_nil, SAO_TAG_nil), SAO_TAG_nil);//(nil()),(())
 	SAO_ITR(sao_add_sym_x, quote,vector,table,begin,end);
 	ffic_string script_file = "-";
 	int found_any = 0;

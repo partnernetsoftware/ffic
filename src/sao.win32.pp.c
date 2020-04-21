@@ -231,37 +231,6 @@ int sao_read_line(sao_stream* fw)
  }while(0);
  return line_num;
 }
-p_sao_obj sao_get_var(p_sao_obj var, p_sao_obj ctx) {
- while ((ctx)) {
-  p_sao_obj frame = car(ctx);
-  p_sao_obj vars = car(frame);
-  p_sao_obj vals = cdr(frame);
-  while ((vars)) {
-   if (sao_is_eq(car(vars), var)) return car(vals);
-   vars = cdr(vars);
-   vals = cdr(vals);
-  }
-  ctx = cdr(ctx);
- }
- return SAO_TAG_nil;
-}
-p_sao_obj sao_set(p_sao_obj var, p_sao_obj val, p_sao_obj ctx) {
- while ((ctx)) {
-  p_sao_obj frame = car(ctx);
-  p_sao_obj vars = car(frame);
-  p_sao_obj vals = cdr(frame);
-  while ((vars)) {
-   if (sao_is_eq(car(vars), var)) {
-    vals->car = val;
-    return car(vals);
-   }
-   vars = cdr(vars);
-   vals = cdr(vals);
-  }
-  ctx = cdr(ctx);
- }
- return val;
-}
 p_sao_obj sao_var(p_sao_obj var, p_sao_obj val, p_sao_obj ctx)
 {
  if(!ctx) do{libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"ASSERT: sao_var() need ctx");libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"\n");libc_(libc_exit,"exit")(1);}while(0);
@@ -427,7 +396,7 @@ p_sao_obj sao_load_expr(sao_stream * fw) {
 }
 typedef enum { ctype_long, ctype_double, ctype_int, ctype_float, ctype_i64, ctype_u64, ctype_string, ctype_struct, ctype_pointer, } ctype_t; ffic_string ctype_names[] = { "long", "double", "int", "float", "i64", "u64", "string", "struct", "pointer", };;
 enum { type_ctype=1+type_string, type_native, };
-p_sao_obj SAO_TAG_true=(void*)0; p_sao_obj SAO_TAG_false=(void*)0; p_sao_obj SAO_TAG_set=(void*)0; p_sao_obj SAO_TAG_let=(void*)0; p_sao_obj SAO_TAG_var=(void*)0; p_sao_obj SAO_TAG_if=(void*)0; p_sao_obj SAO_TAG_lambda=(void*)0; p_sao_obj SAO_TAG_procedure=(void*)0; p_sao_obj SAO_TAG_at=(void*)0;;
+p_sao_obj SAO_TAG_true=(void*)0; p_sao_obj SAO_TAG_false=(void*)0; p_sao_obj SAO_TAG_set=(void*)0; p_sao_obj SAO_TAG_let=(void*)0; p_sao_obj SAO_TAG_if=(void*)0; p_sao_obj SAO_TAG_lambda=(void*)0; p_sao_obj SAO_TAG_procedure=(void*)0; p_sao_obj SAO_TAG_at=(void*)0;;
 void _sao_print(ffic_string str, p_sao_obj el){
  if(!el) return sao_print_default(str, el);
  switch (el->_type) {
@@ -508,6 +477,37 @@ p_sao_obj sao_tbl_resize(p_sao_obj holder,int _len){
  }
  return holder;
 }
+p_sao_obj sao_get_var(p_sao_obj var, p_sao_obj ctx) {
+ while ((ctx)) {
+  p_sao_obj frame = car(ctx);
+  p_sao_obj vars = car(frame);
+  p_sao_obj vals = cdr(frame);
+  while ((vars)) {
+   if (sao_is_eq(car(vars), var)) return car(vals);
+   vars = cdr(vars);
+   vals = cdr(vals);
+  }
+  ctx = cdr(ctx);
+ }
+ return SAO_TAG_nil;
+}
+p_sao_obj sao_set(p_sao_obj var, p_sao_obj val, p_sao_obj ctx) {
+ while ((ctx)) {
+  p_sao_obj frame = car(ctx);
+  p_sao_obj vars = car(frame);
+  p_sao_obj vals = cdr(frame);
+  while ((vars)) {
+   if (sao_is_eq(car(vars), var)) {
+    vals->car = val;
+    return car(vals);
+   }
+   vars = cdr(vars);
+   vals = cdr(vals);
+  }
+  ctx = cdr(ctx);
+ }
+ return val;
+}
 p_sao_obj _sao_eval(p_sao_obj expr, p_sao_obj ctx) {
 tail:
  if (!expr) return SAO_TAG_nil;
@@ -547,7 +547,8 @@ tail:
      p_sao_obj _cddr = cddr(expr);
      return cons(SAO_TAG_procedure, cons(_cadr, cons(_cddr, cons(ctx, SAO_TAG_nil))));
     }
-    else if (sao_is_eq(_car, SAO_TAG_var) || sao_is_eq(_car,SAO_TAG_at)) {
+    else if (
+      sao_is_eq(_car,SAO_TAG_at)) {
      if ((_cadr&&_cadr->_type)) sao_var(_cadr, sao_eval(caddr(expr), ctx), ctx);
      else {
       sao_var(car(_cadr), sao_eval(cons(SAO_TAG_lambda, cons(cdr(_cadr),cddr(expr))), ctx), ctx);
@@ -645,17 +646,6 @@ p_sao_obj native_debug(p_sao_obj args,p_sao_obj ctx) {
   }
  }else
   libc_(libc_printf,"printf")("\n native_debug TODO no args");
- return SAO_TAG_true;
-}
-p_sao_obj native_var(p_sao_obj args, p_sao_obj ctx) {
- p_sao_obj _cadr = car(args);
- p_sao_obj _cdr = args;
- if ((_cadr&&_cadr->_type)){
-  libc_(libc_printf,"printf")("DEBUG 201",0);
- }
- else {
-  sao_print("DEBUG 202 args",args);
- }
  return SAO_TAG_true;
 }
 p_sao_obj native_list(p_sao_obj args,p_sao_obj ctx) { return (args); }
@@ -931,7 +921,7 @@ p_sao_obj saolang_init()
 {
  sao_print = _sao_print;
  sao_eval = _sao_eval;
- SAO_TAG_true=sao_new((sao_obj){._type=type_symbol,._string="true"});sao_var(SAO_TAG_true,SAO_TAG_true,SAO_TAG_global); SAO_TAG_false=sao_new((sao_obj){._type=type_symbol,._string="false"});sao_var(SAO_TAG_false,SAO_TAG_false,SAO_TAG_global); SAO_TAG_set=sao_new((sao_obj){._type=type_symbol,._string="set"});sao_var(SAO_TAG_set,SAO_TAG_set,SAO_TAG_global); SAO_TAG_let=sao_new((sao_obj){._type=type_symbol,._string="let"});sao_var(SAO_TAG_let,SAO_TAG_let,SAO_TAG_global); SAO_TAG_var=sao_new((sao_obj){._type=type_symbol,._string="var"});sao_var(SAO_TAG_var,SAO_TAG_var,SAO_TAG_global); SAO_TAG_if=sao_new((sao_obj){._type=type_symbol,._string="if"});sao_var(SAO_TAG_if,SAO_TAG_if,SAO_TAG_global); SAO_TAG_lambda=sao_new((sao_obj){._type=type_symbol,._string="lambda"});sao_var(SAO_TAG_lambda,SAO_TAG_lambda,SAO_TAG_global); SAO_TAG_procedure=sao_new((sao_obj){._type=type_symbol,._string="procedure"});sao_var(SAO_TAG_procedure,SAO_TAG_procedure,SAO_TAG_global); SAO_TAG_at=sao_new((sao_obj){._type=type_symbol,._string="at"});sao_var(SAO_TAG_at,SAO_TAG_at,SAO_TAG_global);;
+ SAO_TAG_true=sao_new((sao_obj){._type=type_symbol,._string="true"});sao_var(SAO_TAG_true,SAO_TAG_true,SAO_TAG_global); SAO_TAG_false=sao_new((sao_obj){._type=type_symbol,._string="false"});sao_var(SAO_TAG_false,SAO_TAG_false,SAO_TAG_global); SAO_TAG_set=sao_new((sao_obj){._type=type_symbol,._string="set"});sao_var(SAO_TAG_set,SAO_TAG_set,SAO_TAG_global); SAO_TAG_let=sao_new((sao_obj){._type=type_symbol,._string="let"});sao_var(SAO_TAG_let,SAO_TAG_let,SAO_TAG_global); SAO_TAG_if=sao_new((sao_obj){._type=type_symbol,._string="if"});sao_var(SAO_TAG_if,SAO_TAG_if,SAO_TAG_global); SAO_TAG_lambda=sao_new((sao_obj){._type=type_symbol,._string="lambda"});sao_var(SAO_TAG_lambda,SAO_TAG_lambda,SAO_TAG_global); SAO_TAG_procedure=sao_new((sao_obj){._type=type_symbol,._string="procedure"});sao_var(SAO_TAG_procedure,SAO_TAG_procedure,SAO_TAG_global); SAO_TAG_at=sao_new((sao_obj){._type=type_symbol,._string="at"});sao_var(SAO_TAG_at,SAO_TAG_at,SAO_TAG_global);;
  SAO_TAG_at=sao_new((sao_obj){._type=type_symbol,._string="@"});sao_var(SAO_TAG_at,SAO_TAG_at,SAO_TAG_global);
  sao_var(sao_new((sao_obj){._type=type_symbol,._string="print"}), sao_new((sao_obj){._type=type_native, ._native=native_print,._ffi="print"}), SAO_TAG_global); sao_var(sao_new((sao_obj){._type=type_symbol,._string="lt"}), sao_new((sao_obj){._type=type_native, ._native=native_lt,._ffi="lt"}), SAO_TAG_global); sao_var(sao_new((sao_obj){._type=type_symbol,._string="add"}), sao_new((sao_obj){._type=type_native, ._native=native_add,._ffi="add"}), SAO_TAG_global); sao_var(sao_new((sao_obj){._type=type_symbol,._string="sub"}), sao_new((sao_obj){._type=type_native, ._native=native_sub,._ffi="sub"}), SAO_TAG_global); sao_var(sao_new((sao_obj){._type=type_symbol,._string="exit"}), sao_new((sao_obj){._type=type_native, ._native=native_exit,._ffi="exit"}), SAO_TAG_global);;
  sao_var(sao_new((sao_obj){._type=type_symbol,._string="atom"}), sao_new((sao_obj){._type=type_native, ._native=native_atom,._ffi="atom"}), SAO_TAG_global); sao_var(sao_new((sao_obj){._type=type_symbol,._string="eq"}), sao_new((sao_obj){._type=type_native, ._native=native_eq,._ffi="eq"}), SAO_TAG_global); sao_var(sao_new((sao_obj){._type=type_symbol,._string="car"}), sao_new((sao_obj){._type=type_native, ._native=native_car,._ffi="car"}), SAO_TAG_global); sao_var(sao_new((sao_obj){._type=type_symbol,._string="cdr"}), sao_new((sao_obj){._type=type_native, ._native=native_cdr,._ffi="cdr"}), SAO_TAG_global); sao_var(sao_new((sao_obj){._type=type_symbol,._string="cons"}), sao_new((sao_obj){._type=type_native, ._native=native_cons,._ffi="cons"}), SAO_TAG_global);;
@@ -940,7 +930,6 @@ p_sao_obj saolang_init()
  sao_var(sao_new((sao_obj){._type=type_symbol,._string="-"}), sao_new((sao_obj){._type=type_native, ._native=native_sub,._ffi="-"}), SAO_TAG_global);
  sao_var(sao_new((sao_obj){._type=type_symbol,._string="*"}), sao_new((sao_obj){._type=type_native, ._native=native_mul,._ffi="*"}), SAO_TAG_global);
  sao_var(sao_new((sao_obj){._type=type_symbol,._string="/"}), sao_new((sao_obj){._type=type_native, ._native=native_div,._ffi="/"}), SAO_TAG_global);
- sao_var(sao_new((sao_obj){._type=type_symbol,._string="@"}), sao_new((sao_obj){._type=type_native, ._native=native_var,._ffi="@"}), SAO_TAG_global);
  sao_var(sao_new((sao_obj){._type=type_symbol,._string="c_int"}), sao_new((sao_obj){._type=type_native, ._native=native_c_int,._ffi="c_int"}), SAO_TAG_global);;
  return SAO_TAG_global;
 }
