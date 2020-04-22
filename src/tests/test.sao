@@ -3,15 +3,12 @@
 @(true,@T)
 @(false,@F)
 @(if,@?)
-
 @(add,@+)
 @(sub,@-)
 @(mul,@*)
 @(div,@/)
-
-@(eq,@=)
-#@(cmp,@=)
-
+##@(eq,@=)
+###@(cmp,@=)
 @(vector,@V)
 
 "English \"String\""
@@ -115,15 +112,15 @@ le(2,2) #@T
 #    fib_k_1 = Fibonacci_recursion_fast(k - 1)
 #    return fib_k**2 + fib_k_1**2 if n % 2 else (2 * fib_k_1 + fib_k) * fib_k
 #@(ff(n),if(cmp(n,0),0,if(cmp(n,1),1,(@(k,(n + 1) / 2 if n % 2 else n / 2),fib_k,fib_k_1)))
-@(fib(n),if(lt(n,3),1,add(fib(sub(n,1)),fib(sub(n,2)))))
+@(fib(n),@?(lt(n,3),1,add(fib(sub(n,1)),fib(sub(n,2)))))
 fib(11) #89
 
-@(fibonacci(n),if(lt(n,3),1,add(fibonacci(sub(n,1)),fibonacci(sub(n,2)))))
+@(fibonacci(n),@?(lt(n,3),1,add(fibonacci(sub(n,1)),fibonacci(sub(n,2)))))
 fibonacci(12)
 @(fb(n),if(lt(n,3),1,+(fb(-(n,1)),fb(-(n,2)))))
 fb(20)
 
-@(factorial(n),if(@=(n,0),1,mul(n,factorial(sub(n 1)))))
+@(factorial(n),@?(@=(n,0),1,mul(n,factorial(sub(n 1)))))
 factorial(5)
 
 @(x list(1 2 3))
@@ -133,10 +130,10 @@ print(x) # output list(1 2 3)
 
 
 #@(factorial lambda(n() if(@=(n 0) 1 mul(n factorial(sub(n 1))))))
-@(factorial,lambda(n(),if(@=(n,0),1,mul(n,factorial(sub(n,1)))))) # n=>if(@=(n 0) 1 mul(n factorial(sub(n 1))))
+@(factorial,lambda(n(),@?(@=(n,0),1,mul(n,factorial(sub(n,1)))))) # n=>if(@=(n 0) 1 mul(n factorial(sub(n 1))))
 factorial(5) #120
 
-@(factorial,lambda((n),if(@=(n,0),1,mul(n,factorial(sub(n,1)))))) # n=>if(@=(n 0) 1 mul(n factorial(sub(n 1))))
+@(factorial,lambda((n),@?(@=(n,0),1,mul(n,factorial(sub(n,1)))))) # n=>if(@=(n 0) 1 mul(n factorial(sub(n 1))))
 factorial(5) #120
 
 #@(add1 lambda(n() add(1 n)))
@@ -145,7 +142,7 @@ factorial(5) #120
 add1(3)
 
 @(sos_helper lambda(remaining(sum_so_far)
-      if(is_nil(remaining) 
+      @?(is_nil(remaining) 
         sum_so_far 
         sos_helper(cdr(remaining) add(sum_so_far mul(car(remaining) car(remaining)))))))
 
