@@ -153,52 +153,7 @@ tail://tail loop to save recursive stacks
 				for(int i=0;i<expr->_len;i++){ rt->_vector[i] = sao_eval(expr->_vector[i],ctx); }
 				return rt;
 			}
-		case type_symbol:
-			{
-				return sao_get_var(expr, ctx);
-//				//sao_print("WARN: 399 ", expr);//
-//				//sao_print("WARN: 398 ", ctx);//
-//				p_sao_obj rt = sao_get_var(expr, ctx);
-//				if(rt) {
-//					//p_sao_obj rt2 = sao_get_var(rt, ctx);
-//					//if(rt2){
-//					//	if(rt2==rt){
-//					//		//skip same
-//					//		sao_print("{DEBUG: 301 rt2=", rt2);//
-//					//		sao_stdout("}");
-//					//	}else{
-//					//		sao_print("{DEBUG: 300 rt2=", rt2);//
-//					//		sao_stdout("}");
-//					//		rt = rt2;
-//					//	}
-//					//}
-//					if(rt==expr){
-//					}else{
-//						if(sao_is_eq(expr,rt)){
-//							//sao_print("\n { WARN: 385 expr=", expr);//
-//							//sao_print("\n WARN: 386 rt=", rt);//
-//							//sao_stdout("} \n");
-//						}else{
-//							sao_print("\n { WARN: 387 expr=", expr);//
-//							sao_print("\n WARN: 388 rt=", rt);//
-//							sao_stdout("} \n");
-//							//TODO try again...
-//							p_sao_obj rt2 = sao_get_var(rt, ctx);
-//							rt = rt2;
-//						}
-//					}
-//				}else{
-//					sao_print("WARN: 399 ", expr);//
-//					sao_stdout("\n");
-//				}
-////				if(!rt){
-////					sao_print("WARN: 399 ", expr);//
-////					sao_stdout("\n");
-////				}else{
-////					//sao_print("DEBUG: 396 ", expr);//
-////				}
-//				return rt;
-			}
+		case type_symbol: return sao_get_var(expr, ctx);
 		case type_list:
 			{
 				p_sao_obj _car = car(expr);
@@ -208,7 +163,6 @@ tail://tail loop to save recursive stacks
 				if(!_car){ return cons(SAO_TAG_nil,sao_eval_list(_cdr, ctx)); }
 				if (sao_is_eq(_car, SAO_TAG_quote)) { return _cadr; }
 				if (sao_is_eq(_car, SAO_TAG_vector)) {//TODO need improve 
-					//return _cdr;
 					p_sao_obj vector_a[512];
 					int i=0;
 					for (;;) {
@@ -316,42 +270,7 @@ tail://tail loop to save recursive stacks
 						expr = cons(SAO_TAG_begin, caddr(proc));
 						goto tail;//
 					}
-
-					//if
-					//	(proc==_car)
-					//	//(sao_is_eq(proc,_car))//TODO
-					//{
-//						sao_print("{WARN: 400 expr=", expr);//
-//						sao_print("WARN: 400 _car=", _car);//
-//						sao_print("WARN: 400 proc=", proc);//
-//						sao_stdout("}\n");
-					//}else{
-					//	sao_print("{WARN: 401 expr=", expr);//
-					//	sao_print("WARN: 401 _car=", _car);//
-					//	sao_print("WARN: 401 proc=", proc);//
-					//	sao_stdout("}\n");
-					//	//expr = cons(proc, _cdr);//try again
-					//	//goto tail;
-					//}
-//						if(proc->_type==type_symbol){
-//							sao_print("{DEBUG 405 proc=", proc);//
-//							sao_stdout("}\n");
-//							expr = cons(proc, _cdr);//try again
-//							goto tail;
-//						}else{
-//							//sao_print("{WARN: 400 expr=", expr);//
-//							//sao_print("WARN: 400 _car=", _car);//
-//							//sao_print("\nWARN: 400 proc=", proc);//
-//							sao_stdout("{DEBUG 377!!}\n");
-//							//return SAO_TAG_nil;//TMP, TODO
-//						}
 				}
-				//sao_print("{WARN: 4000 expr", expr);//
-				//sao_print("WARN: 4000 _car", _car);//
-				//sao_stdout("}\n");
-				//return SAO_TAG_nil;
-				//return expr;
-				//break;
 			}
 		default:
 			sao_print("TODO {",expr);
@@ -637,7 +556,13 @@ p_sao_obj native_ffi(p_sao_obj args,p_sao_obj ctx) {
 	//libc(system)("ls");
 	return SAO_TAG_true;
 }
-p_sao_obj native_exit(p_sao_obj args,p_sao_obj ctx) { libc(exit)(0); return SAO_TAG_nil; }
+p_sao_obj native_exit(p_sao_obj args,p_sao_obj ctx) {
+	p_sao_obj _car = car(args);
+	if(_car){
+		sao_print(0,_car);
+		sao_stdout("\n");
+	}
+	libc(exit)(0); return SAO_TAG_nil; }
 //TODO merge read/load
 p_sao_obj native_read(p_sao_obj args,p_sao_obj ctx) { return sao_load_expr(sao_stream_new(libc(stdin),stream_file)); }
 p_sao_obj native_load(p_sao_obj args,p_sao_obj ctx) { //TODO merge with native_read() 1!
@@ -675,15 +600,16 @@ p_sao_obj native_vset(p_sao_obj args,p_sao_obj ctx){
 }
 p_sao_obj native_print(p_sao_obj list,p_sao_obj ctx) {
 	p_sao_obj _ptr;
+	p_sao_obj rt=SAO_TAG_nil;
 	int t = 0;
 	for(;;){
 		_ptr = car(list);
 		if(!_ptr) break;
+		rt = _ptr;
 		sao_print(t?" ":0,_ptr);t=1;
 		list = cdr(list);
 	}
-	sao_stdout("\n");
-	return _ptr;
+	return rt;
 }
 p_sao_obj native_c_int(p_sao_obj args,p_sao_obj ctx) {
 	p_sao_obj _car;

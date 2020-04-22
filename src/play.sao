@@ -1,3 +1,23 @@
+"English \"String\""
+"English String"
+"中文字串"
+print("English String")
+print("中文字串")
+
+@(assert(r),@?(r,print(r),exit("ko")))
+assert(@T)
+
+# logic version (slow)
+@(fb(n),@?(lt(n,3),1,@+(fb(@-(n,1)),fb(@-(n,2)))))
+assert(@=(55,fb(10)))
+
+#tail version O(n)
+@(fbi(a,b,count),@?(@==(count,0),b,fbi(@+(a,b),a,@-(count,1))))
+#var(fib(n),fbi(1,0,n))
+@(fib(n),fbi(1,0,n))
+assert(@=(12586269025,fib(50)))
+
+
 @(var,@)
 @(nil,@@)
 @(true,@T)
@@ -13,16 +33,13 @@
 @(vector,@V)
 @(is_nil,@@?)
 
-"English \"String\""
-"English String"
-"中文字串"
-print("English String")
-print("中文字串")
+@(x,1)
+assert(@=(1,x))
 
+var(m,3)
+assert(@=(3,m))
 
-@(assert(r),@?(r,print(r),exit("ko")))
-assert(@T)
-
+assert(@=(3,m))
 
 @(fib(n),@?(lt(n,3),1,add(fib(sub(n,1)),fib(sub(n,2)))))
 fib(10)
@@ -36,10 +53,4 @@ fib(10)
 ## assert(@==(@F,@@?(@F)))
 ## 
 ## assert(@==(@F,is_nil(@F)))
-
-@(fb(n),@?(lt(n,3),1,@+(fb(@-(n,1)),fb(@-(n,2)))))
-fb(20)
-
-@(fb(n),@?(lt(n,3),1,@+(fb(@-(n,1)),fb(@-(n,2)))))
-fb(30)
 
