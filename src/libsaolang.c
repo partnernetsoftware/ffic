@@ -155,28 +155,49 @@ tail://tail loop to save recursive stacks
 			}
 		case type_symbol:
 			{
-				//sao_print("WARN: 399 ", expr);//
-				//sao_print("WARN: 398 ", ctx);//
-				p_sao_obj rt = sao_get_var(expr, ctx);
-				if(rt) {
-					p_sao_obj rt2 = sao_get_var(rt, ctx);
-					if(rt2){
-						if(rt2==rt){
-							//skip same
-						}else{
-							sao_print("{DEBUG: 300 rt2=", rt2);//
-							sao_stdout("}");
-							rt = rt2;
-						}
-					}
-				}
-//				if(!rt){
+				return sao_get_var(expr, ctx);
+//				//sao_print("WARN: 399 ", expr);//
+//				//sao_print("WARN: 398 ", ctx);//
+//				p_sao_obj rt = sao_get_var(expr, ctx);
+//				if(rt) {
+//					//p_sao_obj rt2 = sao_get_var(rt, ctx);
+//					//if(rt2){
+//					//	if(rt2==rt){
+//					//		//skip same
+//					//		sao_print("{DEBUG: 301 rt2=", rt2);//
+//					//		sao_stdout("}");
+//					//	}else{
+//					//		sao_print("{DEBUG: 300 rt2=", rt2);//
+//					//		sao_stdout("}");
+//					//		rt = rt2;
+//					//	}
+//					//}
+//					if(rt==expr){
+//					}else{
+//						if(sao_is_eq(expr,rt)){
+//							//sao_print("\n { WARN: 385 expr=", expr);//
+//							//sao_print("\n WARN: 386 rt=", rt);//
+//							//sao_stdout("} \n");
+//						}else{
+//							sao_print("\n { WARN: 387 expr=", expr);//
+//							sao_print("\n WARN: 388 rt=", rt);//
+//							sao_stdout("} \n");
+//							//TODO try again...
+//							p_sao_obj rt2 = sao_get_var(rt, ctx);
+//							rt = rt2;
+//						}
+//					}
+//				}else{
 //					sao_print("WARN: 399 ", expr);//
 //					sao_stdout("\n");
-//				}else{
-//					//sao_print("DEBUG: 396 ", expr);//
 //				}
-				return rt;
+////				if(!rt){
+////					sao_print("WARN: 399 ", expr);//
+////					sao_stdout("\n");
+////				}else{
+////					//sao_print("DEBUG: 396 ", expr);//
+////				}
+//				return rt;
 			}
 		case type_list:
 			{
@@ -267,15 +288,19 @@ tail://tail loop to save recursive stacks
 					for (idx = _cadr; (idx); idx = cdr(idx)) { vars = cons(caar(idx), vars); vals = cons(cadar(idx), vals); }
 					expr = cons(sao_new_lambda(vars, cddr(expr)), vals);
 					goto tail;
-				}else
+				}
+				else
 				{
 					p_sao_obj proc = sao_eval(_car, ctx);
 					if (!proc) {
 						//if(SAO_ARGV(s)){
-						sao_print("WARN: 404 ", expr);//
+						sao_print("WARN: 404 expr=", expr);//
+						sao_print("WARN: 404 _car=", _car);//
 						sao_stdout("\n");
 						//}
-						return SAO_TAG_nil;
+						//return SAO_TAG_nil;
+						//return expr;
+						break;
 					}
 					p_sao_obj args = sao_eval_list(cdr(expr), ctx);
 					if (proc->_type == type_native){
@@ -291,11 +316,42 @@ tail://tail loop to save recursive stacks
 						expr = cons(SAO_TAG_begin, caddr(proc));
 						goto tail;//
 					}
+
+					//if
+					//	(proc==_car)
+					//	//(sao_is_eq(proc,_car))//TODO
+					//{
+//						sao_print("{WARN: 400 expr=", expr);//
+//						sao_print("WARN: 400 _car=", _car);//
+//						sao_print("WARN: 400 proc=", proc);//
+//						sao_stdout("}\n");
+					//}else{
+					//	sao_print("{WARN: 401 expr=", expr);//
+					//	sao_print("WARN: 401 _car=", _car);//
+					//	sao_print("WARN: 401 proc=", proc);//
+					//	sao_stdout("}\n");
+					//	//expr = cons(proc, _cdr);//try again
+					//	//goto tail;
+					//}
+//						if(proc->_type==type_symbol){
+//							sao_print("{DEBUG 405 proc=", proc);//
+//							sao_stdout("}\n");
+//							expr = cons(proc, _cdr);//try again
+//							goto tail;
+//						}else{
+//							//sao_print("{WARN: 400 expr=", expr);//
+//							//sao_print("WARN: 400 _car=", _car);//
+//							//sao_print("\nWARN: 400 proc=", proc);//
+//							sao_stdout("{DEBUG 377!!}\n");
+//							//return SAO_TAG_nil;//TMP, TODO
+//						}
 				}
-				//sao_print("{WARN: 400 ", expr);//
-				//sao_print("WARN: 400 _car", _car);//
+				//sao_print("{WARN: 4000 expr", expr);//
+				//sao_print("WARN: 4000 _car", _car);//
 				//sao_stdout("}\n");
-				break;
+				//return SAO_TAG_nil;
+				//return expr;
+				//break;
 			}
 		default:
 			sao_print("TODO {",expr);
@@ -394,13 +450,13 @@ p_sao_obj native__null(p_sao_obj args,p_sao_obj ctx) { return SAO_TAG_nil; }
 p_sao_obj native__ctx(p_sao_obj args,p_sao_obj ctx) { return ctx; }
 //p_sao_obj native_is_nil(p_sao_obj args,p_sao_obj ctx) { return (car(args)) ? SAO_TAG_false : SAO_TAG_true; }
 p_sao_obj native_is_nil(p_sao_obj args,p_sao_obj ctx) {
-	p_sao_obj rt = SAO_TAG_false;//nil=>false
+	p_sao_obj rt = SAO_TAG_false;
 	for(;;){
-		if(!args) rt = SAO_TAG_true;
+		if(!args){rt = SAO_TAG_true;break;}
 		p_sao_obj _car = car(args);
-		if(!_car) rt = SAO_TAG_true;
+		if(!_car){rt = SAO_TAG_true;}
 		else if(sao_is_list(_car)){
-			if(!car(_car) && !cdr(_car)) rt = SAO_TAG_true;
+			if(!car(_car) && !cdr(_car)) rt = SAO_TAG_true;// regard () as nil too
 		}
 		break;
 	}
@@ -430,6 +486,14 @@ p_sao_obj native_atom(p_sao_obj expr,p_sao_obj ctx) {
 p_sao_obj native_cmp(p_sao_obj args,p_sao_obj ctx) {
 	p_sao_obj _a = car(args);
 	p_sao_obj _b = cadr(args);
+
+	if(!_a){
+		if(!_b){
+			sao_print("<DEBUG !_a&&!_b:",args);
+			sao_stdout(">");
+			return SAO_TAG_true;
+		}
+	}
 	if(_a && _a->_type!=type_long){
 		//sao_print("DEBUG _a",_a);
 		return SAO_TAG_false;
@@ -656,9 +720,12 @@ p_sao_obj saolang_init()
 	add_sym_list_sx("@-",  sub);
 	add_sym_list_sx("@*",  mul);
 	add_sym_list_sx("@/",  div);
-	add_sym_list_sx("@=",  cmp);//
+	add_sym_list_sx("@=",  cmp);//TODO to remove soon !
 	add_sym_list_sx("@==", cmp);//
 	add_sym_list_sx("@===",same);//..TODO !!
+	add_sym_list_sx("@@?", is_nil);//
+
+	//TODO $? last result ?
 
 	//SAO_TAG_true=sao_new_symbol("@1");sao_var(SAO_TAG_true,SAO_TAG_true,SAO_TAG_global);
 	//SAO_TAG_false=sao_new_symbol("@0");sao_var(SAO_TAG_false,SAO_TAG_false,SAO_TAG_global);
@@ -689,7 +756,9 @@ p_sao_obj saolang_init()
 			//add,sub,mul,div,
 			//cmp,
 			lt,gt,//logic,
-			is_empty,is_nil,is_list,pairq,
+			is_empty,//TODO merge with @?
+			//is_nil,
+			is_list,pairq,
 			//eq,
 			same,//helpers
 			_null,_ctx,//for debug only...

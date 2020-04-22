@@ -1,0 +1,45 @@
+@(var,@)
+@(nil,@@)
+@(true,@T)
+@(false,@F)
+@(if,@?)
+@(add,@+)
+@(sub,@-)
+@(mul,@*)
+@(div,@/)
+#@(eq,@=)
+@(cmp,@==)
+@(same,@===)
+@(vector,@V)
+@(is_nil,@@?)
+
+"English \"String\""
+"English String"
+"中文字串"
+print("English String")
+print("中文字串")
+
+
+@(assert(r),@?(r,print(r),exit("ko")))
+assert(@T)
+
+
+@(fib(n),@?(lt(n,3),1,add(fib(sub(n,1)),fib(sub(n,2)))))
+fib(10)
+
+#eq(@F,@@?(@F))
+@==(@F,@@?(@F))
+
+@@?(@F)
+@==(@F,@@?(@F))
+
+## assert(@==(@F,@@?(@F)))
+## 
+## assert(@==(@F,is_nil(@F)))
+
+@(fb(n),@?(lt(n,3),1,@+(fb(@-(n,1)),fb(@-(n,2)))))
+fb(20)
+
+@(fb(n),@?(lt(n,3),1,@+(fb(@-(n,1)),fb(@-(n,2)))))
+fb(30)
+

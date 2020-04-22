@@ -42,7 +42,7 @@
 ## Return the maximum value from a list of integers
 #@(max(list_of_numbers)
 #  @(max_iter(best remaining)
-#    cond((is_nil(remaining) best)
+#    cond((@@?(remaining) best)
 #      (gt(car(remaining) best) max_iter(car(remaining) cdr(remaining)))
 #      else(max_iter(best cdr(remaining)))
 #			))
@@ -51,7 +51,7 @@
 ## Return the minimum value from a list of integers
 #@(min(list_of_numbers)
 #  @(min_iter(best remaining)
-#    cond((is_nil(remaining) best)
+#    cond((@@?(remaining) best)
 #      (lt(car(remaining) best) min_iter(car(remaining) cdr(remaining)))
 #      else(min_iter(best cdr(remaining)))
 #			))
@@ -59,13 +59,13 @@
 
 # Map a function f onto list a
 #@(map @L(f(a)
-#    @?(is_nil(a) 
+#    @?(@@?(a) 
 #      ^()
 #      cons(f(car(a)) map(f cdr(a))))))
 
 ## Provide the association pair of key from list
 #@(assoc(key list)
-#  @?(is_nil(list)
+#  @?(@@?(list)
 #    ^()
 #    @?(@=(key car(car(list))) 
 #      car(list)
@@ -103,7 +103,7 @@
 # Pointer to cdr if list, Pointer to object if pair
 @(last_item_in_list @L(list()
     @(helper(remaining)
-      @?(is_nil(cdr(remaining))
+      @?(@@?(cdr(remaining))
         remaining
         helper(cdr(remaining))))
     helper(list)))
@@ -118,7 +118,7 @@
 # Tail recursive length
 @(length(list)
   @(length_helper(accum remaining)
-    @?(is_nil(remaining)
+    @?(@@?(remaining)
       accum
       length_helper(add(1 accum) cdr(remaining))))
   length_helper(1 cdr(list)))
@@ -126,7 +126,7 @@
 # Append list2 to list1
 @(append @L(list1(list2) 
     @(append_helper(l1 l2)
-      @?(is_nil(l1)
+      @?(@@?(l1)
         l2
         cons(car(l1) append_helper(cdr(l1) l2))))
     append_helper(list1 list2)))
@@ -134,7 +134,7 @@
 # Reverse list
 #	@(reverse(_list)
 #			@(reverse_iter(remaining,first) 
-#				@?(is_nil(remaining)
+#				@?(@@?(remaining)
 #					print("first=",first),
 #					reverse_iter(cdr(remaining),cons(car(remaining),first)))
 #				)
@@ -143,7 +143,7 @@
 @(reverse(_list)
 		@(reverse_iter(remaining,first),
 #			print("remaining=>",remaining,"first=>",first)
-			@?(is_nil(remaining)
+			@?(@@?(remaining)
 				first 
 				reverse_iter(cdr(remaining),cons(car(remaining),first))
 				) #if

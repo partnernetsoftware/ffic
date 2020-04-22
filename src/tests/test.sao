@@ -25,20 +25,20 @@ print("中文字串")
 @(ensure(r),@?(r,print(r),exit("ko")))
 @(ensure(r),@?(r,print(r),print("ko")))
 
-eq(@F is_nil(@F))
-ensure(eq(@F is_nil(@F)) )
+eq(@F @@?(@F))
+ensure(eq(@F @@?(@F)) )
 
-is_nil(@F)
-is_nil(@T)
-is_nil(@T)
-is_nil(@F)
-is_nil()
-is_nil(@@)
+@@?(@F)
+@@?(@T)
+@@?(@T)
+@@?(@F)
+@@?()
+@@?(@@)
 @@()
-is_nil(@@())
+@@?(@@())
 
 vector(2 3 4)
-is_nil(cdr(vector(2 3 4) ))
+@@?(cdr(vector(2 3 4) ))
 list(2 3 4)
 cdr(list(2 3 4) )
 
@@ -142,13 +142,13 @@ factorial(5) #120
 add1(3)
 
 @(sos_helper @L(remaining(sum_so_far)
-      @?(is_nil(remaining) 
+      @?(@@?(remaining) 
         sum_so_far 
         sos_helper(cdr(remaining) add(sum_so_far mul(car(remaining) car(remaining)))))))
 
 @(sum_of_squares(num_list)
 #  @(sos_helper @L(remaining(sum_so_far)
-#      @?(is_nil(remaining) 
+#      @?(@@?(remaining) 
 #        sum_so_far 
 #        sos_helper(cdr(remaining) add(sum_so_far mul(car(remaining) car(remaining)))))))
   sos_helper(num_list 0))

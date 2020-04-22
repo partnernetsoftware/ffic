@@ -56,4 +56,5 @@ osx_sao:
 	#./upx_osx ./sao_osx
 	make test_sao_osx
 	ls -al sao*
-
+play:
+	cat play.sao | ./ffic sao.c d
