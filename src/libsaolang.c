@@ -1,7 +1,8 @@
 define_map(ctype,  long,double,int,float,i64,u64,string,struct,pointer);//etc TODO
 enum { type_ctype=1+type_string, type_native, };
 //#define LIST_SAO_TAG true,false,set,let,var,if,lambda,procedure,at
-#define LIST_SAO_TAG true,false,set,let,if,lambda,procedure,at
+//#define LIST_SAO_TAG true,false,set,let,if,lambda,procedure,at
+#define LIST_SAO_TAG true,false,set,let,if,lambda,procedure
 SAO_ITR(define_sao_tag, SAO_EXPAND(LIST_SAO_TAG));
 
 #define sao_new_vector(s) sao_new((sao_obj){._type=type_vector, ._len=s,._vector=SAO_NEW_C(p_sao_obj,s)})
@@ -84,7 +85,7 @@ p_sao_obj sao_vector_insert(p_sao_obj holder,p_sao_obj key_obj){
 	if(!holder->_len) sao_error("empty _vector._len?");
 	long h = sao_vector_hash(key_obj->_string, holder->_len);
 	if(the_vector[h]){
-		//sao_warn("TODO sao_vector_insert table need to resize (%d,%s)?\n",h,key_obj->_string);
+		//sao_warn("TODO sao_vector_insert map need to resize (%d,%s)?\n",h,key_obj->_string);
 	}
 	//if(!the_vector || (SAO_TAG_nil!= the_vector[h] && SAO_TAG_nil!=the_vector[h]->_string)){
 	//	int _len= 2*(holder->_len+1)-1 ;
@@ -185,18 +186,19 @@ tail://tail loop to save recursive stacks
 					}
 					p_sao_obj rt = sao_new_vector(i);
 					for(int j=0;j<i;j++){ rt->_vector[j]=vector_a[j]; }
-					return rt;
+					return rt;//TODO can go tail?
+				}
+				else if (sao_is_eq(_car, SAO_TAG_map)) {//TODO need improve 
+					 sao_error("TODO map...");
 				}
 				else if (sao_is_eq(_car, SAO_TAG_lambda)) {
 					p_sao_obj _cddr = cddr(expr);
-					return sao_new_procedure(_cadr, _cddr, ctx);
+					return sao_new_procedure(_cadr, _cddr, ctx);//no tail?
 				}
 				else if (sao_is_eq(_car,SAO_TAG_at)) {
 					if (sao_is_atom(_cadr)) sao_var(_cadr, sao_eval(caddr(expr), ctx), ctx);
-					else {
-						sao_var(car(_cadr), sao_eval(sao_new_lambda(cdr(_cadr), cddr(expr)), ctx), ctx);
-					}
-					return SAO_TAG_true;
+					else { sao_var(car(_cadr), sao_eval(sao_new_lambda(cdr(_cadr), cddr(expr)), ctx), ctx); }
+					return SAO_TAG_true;//no tail?
 				}
 				else if (sao_is_eq(_car, SAO_TAG_begin)) {
 					p_sao_obj args = cdr(expr);
@@ -267,25 +269,20 @@ tail://tail loop to save recursive stacks
 					if (proc->_type == type_native){
 						return proc->_native(args,ctx);
 					}
-					//TODO if empty native but ffi, should auto load into _native 
-
+					//TODO ffi soon
 					if ( sao_is_eq(car(proc), SAO_TAG_procedure))
 					{
 						p_sao_obj _cadr_proc = cadr(proc);
+						if(!car(_cadr_proc)){ _cadr_proc = cdr(_cadr_proc); }
 						//sao_print("\n; DEBUG _cadr_proc ",_cadr_proc);
-						if(!car(_cadr_proc)){//for NULL() case...
-							_cadr_proc = cdr(_cadr_proc);
-						}
-						//sao_print("\n; DEBUG _cadr_proc ",_cadr_proc);
-						ctx = cons(cons(_cadr_proc, args), cadddr(proc));//TODO to improve ctx
+						ctx = cons(cons(_cadr_proc, args), cadddr(proc));//TODO to improve 
 						expr = cons(SAO_TAG_begin, caddr(proc));
-						goto tail;
-					//}else{
-						//return expr;
+						goto tail;//
 					}
 				}
-				sao_print("WARN: 400 ", expr);//
+				sao_print("{WARN: 400 ", expr);//
 				sao_print("WARN: 400 _car", _car);//
+				sao_stdout("}\n");
 				break;
 			}
 		default:
@@ -629,13 +626,13 @@ p_sao_obj saolang_init()
 	sao_print = _sao_print;
 	sao_eval = _sao_eval;
 
-	SAO_TAG_at=sao_new_symbol("@");sao_var(SAO_TAG_at,SAO_TAG_at,SAO_TAG_global);
+	//SAO_TAG_at=sao_new_symbol("@");sao_var(SAO_TAG_at,SAO_TAG_at,SAO_TAG_global);
 
 //#define LIST_SAO_TAG true,false,set,let,if,lambda,procedure,at
 	//SAO_ITR(sao_add_sym_x, SAO_EXPAND(LIST_SAO_TAG));
 	SAO_ITR(sao_add_sym_x, set,let,lambda,procedure);
 
-	sao_add_sym_xs(at,"@");//def
+	//sao_add_sym_xs(at,"@");//def
 	sao_add_sym_xs(true,"@T");//@T
 	sao_add_sym_xs(false,"@F");//F
 	sao_add_sym_xs(if,"@?");
@@ -660,7 +657,7 @@ p_sao_obj saolang_init()
 	//sao_var(sao_new_symbol("@/"), sao_new_native(native_div,"@/"), SAO_TAG_global);
 	
 	//p_sao_obj g_symbol_holder = SAO_TAG_nil;
-	//g_symbol_holder = sao_new_vector(65536-1);//TODO auto expand for the tables
+	//g_symbol_holder = sao_new_vector(65536-1);//TODO auto expand for the map
 	SAO_ITR(add_sym_list, print,lt,//add,sub,
 			exit);//minimum for fib.sao
 	SAO_ITR(add_sym_list, //quote,cond,var(i.e. define),

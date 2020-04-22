@@ -1,30 +1,56 @@
 # SPEC
 
-```
 SaoLang is a customized LISP dialet, but the leading head/first object is show outside.
 
-## english keywords
+## symbolic keyworkds:
 
-none
-
-## symbolic keyworkds (global):
-
-| Symbol | meaning | 
+| Symbol | explain | 
 | -- | -- | -- |
 | @@ | nil | |
-| @() | var() | merge of declare/define/var/set/assign |
+| @T | true | |
+| @F | false | |
+| @() | at() | merge of declare/define/var/set/assign |
+| @?() | if() |
 | @+() | add() | |
 | @-() | sub() | |
-| @*() | mul() | |
+| @\*() | mul() | |
 | @/() | div() | |
-| @?() | if() |
 | ^() | quote() |
+| @^() | quote() |
+| @V | vector() |
+| @M | map() | |
+| @B | begin | new frame |
+| @E | end | end list |
 
 
-==()
-	equal
-===()
-  exactly
+```
+
+@=
+@==
+@===
+
+# for eval:
+set
+let
+//get
+lambda
+procedure
+```
+
+* non-native: 
+
+```
+@^(...) => ...
+[...] => @V(...) => vector (like json-array)
+{...} => @M(...) => map (like json-object)
+
+lambda => 
+
+
+Begin
+@B() 
+
+```
 
 #
 

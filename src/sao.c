@@ -94,7 +94,7 @@ p_sao_obj sao_new(sao_obj tpl) {
 	return ret;
 }
 #define define_sao_tag(n) p_sao_obj SAO_TAG_##n=SAO_NULL;
-SAO_ITR(define_sao_tag, nil,nilnil,vector,table,argv,global,begin,end,quote);
+SAO_ITR(define_sao_tag, nil,nilnil,at,vector,map,argv,global,begin,end,quote);
 typedef struct _FileChar { int c; struct _FileChar * ptr_prev; struct _FileChar * ptr_next; } FileChar;
 typedef struct {
 	stream_t _type;
@@ -332,6 +332,7 @@ p_sao_obj sao_load_expr(sao_stream * fw) {
 			case 0: case ' ': case '\t': case ',': if(theSymbol) break; continue;
 			case ';': case '#': for (int c=0;!(c == '\n' || c == SAO_EOF);c = sao_deq_c(fw)); continue;
 			case '^': return cons(SAO_TAG_quote, cons(sao_load_expr(fw), SAO_TAG_nil));
+			//case '@':break;//TODO the magic symbol
 			case '\"':
 				{
 					char buf[SAO_MAX_BUF_LEN] = {0};
@@ -346,7 +347,7 @@ p_sao_obj sao_load_expr(sao_stream * fw) {
 					return sao_new_string(buf);
 				}
 			case '}': case ']': case ')': return SAO_TAG_end;
-			case '{':return cons(SAO_TAG_table,sao_read_list(fw));
+			case '{':return cons(SAO_TAG_map,sao_read_list(fw));
 			case '[':return cons(SAO_TAG_vector,sao_read_list(fw));
 			case '(': {p_sao_obj list = sao_read_list(fw); return (SAO_ARGV(l) || !theSymbol)? list : cons(theSymbol,list);}
 			default:
@@ -401,12 +402,12 @@ int main(int argc,char **argv, char** envp) {
 	libc(setmode)(libc(fileno)(libc(stdin)),0x8000/*O_BINARY*/);
 	SAO_TAG_global = cons(cons(SAO_TAG_nil, SAO_TAG_nil), SAO_TAG_nil);
 	SAO_TAG_argv = cons(cons(SAO_TAG_nil, SAO_TAG_nil), SAO_TAG_nil);
-	//SAO_ITR(sao_add_sym_x, vector,table,begin,end);
 	SAO_TAG_nilnil=sao_new_symbol("@@");sao_var(SAO_TAG_nilnil,SAO_TAG_nil,SAO_TAG_global);
+	SAO_TAG_at=sao_new_symbol("@");sao_var(SAO_TAG_at,SAO_TAG_at,SAO_TAG_global);
 	//sao_add_sym_xs(quote,"@^");//
 	sao_add_sym_xs(quote,"^");//TODO improve it?
-	sao_add_sym_xs(vector,"@V");//
-	sao_add_sym_xs(table,"@T");//
+	sao_add_sym_xs(vector,"@V");//vector(like json-array)
+	sao_add_sym_xs(map,"@M");//map(like json-object)
 	sao_add_sym_xs(begin,"@B");//
 	sao_add_sym_xs(end,"@E");//
 
