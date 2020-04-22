@@ -8,7 +8,6 @@ SAO_ITR(define_sao_tag, SAO_EXPAND(LIST_SAO_TAG));
 #define sao_new_native(x,n) sao_new((sao_obj){._type=type_native, ._native=x,._ffi=n})
 #define sao_new_lambda(params,body) cons(SAO_TAG_lambda, cons(params,body))
 #define sao_new_procedure(params,body,ctx) cons(SAO_TAG_procedure, cons(params, cons(body, cons(ctx, SAO_TAG_nil))))
-//#define sao_add_sym_x(x) SAO_TAG_##x=sao_new_symbol(#x);sao_var(SAO_TAG_##x,SAO_TAG_##x,SAO_TAG_global);
 #define add_sym_list(n) sao_var(sao_new_symbol(#n), sao_new_native(native_##n,#n), SAO_TAG_global);
 
 void _sao_print(ffic_string str, p_sao_obj el){
@@ -160,6 +159,7 @@ tail://tail loop to save recursive stacks
 				p_sao_obj _car = car(expr);
 				p_sao_obj _cadr = cadr(expr);
 				p_sao_obj _cdr = cdr(expr);
+				if (!_car || sao_is_eq(_car, SAO_TAG_nilnil)) { return SAO_TAG_nil; }
 				if (sao_is_eq(_car, SAO_TAG_vector)) {//TODO need improve 
 					//return _cdr;
 					p_sao_obj vector_a[512];
@@ -628,15 +628,27 @@ p_sao_obj saolang_init()
 	//SAO_ITR(sao_add_sym_x, SAO_EXPAND(LIST_SAO_TAG));
 	SAO_ITR(sao_add_sym_x, set,let,lambda,procedure);
 
-	SAO_TAG_at=sao_new_symbol("@");sao_var(SAO_TAG_at,SAO_TAG_at,SAO_TAG_global);
-	SAO_TAG_true=sao_new_symbol("@1");sao_var(SAO_TAG_true,SAO_TAG_true,SAO_TAG_global);
-	SAO_TAG_false=sao_new_symbol("@0");sao_var(SAO_TAG_false,SAO_TAG_false,SAO_TAG_global);
-	SAO_TAG_if=sao_new_symbol("@?");sao_var(SAO_TAG_if,SAO_TAG_if,SAO_TAG_global);
+	sao_add_sym_xs(at,"@");//def
+	sao_add_sym_xs(true,"@T");//@T
+	sao_add_sym_xs(false,"@F");//F
+	sao_add_sym_xs(if,"@?");
 
-	sao_var(sao_new_symbol("@+"), sao_new_native(native_add,"@+"), SAO_TAG_global);
-	sao_var(sao_new_symbol("@-"), sao_new_native(native_sub,"@-"), SAO_TAG_global);
-	sao_var(sao_new_symbol("@*"), sao_new_native(native_mul,"@*"), SAO_TAG_global);
-	sao_var(sao_new_symbol("@/"), sao_new_native(native_div,"@/"), SAO_TAG_global);
+#define add_sym_list_xs(x,s) sao_var(sao_new_symbol(s), sao_new_native(native_##x,s), SAO_TAG_global);
+	add_sym_list_xs(add,"@+");
+	add_sym_list_xs(sub,"@-");
+	add_sym_list_xs(mul,"@*");
+	add_sym_list_xs(div,"@/");
+
+	add_sym_list_xs(eq,"@=");//
+	
+	//SAO_TAG_at=sao_new_symbol("@");sao_var(SAO_TAG_at,SAO_TAG_at,SAO_TAG_global);
+	//SAO_TAG_true=sao_new_symbol("@1");sao_var(SAO_TAG_true,SAO_TAG_true,SAO_TAG_global);
+	//SAO_TAG_false=sao_new_symbol("@0");sao_var(SAO_TAG_false,SAO_TAG_false,SAO_TAG_global);
+	//SAO_TAG_if=sao_new_symbol("@?");sao_var(SAO_TAG_if,SAO_TAG_if,SAO_TAG_global);
+	//sao_var(sao_new_symbol("@+"), sao_new_native(native_add,"@+"), SAO_TAG_global);
+	//sao_var(sao_new_symbol("@-"), sao_new_native(native_sub,"@-"), SAO_TAG_global);
+	//sao_var(sao_new_symbol("@*"), sao_new_native(native_mul,"@*"), SAO_TAG_global);
+	//sao_var(sao_new_symbol("@/"), sao_new_native(native_div,"@/"), SAO_TAG_global);
 	
 	//p_sao_obj g_symbol_holder = SAO_TAG_nil;
 	//g_symbol_holder = sao_new_vector(65536-1);//TODO auto expand for the tables

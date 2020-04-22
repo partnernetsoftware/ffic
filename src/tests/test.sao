@@ -1,11 +1,18 @@
-@(true,@1)
-@(false,@0)
 @(var,@)
+@(nil,@@)
+@(true,@T)
+@(false,@F)
+@(if,@?)
 
-# @(add,+)
-# @(sub,-)
-# @(mul,*)
-# @(div,/)
+@(add,@+)
+@(sub,@-)
+@(mul,@*)
+@(div,@/)
+
+@(eq,@=)
+#@(cmp,@=)
+
+@(vector,@V)
 
 "English \"String\""
 "English String"
@@ -18,19 +25,20 @@ print("中文字串")
 @(die(s1) print(s1) exit())
 ##die("wtf")
 
-@(ensure(r) if(r print(r) exit("ko") ))
+@(ensure(r),@?(r,print(r),exit("ko")))
+@(ensure(r),@?(r,print(r),print("ko")))
 
-eq(@0 is_nil(@0))
-ensure(eq(@0 is_nil(@0)) )
+eq(@F is_nil(@F))
+ensure(eq(@F is_nil(@F)) )
 
-is_nil(@0)
-is_nil(@1)
-is_nil(@1)
-is_nil(@0)
+is_nil(@F)
+is_nil(@T)
+is_nil(@T)
+is_nil(@F)
 is_nil()
-is_nil(nil)
-nil()
-is_nil(nil())
+is_nil(@@)
+@@()
+is_nil(@@())
 
 vector(2 3 4)
 is_nil(cdr(vector(2 3 4) ))
@@ -55,8 +63,8 @@ load("lib.sao")
 
 print("what is this")
 
-eq(if(1 @1 @0),@0) #@0
-eq(if(0 @1 @0),@0) #@1
+eq(if(1 @T @F),@F) #@F
+eq(if(0 @T @F),@F) #@T
 
 #min((7 5 3 4 1 6) )
 #max((4 5) )
@@ -84,14 +92,14 @@ car(list(4,5))                            # 4
 caar(list(list(4,5),6) )                 # 4
 cadar(list(list(4,5),6) )                # 5
 
-cmp(2 3)                                  # @0
-nc(2 3)                               # @1
+@=(2 3)                                  # @F
+nc(2 3)                               # @T
 
-cmp(3 3)                                  # @1
-nc(3 3)                               # @0
+@=(3 3)                                  # @T
+nc(3 3)                               # @F
 
-lt(2,3) #@1
-le(2,2) #@1
+lt(2,3) #@T
+le(2,2) #@T
 
 # TODO http://blog.zhengyi.one/fibonacci-in-logn.html
 # https://blog.csdn.net/Hackbuteer1/article/details/6684867
@@ -113,7 +121,7 @@ fibonacci(12)
 @(fb(n),if(lt(n,3),1,+(fb(-(n,1)),fb(-(n,2)))))
 fb(20)
 
-@(factorial(n),if(cmp(n,0),1,mul(n,factorial(sub(n 1)))))
+@(factorial(n),if(@=(n,0),1,mul(n,factorial(sub(n 1)))))
 factorial(5)
 
 @(x list(1 2 3))
@@ -122,11 +130,11 @@ factorial(5)
 print(x) # output list(1 2 3)
 
 
-#@(factorial lambda(n() if(cmp(n 0) 1 mul(n factorial(sub(n 1))))))
-@(factorial,lambda(n(),if(cmp(n,0),1,mul(n,factorial(sub(n,1)))))) # n=>if(cmp(n 0) 1 mul(n factorial(sub(n 1))))
+#@(factorial lambda(n() if(@=(n 0) 1 mul(n factorial(sub(n 1))))))
+@(factorial,lambda(n(),if(@=(n,0),1,mul(n,factorial(sub(n,1)))))) # n=>if(@=(n 0) 1 mul(n factorial(sub(n 1))))
 factorial(5) #120
 
-@(factorial,lambda((n),if(cmp(n,0),1,mul(n,factorial(sub(n,1)))))) # n=>if(cmp(n 0) 1 mul(n factorial(sub(n 1))))
+@(factorial,lambda((n),if(@=(n,0),1,mul(n,factorial(sub(n,1)))))) # n=>if(@=(n 0) 1 mul(n factorial(sub(n 1))))
 factorial(5) #120
 
 #@(add1 lambda(n() add(1 n)))

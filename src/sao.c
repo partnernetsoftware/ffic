@@ -94,7 +94,7 @@ p_sao_obj sao_new(sao_obj tpl) {
 	return ret;
 }
 #define define_sao_tag(n) p_sao_obj SAO_TAG_##n=SAO_NULL;
-SAO_ITR(define_sao_tag, nil,vector,table,argv,global,begin,end,quote);
+SAO_ITR(define_sao_tag, nil,nilnil,vector,table,argv,global,begin,end,quote);
 typedef struct _FileChar { int c; struct _FileChar * ptr_prev; struct _FileChar * ptr_next; } FileChar;
 typedef struct {
 	stream_t _type;
@@ -132,6 +132,7 @@ p_sao_obj caddr(p_sao_obj x) { return (sao_is_list(x)&&sao_is_list(x->cdr)&&sao_
 p_sao_obj cdddr(p_sao_obj x) { return (sao_is_list(x)&&sao_is_list(x->cdr)&&sao_is_list(x->cdr->cdr))? x->cdr->cdr->cdr:SAO_TAG_nil; }
 p_sao_obj cdadr(p_sao_obj x) { return (sao_is_list(x)&&sao_is_list(x->cdr)&&sao_is_list(x->cdr->car))? x->cdr->car->cdr:SAO_TAG_nil; }
 p_sao_obj cadddr(p_sao_obj x) { return (sao_is_list(x)&&sao_is_list(x->cdr)&&sao_is_list(x->cdr->cdr)&&sao_is_list(x->cdr->cdr->cdr))? x->cdr->cdr->cdr->car:SAO_TAG_nil; } //TODO macro sao_list_path(x,d,d,d,a) => x->cdr->cdr->cdr->car when compile...
+static void(*sao_print)(ffic_string,p_sao_obj);
 p_sao_obj sao_is_eq(p_sao_obj x, p_sao_obj y) {
 	do{
 		if (x == y) return x;
@@ -246,7 +247,6 @@ p_sao_obj sao_convert_default(ffic_string str){
 	}
 	return SAO_TAG_nil;
 }
-static void(*sao_print)(ffic_string,p_sao_obj);
 void sao_print_default(ffic_string str, p_sao_obj el){
 	if (str) sao_stdout(str);
 	if (!el) {sao_stdout("@@");return;}
@@ -367,6 +367,7 @@ p_sao_obj sao_load_expr(sao_stream * fw) {
 	return theSymbol;
 }
 #define sao_add_sym_x(x) SAO_TAG_##x=sao_new_symbol(#x);sao_var(SAO_TAG_##x,SAO_TAG_##x,SAO_TAG_global);
+#define sao_add_sym_xs(x,s) SAO_TAG_##x=sao_new_symbol(s);sao_var(SAO_TAG_##x,SAO_TAG_##x,SAO_TAG_global);
 #include "libsaolang.c"
 p_sao_obj sao_parse( sao_stream * fw, p_sao_obj ctx ) {
 	sao_read_line(fw);
@@ -400,7 +401,14 @@ int main(int argc,char **argv, char** envp) {
 	libc(setmode)(libc(fileno)(libc(stdin)),0x8000/*O_BINARY*/);
 	SAO_TAG_global = cons(cons(SAO_TAG_nil, SAO_TAG_nil), SAO_TAG_nil);
 	SAO_TAG_argv = cons(cons(SAO_TAG_nil, SAO_TAG_nil), SAO_TAG_nil);
-	SAO_ITR(sao_add_sym_x, quote,vector,table,begin,end);
+	//SAO_ITR(sao_add_sym_x, vector,table,begin,end);
+	sao_add_sym_xs(nilnil,"@@");//TODO
+	sao_add_sym_xs(quote,"@^");//TODO
+	sao_add_sym_xs(vector,"@V");//TODO
+	sao_add_sym_xs(table,"@T");//TODO
+	sao_add_sym_xs(begin,"@B");//TODO
+	sao_add_sym_xs(end,"@E");//TODO
+
 	ffic_string script_file = "-";
 	int found_any = 0;
 	if(argc>1){

@@ -1,3 +1,18 @@
+@(var,@)
+@(nil,@@)
+@(true,@T)
+@(false,@F)
+@(if,@?)
+
+@(add,@+)
+@(sub,@-)
+@(mul,@*)
+@(div,@/)
+
+@(eq,@=)
+#@(cmp,@=)
+
+@(vector,@V)
 #########################################################################
 
 #@(var,@)
@@ -17,7 +32,7 @@
 #@(gteq lambda(a b) if(lt(a b) false true)))
 #@(lteq lambda(a b) if(gt(a b) false true)))
 #@(notcmp(a b) if(cmp(a b) false true))
-@(notcmp(a b) if(cmp(a b) false true))
+@(notcmp(a b) if(@=(a b) false true))
 @(gteq(a b) if(lt(a b) false true))
 @(lteq(a b) if(gt(a b) false true))
 @(ge gteq)
@@ -94,9 +109,10 @@
     helper(list)))
 
 #@(range_from(start,finish),if(cmp(start,finish),cons(finish,nil),cons(start,range_from(add(1,start),finish))))
-@(range_from(start,finish),if(cmp(start,finish),finish,cons(start,range_from(add(1,start),finish))))
+#@(range_from(start,finish),if(@=(start,finish),finish,cons(start,range_from(add(1,start),finish))))
+@(range_from(start,finish),@?(@=(start,finish),finish,cons(start,range_from(@+(1,start),finish))))
 
-#@(range(number),@(range_helper(start,max),if(cmp(start,max),max,cons(start,range_helper(add(1,start),max)))),range_helper(0,number))
+#@(range(number),@(range_helper(start,max),if(@=(start,max),max,cons(start,range_helper(add(1,start),max)))),range_helper(0,number))
 @(range(n),range_from(0,n))
 
 # Tail recursive length
@@ -132,8 +148,7 @@
 				reverse_iter(cdr(remaining),cons(car(remaining),first))
 				) #if
 			)
-		#reverse_iter(_list ^())
-		reverse_iter(_list nil)
+		reverse_iter(_list ^())
 	 )
 @(pow(num exp) 
   @(iter(a b) 
@@ -178,7 +193,7 @@
 # Simple loop
 @(for lambda(start(end do)
     @(for_loop(a z)
-      if(cmp(a z)
+      if(@=(a z)
         ^Done;; Last iteration
         begin(
           do()
