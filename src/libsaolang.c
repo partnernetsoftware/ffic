@@ -292,9 +292,9 @@ tail://tail loop to save recursive stacks
 						goto tail;//
 					}
 				}
-				sao_print("{WARN: 400 ", expr);//
-				sao_print("WARN: 400 _car", _car);//
-				sao_stdout("}\n");
+				//sao_print("{WARN: 400 ", expr);//
+				//sao_print("WARN: 400 _car", _car);//
+				//sao_stdout("}\n");
 				break;
 			}
 		default:
@@ -431,11 +431,11 @@ p_sao_obj native_cmp(p_sao_obj args,p_sao_obj ctx) {
 	p_sao_obj _a = car(args);
 	p_sao_obj _b = cadr(args);
 	if(_a && _a->_type!=type_long){
-		sao_print("DEBUG _a",_a);
+		//sao_print("DEBUG _a",_a);
 		return SAO_TAG_false;
 	}
 	if(_b && _b->_type!=type_long){
-		sao_print("DEBUG _b",_b);
+		//sao_print("DEBUG _b",_b);
 		return SAO_TAG_false;
 	}
 	long _a_l = _a ? _a->_long:0,
@@ -644,23 +644,21 @@ p_sao_obj saolang_init()
 	//SAO_ITR(sao_add_sym_x, SAO_EXPAND(LIST_SAO_TAG));
 	SAO_ITR(sao_add_sym_x, set,let);//TODO merge with @()
 
-	//sao_add_sym_xs(at,"@");//def
-	sao_add_sym_xs(true,"@T");//@T
-	sao_add_sym_xs(false,"@F");//F
-	sao_add_sym_xs(if,"@?");
-	sao_add_sym_xs(lambda,"@L");
-	sao_add_sym_xs(procedure,"@P");
+	//sao_add_sym_sx(at,"@");//def
+	sao_add_sym_sx("@T",true);//@T
+	sao_add_sym_sx("@F",false);//F
+	sao_add_sym_sx("@?",if);
+	sao_add_sym_sx("@L",lambda);
+	sao_add_sym_sx("@P",procedure);
 
-#define add_sym_list_xs(x,s) sao_var(sao_new_symbol(s), sao_new_native(native_##x,s), SAO_TAG_global);
-	add_sym_list_xs(add,"@+");
-	add_sym_list_xs(sub,"@-");
-	add_sym_list_xs(mul,"@*");
-	add_sym_list_xs(div,"@/");
-
-	//add_sym_list_xs(eq,"@=");//TODO remove it as no longer needed
-	add_sym_list_xs(cmp,"@=");//
-	add_sym_list_xs(cmp,"@==");//
-	
+#define add_sym_list_sx(s,x) sao_var(sao_new_symbol(s), sao_new_native(native_##x,s), SAO_TAG_global);
+	add_sym_list_sx("@+",  add);
+	add_sym_list_sx("@-",  sub);
+	add_sym_list_sx("@*",  mul);
+	add_sym_list_sx("@/",  div);
+	add_sym_list_sx("@=",  cmp);//
+	add_sym_list_sx("@==", cmp);//
+	add_sym_list_sx("@===",same);//..TODO !!
 
 	//SAO_TAG_true=sao_new_symbol("@1");sao_var(SAO_TAG_true,SAO_TAG_true,SAO_TAG_global);
 	//SAO_TAG_false=sao_new_symbol("@0");sao_var(SAO_TAG_false,SAO_TAG_false,SAO_TAG_global);

@@ -368,7 +368,7 @@ p_sao_obj sao_load_expr(sao_stream * fw) {
 	return theSymbol;
 }
 #define sao_add_sym_x(x) SAO_TAG_##x=sao_new_symbol(#x);sao_var(SAO_TAG_##x,SAO_TAG_##x,SAO_TAG_global);
-#define sao_add_sym_xs(x,s) SAO_TAG_##x=sao_new_symbol(s);sao_var(SAO_TAG_##x,SAO_TAG_##x,SAO_TAG_global);
+#define sao_add_sym_sx(s,x) SAO_TAG_##x=sao_new_symbol(s);sao_var(SAO_TAG_##x,SAO_TAG_##x,SAO_TAG_global);
 #include "libsaolang.c"
 p_sao_obj sao_parse( sao_stream * fw, p_sao_obj ctx ) {
 	sao_read_line(fw);
@@ -403,13 +403,14 @@ int main(int argc,char **argv, char** envp) {
 	SAO_TAG_global = cons(cons(SAO_TAG_nil, SAO_TAG_nil), SAO_TAG_nil);
 	SAO_TAG_argv = cons(cons(SAO_TAG_nil, SAO_TAG_nil), SAO_TAG_nil);
 	SAO_TAG_nilnil=sao_new_symbol("@@");sao_var(SAO_TAG_nilnil,SAO_TAG_nil,SAO_TAG_global);
-	SAO_TAG_at=sao_new_symbol("@");sao_var(SAO_TAG_at,SAO_TAG_at,SAO_TAG_global);
-	//sao_add_sym_xs(quote,"@^");//
-	sao_add_sym_xs(quote,"^");//TODO improve it?
-	sao_add_sym_xs(vector,"@V");//vector(like json-array)
-	sao_add_sym_xs(map,"@M");//map(like json-object)
-	sao_add_sym_xs(begin,"@B");//
-	sao_add_sym_xs(end,"@E");//
+	//SAO_TAG_at=sao_new_symbol("@");sao_var(SAO_TAG_at,SAO_TAG_at,SAO_TAG_global);
+	sao_add_sym_sx("@",at);//
+	sao_add_sym_sx("@^",quote);//
+	sao_add_sym_sx("^",quote);//TODO improve it?
+	sao_add_sym_sx("@V",vector);//vector(like json-array)
+	sao_add_sym_sx("@M",map);//map(like json-object)
+	sao_add_sym_sx("@B",begin);//
+	sao_add_sym_sx("@E",end);//
 
 	ffic_string script_file = "-";
 	int found_any = 0;

@@ -60,8 +60,8 @@ load("lib.sao")
 
 print("what is this")
 
-eq(if(1 @T @F),@F) #@F
-eq(if(0 @T @F),@F) #@T
+eq(@?(1 @T @F),@F) #@F
+eq(@?(0 @T @F),@F) #@T
 
 #min((7 5 3 4 1 6) )
 #max((4 5) )
@@ -111,13 +111,13 @@ le(2,2) #@T
 #    fib_k = Fibonacci_recursion_fast(k)
 #    fib_k_1 = Fibonacci_recursion_fast(k - 1)
 #    return fib_k**2 + fib_k_1**2 if n % 2 else (2 * fib_k_1 + fib_k) * fib_k
-#@(ff(n),if(cmp(n,0),0,if(cmp(n,1),1,(@(k,(n + 1) / 2 if n % 2 else n / 2),fib_k,fib_k_1)))
+#@(ff(n),@?(cmp(n,0),0,@?(cmp(n,1),1,(@(k,(n + 1) / 2 if n % 2 else n / 2),fib_k,fib_k_1)))
 @(fib(n),@?(lt(n,3),1,add(fib(sub(n,1)),fib(sub(n,2)))))
 fib(11) #89
 
 @(fibonacci(n),@?(lt(n,3),1,add(fibonacci(sub(n,1)),fibonacci(sub(n,2)))))
 fibonacci(12)
-@(fb(n),if(lt(n,3),1,+(fb(-(n,1)),fb(-(n,2)))))
+@(fb(n),@?(lt(n,3),1,@+(fb(@-(n,1)),fb(@-(n,2)))))
 fb(20)
 
 @(factorial(n),@?(@=(n,0),1,mul(n,factorial(sub(n 1)))))
@@ -129,11 +129,11 @@ factorial(5)
 print(x) # output list(1 2 3)
 
 
-#@(factorial @L(n() if(@=(n 0) 1 mul(n factorial(sub(n 1))))))
-@(factorial,@L(n(),@?(@=(n,0),1,mul(n,factorial(sub(n,1)))))) # n=>if(@=(n 0) 1 mul(n factorial(sub(n 1))))
+#@(factorial @L(n() @?(@=(n 0) 1 mul(n factorial(sub(n 1))))))
+@(factorial,@L(n(),@?(@=(n,0),1,mul(n,factorial(sub(n,1)))))) # n=>@?(@=(n 0) 1 mul(n factorial(sub(n 1))))
 factorial(5) #120
 
-@(factorial,@L((n),@?(@=(n,0),1,mul(n,factorial(sub(n,1)))))) # n=>if(@=(n 0) 1 mul(n factorial(sub(n 1))))
+@(factorial,@L((n),@?(@=(n,0),1,mul(n,factorial(sub(n,1)))))) # n=>@?(@=(n 0) 1 mul(n factorial(sub(n 1))))
 factorial(5) #120
 
 #@(add1 @L(n() add(1 n)))
@@ -148,7 +148,7 @@ add1(3)
 
 @(sum_of_squares(num_list)
 #  @(sos_helper @L(remaining(sum_so_far)
-#      if(is_nil(remaining) 
+#      @?(is_nil(remaining) 
 #        sum_so_far 
 #        sos_helper(cdr(remaining) add(sum_so_far mul(car(remaining) car(remaining)))))))
   sos_helper(num_list 0))
