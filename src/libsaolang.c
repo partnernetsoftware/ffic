@@ -640,6 +640,7 @@ p_sao_obj saolang_init()
 	add_sym_list_xs(div,"@/");
 
 	add_sym_list_xs(eq,"@=");//
+	add_sym_list_xs(cmp,"@==");//
 	
 	//SAO_TAG_at=sao_new_symbol("@");sao_var(SAO_TAG_at,SAO_TAG_at,SAO_TAG_global);
 	//SAO_TAG_true=sao_new_symbol("@1");sao_var(SAO_TAG_true,SAO_TAG_true,SAO_TAG_global);
@@ -654,7 +655,9 @@ p_sao_obj saolang_init()
 	//g_symbol_holder = sao_new_vector(65536-1);//TODO auto expand for the tables
 	SAO_ITR(add_sym_list, print,lt,add,sub,exit);//minimum for fib.sao
 	SAO_ITR(add_sym_list, //quote,cond,var(i.e. define),
-			atom,eq,car,cdr,cons,//function from LISP
+			atom,
+			//eq,
+			car,cdr,cons,//function from LISP
 			);
 	SAO_ITR(add_sym_list,
 			exit,shell,ffi,//sys
@@ -665,8 +668,12 @@ p_sao_obj saolang_init()
 			//vector,
 			//vget,vset,//data structure TODO
 			load,print,read,//io
-			add,sub,mul,div,cmp,lt,gt,//logic,
-			is_empty,is_nil,is_list,pairq,eq,same,//helpers
+			add,sub,mul,div,
+			//cmp,
+			lt,gt,//logic,
+			is_empty,is_nil,is_list,pairq,
+			//eq,
+			same,//helpers
 			_null,_ctx,//for debug only...
 			);
 	//@(fb(n),if(lt(n,3),1,+(fb(-(n,1)),fb(-(n,2)))))

@@ -402,12 +402,14 @@ int main(int argc,char **argv, char** envp) {
 	SAO_TAG_global = cons(cons(SAO_TAG_nil, SAO_TAG_nil), SAO_TAG_nil);
 	SAO_TAG_argv = cons(cons(SAO_TAG_nil, SAO_TAG_nil), SAO_TAG_nil);
 	//SAO_ITR(sao_add_sym_x, vector,table,begin,end);
-	sao_add_sym_xs(nilnil,"@@");//TODO
-	sao_add_sym_xs(quote,"@^");//TODO
-	sao_add_sym_xs(vector,"@V");//TODO
-	sao_add_sym_xs(table,"@T");//TODO
-	sao_add_sym_xs(begin,"@B");//TODO
-	sao_add_sym_xs(end,"@E");//TODO
+	//sao_add_sym_xs(nilnil,"@@");//not good
+	SAO_TAG_nilnil=sao_new_symbol("@@");sao_var(SAO_TAG_nilnil,SAO_TAG_nil,SAO_TAG_global);
+	//sao_add_sym_xs(quote,"@^");//
+	sao_add_sym_xs(quote,"^");
+	sao_add_sym_xs(vector,"@V");//
+	sao_add_sym_xs(table,"@T");//
+	sao_add_sym_xs(begin,"@B");//
+	sao_add_sym_xs(end,"@E");//
 
 	ffic_string script_file = "-";
 	int found_any = 0;

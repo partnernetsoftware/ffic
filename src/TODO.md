@@ -12,11 +12,11 @@ none
 | Symbol | meaning | 
 | -- | -- | -- |
 | @@ | nil | |
+| @() | var() | merge of declare/define/var/set/assign |
 | @+() | add() | |
 | @-() | sub() | |
 | @*() | mul() | |
 | @/() | div() | |
-| @() | var() | merge of declare/define/var/set/assign |
 | @?() | if() |
 | ^() | quote() |
 
@@ -78,6 +78,8 @@ autonomy, paradigm
  * * rewrite: native (add symbol and then auto load when call, will have to save as binary); (0.1.3)
  * * shell return [0.1.4]
  * * double/float and maths (0.1.5)
+
+* * vim syntax script
 
  * * suggestion: type: ERROR (0.2)
  * * redesign context/global with idea from ES6 [0.3]

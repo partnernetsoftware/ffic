@@ -28,13 +28,13 @@
 @(cadddr lambda(a() car(cdr(cdr(cdr(a))))))
 
 #########################################################################
-#@(notcmp lambda(a(b)) if(cmp(a b) false true)))
-#@(gteq lambda(a b) if(lt(a b) false true)))
-#@(lteq lambda(a b) if(gt(a b) false true)))
-#@(notcmp(a b) if(cmp(a b) false true))
-@(notcmp(a b) if(@=(a b) false true))
-@(gteq(a b) if(lt(a b) false true))
-@(lteq(a b) if(gt(a b) false true))
+#@(notcmp lambda(a(b)) @?(cmp(a b) false true)))
+#@(gteq lambda(a b) @?(lt(a b) false true)))
+#@(lteq lambda(a b) @?(gt(a b) false true)))
+#@(notcmp(a b) @?(cmp(a b) false true))
+@(notcmp(a b) @?(@=(a b) false true))
+@(gteq(a b) @?(lt(a b) false true))
+@(lteq(a b) @?(gt(a b) false true))
 @(ge gteq)
 @(le lteq)
 @(nc notcmp)
@@ -59,15 +59,15 @@
 
 # Map a function f onto list a
 #@(map lambda(f(a)
-#    if(is_nil(a) 
+#    @?(is_nil(a) 
 #      ^()
 #      cons(f(car(a)) map(f cdr(a))))))
 
 ## Provide the association pair of key from list
 #@(assoc(key list)
-#  if(is_nil(list)
+#  @?(is_nil(list)
 #    ^()
-#    if(eq(key car(car(list))) 
+#    @?(@=(key car(car(list))) 
 #      car(list)
 #      assoc(key cdr(list)))))
 #
@@ -79,8 +79,8 @@
 #    @(add_key lambda(@(val)
 #        set(list cons(cons(var val) list))))
 #    @(dispatch(m)
-#      if(eq(m ^add) add_key
-#        if(eq(m ^get) get_val 
+#      @?(@=(m ^add) add_key
+#        @?(@=(m ^get) get_val 
 #          list)))
 #    dispatch))
 
@@ -95,30 +95,30 @@
 #        set(stack cdr(stack))
 #        q))
 #    @(dispatch(m)
-#      if(eq(m ^push) push
-#        if(eq(m ^pop) pop 
+#      @?(@=(m ^push) push
+#        @?(@=(m ^pop) pop 
 #          stack)))
 #    dispatch))
 # Returns the last item in a list or pair.
 # Pointer to cdr if list, Pointer to object if pair
 @(last_item_in_list lambda(list()
     @(helper(remaining)
-      if(is_nil(cdr(remaining))
+      @?(is_nil(cdr(remaining))
         remaining
         helper(cdr(remaining))))
     helper(list)))
 
-#@(range_from(start,finish),if(cmp(start,finish),cons(finish,nil),cons(start,range_from(add(1,start),finish))))
-#@(range_from(start,finish),if(@=(start,finish),finish,cons(start,range_from(add(1,start),finish))))
-@(range_from(start,finish),@?(@=(start,finish),finish,cons(start,range_from(@+(1,start),finish))))
+#@(range_from(start,finish),@?(cmp(start,finish),cons(finish,nil),cons(start,range_from(add(1,start),finish))))
+#@(range_from(start,finish),@?(@=(start,finish),finish,cons(start,range_from(add(1,start),finish))))
+@(range_from(start,finish),@?(@==(start,finish),finish,cons(start,range_from(@+(1,start),finish))))
 
-#@(range(number),@(range_helper(start,max),if(@=(start,max),max,cons(start,range_helper(add(1,start),max)))),range_helper(0,number))
+#@(range(number),@(range_helper(start,max),@?(@=(start,max),max,cons(start,range_helper(add(1,start),max)))),range_helper(0,number))
 @(range(n),range_from(0,n))
 
 # Tail recursive length
 @(length(list)
   @(length_helper(accum remaining)
-    if(is_nil(remaining)
+    @?(is_nil(remaining)
       accum
       length_helper(add(1 accum) cdr(remaining))))
   length_helper(1 cdr(list)))
@@ -126,7 +126,7 @@
 # Append list2 to list1
 @(append lambda(list1(list2) 
     @(append_helper(l1 l2)
-      if(is_nil(l1)
+      @?(is_nil(l1)
         l2
         cons(car(l1) append_helper(cdr(l1) l2))))
     append_helper(list1 list2)))
@@ -134,7 +134,7 @@
 # Reverse list
 #	@(reverse(_list)
 #			@(reverse_iter(remaining,first) 
-#				if(is_nil(remaining)
+#				@?(is_nil(remaining)
 #					print("first=",first),
 #					reverse_iter(cdr(remaining),cons(car(remaining),first)))
 #				)
@@ -143,27 +143,28 @@
 @(reverse(_list)
 		@(reverse_iter(remaining,first),
 #			print("remaining=>",remaining,"first=>",first)
-			if(is_nil(remaining)
+			@?(is_nil(remaining)
 				first 
 				reverse_iter(cdr(remaining),cons(car(remaining),first))
 				) #if
 			)
 		reverse_iter(_list ^())
+		#reverse_iter(_list @@)
 	 )
 @(pow(num exp) 
   @(iter(a b) 
-    if(eq(b 1) 
+    @?(@=(b 1) 
       a
       iter(mul(a num) sub(b 1))))
-  if(eq(exp 0)
+  @?(@=(exp 0)
     1
     iter(num exp)))
 
 @(mod(a b)
-  @(iter(rem div)
-    if(lt(rem div)
+  @(iter(rem d)
+    @?(lt(rem d)
       rem
-      iter(sub(rem div) div)))
+      iter(@-(rem d) d)))
   iter(a b))
 
 # macros
@@ -193,7 +194,7 @@
 # Simple loop
 @(for lambda(start(end do)
     @(for_loop(a z)
-      if(@=(a z)
+      @?(@=(a z)
         ^Done;; Last iteration
         begin(
           do()
@@ -202,7 +203,7 @@
 
 @(make_withdraw(balance)
   lambda(amount()
-    if(gt(balance amount)
+    @?(gt(balance amount)
       begin(set(balance sub(balance amount))
         balance)
       "Insufficient funds")))
