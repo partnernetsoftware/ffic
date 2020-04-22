@@ -158,6 +158,18 @@ tail://tail loop to save recursive stacks
 				//sao_print("WARN: 399 ", expr);//
 				//sao_print("WARN: 398 ", ctx);//
 				p_sao_obj rt = sao_get_var(expr, ctx);
+				if(rt) {
+					p_sao_obj rt2 = sao_get_var(rt, ctx);
+					if(rt2){
+						if(rt2==rt){
+							//skip same
+						}else{
+							sao_print("{DEBUG: 300 rt2=", rt2);//
+							sao_stdout("}");
+							rt = rt2;
+						}
+					}
+				}
 //				if(!rt){
 //					sao_print("WARN: 399 ", expr);//
 //					sao_stdout("\n");
@@ -630,12 +642,14 @@ p_sao_obj saolang_init()
 
 //#define LIST_SAO_TAG true,false,set,let,if,lambda,procedure,at
 	//SAO_ITR(sao_add_sym_x, SAO_EXPAND(LIST_SAO_TAG));
-	SAO_ITR(sao_add_sym_x, set,let,lambda,procedure);
+	SAO_ITR(sao_add_sym_x, set,let);//TODO merge with @()
 
 	//sao_add_sym_xs(at,"@");//def
 	sao_add_sym_xs(true,"@T");//@T
 	sao_add_sym_xs(false,"@F");//F
 	sao_add_sym_xs(if,"@?");
+	sao_add_sym_xs(lambda,"@L");
+	sao_add_sym_xs(procedure,"@P");
 
 #define add_sym_list_xs(x,s) sao_var(sao_new_symbol(s), sao_new_native(native_##x,s), SAO_TAG_global);
 	add_sym_list_xs(add,"@+");

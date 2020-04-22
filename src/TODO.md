@@ -21,6 +21,7 @@ SaoLang is a customized LISP dialet, but the leading head/first object is show o
 | @M | map() | |
 | @B | begin | new frame |
 | @E | end | end list |
+| @L | lambda((..),()) |
 
 
 ```
@@ -44,8 +45,8 @@ procedure
 [...] => @V(...) => vector (like json-array)
 {...} => @M(...) => map (like json-object)
 
-lambda => 
-
+lambda((..),()) => @L((..),())
+procedure(...) => @P(...)
 
 Begin
 @B() 

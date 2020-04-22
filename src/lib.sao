@@ -17,20 +17,20 @@
 
 #@(var,@)
 
-@(caar lambda(a() car(car(a))))
-@(cadr lambda(a() car(cdr(a))))
-@(cdar lambda(a() cdr(car(a))))
-@(cddr lambda(a() cdr(cdr(a))))
-@(cadar lambda(a() car(cdr(car(a)))))
-@(caddr lambda(a() car(cdr(cdr(a)))))
-@(cdddr lambda(a() cdr(cdr(cdr(a)))))
-@(cdadr lambda(a() cdr(car(cdr(a)))))
-@(cadddr lambda(a() car(cdr(cdr(cdr(a))))))
+@(caar @L(a() car(car(a))))
+@(cadr @L(a() car(cdr(a))))
+@(cdar @L(a() cdr(car(a))))
+@(cddr @L(a() cdr(cdr(a))))
+@(cadar @L(a() car(cdr(car(a)))))
+@(caddr @L(a() car(cdr(cdr(a)))))
+@(cdddr @L(a() cdr(cdr(cdr(a)))))
+@(cdadr @L(a() cdr(car(cdr(a)))))
+@(cadddr @L(a() car(cdr(cdr(cdr(a))))))
 
 #########################################################################
-#@(notcmp lambda(a(b)) @?(cmp(a b) false true)))
-#@(gteq lambda(a b) @?(lt(a b) false true)))
-#@(lteq lambda(a b) @?(gt(a b) false true)))
+#@(notcmp @L(a(b)) @?(cmp(a b) false true)))
+#@(gteq @L(a b) @?(lt(a b) false true)))
+#@(lteq @L(a b) @?(gt(a b) false true)))
 #@(notcmp(a b) @?(cmp(a b) false true))
 @(notcmp(a b) @?(@=(a b) false true))
 @(gteq(a b) @?(lt(a b) false true))
@@ -58,7 +58,7 @@
 #  min_iter(car(list_of_numbers) cdr(list_of_numbers)))
 
 # Map a function f onto list a
-#@(map lambda(f(a)
+#@(map @L(f(a)
 #    @?(is_nil(a) 
 #      ^()
 #      cons(f(car(a)) map(f cdr(a))))))
@@ -74,9 +74,9 @@
 ## Lambda key_list with dispatch
 #@(make_key_list()
 #  let((list(^())) 
-#    @(get_val lambda(@() 
+#    @(get_val @L(@() 
 #        assoc(var list)))
-#    @(add_key lambda(@(val)
+#    @(add_key @L(@(val)
 #        set(list cons(cons(var val) list))))
 #    @(dispatch(m)
 #      @?(@=(m ^add) add_key
@@ -87,10 +87,10 @@
 # Lambda stack with dispatch
 #@(make_stack()
 #  let((stack(^()))
-#    @(push lambda(x() 
+#    @(push @L(x() 
 #        set(stack cons(x stack))
 #        stack))
-#    @(pop lambda(x()
+#    @(pop @L(x()
 #        @(q car(stack))
 #        set(stack cdr(stack))
 #        q))
@@ -101,7 +101,7 @@
 #    dispatch))
 # Returns the last item in a list or pair.
 # Pointer to cdr if list, Pointer to object if pair
-@(last_item_in_list lambda(list()
+@(last_item_in_list @L(list()
     @(helper(remaining)
       @?(is_nil(cdr(remaining))
         remaining
@@ -124,7 +124,7 @@
   length_helper(1 cdr(list)))
 
 # Append list2 to list1
-@(append lambda(list1(list2) 
+@(append @L(list1(list2) 
     @(append_helper(l1 l2)
       @?(is_nil(l1)
         l2
@@ -168,8 +168,8 @@
   iter(a b))
 
 # macros
-@(procedure_body lambda(proc() caddr(proc)))
-@(procedure_args lambda(proc() cadr(proc)))
+@(procedure_body @L(proc() caddr(proc)))
+@(procedure_args @L(proc() cadr(proc)))
 @(mutate_procedure_env(name new_env) setcar(cdddr(name) new_env))
 @(mutate_procedure_body(name new_body) setcar(cddr(name) list(new_body)))
 @(mutate_procedure_args(name new_args) setcar(cdr(name) new_args))
@@ -184,7 +184,7 @@
 @(if_zero(x then) list(if list(eq x 0) then))
 
 @(gen_accum(number)
-  lambda(amount()
+  @L(amount()
     set(number add(number amount))
     number))
 
@@ -192,7 +192,7 @@
 @(new_accum gen_accum(0))
 
 # Simple loop
-@(for lambda(start(end do)
+@(for @L(start(end do)
     @(for_loop(a z)
       @?(@=(a z)
         ^Done;; Last iteration
@@ -202,7 +202,7 @@
     for_loop(start end do)))
 
 @(make_withdraw(balance)
-  lambda(amount()
+  @L(amount()
     @?(gt(balance amount)
       begin(set(balance sub(balance amount))
         balance)

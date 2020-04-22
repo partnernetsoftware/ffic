@@ -17,7 +17,7 @@
 print("English String")
 print("中文字串")
 
-##@(die lambda(s1() print(s1) ))
+##@(die @L(s1() print(s1) ))
 #@(die(s1) print(s1) exit())
 @(die(s1) print(s1) exit())
 ##die("wtf")
@@ -129,25 +129,25 @@ factorial(5)
 print(x) # output list(1 2 3)
 
 
-#@(factorial lambda(n() if(@=(n 0) 1 mul(n factorial(sub(n 1))))))
-@(factorial,lambda(n(),@?(@=(n,0),1,mul(n,factorial(sub(n,1)))))) # n=>if(@=(n 0) 1 mul(n factorial(sub(n 1))))
+#@(factorial @L(n() if(@=(n 0) 1 mul(n factorial(sub(n 1))))))
+@(factorial,@L(n(),@?(@=(n,0),1,mul(n,factorial(sub(n,1)))))) # n=>if(@=(n 0) 1 mul(n factorial(sub(n 1))))
 factorial(5) #120
 
-@(factorial,lambda((n),@?(@=(n,0),1,mul(n,factorial(sub(n,1)))))) # n=>if(@=(n 0) 1 mul(n factorial(sub(n 1))))
+@(factorial,@L((n),@?(@=(n,0),1,mul(n,factorial(sub(n,1)))))) # n=>if(@=(n 0) 1 mul(n factorial(sub(n 1))))
 factorial(5) #120
 
-#@(add1 lambda(n() add(1 n)))
-@(add1 lambda(n() add(1 n)))
+#@(add1 @L(n() add(1 n)))
+@(add1 @L(n() add(1 n)))
 
 add1(3)
 
-@(sos_helper lambda(remaining(sum_so_far)
+@(sos_helper @L(remaining(sum_so_far)
       @?(is_nil(remaining) 
         sum_so_far 
         sos_helper(cdr(remaining) add(sum_so_far mul(car(remaining) car(remaining)))))))
 
 @(sum_of_squares(num_list)
-#  @(sos_helper lambda(remaining(sum_so_far)
+#  @(sos_helper @L(remaining(sum_so_far)
 #      if(is_nil(remaining) 
 #        sum_so_far 
 #        sos_helper(cdr(remaining) add(sum_so_far mul(car(remaining) car(remaining)))))))
