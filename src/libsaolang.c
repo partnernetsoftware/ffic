@@ -1,8 +1,6 @@
 define_map(ctype,  long,double,int,float,i64,u64,string,struct,pointer);//etc TODO
 enum { type_ctype=1+type_string, type_native, };
-//#define LIST_SAO_TAG true,false,set,let,var,if,lambda,procedure,at
-//#define LIST_SAO_TAG true,false,set,let,if,lambda,procedure,at
-#define LIST_SAO_TAG true,false,set,let,if,lambda,procedure
+#define LIST_SAO_TAG true,false,set,let,if,lambda,procedure,nilnil
 SAO_ITR(define_sao_tag, SAO_EXPAND(LIST_SAO_TAG));
 
 #define sao_new_vector(s) sao_new((sao_obj){._type=type_vector, ._len=s,._vector=SAO_NEW_C(p_sao_obj,s)})
@@ -277,7 +275,6 @@ tail://tail loop to save recursive stacks
 				}
 			}//type_list
 		//default: sao_print("{ TODO=",expr); sao_stdout("}\n");
-			sao_stdout("}\n");
 	}
 	return expr;
 }
@@ -410,26 +407,23 @@ p_sao_obj native_cmp(p_sao_obj args,p_sao_obj ctx) {
 	p_sao_obj _b = cadr(args);
 
 	if(!_a){
-		if(!_b){
-			sao_print("<DEBUG !_a&&!_b:",args);
-			sao_stdout(">");
-			return SAO_TAG_true;
-		}
+		if(!_b) return SAO_TAG_true;
+		else return SAO_TAG_false;//TODO assume nil=='()
+	}else{
+		if(!_b) return SAO_TAG_false;//TODO check nil=='()
 	}
-	if(_a && _a->_type!=type_long){
-		//sao_print("DEBUG _a",_a);
-		return SAO_TAG_false;
+	//a&&b
+	if(_a->_type != _b->_type) return SAO_TAG_false;
+	if(_a->_type==type_long){
+		long _a_l = _a ? _a->_long:0,
+				 _b_l = _b ? _b->_long:0;
+		return (_a_l==_b_l) ? SAO_TAG_true : SAO_TAG_false;
 	}
-	if(_b && _b->_type!=type_long){
-		//sao_print("DEBUG _b",_b);
-		return SAO_TAG_false;
+	if(_a->_type==type_symbol){
+		return (!sao_strcmp(_a->_string, _b->_string)) ? SAO_TAG_true : SAO_TAG_false;
 	}
-	long _a_l = _a ? _a->_long:0,
-			 _b_l = _b ? _b->_long:0;
-	p_sao_obj rt = (_a_l==_b_l) ? SAO_TAG_true : SAO_TAG_false;
-	//sao_print("cmp.rt=",rt);
-	//sao_stdout(",DEBUG _a_l=%d,_b_l=%d\n",_a_l,_b_l);
-	return rt;
+	sao_stdout("<TODO native_cmp %d>",_a->_type);
+	return SAO_TAG_false;
 }
 //eeq/===
 //p_sao_obj native_eeq(p_sao_obj args,p_sao_obj ctx) { return sao_is_eq(car(args), cadr(args)) ? SAO_TAG_true : SAO_TAG_false; }
@@ -645,6 +639,7 @@ p_sao_obj saolang_init()
 	sao_add_sym_sx("@P",procedure);
 
 #define add_sym_list_sx(s,x) sao_var(sao_new_symbol(s), sao_new_native(native_##x,s), SAO_TAG_global);
+	//SAO_ITR2X(add_sym_native_sx, "@+",add);
 	add_sym_list_sx("@+",  add);
 	add_sym_list_sx("@-",  sub);
 	add_sym_list_sx("@*",  mul);
