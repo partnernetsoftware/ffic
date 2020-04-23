@@ -5,6 +5,17 @@ extern void*(*ffic())();//ok
 #define OUTS(x) libc(printf)(#x "=%s\n", #x);
 #define OUTD(x) libc(printf)(#x "=%ld\n", x);
 #define FOUTD(x) libc(fprintf)(libc(stderr),#x "=%ld\n", x);
+
+typedef struct {
+	ffic_func func;
+	int i;
+} libc_func;
+
+void* test(){
+	OUTS(From test());
+	return 0;
+}
+
 int main(){
 //	ffic_func printf = libc(printf);
 //	ffic_func fprintf = libc(fprintf);
@@ -24,6 +35,13 @@ int main(){
 	OUTD(libc(stdout));
 	OUTD(libc(stderr));
 	FOUTD(libc(stderr));
+
+	libc_func cf = {.func=test};
+	cf.func();
+	ffic_func f = cf.func;
+	f();
+	//((ffic_func)(&cf))();
+
 	//libc(printf)("stdout=%d\n",libc(stdout));
 	//libc(printf)("stderr=%d\n",libc(stderr));
 	//libc(fprintf)(libc(stderr),"fprintf.stderr=%d\n",libc(stderr));

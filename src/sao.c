@@ -68,27 +68,23 @@ define_map(stream, file,char);//
 define_map(type,   list,vector,long,double,symbol,string);//TODO move long/double to ctype
 typedef struct _sao_obj_v sao_obj_v, *p_sao_obj_v;
 typedef struct _sao_obj sao_obj,*p_sao_obj;
-typedef p_sao_obj (*native_t)(p_sao_obj args,p_sao_obj ctx);
+typedef p_sao_obj (*sao_native_t)(p_sao_obj args,p_sao_obj ctx);
 #define SAO_OBJ_V union {\
 	struct { p_sao_obj car; p_sao_obj cdr; }; \
 	struct { union {\
 		p_sao_obj* _vector; \
 		ffic_string _string;\
 		ffic_wstring _wstring;\
-	}; union {native_t _native;ffic_upt _len;long _long;double _double;}; };\
+	}; union {sao_native_t _native;ffic_ipt _len;long _long;double _double;}; };\
 }
 struct _sao_obj_v { SAO_OBJ_V; };
 struct _sao_obj { union{ void* ptr; int _type; }; ffic_string _raw; union{ SAO_OBJ_V; sao_obj_v v;}; };
 p_sao_obj sao_new(sao_obj tpl) {
 	sao_obj * ret = SAO_COPY(tpl);
 	//TODO gc()
-	//sao_obj * ret = libc(malloc)(sizeof(sao_obj));
-	//libc(memcpy)(ret,&tpl,sizeof(sao_obj));
 	switch(ret->_type){
 		case type_symbol:
-		case type_string:
-			ret->_string=libc(strdup)(ret->_string);
-			break;
+		case type_string: ret->_string=libc(strdup)(ret->_string); break;
 	}
 	return ret;
 }
@@ -99,7 +95,7 @@ typedef struct {
 	stream_t _type;
 	void* fp;
 	ffic_string pos;//for stream_char only
-	//FileChar * ptr_start;//TODO for gc()
+	FileChar * ptr_start;//for gc()
 	FileChar * ptr_head;
 	FileChar * ptr_last;
 } sao_stream;
@@ -159,7 +155,7 @@ int sao_enq_c(sao_stream* fw,int k){
 	SAO_NEW_OBJECT(FileChar,fc);
 	fc->c = k; 
 	fc->ptr_prev= fw->ptr_last;
-	//if(SAO_NULL==fw->ptr_start){ fw->ptr_start = fc; }
+	if(SAO_NULL==fw->ptr_start){ fw->ptr_start = fc; }
 	if(SAO_NULL==fw->ptr_head){ fw->ptr_head = fc; }
 	if(SAO_NULL!=fw->ptr_last){ fw->ptr_last->ptr_next = fc; }
 	fw->ptr_last = fc;
@@ -204,9 +200,9 @@ int sao_read_line(sao_stream* fw)
 //////////////////////////////////////////////////////////////////////////////
 p_sao_obj sao_var(p_sao_obj var, p_sao_obj val, p_sao_obj ctx)
 {
-	if(!ctx) sao_error("ASSERT: sao_var() need ctx");
+	if(!ctx) sao_error("sao_var(): need ctx");
 	p_sao_obj frame = car(ctx);
-	if(!frame) sao_error("ASSERT: sao_var() found no car in ctx");
+	if(!frame) sao_error("sao_var(): need ctx.car");
 	p_sao_obj vars = car(frame);
 	p_sao_obj vals = cdr(frame);
 	while ((vars)) {
@@ -238,6 +234,8 @@ p_sao_obj sao_convert_default(ffic_string str){
 			double d_diff = (d_val - l_val);
 			p_sao_obj rt;
 			rt = (d_diff>=-sao_eps && d_diff<=sao_eps) ?  sao_new_long(l_val) : sao_new_double(d_val);
+			//rt = (d_diff>=-sao_eps && d_diff<=sao_eps) ?  sao_new((sao_obj){._type=type_long, ._long=l_val,_string=str})
+			//	: sao_new((sao_obj){._type=type_double, ._double=d_val,_string=str});
 			rt->_raw = str;
 			return rt;
 		}else{
@@ -405,7 +403,7 @@ int main(int argc,char **argv, char** envp) {
 	SAO_TAG_nilnil=sao_new_symbol("@@");sao_var(SAO_TAG_nilnil,SAO_TAG_nil,SAO_TAG_global);
 	sao_add_sym_sx("@",at);//
 	sao_add_sym_sx("@^",quote);//
-	sao_add_sym_sx("^",quote);//TODO improve it?
+	sao_add_sym_sx("^",quote);//
 	sao_add_sym_sx("@V",vector);//vector(like json-array)
 	sao_add_sym_sx("@M",map);//map(like json-object)
 	sao_add_sym_sx("@B",begin);//
@@ -415,7 +413,7 @@ int main(int argc,char **argv, char** envp) {
 	int found_any = 0;
 	if(argc>1){
 		char argv_line[512] = "("; ffic_string argv_ptr = &argv_line[1];
-		for(int i=1;i<argc;i++){ (*argv_ptr++)=' ';ffic_string wk=argv[i];while(*wk) (*argv_ptr++)=(*wk++);}
+		for(int i=1;i<argc;i++){ (*argv_ptr++)=' ';ffic_string wk=argv[i];while(*wk)(*argv_ptr++)=(*wk++);}
 		*argv_ptr++ = ')'; *argv_ptr++ = '\0';
 		sao_stream * fw = sao_stream_new(argv_line,stream_char);
 		p_sao_obj arg_expr = sao_load_expr( fw );
