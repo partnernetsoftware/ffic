@@ -18,6 +18,16 @@ assert(@=(55,fb(10)))
 assert(@=(12586269025,fib(50)))
 
 
+@(fbf(n), @(fbi(a,b,count),@?(@==(count,0),b,fbi(@+(a,b),a,@-(count,1)))), fbi(1,0,n))
+fbf(30)
+assert(@=(12586269025,fbf(50)))
+
+@^()
+
+# @->(count,
+#     @-(1)
+# )
+
 @(var,@)
 @(nil,@@)
 @(true,@T)
@@ -36,21 +46,12 @@ assert(@=(12586269025,fib(50)))
 @(x,1)
 assert(@=(1,x))
 
-var(m,3)
-assert(@=(3,m))
-
-assert(@=(3,m))
-
-@(fib(n),@?(lt(n,3),1,add(fib(sub(n,1)),fib(sub(n,2)))))
-fib(10)
-
-#eq(@F,@@?(@F))
-@==(@F,@@?(@F))
+var(y,3)
+assert(@=(3,y))
 
 @@?(@F)
 @==(@F,@@?(@F))
 
-## assert(@==(@F,@@?(@F)))
-## 
-## assert(@==(@F,is_nil(@F)))
+assert(@==(@F,@@?(@F)))
 
+exit("OK")

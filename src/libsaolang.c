@@ -261,6 +261,10 @@ tail://tail loop to save recursive stacks
 						return proc->_native(args,ctx);
 					}
 					//TODO ffi soon
+					if ( sao_is_eq(proc, SAO_TAG_at) ){//
+						expr = cons(SAO_TAG_at, _cdr);
+						goto tail;//
+					}
 					if ( sao_is_eq(car(proc), SAO_TAG_procedure))
 					{
 						p_sao_obj _cadr_proc = cadr(proc);
@@ -271,9 +275,8 @@ tail://tail loop to save recursive stacks
 						goto tail;//
 					}
 				}
-			}
-		default:
-			sao_print("TODO {",expr);
+			}//type_list
+		//default: sao_print("{ TODO=",expr); sao_stdout("}\n");
 			sao_stdout("}\n");
 	}
 	return expr;

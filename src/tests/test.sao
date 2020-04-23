@@ -155,9 +155,11 @@ add1(3)
 
 # Procedure with no args
 @(new_env() cons(cons(^() ^()) ^()))
+
 # Construct a procedure with macro
-@(new_func construct_procedure(^a() ^cons(a 10) global()))
-@(with_macros construct_procedure(^x() if_zero(^x ^ZERO) global()))
+@(new_func(),construct_procedure(^a() ^cons(a 10) global()))
+@(with_macros(),construct_procedure(^x() if_zero(^x ^ZERO) global()))
+
 new_func()
 with_macros()
 list(2 3 4)

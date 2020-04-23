@@ -32,9 +32,16 @@
 #define SAO_WHILE(m,v, ...) SAO_WHEN(SAO_NOT(SAO_IS_PAREN(v ()))) (SAO_OBSTRUCT(m) (v) SAO_OBSTRUCT(SAO_WHILE_INDIRECT) () (m, __VA_ARGS__))
 #define SAO_WHILE_INDIRECT() SAO_WHILE 
 #define SAO_WHILE1(m,v1,v, ...) SAO_WHEN(SAO_NOT(SAO_IS_PAREN(v ()))) (SAO_OBSTRUCT(m) (v1,v) SAO_OBSTRUCT(SAO_WHILE_INDIRECT1) () (m,v1,__VA_ARGS__))
-#define SAO_WHILE_INDIRECT1() SAO_WHILE1
 #define SAO_ITR(mmm,qqq,...) SAO_EVAL( SAO_WHILE( mmm,qqq,__VA_ARGS__ ) )
+#define SAO_WHILE_INDIRECT1() SAO_WHILE1
 #define SAO_ITR1(mmm,mm1,qqq,...) SAO_EVAL( SAO_WHILE1( mmm,mm1,qqq,__VA_ARGS__) )
+//#define SAO_WHILE2(m,v1,v2,v, ...) SAO_WHEN(SAO_NOT(SAO_IS_PAREN(v ()))) (SAO_OBSTRUCT(m) (v1,v2,v) SAO_OBSTRUCT(SAO_WHILE_INDIRECT2) () (m,v1,v2,__VA_ARGS__))
+//#define SAO_WHILE_INDIRECT2() SAO_WHILE2
+//#define SAO_ITR2(mmm,mm1,mm2,qqq,...) SAO_EVAL( SAO_WHILE2( mmm,mm1,mm2,qqq,__VA_ARGS__) )
+#define SAO_WHILE2X(m,v1,v2,v,...) SAO_WHEN(SAO_NOT(SAO_IS_PAREN(v ()))) (SAO_OBSTRUCT(m) (v1,v2) SAO_OBSTRUCT(SAO_WHILE_INDIRECT2X) () (m,v,__VA_ARGS__))
+#define SAO_WHILE_INDIRECT2X() SAO_WHILE2X
+#define SAO_ITR2X(mmm,mm1,mm2,qqq,...) SAO_EVAL( SAO_WHILE2X( mmm,mm1,mm2,qqq,__VA_ARGS__) )
+
 #define SAO_QUOTE(sth) #sth
 //////////////////////////////////////////////////////////////////////////////
 #define DEFINE_ENUM_LIBC(n) libc_##n,
@@ -249,7 +256,8 @@ p_sao_obj sao_convert_default(ffic_string str){
 }
 void sao_print_default(ffic_string str, p_sao_obj el){
 	if (str) sao_stdout(str);
-	if (!el) {sao_stdout("@@");return;}
+	//if (!el) {sao_stdout("@@");return;}
+	if (!el) {sao_stdout(" ");return;}
 	switch (el->_type) {
 		case type_string:
 			//sao_stdout("\"%s\"", el->_string); break;
