@@ -19,6 +19,8 @@ int main(){
 	OUTD(sizeof(double));
 	OUTD(sizeof(int));
 	OUTD(sizeof(long));
+	OUTD(sizeof(long int));
+	OUTD(sizeof(long long int));
 	OUTD(libc(stdout));
 	OUTD(libc(stderr));
 	FOUTD(libc(stderr));

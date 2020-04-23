@@ -114,34 +114,45 @@ sum_of_squares((1,2,3,4))
 
 # macros
 #  @(procedure_body @L((proc) caddr(proc)))
-@(procedure_body(proc),caddr(proc))
 #@(procedure_args @L(proc() cadr(proc)))
-@(procedure_args(proc),cadr(proc))
 #@(mutate_procedure_env(name new_env) setcar(cdddr(name) new_env))
-@(mutate_procedure_env(name new_env),setcar(cdddr(name),new_env))
 #@(mutate_procedure_body(name new_body) setcar(cddr(name) list(new_body)))
-@(mutate_procedure_body(name,new_body),setcar(cddr(name),list(new_body)))
 #@(mutate_procedure_args(name new_args) setcar(cdr(name) new_args))
+
+@(new_env(),cons(cons(^() ^()) ^()))
+
+@(procedure_body(proc),caddr(proc))
+@(procedure_args(proc),cadr(proc))
+@(mutate_procedure_ctx(name new_env),setcar(cdddr(name),new_env))
+@(mutate_procedure_body(name,new_body),setcar(cddr(name),list(new_body)))
 @(mutate_procedure_args(name,new_args),setcar(cdr(name) new_args))
 
-@(construct_procedure(args body env)
-  let((new_proc(cons(procedure,cons(^(),cons(^(),cons(^()))))))
+@(construct_procedure(args body ctx)
+  let((new_proc(cons(@P,cons(^(),cons(^(),cons(^()))))))
     mutate_procedure_args(new_proc args)
     mutate_procedure_body(new_proc body)
-    mutate_procedure_env(new_proc env)
+    mutate_procedure_ctx(new_proc ctx)
     new_proc))
 
-@(if_zero(x,then),list(@? list(@= x 0) then))
+# @(if_zero(x,then),list(if list(@= x 0) then))
+@(if_zero(x,then),^@?((@= x 0) then))
 
+construct_procedure(^a() ^cons(a 10) ^global())
 
-# Procedure with no args
-@(new_env() cons(cons(^() ^()) ^()))
+@(new_func,construct_procedure(^(a) ^cons(a 10) ^global()))
+
+new_func(5)
+
+exit()
 
 # Construct a procedure with macro
-@(new_func(),construct_procedure(^a() ^cons(a 10) global()))
-@(with_macros(),construct_procedure(^x() if_zero(^x ^ZERO) global()))
+@(new_func,construct_procedure(^a() ^cons(a 10) global()))
+print(new_func)
 
-new_func()
+exit()
+
+@(with_macros,construct_procedure(^x() if_zero(^x ^ZERO) global()))
+
 with_macros()
 list(2 3 4)
 
