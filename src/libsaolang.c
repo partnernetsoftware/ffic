@@ -3,7 +3,7 @@ enum { type_ctype=1+type_string, type_native, };
 #define LIST_SAO_TAG true,false,set,let,if,lambda,procedure,nilnil
 SAO_ITR(define_sao_tag, SAO_EXPAND(LIST_SAO_TAG));
 
-#define sao_new_vector(s) sao_new((sao_obj){._type=type_vector, ._len=s,._vector=SAO_NEW_C(p_sao_obj,s)})
+#define sao_new_vector(l) sao_new((sao_obj){._type=type_vector, ._len=l,._vector=SAO_NEW_C(p_sao_obj,l)})
 #define sao_new_native(x,n) sao_new((sao_obj){._type=type_native, ._native=x,._string=n})
 #define sao_new_lambda(params,body) cons(SAO_TAG_lambda, cons(params,body))
 #define sao_new_procedure(params,body,ctx) cons(SAO_TAG_procedure, cons(params, cons(body, cons(ctx, SAO_TAG_nil))))
@@ -596,6 +596,7 @@ p_sao_obj native_vset(p_sao_obj args,p_sao_obj ctx){
 	return SAO_TAG_true;
 }
 p_sao_obj native_print(p_sao_obj list,p_sao_obj ctx) {
+	//sao_print("DEBUG.native_print:",list);
 	p_sao_obj _ptr;
 	p_sao_obj rt=SAO_TAG_nil;
 	int t = 0;
@@ -644,14 +645,6 @@ p_sao_obj saolang_init()
 
 	//TODO $? last result ?
 
-	//SAO_TAG_true=sao_new_symbol("@1");sao_var(SAO_TAG_true,SAO_TAG_true,SAO_TAG_global);
-	//SAO_TAG_false=sao_new_symbol("@0");sao_var(SAO_TAG_false,SAO_TAG_false,SAO_TAG_global);
-	//SAO_TAG_if=sao_new_symbol("@?");sao_var(SAO_TAG_if,SAO_TAG_if,SAO_TAG_global);
-	//sao_var(sao_new_symbol("@+"), sao_new_native(native_add,"@+"), SAO_TAG_global);
-	//sao_var(sao_new_symbol("@-"), sao_new_native(native_sub,"@-"), SAO_TAG_global);
-	//sao_var(sao_new_symbol("@*"), sao_new_native(native_mul,"@*"), SAO_TAG_global);
-	//sao_var(sao_new_symbol("@/"), sao_new_native(native_div,"@/"), SAO_TAG_global);
-	
 	//p_sao_obj g_symbol_holder = SAO_TAG_nil;
 	//g_symbol_holder = sao_new_vector(65536-1);//TODO auto expand for the map
 	SAO_ITR(add_sym_list, print,lt,//add,sub,

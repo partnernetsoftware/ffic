@@ -250,8 +250,8 @@ void sao_print_default(ffic_string str, p_sao_obj el){
 	if (!el) {sao_stdout(" ");return;}
 	switch (el->_type) {
 		case type_string:
-			//sao_stdout("\"%s\"", el->_string); break;
-			sao_stdout("%s", el->_string); break;
+			sao_stdout("\"%s\"", el->_string); break;
+			//sao_stdout("%s", el->_string); break;//let native_fmt() do it
 		case type_symbol:
 			if(el->_string){
 				sao_stdout("%s", el->_string);
@@ -428,7 +428,13 @@ int main(int argc,char **argv, char** envp) {
 				p_sao_obj _caar = car(_car);
 				if(_caar){ string_or_name = _caar->_string; }
 				p_sao_obj _cadar = cadr(_car);
-				if(_cadar) l_val = sao_atol(_cadar->_string);
+				if(_cadar){
+					if(_cadar->_type==type_long){
+						l_val = _cadar->_long;
+					}else{
+						l_val = sao_atol(_cadar->_string);
+					}
+				}
 			}else{
 				if(_car) string_or_name = _car->_string;
 			}

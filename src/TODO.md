@@ -101,6 +101,8 @@ autonomy, paradigm
 /* TODO (Plan)
  * * ctype() + ffic() C.$sym() [0.0.7]
 
+* * bug: macros
+* * improve: macro(m,m1,m2,m1,m2)
  * * improve: table hash table size (refer to lua/jerryscript) [0.0.11]
  * * table auto resize (0.0.12)
  * * redesign (remove interger and double, using "number" instead which actually just a notation of number as well) [0.0.13]
