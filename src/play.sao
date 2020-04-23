@@ -29,19 +29,19 @@ assert(@=(12586269025,fbf(50)))
 # )
 
 @(var,@)
-@(nil,@@)
-@(true,@T)
-@(false,@F)
-@(if,@?)
-@(add,@+)
-@(sub,@-)
-@(mul,@*)
-@(div,@/)
-#@(eq,@=)
-@(cmp,@==)
-@(same,@===)
-@(vector,@V)
-@(is_nil,@@?)
+##         @(nil,@@)
+##         @(true,@T)
+##         @(false,@F)
+##         @(if,@?)
+##         @(add,@+)
+##         @(sub,@-)
+##         @(mul,@*)
+##         @(div,@/)
+##         #@(eq,@=)
+##         @(cmp,@==)
+##         @(same,@===)
+##         @(vector,@V)
+##         @(is_nil,@@?)
 
 @(x,1)
 assert(@=(1,x))
@@ -51,7 +51,127 @@ assert(@=(3,y))
 
 @@?(@F)
 @==(@F,@@?(@F))
-
 assert(@==(@F,@@?(@F)))
+
+	@(++(n),@+(1,n))
+++(3)
+	assert(@==(
+				4,++(3)
+				))
+
+#@(caar @L((a) car(car(a))))
+#@(cadr @L((a) car(cdr(a))))
+##  @(cadar @L(a() car(cdr(car(a)))))
+#@(cdar @L(a() cdr(car(a))))
+#@(cddr @L(a() cdr(cdr(a))))
+#@(caddr @L(a() car(cdr(cdr(a)))))
+#@(cdddr @L(a() cdr(cdr(cdr(a)))))
+#@(cdadr @L(a() cdr(car(cdr(a)))))
+#@(cadddr @L(a() car(cdr(cdr(cdr(a))))))
+
+@(caar(a),car(car(a)))
+@(cadr(a),car(cdr(a)))
+@(cdar(a),cdr(car(a)))
+@(cddr(a),cdr(cdr(a)))
+@(cadar(a),car(cdr(car(a))))
+#@(cadar(a),car(cdar(a))))
+@(caddr(a),car(cdr(cdr(a))))
+@(cdddr(a),cdr(cdr(cdr(a))))
+@(cdadr(a),cdr(car(cdr(a))))
+@(cdddr(a),car(cdr(cdr(cdr(a)))))
+
+
+caar(((1,2),3))
+assert(@=(1,caar(((1,2),3))))
+cadr((1,2,3))
+assert(@=(2,cadr((1,2,3))))
+
+cdar(((1,2),3))
+cadar(((1,2),3))
+assert(@=(
+2,cadar(((1,2),3))
+))
+
+@(sum_of_squares(num_list),
+		@(sos_helper(remaining,sum_so_far),@?(@@?(remaining),sum_so_far,sos_helper(cdr(remaining),@+(sum_so_far,@*(car(remaining),car(remaining))))))
+		sos_helper(num_list 0))
+
+sum_of_squares(list(2 3 4) )           # 4+9+16=29
+
+assert(@=(29,
+sum_of_squares(list(2 3 4) )
+))
+
+sum_of_squares(^(1,2,3,4))
+assert(@=(30,
+sum_of_squares(^(1,2,3,4))
+))
+
+sum_of_squares((1,2,3,4))
+assert(@=(30,
+sum_of_squares((1,2,3,4))
+))
+
+# macros
+#  @(procedure_body @L((proc) caddr(proc)))
+@(procedure_body(proc),caddr(proc))
+#@(procedure_args @L(proc() cadr(proc)))
+@(procedure_args(proc),cadr(proc))
+#@(mutate_procedure_env(name new_env) setcar(cdddr(name) new_env))
+@(mutate_procedure_env(name new_env),setcar(cdddr(name),new_env))
+#@(mutate_procedure_body(name new_body) setcar(cddr(name) list(new_body)))
+@(mutate_procedure_body(name,new_body),setcar(cddr(name),list(new_body)))
+#@(mutate_procedure_args(name new_args) setcar(cdr(name) new_args))
+@(mutate_procedure_args(name,new_args),setcar(cdr(name) new_args))
+
+@(construct_procedure(args body env)
+  let((new_proc(cons(procedure,cons(^(),cons(^(),cons(^()))))))
+    mutate_procedure_args(new_proc args)
+    mutate_procedure_body(new_proc body)
+    mutate_procedure_env(new_proc env)
+    new_proc))
+
+@(if_zero(x,then),list(@? list(@= x 0) then))
+
+
+# Procedure with no args
+@(new_env() cons(cons(^() ^()) ^()))
+
+# Construct a procedure with macro
+@(new_func(),construct_procedure(^a() ^cons(a 10) global()))
+@(with_macros(),construct_procedure(^x() if_zero(^x ^ZERO) global()))
+
+new_func()
+with_macros()
+list(2 3 4)
+
+c_int("12345")
+
+exit()
+
+@(gen_accum(number)
+  @L(amount()
+    set(number @+(number amount))
+    number))
+
+# Everytime new_accum() is called, it's accumulator should be increased by one
+@(new_accum gen_accum(0))
+
+# Simple loop
+@(for @L(start(end do)
+    @(for_loop(a z)
+      @?(@=(a z)
+        ^Done;; Last iteration
+        begin(
+          do()
+          for_loop(@+(1 a) z))))
+    for_loop(start end do)))
+
+@(make_withdraw(balance)
+  @L(amount()
+    @?(gt(balance amount)
+      begin(set(balance @-(balance amount))
+        balance)
+      "Insufficient funds")))
 
 exit("OK")
