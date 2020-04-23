@@ -33,12 +33,13 @@
 #define SAO_WHILE_INDIRECT() SAO_WHILE 
 #define SAO_ITR(mmm,qqq,...) SAO_EVAL( SAO_WHILE( mmm,qqq,__VA_ARGS__ ) )
 
-#define SAO_WHILE1(m,v1,v, ...) SAO_WHEN(SAO_NOT(SAO_IS_PAREN(v ()))) (SAO_OBSTRUCT(m) (v1,v) SAO_OBSTRUCT(SAO_WHILE_INDIRECT1) () (m,v1,__VA_ARGS__))
+#define SAO_WHILE1(m,m1,v, ...) SAO_WHEN(SAO_NOT(SAO_IS_PAREN(v ()))) (SAO_OBSTRUCT(m) (m1,v) SAO_OBSTRUCT(SAO_WHILE_INDIRECT1) () (m,m1,__VA_ARGS__))
 #define SAO_WHILE_INDIRECT1() SAO_WHILE1
 #define SAO_ITR1(mmm,mm1,qqq,...) SAO_EVAL( SAO_WHILE1( mmm,mm1,qqq,__VA_ARGS__) )
 #define SAO_QUOTE(sth) #sth
 //////////////////////////////////////////////////////////////////////////////
 #define DEFINE_ENUM_LIBC(n) libc_##n,
+//TODO predefine ffic_func ffic_libc_$func;
 enum { SAO_ITR(DEFINE_ENUM_LIBC,fprintf,malloc,memset,memcpy,strcpy,strlen,strdup,strcmp,strchr,strcat,printf,putc,getc,isalnum,isdigit,isalpha,fopen,fread,fgets,fgetc,fclose,feof,fputc,fflush,free,system,atol,atoi,atof,  usleep,msleep,sleep,setmode,fileno,stdin,stdout,stderr,microtime,exit) };
 #define libc(f) libc_(libc_##f,#f)
 #include "ffic.h" //github.com/partnernetsoftware/ffic/blob/master/src/ffic.h
@@ -48,7 +49,7 @@ ffic_func libc_(int fi,const ffic_string fn){ return libc_a[fi]?libc_a[fi]:(libc
 #define SAO_EOF (-1)
 #define SAO_CAT_COMMA(a,b) a##b,
 void* sao_calloc(long _sizeof){return libc(memset)(libc(malloc)(_sizeof),0,_sizeof);}
-#define SAO_CLONE(o) libc(memcpy)(libc(malloc)(sizeof(o)),&o,sizeof(o))
+#define SAO_COPY(o) libc(memcpy)(libc(malloc)(sizeof(o)),&o,sizeof(o))
 #define SAO_NEW_C(t,...) sao_calloc( sizeof(t) SAO_IF(SAO_IS_PAREN(__VA_ARGS__ ()))(SAO_EAT(),*(__VA_ARGS__)) )
 #define SAO_NEW_OBJECT(t,n,...) t*n=SAO_NEW_C(t,__VA_ARGS__);
 #define define_enum_name(n) #n,
@@ -74,23 +75,19 @@ typedef p_sao_obj (*native_t)(p_sao_obj args,p_sao_obj ctx);
 		p_sao_obj* _vector; \
 		ffic_string _string;\
 		ffic_wstring _wstring;\
-	}; long _len; };\
-	struct { native_t _native; ffic_string _ffi;};\
-	long _long;\
-	double _double;\
+	}; union {native_t _native;ffic_upt _len;long _long;double _double;}; };\
 }
 struct _sao_obj_v { SAO_OBJ_V; };
 struct _sao_obj { union{ void* ptr; int _type; }; ffic_string _raw; union{ SAO_OBJ_V; sao_obj_v v;}; };
 p_sao_obj sao_new(sao_obj tpl) {
+	sao_obj * ret = SAO_COPY(tpl);
 	//TODO gc()
-	sao_obj * ret = SAO_CLONE(tpl);
 	//sao_obj * ret = libc(malloc)(sizeof(sao_obj));
 	//libc(memcpy)(ret,&tpl,sizeof(sao_obj));
 	switch(ret->_type){
 		case type_symbol:
 		case type_string:
 			ret->_string=libc(strdup)(ret->_string);
-			ret->_raw=libc(strdup)(ret->_string);
 			break;
 	}
 	return ret;
