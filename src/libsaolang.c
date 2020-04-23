@@ -625,21 +625,14 @@ p_sao_obj saolang_init()
 	sao_print = _sao_print;
 	sao_eval = _sao_eval;
 
-	//SAO_TAG_at=sao_new_symbol("@");sao_var(SAO_TAG_at,SAO_TAG_at,SAO_TAG_global);
-
-//#define LIST_SAO_TAG true,false,set,let,if,lambda,procedure,at
-	//SAO_ITR(sao_add_sym_x, SAO_EXPAND(LIST_SAO_TAG));
-	SAO_ITR(sao_add_sym_x, set,let);//TODO merge with @()
-
-	//sao_add_sym_sx(at,"@");//def
-	sao_add_sym_sx("@T",true);//@T
-	sao_add_sym_sx("@F",false);//F
+	SAO_ITR(sao_add_sym_x, set,let);
+	sao_add_sym_sx("@T",true);
+	sao_add_sym_sx("@F",false);
 	sao_add_sym_sx("@?",if);
 	sao_add_sym_sx("@L",lambda);
 	sao_add_sym_sx("@P",procedure);
 
 #define add_sym_list_sx(s,x) sao_var(sao_new_symbol(s), sao_new_native(native_##x,s), SAO_TAG_global);
-	//SAO_ITR2X(add_sym_native_sx, "@+",add);
 	add_sym_list_sx("@+",  add);
 	add_sym_list_sx("@-",  sub);
 	add_sym_list_sx("@*",  mul);

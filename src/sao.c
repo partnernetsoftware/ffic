@@ -36,11 +36,6 @@
 #define SAO_WHILE1(m,v1,v, ...) SAO_WHEN(SAO_NOT(SAO_IS_PAREN(v ()))) (SAO_OBSTRUCT(m) (v1,v) SAO_OBSTRUCT(SAO_WHILE_INDIRECT1) () (m,v1,__VA_ARGS__))
 #define SAO_WHILE_INDIRECT1() SAO_WHILE1
 #define SAO_ITR1(mmm,mm1,qqq,...) SAO_EVAL( SAO_WHILE1( mmm,mm1,qqq,__VA_ARGS__) )
-//
-//#define SAO_WHILE2X(m,v1,v2,v,...) SAO_WHEN(SAO_NOT(SAO_IS_PAREN(v ()))) (SAO_OBSTRUCT(m) (v1,v2) SAO_OBSTRUCT(SAO_WHILE_INDIRECT2X) () (m, __VA_ARGS__))
-//#define SAO_WHILE_INDIRECT2X() SAO_WHILE2X
-//#define SAO_ITR2X(mmm,q1,q2,...) SAO_EVAL( SAO_WHILE2X( mmm,q1,q2,__VA_ARGS__) )
-
 #define SAO_QUOTE(sth) #sth
 //////////////////////////////////////////////////////////////////////////////
 #define DEFINE_ENUM_LIBC(n) libc_##n,
@@ -410,7 +405,6 @@ int main(int argc,char **argv, char** envp) {
 	SAO_TAG_global = cons(cons(SAO_TAG_nil, SAO_TAG_nil), SAO_TAG_nil);
 	SAO_TAG_argv = cons(cons(SAO_TAG_nil, SAO_TAG_nil), SAO_TAG_nil);
 	SAO_TAG_nilnil=sao_new_symbol("@@");sao_var(SAO_TAG_nilnil,SAO_TAG_nil,SAO_TAG_global);
-	//SAO_TAG_at=sao_new_symbol("@");sao_var(SAO_TAG_at,SAO_TAG_at,SAO_TAG_global);
 	sao_add_sym_sx("@",at);//
 	sao_add_sym_sx("@^",quote);//
 	sao_add_sym_sx("^",quote);//TODO improve it?
