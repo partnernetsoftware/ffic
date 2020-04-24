@@ -156,23 +156,29 @@ sum_of_squares((1,2,3,4))
 	 )
 
 # @(if_zero(x,then),list(if list(@= x 0) then))
-@(if_zero(x,then),^@?((@= x 0) then))
+@(if_zero(x,then),list(@?,list(@= x 0),then))
 
 # @(new_env(),cons(cons(^() ^()) ^()))
 construct_procedure(^(a) ^cons(a 10) ^global())
 #@(new_func,construct_procedure(^x(),^cons(x,11),global()))
-@(new_func,construct_procedure(^x(),^cons(x,1),global()))
+#@(new_func,construct_procedure(^x(),^cons(x,1),global()))
+@(new_func,construct_procedure(^(x),^@+(x,1),global()))
 #@(new_func,construct_procedure(^(x),^(x,1),global()))
 new_func
-new_func(5)
+new_func(5) #6
 #@(nf(),new_func(5))
 
+@(with_macros,construct_procedure(^(x) if_zero(^x ^3) global()))
+with_macros
+with_macros()
+with_macros(0) #3
+with_macros(1)
+
 exit()
 
 
 exit()
 
-@(with_macros,construct_procedure(^x() if_zero(^x ^ZERO) global()))
 
 with_macros()
 list(2 3 4)
