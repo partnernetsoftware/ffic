@@ -246,8 +246,9 @@ p_sao_obj sao_convert_default(ffic_string str){
 }
 void sao_print_default(ffic_string str, p_sao_obj el){
 	if (str) sao_stdout(str);
+	if (!el) {sao_stdout("nil");return;}
 	//if (!el) {sao_stdout("@@");return;}
-	if (!el) {sao_stdout(" ");return;}
+	//if (!el) {sao_stdout(" ");return;}
 	switch (el->_type) {
 		case type_string:
 			sao_stdout("\"%s\"", el->_string); break;
@@ -403,7 +404,7 @@ int main(int argc,char **argv, char** envp) {
 	SAO_TAG_nilnil=sao_new_symbol("@@");sao_var(SAO_TAG_nilnil,SAO_TAG_nil,SAO_TAG_global);
 	sao_add_sym_sx("@",at);//
 	sao_add_sym_sx("@^",quote);//
-	sao_add_sym_sx("^",quote);//
+	//sao_add_sym_sx("^",quote);//
 	sao_add_sym_sx("@V",vector);//vector(like json-array)
 	sao_add_sym_sx("@M",map);//map(like json-object)
 	sao_add_sym_sx("@B",begin);//

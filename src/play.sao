@@ -1,3 +1,5 @@
+#load("helper.sao")
+
 global()
 
 "English \"String\""
@@ -6,31 +8,38 @@ global()
 print("English String")
 print("中文字串")
 
-@(assert(r),@?(r,print(r),exit("ko")))
+## @(assert(r),@?(r,print(r),exit("ko")))
 assert(@T)
 
 # logic version (slow)
 @(fb(n),@?(lt(n,3),1,@+(fb(@-(n,1)),fb(@-(n,2)))))
 assert(@=(55,fb(10)))
 
-#tail version O(n)
-@(fbi(a,b,count),@?(@==(count,0),b,fbi(@+(a,b),a,@-(count,1))))
-#var(fib(n),fbi(1,0,n))
-@(fib(n),fbi(1,0,n))
-assert(@=(12586269025,fib(50)))
+# tail version O(n)
+# @(fbi(a,b,count),@?(@==(count,0),b,fbi(@+(a,b),a,@-(count,1))))
+# #var(fib(n),fbi(1,0,n))
+# @(fib(n),fbi(1,0,n))
+# fib(50)
+# assert(@=(12586269025,fib(50)))
 
 
 @(fbf(n), @(fbi(a,b,count),@?(@==(count,0),b,fbi(@+(a,b),a,@-(count,1)))), fbi(1,0,n))
-fbf(30)
+fbf(50)
 assert(@=(12586269025,fbf(50)))
+assert(@=(3736710778780434371,fbf(100)))
 
-@^()
+^()      # @^(nil()) => nil()
+@^()     # @^(nil) => nil
+^(@@)    # @@()
+^@@      # @^(@@) => @@
+@^(@@)   # @^(@@) => @@
 
 # @->(count,
 #     @-(1)
 # )
 
-@(var,@)
+#alias
+         @(var,@)
 ##         @(nil,@@)
 ##         @(true,@T)
 ##         @(false,@F)
@@ -55,11 +64,11 @@ assert(@=(3,y))
 @==(@F,@@?(@F))
 assert(@==(@F,@@?(@F)))
 
-	@(++(n),@+(1,n))
-++(3)
-	assert(@==(
-				4,++(3)
-				))
+@@?(@T)
+@==(@F,@@?(@T))
+assert(@==(@F,@@?(@T)))
+
+@(++(n),@+(1,n)),++(3), assert(@==( 4,++(3)))
 
 #@(caar @L((a) car(car(a))))
 #@(cadr @L((a) car(cdr(a))))
@@ -71,16 +80,16 @@ assert(@==(@F,@@?(@F)))
 #@(cdadr @L(a() cdr(car(cdr(a)))))
 #@(cadddr @L(a() car(cdr(cdr(cdr(a))))))
 
-@(caar(a),car(car(a)))
-@(cadr(a),car(cdr(a)))
-@(cdar(a),cdr(car(a)))
-@(cddr(a),cdr(cdr(a)))
-@(cadar(a),car(cdr(car(a))))
-#@(cadar(a),car(cdar(a))))
-@(caddr(a),car(cdr(cdr(a))))
-@(cdddr(a),cdr(cdr(cdr(a))))
-@(cdadr(a),cdr(car(cdr(a))))
-@(cdddr(a),car(cdr(cdr(cdr(a)))))
+### @(caar(a),car(car(a)))
+### @(cadr(a),car(cdr(a)))
+### @(cdar(a),cdr(car(a)))
+### @(cddr(a),cdr(cdr(a)))
+### @(cadar(a),car(cdr(car(a))))
+### #@(cadar(a),car(cdar(a))))
+### @(caddr(a),car(cdr(cdr(a))))
+### @(cdddr(a),cdr(cdr(cdr(a))))
+### @(cdadr(a),cdr(car(cdr(a))))
+### @(cdddr(a),car(cdr(cdr(cdr(a)))))
 
 
 caar(((1,2),3))
@@ -121,35 +130,45 @@ sum_of_squares((1,2,3,4))
 #@(mutate_procedure_body(name new_body) setcar(cddr(name) list(new_body)))
 #@(mutate_procedure_args(name new_args) setcar(cdr(name) new_args))
 
-@(new_env(),cons(cons(^() ^()) ^()))
+# cons(^()) # cons(@^(nil())) => (nil())
+# cons(^(),cons(^())) #cons(@^(nil()),cons(@^(nil()))) => (nil(),nil())
+# cons(^(),cons(^(),cons(^()))) #ons(@^(nil()),cons(@^(nil()),cons(@^(nil())))) => (nil(),nil(),nil())
+# cons(^@P,cons(^(),cons(^(),cons(^()))))
 
 @(procedure_body(proc),caddr(proc))
+#@(procedure_body,@L(proc,caddr(proc)))
 @(procedure_args(proc),cadr(proc))
-@(mutate_procedure_ctx(name new_env),setcar(cdddr(name),new_env))
-@(mutate_procedure_body(name,new_body),setcar(cddr(name),list(new_body)))
-@(mutate_procedure_args(name,new_args),setcar(cdr(name) new_args))
+#@(procedure_args,@L(proc,cadr(proc)))
+@(mutate_procedure_args(p,new_args),setcar(cdr(p),new_args))
+@(mutate_procedure_body(p,new_body),setcar(cddr(p),list(new_body)))
+@(mutate_procedure_ctx(p,new_ctx),setcar(cdddr(p),new_ctx))
 
-@(construct_procedure(args body ctx)
-  let((new_proc(cons(@P,cons(^(),cons(^(),cons(^()))))))
-    mutate_procedure_args(new_proc args)
-    mutate_procedure_body(new_proc body)
-    mutate_procedure_ctx(new_proc ctx)
-    new_proc))
+#@(new_p(),cons(^@P,cons(^(),cons(^(),cons(^())))))
+#@(new_env(),cons(cons(^() ^()) ^()))
+
+	@(construct_procedure(args,body,ctx)
+			let(np,cons(^@P,cons(^(),cons(^(),cons(^()))))
+			mutate_procedure_args(np,args)
+			mutate_procedure_body(np,body)
+			mutate_procedure_ctx(np,ctx)
+			np # return it
+			)
+	 )
 
 # @(if_zero(x,then),list(if list(@= x 0) then))
 @(if_zero(x,then),^@?((@= x 0) then))
 
-construct_procedure(^a() ^cons(a 10) ^global())
-
-@(new_func,construct_procedure(^(a) ^cons(a 10) ^global()))
-
+# @(new_env(),cons(cons(^() ^()) ^()))
+construct_procedure(^(a) ^cons(a 10) ^global())
+#@(new_func,construct_procedure(^x(),^cons(x,11),global()))
+@(new_func,construct_procedure(^x(),^cons(x,1),global()))
+#@(new_func,construct_procedure(^(x),^(x,1),global()))
+new_func
 new_func(5)
+#@(nf(),new_func(5))
 
 exit()
 
-# Construct a procedure with macro
-@(new_func,construct_procedure(^a() ^cons(a 10) global()))
-print(new_func)
 
 exit()
 

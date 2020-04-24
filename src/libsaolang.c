@@ -140,6 +140,12 @@ p_sao_obj sao_set(p_sao_obj var, p_sao_obj val, p_sao_obj ctx) {
 p_sao_obj _sao_eval(p_sao_obj expr, p_sao_obj ctx) {
 tail://tail loop to save recursive stacks
 	if (!expr) return SAO_TAG_nil; 
+
+//						sao_print("{DEBUG: ctx:", ctx);//
+//						sao_print("{DEBUG: expr:", expr);//
+//						sao_print("{DEBUG: ctx.??:", sao_get_var(sao_new_symbol("cons"),ctx));//
+//						sao_stdout("}}}\n");
+	
 	switch(expr->_type){
 		case type_long:
 		case type_double:
@@ -247,8 +253,9 @@ tail://tail loop to save recursive stacks
 					if (!proc) {
 						//if(SAO_ARGV(s)){
 						sao_print("WARN: 404 expr=", expr);//
-						sao_print("WARN: 404 _car=", _car);//
-						sao_stdout("\n");
+//						sao_print("WARN: 404 _car=", _car);//
+//						sao_print("WARN: 404 ctx=", ctx);//
+//						sao_stdout("\n");
 						//}
 						//return SAO_TAG_nil;
 						//return expr;
@@ -269,6 +276,11 @@ tail://tail loop to save recursive stacks
 						if(!car(_cadr_proc)){ _cadr_proc = cdr(_cadr_proc); }
 						//sao_print("\n; DEBUG _cadr_proc ",_cadr_proc);
 						ctx = cons(cons(_cadr_proc, args), cadddr(proc));//TODO to improve 
+
+//						sao_print("{DEBUG: ctx:", ctx);//
+//						sao_print("{DEBUG: ctx.??:", sao_get_var(sao_new_symbol("cons"),ctx));//
+//						sao_stdout("}}\n");
+
 						expr = cons(SAO_TAG_begin, caddr(proc));
 						goto tail;//
 					}
@@ -675,6 +687,9 @@ p_sao_obj saolang_init()
 			);
 	//@(fb(n),if(lt(n,3),1,+(fb(-(n,1)),fb(-(n,2)))))
 	SAO_ITR(add_sym_list, c_int);
+
+	native_load(cons(sao_new_string("std.sao"),SAO_TAG_nil),SAO_TAG_global);//TMP PLAY
+	
 	return SAO_TAG_global;
 }
 

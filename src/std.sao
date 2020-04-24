@@ -1,0 +1,13 @@
+@(assert(r),@?(r,print(r),exit("ko")))
+
+@(caar(a),car(car(a)))
+@(cadr(a),car(cdr(a)))
+@(cdar(a),cdr(car(a)))
+@(cddr(a),cdr(cdr(a)))
+@(cadar(a),car(cdr(car(a))))
+#@(cadar(a),car(cdar(a))))
+@(caddr(a),car(cdr(cdr(a))))
+@(cdddr(a),cdr(cdr(cdr(a))))
+@(cdadr(a),cdr(car(cdr(a))))
+@(cdddr(a),car(cdr(cdr(cdr(a)))))
+
