@@ -432,6 +432,11 @@ p_sao_obj sao_not_false(p_sao_obj x) {
  else if (x->_type == type_long && x->_long == 0) rt = SAO_TAG_nil;
  return rt;
 }
+p_sao_obj sao_eval_list_r(p_sao_obj expr, p_sao_obj ctx) {
+ p_sao_obj idx = cdr(expr);
+ for (; (cdr(idx)); idx = cdr(idx)){ sao_eval(car(idx), ctx); }
+ return car(idx);
+}
 p_sao_obj sao_eval_list(p_sao_obj exp, p_sao_obj ctx) {
  if (!exp) return SAO_TAG_nil;
  p_sao_obj _car = sao_eval(car(exp), ctx);
@@ -571,11 +576,7 @@ tail:
      goto tail;
     }
     else if (sao_is_eq(_car, SAO_TAG_begin)) {
-     p_sao_obj args = cdr(expr);
-     for (; (cdr(args)); args = cdr(args)){
-      sao_eval(car(args), ctx);
-     }
-     expr = car(args);
+     expr = sao_eval_list_r(expr,ctx);
      goto tail;
     }
     else if (sao_is_eq(_car, SAO_TAG_if)) {

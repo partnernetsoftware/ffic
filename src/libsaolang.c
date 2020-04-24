@@ -52,6 +52,11 @@ p_sao_obj sao_not_false(p_sao_obj x) {
 	else if (x->_type == type_long && x->_long == 0) rt = SAO_TAG_nil;
 	return rt;
 }
+p_sao_obj sao_eval_list_r(p_sao_obj expr, p_sao_obj ctx) {
+	p_sao_obj idx = cdr(expr);
+	for (; (cdr(idx)); idx = cdr(idx)){ sao_eval(car(idx), ctx); }
+	return car(idx);
+}
 p_sao_obj sao_eval_list(p_sao_obj exp, p_sao_obj ctx) {
 	if (!exp) return SAO_TAG_nil;
 	p_sao_obj _car = sao_eval(car(exp), ctx);
@@ -196,6 +201,7 @@ tail://tail loop to save recursive stacks
 					else { sao_set(car(_cadr), sao_eval(sao_new_lambda(cdr(_cadr), cddr(expr)), ctx), ctx); }
 					return SAO_TAG_true;
 				}
+				//TODO: (let( (x(1)) ) can be convert to @B( @(...), ...) ?!
 				else if (sao_is_eq(_car, SAO_TAG_let)) {
 					p_sao_obj vars = SAO_TAG_nil, vals = SAO_TAG_nil;
 					if (!_cadr) return SAO_TAG_nil;//
@@ -203,16 +209,25 @@ tail://tail loop to save recursive stacks
 						for (p_sao_obj idx = caddr(expr); (idx); idx = cdr(idx)) { vars = cons(caar(idx), vars); vals = cons(cadar(idx), vals); }
 						sao_var(_cadr, sao_eval(sao_new_lambda(vars, cdddr(expr)), cons(cons(vars, vals), ctx)), ctx);
 						expr = cons(_cadr, vals);
+						sao_print("<DEBUG ATOM{",_cadr);
+						sao_print("}{",expr);
+						sao_stdout("}>");
 						goto tail;
 					}
 					for (p_sao_obj idx = _cadr; (idx); idx = cdr(idx)) { vars = cons(caar(idx), vars); vals = cons(cadar(idx), vals); }
 					expr = cons(sao_new_lambda(vars, cddr(expr)), vals);
+					sao_print("<DEBUG LIST{",_cadr);
+					sao_print("}{",expr);
+					sao_stdout("}>");
 					goto tail;
 				}
 				else if (sao_is_eq(_car, SAO_TAG_begin)) {
-					p_sao_obj args = cdr(expr);
-					for (; (cdr(args)); args = cdr(args)){ sao_eval(car(args), ctx); }
-					expr = car(args);
+					//NOTES: can using sao_eval_list ? no, sao_eval_list is right to left (end to head), this is 1by1
+					//expr = car( sao_eval_list(cdr(expr), ctx) );
+					//p_sao_obj args = cdr(expr);
+					//for (; (cdr(args)); args = cdr(args)){ sao_eval(car(args), ctx); }
+					//expr = car(args);
+					expr = sao_eval_list_r(expr,ctx);
 					goto tail;
 				}
 				else if (sao_is_eq(_car, SAO_TAG_if)) { //if((predicate),(when_true),(when_false))
@@ -630,12 +645,14 @@ p_sao_obj saolang_init()
 	sao_eval = _sao_eval;
 
 	SAO_ITR(sao_add_sym_x, let);
+
 	sao_add_sym_sx("@T",true);
 	sao_add_sym_sx("@F",false);
 	sao_add_sym_sx("@?",if);
 	sao_add_sym_sx("@L",lambda);
 	sao_add_sym_sx("@P",procedure);
 	sao_add_sym_sx("@:=",set);//assign/change
+	//sao_add_sym_sx("@:=",at);//try not using set but at
 
 #define add_sym_list_sx(s,x) sao_var(sao_new_symbol(s), sao_new_native(native_##x,s), SAO_TAG_global);
 	add_sym_list_sx("@+",  add);

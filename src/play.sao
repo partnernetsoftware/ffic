@@ -80,13 +80,13 @@ assert(@==(@F,@@?(@T)))
 
 
 caar(((1,2),3))
-assert(@=(1,caar(((1,2),3))))
+assert(@==(1,caar(((1,2),3))))
 cadr((1,2,3))
-assert(@=(2,cadr((1,2,3))))
+assert(@==(2,cadr((1,2,3))))
 
 cdar(((1,2),3))
 cadar(((1,2),3))
-assert(@=(
+assert(@==(
 2,cadar(((1,2),3))
 ))
 
@@ -96,17 +96,17 @@ assert(@=(
 
 sum_of_squares(list(2 3 4) )           # 4+9+16=29
 
-assert(@=(29,
+assert(@==(29,
 sum_of_squares(list(2 3 4) )
 ))
 
 sum_of_squares(^(1,2,3,4))
-assert(@=(30,
+assert(@==(30,
 sum_of_squares(^(1,2,3,4))
 ))
 
 sum_of_squares((1,2,3,4))
-assert(@=(30,
+assert(@==(30,
 sum_of_squares((1,2,3,4))
 ))
 
@@ -133,31 +133,52 @@ sum_of_squares((1,2,3,4))
 #@(new_p(),cons(^@P,cons(^(),cons(^(),cons(^())))))
 #@(new_env(),cons(cons(^() ^()) ^()))
 
-let(((x 2),(y 5)),@*(x y)) #10
-let((x(2),y(5)),@*(x y)) #10
-let((x(2),y(5)),@*(x y)) #10
+#let(((x 2),(y 5)),@*(x y)) #10
+#let((x(2),y(5)),@*(x y)) #10
+#let((x(2),y(5)),@*(x y)) #10
 
-@(construct_procedure(args,body,ctx)
-		let(np,cons(^@P,cons(^(),cons(^(),cons(^()))))
-		mutate_procedure_args(np,args)
-		mutate_procedure_body(np,body)
-		mutate_procedure_ctx(np,ctx)
-		np # return it
-		)
- )
+let((x(2)),x) #2
 
-# @(if_zero(x,then),list(if list(@= x 0) then))
-@(if_zero(x,then),list(@?,list(@= x 0),then))
+# die: let(x,@*(a,a),x(3))
+
+# KO, using @() cannot replace the let?
+# 	@(construct_procedure1(args,body,ctx)
+# 			@(np,@L((),cons(^@P,cons(^(),cons(^(),cons(^()))))))
+# 			mutate_procedure_args(np,args)
+# 			mutate_procedure_body(np,body)
+# 			mutate_procedure_ctx(np,ctx)
+# 			,np)
+# 	@(new_func1,construct_procedure1(^x(),^cons(x,1),global()))
+# 	print(new_func1)
+# new_func1(6)
+
+#let(np,cons(^@P,cons(^(),cons(^(),cons(^())))),np)
+
+	@(construct_procedure(args,body,ctx)
+			#let( np,cons(^@P,cons(^(),cons(^(),cons(^())))) #work
+			let(
+			#((
+			np,cons(^@P,cons(^(),cons(^(),cons(^()))))
+			#))
+#@(np,cons(^@P,cons(^(),cons(^(),cons(^())))))
+				mutate_procedure_args(np,args)
+				mutate_procedure_body(np,body)
+				mutate_procedure_ctx(np,ctx)
+				np # return it
+				)
+	 )
 
 # @(new_env(),cons(cons(^() ^()) ^()))
-construct_procedure(^(a) ^cons(a 10) ^global())
+construct_procedure(^(a) ^cons(a 10) global())
 #@(new_func,construct_procedure(^x(),^cons(x,11),global()))
 @(new_func,construct_procedure(^x(),^cons(x,1),global()))
 #@(new_func,construct_procedure(^(x),^@+(x,1),global()))
 #@(new_func,construct_procedure(^(x),^(x,1),global()))
-new_func
+print(new_func)
 new_func(5) #6
 #@(nf(),new_func(5))
+
+@(if_zero(x,then),list(@?,list(@== x 0),then))
 
 @(with_macros,construct_procedure(^(x) if_zero(^x ^3) global()))
 with_macros
@@ -165,38 +186,38 @@ with_macros()
 with_macros(0) #3
 with_macros(1)
 
-@(test1(),let((x(1)),@:=(x,2),x))
-test1()
+# @(test1(),let((x(1)),@:=(x,2),x))
+# test1()
+# 
+# @(test3(),@(x,2),@:=(x,@+(x,1)),@:=(x,@+(x,3)),x)
+# test3()
 
-@(test3(),@(x,2),@:=(x,@+(x,1)),@:=(x,@+(x,3)),x)
-test3()
-
-@(make_key_list()
-		let((list(^())) 
-			@(get_val @L(@() 
-					assoc(var list)))
-			@(add_key @L(@(val)
-					@:=(list cons(cons(var val) list))))
-			@(dispatch(m)
-				@?(@=(m ^add) add_key
-					@?(@=(m ^get) get_val 
-						list)))
-			dispatch))
-
-	@(make_stack()
-			let((stack(^()))
-				@(push @L(x() 
-						@:=(stack cons(x stack))
-						stack))
-				@(pop @L(x()
-						@(q car(stack))
-						@:=(stack cdr(stack))
-						q))
-				@(dispatch(m)
-					@?(@==(m ^push) push
-						@?(@==(m ^pop) pop 
-							stack)))
-				dispatch))
+# @(make_key_list()
+# 		let((list(^())) 
+# 			@(get_val @L(@() 
+# 					assoc(var list)))
+# 			@(add_key @L(@(val)
+# 					@:=(list cons(cons(var val) list))))
+# 			@(dispatch(m)
+# 				@?(@==(m ^add) add_key
+# 					@?(@==(m ^get) get_val 
+# 						list)))
+# 			dispatch))
+# 
+# 	@(make_stack()
+# 			let((stack(^()))
+# 				@(push @L(x() 
+# 						@:=(stack cons(x stack))
+# 						stack))
+# 				@(pop @L(x()
+# 						@(q car(stack))
+# 						@:=(stack cdr(stack))
+# 						q))
+# 				@(dispatch(m)
+# 					@?(@==(m ^push) push
+# 						@?(@==(m ^pop) pop 
+# 							stack)))
+# 				dispatch))
 
 exit()
 

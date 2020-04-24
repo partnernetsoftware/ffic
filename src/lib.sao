@@ -175,7 +175,8 @@
 @(mutate_procedure_args(name new_args) setcar(cdr(name) new_args))
 
 @(construct_procedure(args body env)
-  let((new_proc(cons(procedure cons(^() cons(^() cons(^()))))))
+  #let((new_proc(cons(procedure cons(^() cons(^() cons(^()))))))
+  @(new_proc,cons(procedure cons(^() cons(^() cons(^())))))
     mutate_procedure_args(new_proc args)
     mutate_procedure_body(new_proc body)
     mutate_procedure_env(new_proc env)
