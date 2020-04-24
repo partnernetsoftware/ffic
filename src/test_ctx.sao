@@ -1,0 +1,20 @@
+#_ctx()
+
+@(a,1)
+print(a) #1
+
+@(b(),2)
+print(b()) #2
+
+#print(a b())
+
+@(c(),@(x,1),x)
+print(c())
+print(x)
+print(y)
+@(d(),set(y,2),y)
+print(d())
+print(y)
+
+set(z,3)
+print(z)

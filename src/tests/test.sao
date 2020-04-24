@@ -91,10 +91,10 @@ cadar(list(list(4,5),6) )                # 5
 
 @==(2 3)                                  # @F
 @==(3 3)                                  # @T
-@=(2 3)                                  # @F
+@==(2 3)                                  # @F
 nc(2 3)                               # @T
 
-@=(3 3)                                  # @T
+@==(3 3)                                  # @T
 nc(3 3)                               # @F
 
 lt(2,3) #@T
@@ -120,7 +120,7 @@ fibonacci(12)
 @(fb(n),@?(lt(n,3),1,@+(fb(@-(n,1)),fb(@-(n,2)))))
 fb(20)
 
-@(factorial(n),@?(@=(n,0),1,mul(n,factorial(sub(n 1)))))
+@(factorial(n),@?(@==(n,0),1,mul(n,factorial(sub(n 1)))))
 factorial(5)
 
 @(x list(1 2 3))
@@ -129,11 +129,11 @@ factorial(5)
 print(x) # output list(1 2 3)
 
 
-#@(factorial @L(n() @?(@=(n 0) 1 mul(n factorial(sub(n 1))))))
-@(factorial,@L(n(),@?(@=(n,0),1,mul(n,factorial(sub(n,1)))))) # n=>@?(@=(n 0) 1 mul(n factorial(sub(n 1))))
+#@(factorial @L(n() @?(@==(n 0) 1 mul(n factorial(sub(n 1))))))
+@(factorial,@L(n(),@?(@==(n,0),1,mul(n,factorial(sub(n,1)))))) # n=>@?(@==(n 0) 1 mul(n factorial(sub(n 1))))
 factorial(5) #120
 
-@(factorial,@L((n),@?(@=(n,0),1,mul(n,factorial(sub(n,1)))))) # n=>@?(@=(n 0) 1 mul(n factorial(sub(n 1))))
+@(factorial,@L((n),@?(@==(n,0),1,mul(n,factorial(sub(n,1)))))) # n=>@?(@==(n 0) 1 mul(n factorial(sub(n 1))))
 factorial(5) #120
 
 #@(add1 @L(n() add(1 n)))

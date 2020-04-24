@@ -32,7 +32,7 @@
 #@(gteq @L(a b) @?(lt(a b) false true)))
 #@(lteq @L(a b) @?(gt(a b) false true)))
 #@(notcmp(a b) @?(cmp(a b) false true))
-@(notcmp(a b) @?(@=(a b) false true))
+@(notcmp(a b) @?(@==(a b) false true))
 @(gteq(a b) @?(lt(a b) false true))
 @(lteq(a b) @?(gt(a b) false true))
 @(ge gteq)
@@ -67,7 +67,7 @@
 #@(assoc(key list)
 #  @?(@@?(list)
 #    ^()
-#    @?(@=(key car(car(list))) 
+#    @?(@==(key car(car(list))) 
 #      car(list)
 #      assoc(key cdr(list)))))
 #
@@ -79,8 +79,8 @@
 #    @(add_key @L(@(val)
 #        set(list cons(cons(var val) list))))
 #    @(dispatch(m)
-#      @?(@=(m ^add) add_key
-#        @?(@=(m ^get) get_val 
+#      @?(@==(m ^add) add_key
+#        @?(@==(m ^get) get_val 
 #          list)))
 #    dispatch))
 
@@ -95,8 +95,8 @@
 #        set(stack cdr(stack))
 #        q))
 #    @(dispatch(m)
-#      @?(@=(m ^push) push
-#        @?(@=(m ^pop) pop 
+#      @?(@==(m ^push) push
+#        @?(@==(m ^pop) pop 
 #          stack)))
 #    dispatch))
 # Returns the last item in a list or pair.
@@ -109,10 +109,10 @@
     helper(list)))
 
 #@(range_from(start,finish),@?(cmp(start,finish),cons(finish,nil),cons(start,range_from(add(1,start),finish))))
-#@(range_from(start,finish),@?(@=(start,finish),finish,cons(start,range_from(add(1,start),finish))))
+#@(range_from(start,finish),@?(@==(start,finish),finish,cons(start,range_from(add(1,start),finish))))
 @(range_from(start,finish),@?(@==(start,finish),finish,cons(start,range_from(@+(1,start),finish))))
 
-#@(range(number),@(range_helper(start,max),@?(@=(start,max),max,cons(start,range_helper(add(1,start),max)))),range_helper(0,number))
+#@(range(number),@(range_helper(start,max),@?(@==(start,max),max,cons(start,range_helper(add(1,start),max)))),range_helper(0,number))
 @(range(n),range_from(0,n))
 
 # Tail recursive length
@@ -153,10 +153,10 @@
 	 )
 @(pow(num exp) 
   @(iter(a b) 
-    @?(@=(b 1) 
+    @?(@==(b 1) 
       a
       iter(mul(a num) sub(b 1))))
-  @?(@=(exp 0)
+  @?(@==(exp 0)
     1
     iter(num exp)))
 
@@ -194,7 +194,7 @@
 # Simple loop
 @(for @L(start(end do)
     @(for_loop(a z)
-      @?(@=(a z)
+      @?(@==(a z)
         ^Done;; Last iteration
         begin(
           do()
