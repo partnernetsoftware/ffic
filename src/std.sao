@@ -1,5 +1,6 @@
-@(assert(r),@?(r,print(r),exit("ko")))
-
+@(car,@A)
+@(cons,@C)
+@(cdr,@D)
 @(caar(L),car(car(L)))
 @(cadr(L),car(cdr(L)))
 @(cdar(L),cdr(car(L)))
@@ -10,3 +11,5 @@
 @(cdddr(L),cdr(cdr(cdr(L))))
 @(cdadr(L),cdr(car(cdr(L))))
 @(cdddr(L),car(cdr(cdr(cdr(L)))))
+@(assert(r),@?(r,print(r),exit("ko")))
+

@@ -24,7 +24,10 @@ assert(@==(55,fb(10)))
 
 
 @(fbf(n), @(fbi(a,b,count),@?(@==(count,0),b,fbi(@+(a,b),a,@-(count,1)))), fbi(1,0,n))
-fbf(50)
+fbf(30)
+fbf(100)
+fbf(200)
+
 assert(@==(12586269025,fbf(50)))
 assert(@==(3736710778780434371,fbf(100)))
 
@@ -128,6 +131,7 @@ sum_of_squares((1,2,3,4))
 #@(procedure_args,@L(proc,cadr(proc)))
 @(mutate_procedure_args(p,new_args),setcar(cdr(p),new_args))
 @(mutate_procedure_body(p,new_body),setcar(cddr(p),list(new_body)))
+@(mutate_procedure_body1(p,new_body),setcar(cddr(p),list(new_body)))
 @(mutate_procedure_ctx(p,new_ctx),setcar(cdddr(p),new_ctx))
 
 #@(new_p(),cons(^@P,cons(^(),cons(^(),cons(^())))))
@@ -141,15 +145,20 @@ let((x(2)),x) #2
 
 # die: let(x,@*(a,a),x(3))
 
-# KO, using @() cannot replace the let?
+# # KO, using @() cannot replace the let?
 # 	@(construct_procedure1(args,body,ctx)
-# 			@(np,@L((),cons(^@P,cons(^(),cons(^(),cons(^()))))))
+# 			let(
+# 			((
+# 			np,cons(^@P,cons(^(),cons(^(),cons(^()))))
+# 			))
 # 			mutate_procedure_args(np,args)
+# 			#mutate_procedure_body1(np,body)
 # 			mutate_procedure_body(np,body)
 # 			mutate_procedure_ctx(np,ctx)
-# 			,np)
-# 	@(new_func1,construct_procedure1(^x(),^cons(x,1),global()))
-# 	print(new_func1)
+# 			np
+# 			))
+# #@(new_func1,construct_procedure1(^x(),^cons(x,1),global()))
+# @(new_func1,construct_procedure1(^(x),^cons(x,1),global()))
 # new_func1(6)
 
 #let(np,cons(^@P,cons(^(),cons(^(),cons(^())))),np)
@@ -169,7 +178,7 @@ let((x(2)),x) #2
 	 )
 
 # @(new_env(),cons(cons(^() ^()) ^()))
-construct_procedure(^(a) ^cons(a 10) global())
+## construct_procedure(^(a) ^cons(a 10) global())
 #@(new_func,construct_procedure(^x(),^cons(x,11),global()))
 @(new_func,construct_procedure(^x(),^cons(x,1),global()))
 #@(new_func,construct_procedure(^(x),^@+(x,1),global()))

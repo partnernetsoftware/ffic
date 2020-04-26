@@ -22,6 +22,15 @@ cons()
 
 ```
 ```
+
+ (define-syntax let
+  (syntax-rules ()
+    [(_ ((x e) ...) b1 b2 ...)
+     ((lambda (x ...) b1 b2 ...) e ...)]))
+
+so let can be removed by using let? (then macro else)
+let(...)
+
 1.cons:把元素加到链表里；(cons 1 '(2 3 4 5))，有两个参数
 
 2,quote:引用用来阻止记号被求值,它是用来用符号或者表原封不动的传递给程序，而不是求值之后传递，由于用的次数很多，被记为 ’ ，例如，(+ 2 3)会被求值为5，然而(quote (+ 2 3))则向程序返回(+ 2 3)本身。’(+ 2 3)代表列表(+ 2 3)本身；

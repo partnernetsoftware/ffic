@@ -209,14 +209,14 @@ tail://tail loop to save recursive stacks
 						for (p_sao_obj idx = caddr(expr); (idx); idx = cdr(idx)) { vars = cons(caar(idx), vars); vals = cons(cadar(idx), vals); }
 						sao_var(_cadr, sao_eval(sao_new_lambda(vars, cdddr(expr)), cons(cons(vars, vals), ctx)), ctx);
 						expr = cons(_cadr, vals);
-						sao_print("<DEBUG ATOM{",_cadr);
+						sao_print("\n<DEBUG ATOM{",_cadr);
 						sao_print("}{",expr);
 						sao_stdout("}>");
 						goto tail;
 					}
 					for (p_sao_obj idx = _cadr; (idx); idx = cdr(idx)) { vars = cons(caar(idx), vars); vals = cons(cadar(idx), vals); }
 					expr = cons(sao_new_lambda(vars, cddr(expr)), vals);
-					sao_print("<DEBUG LIST{",_cadr);
+					sao_print("\n<DEBUG LIST{",_cadr);
 					sao_print("}{",expr);
 					sao_stdout("}>");
 					goto tail;
@@ -258,7 +258,7 @@ tail://tail loop to save recursive stacks
 					p_sao_obj proc = sao_eval(_car, ctx);
 					if (!proc) {
 						//if(SAO_ARGV(s)){
-						sao_print("WARN: 404 expr=", expr);//
+//						sao_print("WARN: 404 expr=", expr);//
 //						sao_print("WARN: 404 _car=", _car);//
 //						sao_print("WARN: 404 ctx=", ctx);//
 //						sao_stdout("\n");
@@ -664,6 +664,10 @@ p_sao_obj saolang_init()
 	add_sym_list_sx("@===",same);//..TODO !!
 	add_sym_list_sx("@@?", is_nil);//
 
+	add_sym_list_sx("@A", car);
+	add_sym_list_sx("@C", cons);
+	add_sym_list_sx("@D", cdr);
+
 	//TODO $? last result ?
 
 	//p_sao_obj g_symbol_holder = SAO_TAG_nil;
@@ -673,7 +677,7 @@ p_sao_obj saolang_init()
 	SAO_ITR(add_sym_list, //quote,cond,var(i.e. define),
 			atom,
 			//eq,
-			car,cdr,cons,//function from LISP
+			//car,cdr,cons,//LISP
 			);
 	SAO_ITR(add_sym_list,
 			exit,shell,ffi,//sys

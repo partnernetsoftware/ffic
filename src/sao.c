@@ -170,9 +170,9 @@ int sao_read_line(sao_stream* fw)
 			if(!fw->fp) sao_error("FILE NOT FOUND?");
 			if(feof(fw->fp)){ sao_enq_c(fw,SAO_EOF); break; }
 		}else{
-			if (fw->pos==0) sao_stderr("DEBUG no pos??");//should not see??
+			if (fw->pos==0) sao_stderr("DEBUG sao_read_line no pos??");//should not see??
 			if (*(fw->pos)==0){
-				sao_stderr("DEBUG end??");//should not see?
+				sao_stderr("DEBUG sao_read_line end??");
 				sao_enq_c(fw,SAO_EOF);
 				break;
 			}
@@ -267,26 +267,26 @@ void sao_print_default(ffic_string str, p_sao_obj el){
 			{
 				int skip=0;
 				p_sao_obj ptr = el;
-				if(!SAO_ARGV(l)){
-					p_sao_obj _car = car(ptr);
-					if(!_car || sao_is_symbol(_car)){
-						sao_print(0, _car);//
-						skip=1;
-					}
-				}
+//				//if(!SAO_ARGV(l)){
+//					p_sao_obj _car = car(ptr);
+////					if(!_car || sao_is_symbol(_car)){
+//						sao_print(0, _car);//
+//						skip=1;
+////					}
+//				//}
 				sao_stdout("(");
 				int t = 0;
 				while (ptr) {
 					if(t==1) sao_stdout(",");
-					if(SAO_ARGV(l)){
-						sao_print(0, ptr->car);
-						if(t==0) t=1;
-					}else{
+					//if(SAO_ARGV(l)){
+					//	sao_print(0, ptr->car);
+					//	if(t==0) t=1;
+					//}else{
 						if(skip==1){ skip=0;
 						}else{ sao_print(0, ptr->car); if(t==0) t=1;
 							//sao_print("<cdr=%d>",ptr->cdr);
 						}
-					}
+					//}
 					if (ptr->cdr) {
 						if (ptr->cdr->_type == type_list) { ptr = ptr->cdr; }
 						else { sao_print(", ", ptr->cdr); break; }
@@ -348,7 +348,18 @@ p_sao_obj sao_load_expr(sao_stream * fw) {
 			case '}': case ']': case ')': return SAO_TAG_end;
 			case '{':return cons(SAO_TAG_map,sao_read_list(fw));
 			case '[':return cons(SAO_TAG_vector,sao_read_list(fw));
-			case '(': {p_sao_obj list = sao_read_list(fw); return (SAO_ARGV(l) || !theSymbol)? list : cons(theSymbol,list);}
+			//case '(': {p_sao_obj list = sao_read_list(fw); return (SAO_ARGV(l) || !theSymbol)? list : cons(theSymbol,list);}
+			//case '(': {p_sao_obj list = sao_read_list(fw); return (SAO_ARGV(l) || !theSymbol)? cons(SAO_TAG_vector,list) : cons(theSymbol,list);}
+			case '(': {
+									p_sao_obj list = sao_read_list(fw);
+									//sao_print("<DEBUG list=",list);sao_stdout(">");
+									//return cons(theSymbol,list);
+									//TODO if list is empty (nil()) make it empty as well ?? TODO
+									if(!theSymbol) return list;
+									p_sao_obj rt = cons(theSymbol,list);
+									//sao_print("<DEBUG rt=",rt);sao_stdout(">");
+									return rt;
+								}
 			default:
 				{
 					char buf[SAO_MAX_BUF_LEN] = {c};
