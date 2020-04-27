@@ -21,6 +21,10 @@ int main(){
 //	ffic_func fprintf = libc(fprintf);
 //	ffic_func stderr = libc(stderr);
 
+	OUTD(1^3);// 0001 ^ 0011 = 0010
+	OUTD(1|3);// 01 | 11 => 11
+	OUTD(1&3);// 01 & 11 => 01
+	OUTD(~1);// 
 	OUTD(ffic);
 	OUTD( ((long)6)&((long)(128-1)) );
 

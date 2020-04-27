@@ -1,6 +1,19 @@
 @(car,@A)
 @(cons,@C)
 @(cdr,@D)
+@(lt,@<)
+@(gt,@>)
+
+@(<,@<)
+@(>,@>)
+@(+,@+)
+@(-,@-)
+@(*,@*)
+@(/,@/)
+
+# fail for symbol only:
+@(??,@?)
+
 @(caar(L),car(car(L)))
 @(cadr(L),car(cdr(L)))
 @(cdar(L),cdr(car(L)))

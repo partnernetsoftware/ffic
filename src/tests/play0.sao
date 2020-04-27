@@ -9,9 +9,7 @@ print("中文字串")
 assert(@T)
 
 # logic version (slow)
-#@(fb(n),@?(lt(n,3),1,@+(fb(@-(n,1)),fb(@-(n,2)))))
-@(fb(n),@?(@<(n,3),1,@+(fb(@-(n,1)),fb(@-(n,2)))))
-#@(fb(n),@?(<(n,3),1,+(fb(-(n,1)),fb(-(n,2)))))
+@(fb(n),@?(lt(n,3),1,@+(fb(@-(n,1)),fb(@-(n,2)))))
 assert(@==(55,fb(10)))
 
 @(procedure_body(proc),caddr(proc))

@@ -263,6 +263,7 @@ void sao_print_default(ffic_string str, p_sao_obj el){
 			sao_stdout("%ld", el->_long); break;
 		case type_double:
 			sao_stdout("%g", el->_double); break;
+		//case type_listx:
 		case type_list:
 			{
 				int skip=0;

@@ -1,6 +1,7 @@
 define_map(ctype,  long,double,int,float,i64,u64,string,struct,pointer);//etc TODO
 enum { type_ctype=1+type_string, type_native, };
-#define LIST_SAO_TAG true,false,set,let,if,lambda,procedure,nilnil
+//#define LIST_SAO_TAG true,false,set,let,if,lambda,procedure,nilnil
+#define LIST_SAO_TAG true,false,set,if,lambda,procedure,nilnil
 SAO_ITR(define_sao_tag, SAO_EXPAND(LIST_SAO_TAG));
 
 #define sao_new_vector(l) sao_new((sao_obj){._type=type_vector, ._len=l,._vector=SAO_NEW_C(p_sao_obj,l)})
@@ -201,26 +202,26 @@ tail://tail loop to save recursive stacks
 					else { sao_set(car(_cadr), sao_eval(sao_new_lambda(cdr(_cadr), cddr(expr)), ctx), ctx); }
 					return SAO_TAG_true;
 				}
-				//TODO: (let( (x(1)) ) can be convert to @B( @(...), ...) ?!
-				else if (sao_is_eq(_car, SAO_TAG_let)) {
-					p_sao_obj vars = SAO_TAG_nil, vals = SAO_TAG_nil;
-					if (!_cadr) return SAO_TAG_nil;//
-					if (sao_is_atom(_cadr)) {
-						for (p_sao_obj idx = caddr(expr); (idx); idx = cdr(idx)) { vars = cons(caar(idx), vars); vals = cons(cadar(idx), vals); }
-						sao_var(_cadr, sao_eval(sao_new_lambda(vars, cdddr(expr)), cons(cons(vars, vals), ctx)), ctx);
-						expr = cons(_cadr, vals);
-						sao_print("\n<DEBUG ATOM{",_cadr);
-						sao_print("}{",expr);
-						sao_stdout("}>");
-						goto tail;
-					}
-					for (p_sao_obj idx = _cadr; (idx); idx = cdr(idx)) { vars = cons(caar(idx), vars); vals = cons(cadar(idx), vals); }
-					expr = cons(sao_new_lambda(vars, cddr(expr)), vals);
-					sao_print("\n<DEBUG LIST{",_cadr);
-					sao_print("}{",expr);
-					sao_stdout("}>");
-					goto tail;
-				}
+				//(let( (x(1)) ) can be convert to @B( @(...), ...) ?!
+				//else if (sao_is_eq(_car, SAO_TAG_let)) {
+				//	p_sao_obj vars = SAO_TAG_nil, vals = SAO_TAG_nil;
+				//	if (!_cadr) return SAO_TAG_nil;//
+				//	if (sao_is_atom(_cadr)) {
+				//		for (p_sao_obj idx = caddr(expr); (idx); idx = cdr(idx)) { vars = cons(caar(idx), vars); vals = cons(cadar(idx), vals); }
+				//		sao_var(_cadr, sao_eval(sao_new_lambda(vars, cdddr(expr)), cons(cons(vars, vals), ctx)), ctx);
+				//		expr = cons(_cadr, vals);
+				//		//sao_print("\n<DEBUG ATOM{",_cadr);
+				//		//sao_print("}{",expr);
+				//		//sao_stdout("}>");
+				//		goto tail;
+				//	}
+				//	for (p_sao_obj idx = _cadr; (idx); idx = cdr(idx)) { vars = cons(caar(idx), vars); vals = cons(cadar(idx), vals); }
+				//	expr = cons(sao_new_lambda(vars, cddr(expr)), vals);
+				//	//sao_print("\n<DEBUG LIST{",_cadr);
+				//	//sao_print("}{",expr);
+				//	//sao_stdout("}>");
+				//	goto tail;
+				//}
 				else if (sao_is_eq(_car, SAO_TAG_begin)) {
 					//NOTES: can using sao_eval_list ? no, sao_eval_list is right to left (end to head), this is 1by1
 					//expr = car( sao_eval_list(cdr(expr), ctx) );
@@ -644,21 +645,26 @@ p_sao_obj saolang_init()
 	sao_print = _sao_print;
 	sao_eval = _sao_eval;
 
-	SAO_ITR(sao_add_sym_x, let);
+	//SAO_ITR(sao_add_sym_x, let);
 
 	sao_add_sym_sx("@T",true);
 	sao_add_sym_sx("@F",false);
 	sao_add_sym_sx("@?",if);
+
 	sao_add_sym_sx("@L",lambda);
 	sao_add_sym_sx("@P",procedure);
+
 	sao_add_sym_sx("@:=",set);//assign/change
-	//sao_add_sym_sx("@:=",at);//try not using set but at
 
 #define add_sym_list_sx(s,x) sao_var(sao_new_symbol(s), sao_new_native(native_##x,s), SAO_TAG_global);
 	add_sym_list_sx("@+",  add);
 	add_sym_list_sx("@-",  sub);
 	add_sym_list_sx("@*",  mul);
 	add_sym_list_sx("@/",  div);
+
+	add_sym_list_sx("@<",  lt);
+	add_sym_list_sx("@>",  gt);
+
 	//add_sym_list_sx("@=",  cmp);//TODO to remove soon !
 	add_sym_list_sx("@==", cmp);//
 	add_sym_list_sx("@===",same);//..TODO !!
@@ -672,7 +678,8 @@ p_sao_obj saolang_init()
 
 	//p_sao_obj g_symbol_holder = SAO_TAG_nil;
 	//g_symbol_holder = sao_new_vector(65536-1);//TODO auto expand for the map
-	SAO_ITR(add_sym_list, print,lt,//add,sub,
+	SAO_ITR(add_sym_list, print,
+			//lt,//add,sub,
 			exit);//minimum for fib.sao
 	SAO_ITR(add_sym_list, //quote,cond,var(i.e. define),
 			atom,
@@ -690,8 +697,8 @@ p_sao_obj saolang_init()
 			load,print,read,//io
 			//add,sub,mul,div,
 			//cmp,
-			lt,gt,//logic,
-			is_empty,//TODO merge with @?
+			//lt,gt,//logic,
+			is_empty,//TODO merge with @?...
 			//is_nil,
 			is_list,pairq,
 			//eq,
