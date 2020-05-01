@@ -1,5 +1,6 @@
 #CC=cc
 CC=gcc -O1
+#CC=gcc
 default: 
 	#cd .. && git submodule init && git submodule update
 	#git submodule update --init --recursive

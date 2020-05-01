@@ -268,13 +268,13 @@ void sao_print_default(ffic_string str, p_sao_obj el){
 			{
 				int skip=0;
 				p_sao_obj ptr = el;
-//				//if(!SAO_ARGV(l)){
-//					p_sao_obj _car = car(ptr);
-////					if(!_car || sao_is_symbol(_car)){
-//						sao_print(0, _car);//
-//						skip=1;
-////					}
-//				//}
+				//if(!SAO_ARGV(l)){
+					p_sao_obj _car = car(ptr);
+//					if(!_car || sao_is_symbol(_car)){
+						sao_print(0, _car);//
+						skip=1;
+//					}
+				//}
 				sao_stdout("(");
 				int t = 0;
 				while (ptr) {

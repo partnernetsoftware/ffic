@@ -23,9 +23,19 @@ SaoLang is a customized LISP dialet, but the leading head/first object is show o
 | @E | end | end list |
 | @L | lambda((..),()) |
 
+
+# @L
+TODO using lambda
+=>((),())
+(=>(),())
+()=>()
+
+
 @A car
 @C cons
 @D cdr
+
+# @P
 
 
 ```

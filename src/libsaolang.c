@@ -149,8 +149,8 @@ tail://tail loop to save recursive stacks
 
 //						sao_print("{DEBUG: ctx:", ctx);//
 //						sao_print("{DEBUG: expr:", expr);//
-//						sao_print("{DEBUG: ctx.??:", sao_get_var(sao_new_symbol("cons"),ctx));//
-//						sao_stdout("}}}\n");
+////						sao_print("{DEBUG: ctx.??:", sao_get_var(sao_new_symbol("cons"),ctx));//
+//						sao_stdout("}%d\n",expr->_type);
 	
 	switch(expr->_type){
 		case type_long:
@@ -232,8 +232,14 @@ tail://tail loop to save recursive stacks
 					goto tail;
 				}
 				else if (sao_is_eq(_car, SAO_TAG_if)) { //if((predicate),(when_true),(when_false))
-					p_sao_obj predicate = sao_eval(_cadr, ctx);
-					expr = (sao_not_false(predicate)) ? caddr(expr) : cadddr(expr);
+					//sao_print("\n<DEBUG if{",_cadr);
+					//sao_print("}{",expr);
+					//sao_stdout("}>");
+
+//					p_sao_obj predicate = sao_eval(_cadr, ctx);
+//					expr = (sao_not_false(predicate)) ? caddr(expr) : cadddr(expr);
+
+					expr = (sao_not_false(sao_eval(_cadr, ctx))) ? caddr(expr) : cadddr(expr);
 					goto tail;
 				}
 				//else if (sao_is_eq(_car, SAO_TAG_or)) {
