@@ -1,0 +1,3 @@
+@(date,=>((),ext_new_Date())) #var date = ()=> ext_new_Date();
+
+# Q about ext_new_Date: ext(new,Date)
