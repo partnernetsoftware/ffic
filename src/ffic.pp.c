@@ -18,6 +18,8 @@ typedef signed short int ffic_i16;
 typedef unsigned short int ffic_u16;
 typedef signed int ffic_i32;
 typedef unsigned int ffic_u32;
+typedef signed long ffic_ipt;
+typedef unsigned long ffic_upt;
 typedef signed long int ffic_i64;
 typedef unsigned long int ffic_u64;
 extern ffic_ptr dlopen(const char *,int);

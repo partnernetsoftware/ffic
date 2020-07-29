@@ -10,15 +10,16 @@ Release repo of [SaoLang](https://search.ipaustralia.gov.au/trademarks/search/vi
 # Spec
 
 ```
-Expr => Atom || List
-List => Atom(...Expr)
-Atom => Null || String || Symbol || Number
+Expr=Atom(...Expr)
+Yup, nothing else.
+
 ```
 
 # Quick Example
 
 ```
-var(fib(n),if(lt(n,3),1,add(fib(sub(n,1)),fib(sub(n,2)))))
+#var(fib(n),if(lt(n,3),1,add(fib(sub(n,1)),fib(sub(n,2)))))
+@(fib(n),if(lt(n,3),1,+(fib(-(n,1)),fib(-(n,2)))))
 
 fib(12)
 
