@@ -67,22 +67,27 @@ p_sao_obj sao_eval_list(p_sao_obj exp, p_sao_obj ctx) {
 	return cons(_car, _cdr);
 }
 //TODO http://www.cse.yorku.ca/~oz/hash.html
-long sao_hash(const ffic_string s, int ht_len) {
-	long h = 0;
-	ffic_string u = s;
-	//TODO *256 => >>8
-	//while(*(u++)) h = h*256
-	while (*u) { h = (h * 256 + (*u)) % ht_len; u++; }
-	return h;
-}
+//long sao_hash(const ffic_string s, int ht_len) {
+//	long h = 0;
+//	ffic_string u = s;
+//	//TODO *256 => >>8
+//	//while(*(u++)) h = h*256
+//	while (*u) { h = (h * 256 + (*u)) % ht_len; u++; }
+//	return h;
+//}
+//get
 p_sao_obj sao_vector_lookup(p_sao_obj holder,ffic_string s) {
 	if(!holder) sao_error("sao_vector_lookup(holder)\n");
 	p_sao_obj* the_vector = holder->_vector;
 	if(!the_vector) sao_error("empty _vector?");
 	if(!holder->_len) sao_error("empty _vector._len?");
-	long h = sao_hash(s, holder->_len);
-	return the_vector[h];
+
+	return the_vector[ ffic_hash(s, holder->_len) ];
+
+//	long h = sao_hash(s, holder->_len);
+//	return the_vector[h];
 }
+//put
 p_sao_obj sao_vector_insert(p_sao_obj holder,p_sao_obj key_obj){
 	if(!holder) sao_error("sao_vector_insert(holder)\n");
 	if(!key_obj) sao_error("sao_vector_insert(key_obj)\n");
@@ -90,9 +95,12 @@ p_sao_obj sao_vector_insert(p_sao_obj holder,p_sao_obj key_obj){
 	p_sao_obj* the_vector = holder->_vector;
 	if(!the_vector) sao_error("empty _vector?");
 	if(!holder->_len) sao_error("empty _vector._len?");
-	long h = sao_hash(key_obj->_string, holder->_len);
+
+	long h = ffic_hash(key_obj->_string, holder->_len);
+	//long h = sao_hash(key_obj->_string, holder->_len);
 	if(the_vector[h]){
 		//sao_warn("TODO sao_vector_insert map need to resize (%d,%s)?\n",h,key_obj->_string);
+		//TODO resize
 	}
 	//if(!the_vector || (SAO_TAG(nil)!= the_vector[h] && SAO_TAG(nil)!=the_vector[h]->_string)){
 	//	int _len= 2*(holder->_len+1)-1 ;
@@ -103,11 +111,12 @@ p_sao_obj sao_vector_insert(p_sao_obj holder,p_sao_obj key_obj){
 	return holder;
 }
 p_sao_obj sao_tbl_resize(p_sao_obj holder,int _len){
-	//if(!holder)
-	if(!holder)
-		holder = sao_new_vector(_len);
-	//TMP...(fake resize first) TODO to implement the real resize soon
-	else{
+	if(!holder){
+		p_sao_obj new_holder = sao_new_vector(_len);
+		//TODO copy from holder to new_holder
+		holder = new_holder;
+		//TMP...(fake resize first) TODO to implement the real resize soon
+	}else{
 		holder->_vector = SAO_NEW_C(p_sao_obj,_len);//TMP
 		holder->_len = _len;
 	}

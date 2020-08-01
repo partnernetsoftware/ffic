@@ -1,4 +1,3 @@
-/* to unify libc */
 #ifndef FFIC_H
 #define FFIC_H
 typedef void* ffic_ptr;
@@ -9,7 +8,8 @@ typedef int (*ffic_func_i)();
 typedef float (*ffic_func_f)();
 typedef char* ffic_string;
 typedef int* ffic_wstring;
-#define ffic_tmp_string(n) ((char[n]){0})
+//#define ffic_tmp_string(n) ((char[n]){0})
+#define ffic_tmp_string(n) (char[n]){0}
 typedef enum { ffic_os_unknown, ffic_os_win, ffic_os_osx, ffic_os_unx, } ffic_os_t;
 #ifdef _WIN32
 ffic_os_t ffic_os = ffic_os_win;
@@ -97,6 +97,11 @@ void ffic_setup(char **envp){
 	}
 }
 #endif
+long ffic_hash(ffic_string u,int len){
+	long h=0; int c;
+	while ((c=*u++)) h = (h>>8) + (c%len);
+	return h;
+}
 char* _ffic_strcat(char* buffer, const char *source, const char* append) {
 	char* ptr = buffer;
 	while (*source) *(ptr++) = *(source++); while (*append) *(ptr++) = *(append++);
@@ -106,7 +111,7 @@ char* _ffic_strcat(char* buffer, const char *source, const char* append) {
 ffic_ptr ffic_void(){return 0;};
 ffic_ptr(*ffic_raw(const char* part1, const char* funcname, const char* part2))()
 {
-	if(ffic_os==ffic_os_unknown){ printf("ERROR: need to call ffic_setup() first\n");exit(1); }
+	//if(ffic_os==ffic_os_unknown){ printf("ERROR: need to call ffic_setup() first\n");exit(1); }
 	char libfilename[512] = {0};
 	_ffic_strcat(libfilename, (part1)? part1 : ffic_libcname, (part2)? part2 : ffic_sosuffix );
 	ffic_ptr rt = ffic_dlsym(ffic_dlopen(libfilename,0x100 | 0x1/*RTLD_LAZY*/), funcname);
