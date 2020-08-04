@@ -10,7 +10,6 @@ typedef enum { ffic_os_unknown, ffic_os_win, ffic_os_osx, ffic_os_unx, } ffic_os
 ffic_os_t ffic_os = ffic_os_osx;
 ffic_string ffic_libcname = "libc";
 ffic_string ffic_sosuffix = ".dylib";
-static ffic_func ffic_gettimeofday=(ffic_ptr)0;
 typedef struct __FILE FILE;
 typedef signed char ffic_i8;
 typedef unsigned char ffic_u8;
@@ -22,14 +21,14 @@ typedef signed long ffic_ipt;
 typedef unsigned long ffic_upt;
 typedef signed long int ffic_i64;
 typedef unsigned long int ffic_u64;
-extern ffic_ptr dlopen(const char *,int);
-extern ffic_ptr dlsym(ffic_ptr, const char *);
+extern ffic_ptr dlopen(const char*,int);
+extern ffic_ptr dlsym(ffic_ptr, const char*);
 extern int printf(const char*,...);
 extern int strcmp(const char*,const char*);
 extern void exit(int);
 extern int fprintf(FILE*,const char*,...);
 extern int fflush(void*);
-char* _ffic_strcat(char* buffer, const char *source, const char* append) {
+char* _ffic_strcat(char* buffer, const char* source, const char* append) {
  char* ptr = buffer;
  while (*source) *(ptr++) = *(source++); while (*append) *(ptr++) = *(append++);
  *ptr = '\0';
@@ -38,8 +37,7 @@ char* _ffic_strcat(char* buffer, const char *source, const char* append) {
 ffic_ptr ffic_void(){return 0;};
 ffic_ptr(*ffic_raw(const char* part1, const char* funcname, const char* part2))()
 {
- if(ffic_os==ffic_os_unknown){ printf("ERROR: need to call ffic_setup() first\n");exit(1); }
- char libfilename[512] = {0};
+ ffic_string libfilename = (char[512]){0};
  _ffic_strcat(libfilename, (part1)? part1 : ffic_libcname, (part2)? part2 : ffic_sosuffix );
  ffic_ptr rt = dlsym(dlopen(libfilename,0x100 | 0x1 ), funcname);
  return rt;
@@ -50,53 +48,26 @@ void* ffic_os_std(int t){
  ffic_std[t] = ffic_raw(0,(ffic_os==ffic_os_win)?"_fdopen":"fdopen",0)(ffic_raw(0,(ffic_os==ffic_os_win)?"_dup":"dup",0)(t),(t==0)?"r":"w");
  return ffic_std[t];
 }
+static ffic_func _ffic_os_sleep = (ffic_ptr)0;
 ffic_ptr ffic_usleep(int nano_seconds)
 {
- if(ffic_os==ffic_os_win) ffic_raw("kernel32","Sleep",0)(nano_seconds/1000);
- else ffic_raw(ffic_libcname,"usleep",0)(nano_seconds);
+ _ffic_os_sleep( (ffic_os==ffic_os_win) ? (nano_seconds/1000) : nano_seconds );
  return 0;
 };
 ffic_ptr ffic_msleep(int microseconds)
 {
- if (ffic_os==ffic_os_win) ffic_raw("kernel32","Sleep",0)(microseconds);
- else ffic_raw(ffic_libcname,"usleep",0)(microseconds*1000);
+ _ffic_os_sleep( (ffic_os==ffic_os_win) ? (microseconds) : microseconds*1000 );
  return 0;
 };
 ffic_ptr ffic_sleep(int seconds)
 {
- if(ffic_os==ffic_os_win) ffic_raw("kernel32","Sleep",0)(seconds*1000);
- else ffic_raw(ffic_libcname,"usleep",0)(seconds*1000000);
+ _ffic_os_sleep( (ffic_os==ffic_os_win) ? (seconds*1000) : (seconds*1000000) );
  return 0;
-}
-struct timeval { long tv_sec; long tv_usec; };
-ffic_u64 ffic_microtime(void);
-ffic_ptr(*ffic(const char* libname, const char* funcname, ...))()
-{
- ffic_ptr addr = 0;
- if(!strcmp("c",libname)){ libname = 0;
-  if(!strcmp("stderr",funcname) || !strcmp("2",funcname)){ return ffic_os_std(2); }
-  else if(!strcmp("stdout",funcname) || !strcmp("1",funcname)){ return ffic_os_std(1); }
-  else if(!strcmp("stdin",funcname) || !strcmp("0",funcname)){ return ffic_os_std(0); }
-  else if(!strcmp("microtime",funcname)){ return (ffic_ptr) ffic_microtime; }
-  else if(!strcmp("usleep",funcname)){ return ffic_usleep; }
-  else if(!strcmp("sleep",funcname)){ return ffic_sleep; }
-  else if(!strcmp("msleep",funcname)){ return ffic_msleep; }
-  else if(ffic_os == ffic_os_win && !strcmp("fileno",funcname)){ funcname = "_fileno"; }
-  else if(!strcmp("setmode",funcname)){
-   if(ffic_os == ffic_os_win){ funcname = "_setmode"; }else{ addr = ffic_void; }
-  }
-  else if(ffic_os == ffic_os_win && !strcmp("strdup",funcname)){ funcname = "_strdup"; }
- }
- if(addr==0) addr = ffic_raw(libname,funcname,0);
- if(0==addr){
-  fprintf(ffic_os_std(1),"WARN: Not found %s.%s\n", libname, funcname);fflush(ffic_os_std(1));
-  return ffic_void;
- }
- return addr;
 }
 ffic_u64 ffic_microtime(void)
 {
- struct timeval tv;
+ struct timeval { long tv_sec; long tv_usec; } tv;
+ static ffic_func ffic_gettimeofday=(ffic_ptr)0;
  if(ffic_os == ffic_os_win){
   if (!ffic_gettimeofday) ffic_gettimeofday = ffic_raw("kernel32","GetSystemTimePreciseAsFileTime",0);
   if (!ffic_gettimeofday) ffic_gettimeofday = ffic_raw("kernel32","GetSystemTimeAsFileTime",0);
@@ -109,10 +80,35 @@ ffic_u64 ffic_microtime(void)
   tv.tv_sec = (microseconds_since_1970 / (ffic_u64) 1000000);
   tv.tv_usec = microseconds_since_1970 % (ffic_u64) 1000000;
  }else{
-  if (!ffic_gettimeofday) ffic_gettimeofday = ffic("c","gettimeofday");
+  if (!ffic_gettimeofday) ffic_gettimeofday = ffic_raw(0,"gettimeofday",0);
   ffic_gettimeofday(&tv, 0);
  }
  return ((ffic_u64)tv.tv_sec*(ffic_u64)1000 + (((ffic_u64)tv.tv_usec)/(ffic_u64)1000)%(ffic_u64)1000);
+}
+ffic_ptr(*ffic(const char* libname, const char* funcname, ...))()
+{
+ ffic_ptr addr = 0;
+ if(!libname){
+  if(!_ffic_os_sleep) _ffic_os_sleep = (ffic_os==ffic_os_win) ? ffic_raw("kernel32","Sleep",0) : ffic_raw(ffic_libcname,"usleep",0);
+  if(!strcmp("stderr",funcname) || !strcmp("2",funcname)){ return ffic_os_std(2); }
+  else if(!strcmp("stdout",funcname) || !strcmp("1",funcname)){ return ffic_os_std(1); }
+  else if(!strcmp("stdin",funcname) || !strcmp("0",funcname)){ return ffic_os_std(0); }
+  else if(!strcmp("microtime",funcname)){ return (ffic_ptr) ffic_microtime; }
+  else if(!strcmp("usleep",funcname)){ return ffic_usleep; }
+  else if(!strcmp("sleep",funcname)){ return ffic_sleep; }
+  else if(!strcmp("msleep",funcname)){ return ffic_msleep; }
+  else if(!strcmp("fileno",funcname) && ffic_os == ffic_os_win){ funcname = "_fileno"; }
+  else if(!strcmp("setmode",funcname)){
+   if(ffic_os == ffic_os_win){ funcname = "_setmode"; }else{ addr = ffic_void; }
+  }
+  else if(!strcmp("strdup",funcname) && ffic_os == ffic_os_win){ funcname = "_strdup"; }
+ }
+ if(!addr) addr = ffic_raw(libname,funcname,0);
+ if(!addr) {
+  fprintf(ffic_os_std(1),"WARN: Not found %s.%s\n", libname, funcname);fflush(ffic_os_std(1));
+  return ffic_void;
+ }
+ return addr;
 }
 int main(int argc, char **argv, char **envp){
  void* tcc_ptr = ffic("libtcc","tcc_new")();

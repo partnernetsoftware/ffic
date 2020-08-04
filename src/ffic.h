@@ -119,25 +119,26 @@ void* ffic_os_std(int t){
 	ffic_std[t] = ffic_raw(0,(ffic_os==ffic_os_win)?"_fdopen":"fdopen",0)(ffic_raw(0,(ffic_os==ffic_os_win)?"_dup":"dup",0)(t),(t==0)?"r":"w");
 	return ffic_std[t];
 }
+static ffic_func _ffic_os_sleep = (ffic_ptr)0;
 ffic_ptr ffic_usleep(int nano_seconds)
 {
-	static ffic_func _ffic_sleep = (ffic_ptr)0;
-	if(!_ffic_sleep) _ffic_sleep = (ffic_os==ffic_os_win) ? ffic_raw("kernel32","Sleep",0) : ffic_raw(ffic_libcname,"usleep",0);
-	_ffic_sleep( (ffic_os==ffic_os_win) ? (nano_seconds/1000) : nano_seconds );
-//	if(ffic_os==ffic_os_win) ffic_raw("kernel32","Sleep",0)(nano_seconds/1000);
-//	else ffic_raw(ffic_libcname,"usleep",0)(nano_seconds);
+	_ffic_os_sleep( (ffic_os==ffic_os_win) ? (nano_seconds/1000) : nano_seconds );
+	//if(ffic_os==ffic_os_win) ffic_raw("kernel32","Sleep",0)(nano_seconds/1000);
+	//else ffic_raw(ffic_libcname,"usleep",0)(nano_seconds);
 	return 0;
 };
 ffic_ptr ffic_msleep(int microseconds)
 {
-	if (ffic_os==ffic_os_win) ffic_raw("kernel32","Sleep",0)(microseconds);
-	else ffic_raw(ffic_libcname,"usleep",0)(microseconds*1000);
+	_ffic_os_sleep( (ffic_os==ffic_os_win) ? (microseconds) : microseconds*1000 );
+	//if (ffic_os==ffic_os_win) ffic_raw("kernel32","Sleep",0)(microseconds);
+	//else ffic_raw(ffic_libcname,"usleep",0)(microseconds*1000);
 	return 0;
 };
 ffic_ptr ffic_sleep(int seconds)
 {
-	if(ffic_os==ffic_os_win) ffic_raw("kernel32","Sleep",0)(seconds*1000);
-	else ffic_raw(ffic_libcname,"usleep",0)(seconds*1000000);
+	_ffic_os_sleep( (ffic_os==ffic_os_win) ? (seconds*1000) : (seconds*1000000) );
+	//if(ffic_os==ffic_os_win) ffic_raw("kernel32","Sleep",0)(seconds*1000);
+	//else ffic_raw(ffic_libcname,"usleep",0)(seconds*1000000);
 	return 0;
 }
 //struct timeval { long tv_sec; long tv_usec; };
@@ -168,6 +169,7 @@ ffic_ptr(*ffic(const char* libname, const char* funcname, ...))()
 {
 	ffic_ptr addr = 0;
 	if(!libname){//special libc tuning
+		if(!_ffic_os_sleep) _ffic_os_sleep = (ffic_os==ffic_os_win) ? ffic_raw("kernel32","Sleep",0) : ffic_raw(ffic_libcname,"usleep",0);
 		if(!strcmp("stderr",funcname) || !strcmp("2",funcname)){ return ffic_os_std(2); }
 		else if(!strcmp("stdout",funcname) || !strcmp("1",funcname)){ return ffic_os_std(1); }
 		else if(!strcmp("stdin",funcname) || !strcmp("0",funcname)){ return ffic_os_std(0); }
