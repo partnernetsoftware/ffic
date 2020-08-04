@@ -75,8 +75,8 @@ extern ffic_ptr LoadLibraryA(const char*);
 extern ffic_ptr GetProcAddress(ffic_ptr,const char*);
 #define ffic_dlsym GetProcAddress
 #   else //}{
-extern ffic_ptr dlopen(const char *,int);
-extern ffic_ptr dlsym(ffic_ptr, const char *);
+extern ffic_ptr dlopen(const char*,int);
+extern ffic_ptr dlsym(ffic_ptr, const char*);
 #define ffic_dlsym dlsym
 #   endif //}
 #define ffic_dlopen dlopen 
@@ -87,11 +87,11 @@ extern int fprintf(FILE*,const char*,...);
 extern int fflush(void*);
 //////////////////////////////////////////////////////////////////////////
 #if 0
-char **envp_store;
-void ffic_setup(char **envp){
+ffic_string *envp_store;
+void ffic_setup(ffic_string *envp){
 	if(SIZEOF_POINTER!=sizeof(void*)){ printf("ERROR: SIZEOF_POINTER(%d) not correct, should be (%d)\n",SIZEOF_POINTER,(int) sizeof(void*)); }
 	envp_store = envp;//
-	for(char**env=envp;env && (*env);env++) {
+	for(ffic_string*env=envp;env && (*env);env++) {
 		printf("DEBUG: %s\n",*env);
 		//if(strcmp(*env,"OS=Windows_NT")==0){ ffic_os = ffic_os_win; }
 		//if(strcmp(*env,"COMMAND_MODE=unix2003")==0){ ffic_os = ffic_os_osx; }
@@ -99,7 +99,7 @@ void ffic_setup(char **envp){
 }
 #endif
 
-char* _ffic_strcat(char* buffer, const char *source, const char* append) {
+char* _ffic_strcat(char* buffer, const char* source, const char* append) {
 	char* ptr = buffer;
 	while (*source) *(ptr++) = *(source++); while (*append) *(ptr++) = *(append++);
 	*ptr = '\0';
@@ -108,15 +108,7 @@ char* _ffic_strcat(char* buffer, const char *source, const char* append) {
 ffic_ptr ffic_void(){return 0;};
 ffic_ptr(*ffic_raw(const char* part1, const char* funcname, const char* part2))()
 {
-	//ffic_ptr rt = (ffic_table_get(_tbl_ffic,_ffic_strcat(libfilename,funcname,part2)))
-	//if(!rt){
-	//rt = ffic_dlsym(ffic_dlopen(libfilename,0x101),funcname)
-	//ffic_table_put(_tbl_ffic,_ffic_strcat(libfilename,funcname,part2))
-	//}
-	//return rt;
-	//if(ffic_os==ffic_os_unknown){ printf("ERROR: need to call ffic_setup() first\n");exit(1); }
-	//char libfilename = ffic_tmp_string(512);
-	char libfilename[512] = {0};
+	ffic_string libfilename = ffic_tmp_string(512);
 	_ffic_strcat(libfilename, (part1)? part1 : ffic_libcname, (part2)? part2 : ffic_sosuffix );
 	ffic_ptr rt = ffic_dlsym(ffic_dlopen(libfilename,0x100 | 0x1/*RTLD_LAZY*/), funcname);
 	return rt;
@@ -145,13 +137,33 @@ ffic_ptr ffic_sleep(int seconds)
 	else ffic_raw(ffic_libcname,"usleep",0)(seconds*1000000);
 	return 0;
 }
-struct timeval { long tv_sec; long tv_usec; };
-ffic_u64 ffic_microtime(void);
+//struct timeval { long tv_sec; long tv_usec; };
+ffic_u64 ffic_microtime(void)
+{
+	struct timeval { long tv_sec; long tv_usec; } tv;
+	//struct timeval tv;
+	if(ffic_os == ffic_os_win){
+		if (!ffic_gettimeofday) ffic_gettimeofday = ffic_raw("kernel32","GetSystemTimePreciseAsFileTime",0);
+		if (!ffic_gettimeofday) ffic_gettimeofday = ffic_raw("kernel32","GetSystemTimeAsFileTime",0);
+		static const ffic_u64 epoch = 116444736000000000;
+		struct _FILETIME { unsigned long dwLowDateTime; unsigned long dwHighDateTime; } file_time;
+		ffic_gettimeofday(&file_time);
+		ffic_u64 since_1601 = ( (ffic_u64) file_time.dwHighDateTime << 32) | (ffic_u64) file_time.dwLowDateTime;
+		ffic_u64 since_1970 = ((ffic_u64) since_1601 - epoch);
+		ffic_u64 microseconds_since_1970 = since_1970 / 10;
+		tv.tv_sec = (microseconds_since_1970 / (ffic_u64) 1000000);
+		tv.tv_usec = microseconds_since_1970 % (ffic_u64) 1000000;
+	}else{
+		if (!ffic_gettimeofday) ffic_gettimeofday = ffic_raw(0,"gettimeofday",0);
+		ffic_gettimeofday(&tv, 0);
+	}
+	return ((ffic_u64)tv.tv_sec*(ffic_u64)1000 + (((ffic_u64)tv.tv_usec)/(ffic_u64)1000)%(ffic_u64)1000);
+}
 ffic_ptr(*ffic(const char* libname, const char* funcname, ...))()
 {
-	//TODO ffic_table_get(libname . funcname)
 	ffic_ptr addr = 0;
-	if(!strcmp("c",libname)){ libname = 0;
+	if(!strcmp("c",libname)){
+		libname = 0;
 		if(!strcmp("stderr",funcname) || !strcmp("2",funcname)){ return ffic_os_std(2); }
 		else if(!strcmp("stdout",funcname) || !strcmp("1",funcname)){ return ffic_os_std(1); }
 		else if(!strcmp("stdin",funcname) || !strcmp("0",funcname)){ return ffic_os_std(0); }
@@ -165,32 +177,12 @@ ffic_ptr(*ffic(const char* libname, const char* funcname, ...))()
 		}
 		else if(ffic_os == ffic_os_win && !strcmp("strdup",funcname)){ funcname = "_strdup"; }
 	}
-	if(addr==0) addr = ffic_raw(libname,funcname,0);
-	if(0==addr){
+	if(!addr) addr = ffic_raw(libname,funcname,0);
+	if(!addr) {
 		fprintf(ffic_os_std(1),"WARN: Not found %s.%s\n", libname, funcname);fflush(ffic_os_std(1));
 		return ffic_void;
 	}
 	return addr;
-}
-ffic_u64 ffic_microtime(void)
-{
-	struct timeval tv;
-	if(ffic_os == ffic_os_win){
-		if (!ffic_gettimeofday) ffic_gettimeofday = ffic_raw("kernel32","GetSystemTimePreciseAsFileTime",0);
-		if (!ffic_gettimeofday) ffic_gettimeofday = ffic_raw("kernel32","GetSystemTimeAsFileTime",0);
-		static const ffic_u64 epoch = 116444736000000000;
-		struct _FILETIME { unsigned long dwLowDateTime; unsigned long dwHighDateTime; } file_time;
-		ffic_gettimeofday(&file_time);
-		ffic_u64 since_1601 = ( (ffic_u64) file_time.dwHighDateTime << 32) | (ffic_u64) file_time.dwLowDateTime;
-		ffic_u64 since_1970 = ((ffic_u64) since_1601 - epoch);
-		ffic_u64 microseconds_since_1970 = since_1970 / 10;
-		tv.tv_sec = (microseconds_since_1970 / (ffic_u64) 1000000);
-		tv.tv_usec = microseconds_since_1970 % (ffic_u64) 1000000;
-	}else{
-		if (!ffic_gettimeofday) ffic_gettimeofday = ffic("c","gettimeofday");
-		ffic_gettimeofday(&tv, 0);
-	}
-	return ((ffic_u64)tv.tv_sec*(ffic_u64)1000 + (((ffic_u64)tv.tv_usec)/(ffic_u64)1000)%(ffic_u64)1000);
 }
 #  ifndef libc
 #  define libc(f) ffic("c",#f)
