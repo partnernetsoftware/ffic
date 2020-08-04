@@ -1,5 +1,5 @@
 extern void*(*ffic())();
-#define libc(f) ffic("c",#f)
+#define libc(f) ffic(0,#f)
 
 unsigned long fib(int n){
 	if(n<=1) return 1;

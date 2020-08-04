@@ -1,6 +1,6 @@
 typedef void*(*ffic_func)();
 extern void*(*ffic())();//ok
-#define libc(f) ffic("c",#f)
+#define libc(f) ffic(0,#f)
 
 #define OUTS(x) libc(printf)(#x "=%s\n", #x);
 #define OUTD(x) libc(printf)(#x "=%ld\n", x);
