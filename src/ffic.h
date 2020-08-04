@@ -58,13 +58,13 @@ typedef unsigned long long int ffic_u64;
 #define FFIC 1
 #endif
 #ifdef FFIC
-# if FFIC==2
+# if FFIC==2 //{
 extern void*(*ffic(const char*, const char*, ...))();
 #  ifndef libc
 #  define libc(f) ffic("c",#f)
 #  endif
-# elif FFIC==1
-#  if defined(_WIN32) || defined(_WIN64)
+# elif FFIC==1 //}{
+#  if defined(_WIN32) || defined(_WIN64) //{
 #ifdef UNICODE
 extern ffic_ptr LoadLibraryW(const char*);
 #define dlopen LoadLibraryW
@@ -74,17 +74,18 @@ extern ffic_ptr LoadLibraryA(const char*);
 #endif
 extern ffic_ptr GetProcAddress(ffic_ptr,const char*);
 #define ffic_dlsym GetProcAddress
-#   else
+#   else //}{
 extern ffic_ptr dlopen(const char *,int);
 extern ffic_ptr dlsym(ffic_ptr, const char *);
 #define ffic_dlsym dlsym
-#   endif
+#   endif //}
 #define ffic_dlopen dlopen 
 extern int printf(const char*,...);
 extern int strcmp(const char*,const char*);//TODO improve speed https://answer-id.com/59773438
 extern void exit(int);
 extern int fprintf(FILE*,const char*,...);
 extern int fflush(void*);
+//////////////////////////////////////////////////////////////////////////
 #if 0
 char **envp_store;
 void ffic_setup(char **envp){
@@ -97,11 +98,7 @@ void ffic_setup(char **envp){
 	}
 }
 #endif
-long ffic_hash(ffic_string u,int len){
-	long h=0; int c;
-	while ((c=*u++)) h = (h>>8) + (c%len);
-	return h;
-}
+
 char* _ffic_strcat(char* buffer, const char *source, const char* append) {
 	char* ptr = buffer;
 	while (*source) *(ptr++) = *(source++); while (*append) *(ptr++) = *(append++);
@@ -111,7 +108,14 @@ char* _ffic_strcat(char* buffer, const char *source, const char* append) {
 ffic_ptr ffic_void(){return 0;};
 ffic_ptr(*ffic_raw(const char* part1, const char* funcname, const char* part2))()
 {
+	//ffic_ptr rt = (ffic_table_get(_tbl_ffic,_ffic_strcat(libfilename,funcname,part2)))
+	//if(!rt){
+	//rt = ffic_dlsym(ffic_dlopen(libfilename,0x101),funcname)
+	//ffic_table_put(_tbl_ffic,_ffic_strcat(libfilename,funcname,part2))
+	//}
+	//return rt;
 	//if(ffic_os==ffic_os_unknown){ printf("ERROR: need to call ffic_setup() first\n");exit(1); }
+	//char libfilename = ffic_tmp_string(512);
 	char libfilename[512] = {0};
 	_ffic_strcat(libfilename, (part1)? part1 : ffic_libcname, (part2)? part2 : ffic_sosuffix );
 	ffic_ptr rt = ffic_dlsym(ffic_dlopen(libfilename,0x100 | 0x1/*RTLD_LAZY*/), funcname);
@@ -145,6 +149,7 @@ struct timeval { long tv_sec; long tv_usec; };
 ffic_u64 ffic_microtime(void);
 ffic_ptr(*ffic(const char* libname, const char* funcname, ...))()
 {
+	//TODO ffic_table_get(libname . funcname)
 	ffic_ptr addr = 0;
 	if(!strcmp("c",libname)){ libname = 0;
 		if(!strcmp("stderr",funcname) || !strcmp("2",funcname)){ return ffic_os_std(2); }
@@ -191,7 +196,7 @@ ffic_u64 ffic_microtime(void)
 #  define libc(f) ffic("c",#f)
 #  endif
 # endif
-#endif
+#endif //} FFIC==1
 #ifndef libc
 # define libc(f) f
 #endif
