@@ -11,7 +11,6 @@ typedef enum { ffic_os_unknown, ffic_os_win, ffic_os_osx, ffic_os_unx, } ffic_os
 ffic_os_t ffic_os = ffic_os_osx;
 ffic_string ffic_libcname = "libc";
 ffic_string ffic_sosuffix = ".dylib";
-static ffic_func ffic_gettimeofday=(ffic_ptr)0;
 typedef struct __FILE FILE;
 typedef signed char ffic_i8;
 typedef unsigned char ffic_u8;
@@ -23,27 +22,23 @@ typedef signed long ffic_ipt;
 typedef unsigned long ffic_upt;
 typedef signed long int ffic_i64;
 typedef unsigned long int ffic_u64;
-extern ffic_ptr dlopen(const char *,int);
-extern ffic_ptr dlsym(ffic_ptr, const char *);
+extern ffic_ptr dlopen(const char*,int);
+extern ffic_ptr dlsym(ffic_ptr, const char*);
 extern int printf(const char*,...);
 extern int strcmp(const char*,const char*);
 extern void exit(int);
 extern int fprintf(FILE*,const char*,...);
 extern int fflush(void*);
-char* _ffic_strcat(char* buffer, const char *source, const char* append) {
- char* ptr = buffer;
- while (*source) *(ptr++) = *(source++); while (*append) *(ptr++) = *(append++);
- *ptr = '\0';
+char* _ffic_strcat(char* buffer, const char* a, const char* b) {
+ char* p = buffer; while (*a) *(p++) = *(a++); while (*b) *(p++) = *(b++);
  return buffer;
 }
 ffic_ptr ffic_void(){return 0;};
 ffic_ptr(*ffic_raw(const char* part1, const char* funcname, const char* part2))()
 {
- if(ffic_os==ffic_os_unknown){ printf("ERROR: need to call ffic_setup() first\n");exit(1); }
- char libfilename[512] = {0};
+ ffic_string libfilename = (char[512]){0};
  _ffic_strcat(libfilename, (part1)? part1 : ffic_libcname, (part2)? part2 : ffic_sosuffix );
- ffic_ptr rt = dlsym(dlopen(libfilename,0x100 | 0x1 ), funcname);
- return rt;
+ return dlsym(dlopen(libfilename,0x101), funcname);
 }
 void* ffic_std[3];
 void* ffic_os_std(int t){
@@ -51,53 +46,14 @@ void* ffic_os_std(int t){
  ffic_std[t] = ffic_raw(0,(ffic_os==ffic_os_win)?"_fdopen":"fdopen",0)(ffic_raw(0,(ffic_os==ffic_os_win)?"_dup":"dup",0)(t),(t==0)?"r":"w");
  return ffic_std[t];
 }
-ffic_ptr ffic_usleep(int nano_seconds)
-{
- if(ffic_os==ffic_os_win) ffic_raw("kernel32","Sleep",0)(nano_seconds/1000);
- else ffic_raw(ffic_libcname,"usleep",0)(nano_seconds);
- return 0;
-};
-ffic_ptr ffic_msleep(int microseconds)
-{
- if (ffic_os==ffic_os_win) ffic_raw("kernel32","Sleep",0)(microseconds);
- else ffic_raw(ffic_libcname,"usleep",0)(microseconds*1000);
- return 0;
-};
-ffic_ptr ffic_sleep(int seconds)
-{
- if(ffic_os==ffic_os_win) ffic_raw("kernel32","Sleep",0)(seconds*1000);
- else ffic_raw(ffic_libcname,"usleep",0)(seconds*1000000);
- return 0;
-}
-struct timeval { long tv_sec; long tv_usec; };
-ffic_u64 ffic_microtime(void);
-ffic_ptr(*ffic(const char* libname, const char* funcname, ...))()
-{
- ffic_ptr addr = 0;
- if(!strcmp("c",libname)){ libname = 0;
-  if(!strcmp("stderr",funcname) || !strcmp("2",funcname)){ return ffic_os_std(2); }
-  else if(!strcmp("stdout",funcname) || !strcmp("1",funcname)){ return ffic_os_std(1); }
-  else if(!strcmp("stdin",funcname) || !strcmp("0",funcname)){ return ffic_os_std(0); }
-  else if(!strcmp("microtime",funcname)){ return (ffic_ptr) ffic_microtime; }
-  else if(!strcmp("usleep",funcname)){ return ffic_usleep; }
-  else if(!strcmp("sleep",funcname)){ return ffic_sleep; }
-  else if(!strcmp("msleep",funcname)){ return ffic_msleep; }
-  else if(ffic_os == ffic_os_win && !strcmp("fileno",funcname)){ funcname = "_fileno"; }
-  else if(!strcmp("setmode",funcname)){
-   if(ffic_os == ffic_os_win){ funcname = "_setmode"; }else{ addr = ffic_void; }
-  }
-  else if(ffic_os == ffic_os_win && !strcmp("strdup",funcname)){ funcname = "_strdup"; }
- }
- if(addr==0) addr = ffic_raw(libname,funcname,0);
- if(0==addr){
-  fprintf(ffic_os_std(1),"WARN: Not found %s.%s\n", libname, funcname);fflush(ffic_os_std(1));
-  return ffic_void;
- }
- return addr;
-}
+static ffic_func _ffic_os_sleep = (ffic_ptr)0;
+ffic_ptr ffic_usleep(int nano_seconds) { _ffic_os_sleep( (ffic_os==ffic_os_win) ? (nano_seconds/1000) : nano_seconds ); return 0; }
+ffic_ptr ffic_msleep(int microseconds) { _ffic_os_sleep( (ffic_os==ffic_os_win) ? (microseconds) : microseconds*1000 ); return 0; }
+ffic_ptr ffic_sleep(int seconds) { _ffic_os_sleep( (ffic_os==ffic_os_win) ? (seconds*1000) : (seconds*1000000) ); return 0; }
 ffic_u64 ffic_microtime(void)
 {
- struct timeval tv;
+ struct { long tv_sec; long tv_usec; } tv;
+ static ffic_func ffic_gettimeofday=(ffic_ptr)0;
  if(ffic_os == ffic_os_win){
   if (!ffic_gettimeofday) ffic_gettimeofday = ffic_raw("kernel32","GetSystemTimePreciseAsFileTime",0);
   if (!ffic_gettimeofday) ffic_gettimeofday = ffic_raw("kernel32","GetSystemTimeAsFileTime",0);
@@ -110,13 +66,39 @@ ffic_u64 ffic_microtime(void)
   tv.tv_sec = (microseconds_since_1970 / (ffic_u64) 1000000);
   tv.tv_usec = microseconds_since_1970 % (ffic_u64) 1000000;
  }else{
-  if (!ffic_gettimeofday) ffic_gettimeofday = ffic("c","gettimeofday");
+  if (!ffic_gettimeofday) ffic_gettimeofday = ffic_raw(0,"gettimeofday",0);
   ffic_gettimeofday(&tv, 0);
  }
  return ((ffic_u64)tv.tv_sec*(ffic_u64)1000 + (((ffic_u64)tv.tv_usec)/(ffic_u64)1000)%(ffic_u64)1000);
 }
+ffic_ptr(*ffic(const char* libname, const char* funcname, ...))()
+{
+ ffic_ptr addr = 0;
+ if(!libname){
+  if(!_ffic_os_sleep) _ffic_os_sleep = (ffic_os==ffic_os_win) ? ffic_raw("kernel32","Sleep",0) : ffic_raw(ffic_libcname,"usleep",0);
+  if(!strcmp("stderr",funcname) || !strcmp("2",funcname)){ return ffic_os_std(2); }
+  else if(!strcmp("stdout",funcname) || !strcmp("1",funcname)){ return ffic_os_std(1); }
+  else if(!strcmp("stdin",funcname) || !strcmp("0",funcname)){ return ffic_os_std(0); }
+  else if(!strcmp("microtime",funcname)){ return (ffic_ptr) ffic_microtime; }
+  else if(!strcmp("usleep",funcname)){ return ffic_usleep; }
+  else if(!strcmp("sleep",funcname)){ return ffic_sleep; }
+  else if(!strcmp("msleep",funcname)){ return ffic_msleep; }
+  else if(!strcmp("fileno",funcname) && ffic_os == ffic_os_win){ funcname = "_fileno"; }
+  else if(!strcmp("void",funcname)){ return ffic_void; }
+  else if(!strcmp("setmode",funcname)){
+   if(ffic_os == ffic_os_win){ funcname = "_setmode"; }else{ addr = ffic_void; }
+  }
+  else if(!strcmp("strdup",funcname) && ffic_os == ffic_os_win){ funcname = "_strdup"; }
+ }
+ if(!addr) addr = ffic_raw(libname,funcname,0);
+ if(!addr) {
+  fprintf(ffic_os_std(1),"WARN: Not found %s.%s\n", libname, funcname);fflush(ffic_os_std(1));
+  return ffic_void;
+ }
+ return addr;
+}
 ffic_func libc_a[libc_exit+1];
-ffic_func libc_(int fi,const ffic_string fn){ return libc_a[fi]?libc_a[fi]:(libc_a[fi]=ffic("c",fn)); }
+ffic_func libc_(int fi,const ffic_string fn){ return libc_a[fi]?libc_a[fi]:(libc_a[fi]=ffic(0,fn)); }
 void* sao_calloc(long _sizeof){return libc_(libc_memset,"memset")(libc_(libc_malloc,"malloc")(_sizeof),0,_sizeof);}
 typedef enum { argt_i, argt_p, argt_d, argt_v, argt_e, argt_s, argt_l, argt_h, } argt_t; ffic_string argt_names[] = { "i", "p", "d", "v", "e", "s", "l", "h", };;
 int argta[argt_h+1];
@@ -207,7 +189,7 @@ int sao_read_line(sao_stream* fw)
   }else{
    if (fw->pos==0) libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"DEBUG sao_read_line no pos??");
    if (*(fw->pos)==0){
-    libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"DEBUG sao_read_line end??");
+    libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"DEBUG sao_read_line terminated??");
     sao_enq_c(fw,(-1));
     break;
    }
@@ -347,7 +329,6 @@ p_sao_obj sao_load_expr(sao_stream * fw) {
    case '\n': case '\r': sao_read_line(fw);continue;
    case 0: case ' ': case '\t': case ',': if(theSymbol) break; continue;
    case ';': case '#': for (int c=0;!(c == '\n' || c == (-1));c = sao_deq_c(fw)); continue;
-   case '^': return cons(SAO_TAG_quote, cons(sao_load_expr(fw), SAO_TAG_nil));
    case '\"':
     {
      char buf[2048] = {0};
@@ -439,41 +420,6 @@ p_sao_obj sao_eval_list(p_sao_obj exp, p_sao_obj ctx) {
  p_sao_obj _car = sao_eval(car(exp), ctx);
  p_sao_obj _cdr = sao_eval_list(cdr(exp), ctx);
  return cons(_car, _cdr);
-}
-long sao_hash(const ffic_string s, int ht_len) {
- long h = 0;
- ffic_string u = s;
- while (*u) { h = (h * 256 + (*u)) % ht_len; u++; }
- return h;
-}
-p_sao_obj sao_vector_lookup(p_sao_obj holder,ffic_string s) {
- if(!holder) do{libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"sao_vector_lookup(holder)\n");libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"\n");libc_(libc_exit,"exit")(1);}while(0);
- p_sao_obj* the_vector = holder->_vector;
- if(!the_vector) do{libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"empty _vector?");libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"\n");libc_(libc_exit,"exit")(1);}while(0);
- if(!holder->_len) do{libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"empty _vector._len?");libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"\n");libc_(libc_exit,"exit")(1);}while(0);
- long h = sao_hash(s, holder->_len);
- return the_vector[h];
-}
-p_sao_obj sao_vector_insert(p_sao_obj holder,p_sao_obj key_obj){
- if(!holder) do{libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"sao_vector_insert(holder)\n");libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"\n");libc_(libc_exit,"exit")(1);}while(0);
- if(!key_obj) do{libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"sao_vector_insert(key_obj)\n");libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"\n");libc_(libc_exit,"exit")(1);}while(0);
- p_sao_obj* the_vector = holder->_vector;
- if(!the_vector) do{libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"empty _vector?");libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"\n");libc_(libc_exit,"exit")(1);}while(0);
- if(!holder->_len) do{libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"empty _vector._len?");libc_(libc_fprintf,"fprintf")(libc_(libc_stderr,"stderr"),"\n");libc_(libc_exit,"exit")(1);}while(0);
- long h = sao_hash(key_obj->_string, holder->_len);
- if(the_vector[h]){
- }
- the_vector[h]= key_obj;
- return holder;
-}
-p_sao_obj sao_tbl_resize(p_sao_obj holder,int _len){
- if(!holder)
-  holder = sao_new((sao_obj){._type=type_vector, ._len=_len,._vector=sao_calloc( sizeof(p_sao_obj) *(_len) )});
- else{
-  holder->_vector = sao_calloc( sizeof(p_sao_obj) *(_len) );
-  holder->_len = _len;
- }
- return holder;
 }
 p_sao_obj sao_get_var(p_sao_obj var, p_sao_obj ctx) {
  while ((ctx)) {
@@ -900,6 +846,7 @@ p_sao_obj native_c_int(p_sao_obj args,p_sao_obj ctx) {
 }
 p_sao_obj saolang_init()
 {
+ SAO_TAG_nilnil=sao_new((sao_obj){._type=type_symbol,._string="@@"});sao_var(SAO_TAG_nilnil,SAO_TAG_nil,SAO_TAG_global);
  sao_print = _sao_print;
  sao_eval = _sao_eval;
  SAO_TAG_true=sao_new((sao_obj){._type=type_symbol,._string="@T"});sao_var(SAO_TAG_true,SAO_TAG_true,SAO_TAG_global);;
@@ -926,17 +873,17 @@ p_sao_obj saolang_init()
  sao_var(sao_new((sao_obj){._type=type_symbol,._string="c_int"}), sao_new((sao_obj){._type=type_native, ._native=native_c_int,._string="c_int"}), SAO_TAG_global);;
  return SAO_TAG_global;
 }
+ffic_u64 (*sao_microtime)();
 p_sao_obj sao_parse( sao_stream * fw, p_sao_obj ctx ) {
  sao_read_line(fw);
- ffic_u64 (*microtime)() = ( ffic_u64(*)() ) libc_(libc_microtime,"microtime");
  p_sao_obj rt = SAO_TAG_nil;
  p_sao_obj exp = SAO_TAG_nil;
  while((exp=sao_load_expr(fw))){
-  if(argta[argt_d]) libc_(libc_printf,"printf")("%llu: ",microtime());
+  if(argta[argt_d]) libc_(libc_printf,"printf")("%llu: ",sao_microtime());
   if(argta[argt_i]||argta[argt_d]){ sao_print("<=", exp); libc_(libc_printf,"printf")("\n"); }
   if (ctx){
    rt = sao_eval(exp,ctx);
-   if(argta[argt_d]) libc_(libc_printf,"printf")("%llu: ",microtime());
+   if(argta[argt_d]) libc_(libc_printf,"printf")("%llu: ",sao_microtime());
    if((argta[argt_i]||argta[argt_d])){sao_print("=>", rt); libc_(libc_printf,"printf")("%s","\n");}
   }else{
    rt = exp;
@@ -947,9 +894,10 @@ p_sao_obj sao_parse( sao_stream * fw, p_sao_obj ctx ) {
  }
  return rt;
 }
-void print_version(){ libc_(libc_printf,"printf")(" SaoLang (R) v" "0.0.8" " - Wanjo Chan (c) 2020\n"); }
+void print_version(){ libc_(libc_printf,"printf")(" SaoLang (R) v" "0.0.9" " - " "Wanjo Chan" " (c) 2020\n"); }
 void print_help(){ libc_(libc_printf,"printf")("Usage	 : sao [options] [script.sao | -]]\nOptions	 :\n	h:	Help\n	v:	Version\n	i:	Interactive\n	p:	Print final result\n	d:	Dev only\n	e:	Eval\n	s:	Strict mode\n	l:	Lisp syntax\n"); }
 int main(int argc,char **argv, char** envp) {
+ sao_microtime = ( ffic_u64(*)() ) libc_(libc_microtime,"microtime");
  sao_print = sao_print_default;
  sao_strcmp = (ffic_func_i) libc_(libc_strcmp,"strcmp");
  sao_atof = (ffic_func_d) libc_(libc_atof,"atof");
@@ -958,13 +906,8 @@ int main(int argc,char **argv, char** envp) {
  libc_(libc_setmode,"setmode")(libc_(libc_fileno,"fileno")(libc_(libc_stdin,"stdin")),0x8000 );
  SAO_TAG_global = cons(cons(SAO_TAG_nil, SAO_TAG_nil), SAO_TAG_nil);
  SAO_TAG_argv = cons(cons(SAO_TAG_nil, SAO_TAG_nil), SAO_TAG_nil);
- SAO_TAG_nilnil=sao_new((sao_obj){._type=type_symbol,._string="@@"});sao_var(SAO_TAG_nilnil,SAO_TAG_nil,SAO_TAG_global);
  SAO_TAG_at=sao_new((sao_obj){._type=type_symbol,._string="@"});sao_var(SAO_TAG_at,SAO_TAG_at,SAO_TAG_global);;
  SAO_TAG_quote=sao_new((sao_obj){._type=type_symbol,._string="@^"});sao_var(SAO_TAG_quote,SAO_TAG_quote,SAO_TAG_global);;
- SAO_TAG_vector=sao_new((sao_obj){._type=type_symbol,._string="@V"});sao_var(SAO_TAG_vector,SAO_TAG_vector,SAO_TAG_global);;
- SAO_TAG_map=sao_new((sao_obj){._type=type_symbol,._string="@M"});sao_var(SAO_TAG_map,SAO_TAG_map,SAO_TAG_global);;
- SAO_TAG_begin=sao_new((sao_obj){._type=type_symbol,._string="@B"});sao_var(SAO_TAG_begin,SAO_TAG_begin,SAO_TAG_global);;
- SAO_TAG_end=sao_new((sao_obj){._type=type_symbol,._string="@E"});sao_var(SAO_TAG_end,SAO_TAG_end,SAO_TAG_global);;
  ffic_string script_file = "-";
  int found_any = 0;
  if(argc>1){

@@ -1,6 +1,5 @@
 //WARNING: dont go production unless gc() is done
-#define SAO_VERSION "0.0.9"
-#define SAO_AUTHOR "Wanjo Chan"
+#define SAO_VERSION "0.0.8"
 #define SAO_CAT(a, ...) SAO_PRIMITIVE_CAT(a, __VA_ARGS__)
 #define SAO_PRIMITIVE_CAT(a, ...) a ## __VA_ARGS__
 #define SAO_IIF(c) SAO_PRIMITIVE_CAT(SAO_IIF_, c)
@@ -113,7 +112,6 @@ ffic_func_i sao_strcmp;
 #define sao_is_alpha(c) ((long)libc(isalpha)(c))
 #define sao_is_alphanumber(c) ((long)libc(isalnum)(c))
 #define sao_new_list(a,d) sao_new((sao_obj){.car=a,.cdr=d})
-#define sao_new_list(a,d) sao_new((sao_obj){.car=a,.cdr=d})
 #define sao_new_symbol(s) sao_new((sao_obj){._type=type_symbol,._string=s})
 #define sao_new_string(s) sao_new((sao_obj){._type=type_string, ._string=s})
 #define sao_new_long(i) sao_new((sao_obj){._type=type_long, ._long=i})
@@ -175,7 +173,7 @@ int sao_read_line(sao_stream* fw)
 		}else{
 			if (fw->pos==0) sao_stderr("DEBUG sao_read_line no pos??");//should not see??
 			if (*(fw->pos)==0){
-				sao_stderr("DEBUG sao_read_line terminated??");
+				sao_stderr("DEBUG sao_read_line end??");
 				sao_enq_c(fw,SAO_EOF);
 				break;
 			}
@@ -336,8 +334,7 @@ p_sao_obj sao_load_expr(sao_stream * fw) {
 			case '\n': case '\r': sao_read_line(fw);continue;
 			case 0: case ' ': case '\t': case ',': if(theSymbol) break; continue;
 			case ';': case '#': for (int c=0;!(c == '\n' || c == SAO_EOF);c = sao_deq_c(fw)); continue;
-//TODO using @^ ok??
-//			case '^': return cons(SAO_TAG(quote), cons(sao_load_expr(fw), SAO_TAG(nil)));//cons(SAO_TAG(quote),sao_load_expr(fw))
+			case '^': return cons(SAO_TAG(quote), cons(sao_load_expr(fw), SAO_TAG(nil)));//cons(SAO_TAG(quote),sao_load_expr(fw))
 			case '\"':
 				{
 					char buf[SAO_MAX_BUF_LEN] = {0};
@@ -352,11 +349,8 @@ p_sao_obj sao_load_expr(sao_stream * fw) {
 					return sao_new_string(buf);
 				}
 			case '}': case ']': case ')': return SAO_TAG(end);
-
-																		//non-lisp syntax-sugar:
 			case '{':return cons(SAO_TAG(map),sao_read_list(fw));
 			case '[':return cons(SAO_TAG(vector),sao_read_list(fw));
-
 			//case '(': {p_sao_obj list = sao_read_list(fw); return (SAO_ARGV(l) || !theSymbol)? list : cons(theSymbol,list);}
 			//case '(': {p_sao_obj list = sao_read_list(fw); return (SAO_ARGV(l) || !theSymbol)? cons(SAO_TAG(vector),list) : cons(theSymbol,list);}
 			case '(': {
@@ -388,91 +382,18 @@ p_sao_obj sao_load_expr(sao_stream * fw) {
 }
 #define sao_add_sym_x(x) SAO_TAG(x)=sao_new_symbol(#x);sao_var(SAO_TAG(x),SAO_TAG(x),SAO_TAG(global));
 #define sao_add_sym_sx(s,x) SAO_TAG(x)=sao_new_symbol(s);sao_var(SAO_TAG(x),SAO_TAG(x),SAO_TAG(global));
-//
-//long ffic_hash(ffic_string u,int len){
-//	long h=0; int c;
-//	while ((c=*u++)) h = (h>>8) + (c%len);
-//	return h;
-//}
-
-//////////////////////////////////////////////////////////////////////////
-//TODO sao table
-////TODO mem_dump();
-//ffic_upt ffic_hash(ffic_string u,int len){
-//	ffic_upt h=0; int c;
-//	while ((c=*u++)) h = (h>>8) + (c%len);
-//	return h;
-//}
-//
-//typedef struct {
-//	ffic_ptr k;
-//	ffic_ptr v;
-//	ffic_upt h;
-//} ffic_table_bucket;
-//typedef struct {
-//	ffic_upt _len;
-//	ffic_table_bucket* _arr;
-//} ffic_table, *p_ffic_table;
-//
-////p_ffic_table ffic_table_libc = & (ffic_table){._len=8192,._arr=(ffic_table_bucket[8192]){0}};
-////TODO 
-////void* sao_calloc(long _sizeof){return libc(memset)(libc(malloc)(_sizeof),0,_sizeof);}
-//p_ffic_table ffic_table_expand(p_ffic_table holder){
-////	ffic_upt _new_len = holder ? (holder->_len*2) : 8192;
-////	p_ffic_table ffic_table_new = & (ffic_table){._len=_new_len,._arr=(ffic_table_bucket[_new_len]){0}};
-//	if(!holder){
-//		//ffic_upt _new_len = 8192;
-//		holder = & (ffic_table){._len=8192,._arr=(ffic_table_bucket[8192]){0}};
-//	}
-////	else{
-////		//sync from old to new
-////	}
-////	if(!holder){
-////		ffic_table new_holder = sao_new_vector(_len);
-////		holder = new_holder;
-////		//TMP...(fake resize first) TODO to implement the real resize soon
-////	}else{
-////		holder->_vector = SAO_NEW_C(p_sao_obj,_len);//TMP
-////		holder->_len = _len;
-////		//TODO copy from holder to new_holder
-////	}
-//	return holder;
-//}
-//ffic_ptr ffic_table_get(p_ffic_table holder,ffic_string k) {
-//	if(!holder || holder->_len==0){
-//		holder = ffic_table_expand(holder);
-//	}
-//	ffic_upt h = ffic_hash(k,holder->_len);
-//	return holder->_arr[h].v;
-//}
-////put
-//p_ffic_table ffic_table_put(p_ffic_table holder,ffic_string k,ffic_ptr v){
-//	if(!holder || holder->_len==0){
-//		holder = ffic_table_expand(holder);
-//	}
-//	//TODO
-//	ffic_upt h = ffic_hash(k,holder->_len);
-//	holder->_arr[h].v = v;
-//	holder->_arr[h].k = k;
-//	holder->_arr[h].h = h;
-//	return holder;
-//}
-//////////////////////////////////////////////////////////////////////////
-#include "libsaolang.c" //runner
-
-ffic_u64 (*sao_microtime)();//= ( ffic_u64(*)() ) libc(microtime);
-
+#include "libsaolang.c"
 p_sao_obj sao_parse( sao_stream * fw, p_sao_obj ctx ) {
 	sao_read_line(fw);
-	//ffic_u64 (*microtime)() = ( ffic_u64(*)() ) libc(microtime);
+	ffic_u64 (*microtime)() = ( ffic_u64(*)() ) libc(microtime);
 	p_sao_obj rt = SAO_TAG(nil);
 	p_sao_obj exp = SAO_TAG(nil);
 	while((exp=sao_load_expr(fw))){
-		if(SAO_ARGV(d)) sao_stdout("%llu: ",sao_microtime());
+		if(SAO_ARGV(d)) sao_stdout("%llu: ",microtime());
 		if(SAO_ARGV(i)||SAO_ARGV(d)){ sao_print("<=", exp); sao_stdout("\n"); }
 		if (ctx){
 			rt = sao_eval(exp,ctx);
-			if(SAO_ARGV(d)) sao_stdout("%llu: ",sao_microtime());
+			if(SAO_ARGV(d)) sao_stdout("%llu: ",microtime());
 			if((SAO_ARGV(i)||SAO_ARGV(d))){sao_print("=>", rt); sao_stdout("%s","\n");}
 		}else{
 			rt = exp;
@@ -483,50 +404,26 @@ p_sao_obj sao_parse( sao_stream * fw, p_sao_obj ctx ) {
 	}
 	return rt;
 }
-void print_version(){ sao_stdout(" SaoLang (R) v" SAO_VERSION " - " SAO_AUTHOR " (c) 2020\n"); }
+void print_version(){ sao_stdout(" SaoLang (R) v" SAO_VERSION " - Wanjo Chan (c) 2020\n"); }
 void print_help(){ sao_stdout("Usage	 : sao [options] [script.sao | -]]\nOptions	 :\n	h:	Help\n	v:	Version\n	i:	Interactive\n	p:	Print final result\n	d:	Dev only\n	e:	Eval\n	s:	Strict mode\n	l:	Lisp syntax\n"); }
-
-//QUICK DOC
-// @@,@,@^ @V @M
-
 int main(int argc,char **argv, char** envp) {
-//QUICK TEST ZONE
-////	ffic_table hdl;
-////	sao_stdout("%d...\n",ffic_table_put(&hdl,"TTT","YYY"));
-////	sao_stdout("=>%s...\n",ffic_table_get(&hdl,"TTT"));
-//
-//	char* ttt = ffic_tmp_string(128);
-////	sao_stdout("%s=>%d...\n",ttt,ffic_hash(ttt,64));
-//	ttt[0]='X';
-//	sao_stdout("%s=>%d...\n",ttt,ffic_hash(ttt,64));
-
-	sao_microtime = ( ffic_u64(*)() ) libc(microtime);
 	sao_print = sao_print_default;
 	sao_strcmp = (ffic_func_i) libc(strcmp);
 	sao_atof   = (ffic_func_d) libc(atof);
 	sao_atol   = (ffic_func_l) libc(atol);
 	sao_strchr = (ffic_func_i) libc(strchr);
-
 	libc(setmode)(libc(fileno)(libc(stdin)),0x8000/*O_BINARY*/);
 
 	SAO_TAG(global) = cons(cons(SAO_TAG(nil), SAO_TAG(nil)), SAO_TAG(nil));//top node: ((nil,nil),nil)
 	SAO_TAG(argv) = cons(cons(SAO_TAG(nil), SAO_TAG(nil)), SAO_TAG(nil));
+	SAO_TAG(nilnil)=sao_new_symbol("@@");sao_var(SAO_TAG(nilnil),SAO_TAG(nil),SAO_TAG(global));
 
-	//SAO_TAG(nilnil)=sao_new_symbol("@@");sao_var(SAO_TAG(nilnil),SAO_TAG(nil),SAO_TAG(global));
-
-	sao_add_sym_sx("@",at);//super declare. like var/decl/func/lambda/macro
-
-	//TODO move quote into libsaolang
+	sao_add_sym_sx("@",at);//var/dec/func/lambda ?
 	sao_add_sym_sx("@^",quote);// ^(exp)
-
-	//TODO sugar
-	//sao_add_sym_sx("@V",vector);//vector(like json-array)
-	//sao_add_sym_sx("@M",map);//map(like json-object)
-
-	//TODO move to libsaolang
-	//sao_add_sym_sx("@B",begin);//
-	//maybe remove?
-	//sao_add_sym_sx("@E",end);//
+	sao_add_sym_sx("@V",vector);//vector(like json-array)
+	sao_add_sym_sx("@M",map);//map(like json-object)
+	sao_add_sym_sx("@B",begin);//start of procedure
+	sao_add_sym_sx("@E",end);//end of )]}
 
 	ffic_string script_file = "-";
 	int found_any = 0;

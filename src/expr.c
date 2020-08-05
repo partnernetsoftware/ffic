@@ -458,8 +458,6 @@ p_sao_obj sao_load_expr(sao_stream * fw) {
 //	return holder;
 //}
 //////////////////////////////////////////////////////////////////////////
-#include "libsaolang.c" //runner
-
 ffic_u64 (*sao_microtime)();//= ( ffic_u64(*)() ) libc(microtime);
 
 p_sao_obj sao_parse( sao_stream * fw, p_sao_obj ctx ) {
@@ -519,7 +517,7 @@ int main(int argc,char **argv, char** envp) {
 	//TODO move quote into libsaolang
 	sao_add_sym_sx("@^",quote);// ^(exp)
 
-	//TODO sugar
+	//TODO
 	//sao_add_sym_sx("@V",vector);//vector(like json-array)
 	//sao_add_sym_sx("@M",map);//map(like json-object)
 
@@ -582,8 +580,10 @@ int main(int argc,char **argv, char** envp) {
 		if(!fp) sao_error("FILE NOT FOUND: %s",script_file);
 	}
 	sao_stream * fw = sao_stream_new(fp,stream_file);
+
 	p_sao_obj ctx = SAO_TAG(nil);
-	ctx = saolang_init();//TODO can be override by argv:c(name)
+	//ctx = saolang_init();//TODO can be override by argv:c(name)
+	ctx = SAO_TAG(global);
 	p_sao_obj result = sao_parse( fw, ctx );
 	if(SAO_ARGV(p)){ sao_print(0,result);sao_stdout("\n"); }
 	libc(fclose)(fp); libc(free)(fw);
