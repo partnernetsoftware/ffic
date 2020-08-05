@@ -28,10 +28,8 @@ extern int strcmp(const char*,const char*);
 extern void exit(int);
 extern int fprintf(FILE*,const char*,...);
 extern int fflush(void*);
-char* _ffic_strcat(char* buffer, const char* source, const char* append) {
- char* ptr = buffer;
- while (*source) *(ptr++) = *(source++); while (*append) *(ptr++) = *(append++);
- *ptr = '\0';
+char* _ffic_strcat(char* buffer, const char* a, const char* b) {
+ char* p = buffer; while (*a) *(p++) = *(a++); while (*b) *(p++) = *(b++);
  return buffer;
 }
 ffic_ptr ffic_void(){return 0;};
@@ -39,8 +37,7 @@ ffic_ptr(*ffic_raw(const char* part1, const char* funcname, const char* part2))(
 {
  ffic_string libfilename = (char[512]){0};
  _ffic_strcat(libfilename, (part1)? part1 : ffic_libcname, (part2)? part2 : ffic_sosuffix );
- ffic_ptr rt = dlsym(dlopen(libfilename,0x100 | 0x1 ), funcname);
- return rt;
+ return dlsym(dlopen(libfilename,0x101), funcname);
 }
 void* ffic_std[3];
 void* ffic_os_std(int t){
@@ -49,24 +46,12 @@ void* ffic_os_std(int t){
  return ffic_std[t];
 }
 static ffic_func _ffic_os_sleep = (ffic_ptr)0;
-ffic_ptr ffic_usleep(int nano_seconds)
-{
- _ffic_os_sleep( (ffic_os==ffic_os_win) ? (nano_seconds/1000) : nano_seconds );
- return 0;
-};
-ffic_ptr ffic_msleep(int microseconds)
-{
- _ffic_os_sleep( (ffic_os==ffic_os_win) ? (microseconds) : microseconds*1000 );
- return 0;
-};
-ffic_ptr ffic_sleep(int seconds)
-{
- _ffic_os_sleep( (ffic_os==ffic_os_win) ? (seconds*1000) : (seconds*1000000) );
- return 0;
-}
+ffic_ptr ffic_usleep(int nano_seconds) { _ffic_os_sleep( (ffic_os==ffic_os_win) ? (nano_seconds/1000) : nano_seconds ); return 0; }
+ffic_ptr ffic_msleep(int microseconds) { _ffic_os_sleep( (ffic_os==ffic_os_win) ? (microseconds) : microseconds*1000 ); return 0; }
+ffic_ptr ffic_sleep(int seconds) { _ffic_os_sleep( (ffic_os==ffic_os_win) ? (seconds*1000) : (seconds*1000000) ); return 0; }
 ffic_u64 ffic_microtime(void)
 {
- struct timeval { long tv_sec; long tv_usec; } tv;
+ struct { long tv_sec; long tv_usec; } tv;
  static ffic_func ffic_gettimeofday=(ffic_ptr)0;
  if(ffic_os == ffic_os_win){
   if (!ffic_gettimeofday) ffic_gettimeofday = ffic_raw("kernel32","GetSystemTimePreciseAsFileTime",0);
@@ -98,6 +83,7 @@ ffic_ptr(*ffic(const char* libname, const char* funcname, ...))()
   else if(!strcmp("sleep",funcname)){ return ffic_sleep; }
   else if(!strcmp("msleep",funcname)){ return ffic_msleep; }
   else if(!strcmp("fileno",funcname) && ffic_os == ffic_os_win){ funcname = "_fileno"; }
+  else if(!strcmp("void",funcname)){ return ffic_void; }
   else if(!strcmp("setmode",funcname)){
    if(ffic_os == ffic_os_win){ funcname = "_setmode"; }else{ addr = ffic_void; }
   }

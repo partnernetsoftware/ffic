@@ -113,16 +113,15 @@ p_sao_obj sao_vector_insert(p_sao_obj holder,p_sao_obj key_obj){
 p_sao_obj sao_tbl_resize(p_sao_obj holder,int _len){
 	if(!holder){
 		p_sao_obj new_holder = sao_new_vector(_len);
-		//TODO copy from holder to new_holder
 		holder = new_holder;
 		//TMP...(fake resize first) TODO to implement the real resize soon
 	}else{
 		holder->_vector = SAO_NEW_C(p_sao_obj,_len);//TMP
 		holder->_len = _len;
+		//TODO copy from holder to new_holder
 	}
 	return holder;
 }
-
 p_sao_obj sao_get_var(p_sao_obj var, p_sao_obj ctx) {
 	while ((ctx)) {
 		p_sao_obj frame = car(ctx);
@@ -183,6 +182,7 @@ tail://tail loop to save recursive stacks
 				p_sao_obj _cadr = cadr(expr);
 				p_sao_obj _cdr = cdr(expr);
 				if(!_car){ return cons(SAO_TAG(nil),sao_eval_list(_cdr, ctx)); }
+				//@^
 				if (sao_is_eq(_car, SAO_TAG_quote)) { return _cadr; }
 				if (sao_is_eq(_car, SAO_TAG_vector)) {//TODO need improve 
 					p_sao_obj vector_a[512];
@@ -204,6 +204,7 @@ tail://tail loop to save recursive stacks
 					p_sao_obj _cddr = cddr(expr);
 					return sao_new_procedure(_cadr, _cddr, ctx);//no tail?
 				}
+				//@()
 				else if (sao_is_eq(_car,SAO_TAG_at)) {
 					if (sao_is_atom(_cadr)) sao_var(_cadr, sao_eval(caddr(expr), ctx), ctx);
 					else { sao_var(car(_cadr), sao_eval(sao_new_lambda(cdr(_cadr), cddr(expr)), ctx), ctx); }
@@ -234,7 +235,7 @@ tail://tail loop to save recursive stacks
 				//	//sao_stdout("}>");
 				//	goto tail;
 				//}
-				else if (sao_is_eq(_car, SAO_TAG_begin)) {
+				else if (sao_is_eq(_car, SAO_TAG(begin))) {
 					//NOTES: can using sao_eval_list ? no, sao_eval_list is right to left (end to head), this is 1by1
 					//expr = car( sao_eval_list(cdr(expr), ctx) );
 					//p_sao_obj args = cdr(expr);
@@ -265,7 +266,7 @@ tail://tail loop to save recursive stacks
 				///		//sao_print("\nDEBUG 100 ",branch);
 				///		if ( sao_is_eq(caar(branch), SAO_TAG_else) || sao_not_false(sao_eval(caar(branch), ctx)))
 				///		{
-				///			expr = cons(SAO_TAG_begin, cdar(branch));
+				///			expr = cons(SAO_TAG(begin), cdar(branch));
 				///			goto tail;
 				///		}
 				///	}
@@ -306,7 +307,7 @@ tail://tail loop to save recursive stacks
 //						sao_print("{DEBUG: ctx.??:", sao_get_var(sao_new_symbol("cons"),ctx));//
 //						sao_stdout("}}\n");
 
-						expr = cons(SAO_TAG_begin, caddr(proc));
+						expr = cons(SAO_TAG(begin), caddr(proc));
 						goto tail;//
 					}
 				}

@@ -8,7 +8,6 @@ typedef int (*ffic_func_i)();
 typedef float (*ffic_func_f)();
 typedef char* ffic_string;
 typedef int* ffic_wstring;
-//#define ffic_tmp_string(n) ((char[n]){0})
 #define ffic_tmp_string(n) (char[n]){0}
 typedef enum { ffic_os_unknown, ffic_os_win, ffic_os_osx, ffic_os_unx, } ffic_os_t;
 #ifdef _WIN32
@@ -24,7 +23,6 @@ ffic_os_t ffic_os = ffic_os_unx;
 ffic_string ffic_libcname = "libc";
 ffic_string ffic_sosuffix = ".so";
 #endif
-//static ffic_func ffic_gettimeofday=(ffic_ptr)0;
 #ifndef SIZEOF_POINTER
 # if defined(_WIN64)
 # define SIZEOF_POINTER 8 //WIN 64
@@ -32,10 +30,10 @@ ffic_string ffic_sosuffix = ".so";
 # define SIZEOF_POINTER 4 //32
 //# elif //TODO 32 linux..
 # else
-# define SIZEOF_POINTER 8 //64 as default...
+# define SIZEOF_POINTER 8 //default 64
 # endif
 #endif
-typedef struct __FILE FILE;
+typedef struct __FILE FILE;//
 typedef signed char ffic_i8;
 typedef unsigned char ffic_u8;
 typedef signed short int ffic_i16;
