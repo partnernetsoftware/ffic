@@ -33,7 +33,9 @@ ffic_string ffic_sosuffix = ".so";
 # define SIZEOF_POINTER 8 //default 64
 # endif
 #endif
+#ifndef FFIC_ONE_SOURCE
 typedef struct __FILE FILE;//
+#endif
 typedef signed char ffic_i8;
 typedef unsigned char ffic_u8;
 typedef signed short int ffic_i16;
@@ -81,8 +83,10 @@ extern ffic_ptr dlsym(ffic_ptr, const char*);
 extern int printf(const char*,...);
 extern int strcmp(const char*,const char*);//TODO improve speed https://answer-id.com/59773438
 extern void exit(int);
+#ifndef FFIC_ONE_SOURCE
 extern int fprintf(FILE*,const char*,...);
 extern int fflush(void*);
+#endif
 //////////////////////////////////////////////////////////////////////////
 #if 0
 ffic_string *envp_store;

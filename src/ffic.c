@@ -1,15 +1,26 @@
 #ifndef FFIC
 #define FFIC 1
 #endif
-#include "ffic.h"
-#define tcc(f) ffic("libtcc",#f)
-#define anyptr void*
+
+//TMP
+//#ifndef FFIC_ONE_SOURCE
+//# define FFIC_ONE_SOURCE 1
+//#endif
+
+# include "ffic.h"
+#ifdef FFIC_ONE_SOURCE
+# include "tcc.h"
+# include "libtcc.c"
+# define tcc(f) f
+#else
+# define tcc(f) ffic("libtcc",#f)
+#endif
 
 int main(int argc, char **argv, char **envp){
 
 	//ffic_setup(envp);
 
-	anyptr tcc_ptr = tcc(tcc_new)();
+	ffic_ptr tcc_ptr = tcc(tcc_new)();
 	if (!tcc_ptr) {
 		//tcc_error("Unable new tcc, memory full?")
 		return 1; }
@@ -44,11 +55,14 @@ int main(int argc, char **argv, char **envp){
 	tcc(tcc_add_file)(tcc_ptr,(argc>1) ? argv[1] : "-");
 
 	if (tcc(tcc_relocate)(tcc_ptr, 1/*TCC_RELOCATE_AUTO*/) < 0) return 2;
-	anyptr (*entry)() = tcc(tcc_get_symbol)(tcc_ptr, "main");
+
+//#ifdef FFIC_ONE_SOURCE
+	ffic_ptr (*entry)() = tcc(tcc_get_symbol)(tcc_ptr, "main");
 	if (!entry) { return 3; }
 	int rt = (int) entry(argc>1?argc-1:argc,argc>1?(argv+1):argv);
-
-	//int rt = (int) tcc(tcc_run)(tcc_ptr, argc>1?argc-1:argc, argc>1?argv++:argv);
+//#else
+//	int rt = (int) tcc(tcc_run)(tcc_ptr, argc>1?argc-1:argc, argc>1?argv++:argv);
+//#endif
 
 	tcc(tcc_delete)(tcc_ptr);
 	return rt;

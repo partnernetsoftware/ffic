@@ -352,8 +352,7 @@ p_sao_obj sao_load_expr(sao_stream * fw) {
 					return sao_new_string(buf);
 				}
 			case '}': case ']': case ')': return SAO_TAG(end);
-
-																		//non-lisp syntax-sugar:
+//sugar
 			case '{':return cons(SAO_TAG(map),sao_read_list(fw));
 			case '[':return cons(SAO_TAG(vector),sao_read_list(fw));
 
@@ -361,12 +360,8 @@ p_sao_obj sao_load_expr(sao_stream * fw) {
 			//case '(': {p_sao_obj list = sao_read_list(fw); return (SAO_ARGV(l) || !theSymbol)? cons(SAO_TAG(vector),list) : cons(theSymbol,list);}
 			case '(': {
 									p_sao_obj list = sao_read_list(fw);
-									//sao_print("<DEBUG list=",list);sao_stdout(">");
-									//return cons(theSymbol,list);
-									//TODO if list is empty (nil()) make it empty as well ?? TODO
 									if(!theSymbol) return list;
 									p_sao_obj rt = cons(theSymbol,list);
-									//sao_print("<DEBUG rt=",rt);sao_stdout(">");
 									return rt;
 								}
 			default://as symbol

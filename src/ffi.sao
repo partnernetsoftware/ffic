@@ -1,0 +1,7 @@
+@(p,@(c.printf)) //p=c.printf
+
+p(1234) //dim p=1234
+
+//dim x as func
+
+
