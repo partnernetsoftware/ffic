@@ -13,9 +13,9 @@ default:
 	ls -al ffic*
 	make test
 osx:
-	make libtcc.dylib -C ../tinycc/
-	make libtcc.a -C ../tinycc/
-	cp ../tinycc/libtcc.dylib ./
+	make libtcc.osx -C ../tinycc/
+	#make libtcc.a -C ../tinycc/
+	mv ../tinycc/libtcc.dylib ./
 	make default
 	cp ffic ffic_osx
 	./ffic_osx tests/fib.c 5
