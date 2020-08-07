@@ -20,7 +20,13 @@
 # include "libtcc.c"
 # define tcc(f) f
 #else
+#ifdef _WIN64
+# define tcc(f) ffic("libtcc64",#f)
+#elif defined(_WIN32)
+# define tcc(f) ffic("libtcc32",#f)
+#else
 # define tcc(f) ffic("libtcc",#f)
+#endif
 #endif
 
 int main(int argc, char **argv, char **envp){

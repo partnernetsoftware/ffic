@@ -7,16 +7,28 @@
 //gcc -O1 ffic.c -o ffic -D FFIC_ONE_SOURCE -D ONE_SOURCE -I ../tinycc/
 #ifndef FFIC_ONE_SOURCE
 # define FFIC_ONE_SOURCE 1
-# define TCC_TARGET_MACHO 1
-# define TCC_TARGET_X86_64 1
+//#ifdef _APPLE_
+//# define TCC_TARGET_MACHO 1
+//#endif
+#ifdef _WIN32
+# define TCC_TARGET_PE 1
+#endif
+//# define TCC_TARGET_X86_64 1
+# define TCC_TARGET_I386 1
+#endif
 #ifndef ONE_SOURCE
 # define ONE_SOURCE 1
 #endif
+#ifndef TCC_IS_NATIVE
+# define TCC_IS_NATIVE 1
 #endif
 
 # include "ffic.h"
 #ifdef FFIC_ONE_SOURCE
-# include "tcc.h"
+#define RTLD_DEFAULT    0
+//# include "tcc.h"
+# include "libtcc.h"
+//# include "tccrun.c"
 # include "libtcc.c"
 # define tcc(f) f
 #else
@@ -39,6 +51,7 @@ int main(int argc, char **argv, char **envp){
 	//tcc(tcc_set_options)(tcc_ptr, "-nostdlib");
 	tcc(tcc_set_options)(tcc_ptr, "-D_WIN32");
 	tcc(tcc_set_options)(tcc_ptr, "-DTCC_TARGET_PE");
+	tcc(tcc_set_options)(tcc_ptr, "-DTCC_TARGET_I386");
 #else
 	//tcc(tcc_set_options)(tcc_ptr, "-nostdlib");
 	//tcc(tcc_set_options)(tcc_ptr, "-I/usr/lib");

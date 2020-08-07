@@ -66,13 +66,22 @@ extern void*(*ffic(const char*, const char*, ...))();
 # elif FFIC==1 //}{
 #  if defined(_WIN32) || defined(_WIN64) //{
 #ifdef UNICODE
+#ifndef FFIC_ONE_SOURCE
 extern ffic_ptr LoadLibraryW(const char*);
-#define dlopen LoadLibraryW
+#endif
+#define dlopen(l,c) LoadLibraryW(l)
 #else
+#ifndef FFIC_ONE_SOURCE
 extern ffic_ptr LoadLibraryA(const char*);
+#endif
 #define dlopen(l,c) LoadLibraryA(l)
 #endif
+#ifndef FFIC_ONE_SOURCE
 extern ffic_ptr GetProcAddress(ffic_ptr,const char*);
+#else
+//extern ffic_ptr GetProcAddress(void* v,char* s);
+//#define dlsym(l,c) GetProcAddress(l,c)
+#endif
 #define ffic_dlsym GetProcAddress
 #   else //}{
 extern ffic_ptr dlopen(const char*,int);
