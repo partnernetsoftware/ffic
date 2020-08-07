@@ -110,7 +110,7 @@ int main(int argc, char **argv, char **envp){
  ffic("libtcc","tcc_add_file")(tcc_ptr,(argc>1) ? argv[1] : "-");
  if (ffic("libtcc","tcc_relocate")(tcc_ptr, 1 ) < 0) return 2;
  int rt;
- ffic_ptr (*entry)() = ffic("libtcc","tcc_get_symbol")(tcc_ptr, "main");
+ int (*entry)() = ffic("libtcc","tcc_get_symbol")(tcc_ptr, "main");
  if (!entry) { return 3; }
  rt = (int) entry(argc>1?argc-1:argc,argc>1?(argv+1):argv);
  ffic("libtcc","tcc_delete")(tcc_ptr);

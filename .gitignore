@@ -5,6 +5,5 @@ tccrun.i
 *.o
 *.i
 config.h
-libtcc.dylib
 scheme
 sao
