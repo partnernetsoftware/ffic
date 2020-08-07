@@ -13,6 +13,7 @@ default:
 	make test
 osx:
 	make libtcc.dylib -C ../tinycc/
+	make libtcc.a -C ../tinycc/
 	cp ../tinycc/libtcc.dylib ./
 	make default
 	cp ffic ffic_osx

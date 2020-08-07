@@ -2,9 +2,13 @@
 #define FFIC 1
 #endif
 
+//gcc -o tcc.o -c tcc.c -DTCC_TARGET_X86_64 -DTCC_TARGET_MACHO       -DONE_SOURCE=0 -Wall -g -O2 -Wdeclaration-after-statement -fno-strict-aliasing -Wno-pointer-sign -Wno-sign-compare -Wno-unused-result -D_FORTIFY_SOURCE=0 -I.
 //TODO:
+//gcc -O1 ffic.c -o ffic -D FFIC_ONE_SOURCE -D ONE_SOURCE -I ../tinycc/
 //#ifndef FFIC_ONE_SOURCE
 //# define FFIC_ONE_SOURCE 1
+//# define TCC_TARGET_MACHO 1
+//# define TCC_TARGET_X86_64 1
 //#ifndef ONE_SOURCE
 //# define ONE_SOURCE 1
 //#endif
@@ -63,7 +67,8 @@ int main(int argc, char **argv, char **envp){
 
 	int rt;
 //#ifdef FFIC_ONE_SOURCE
-	ffic_ptr (*entry)() = tcc(tcc_get_symbol)(tcc_ptr, "main");
+	//ffic_ptr (*entry)() = tcc(tcc_get_symbol)(tcc_ptr, "main");
+	int (*entry)() = tcc(tcc_get_symbol)(tcc_ptr, "main");
 	if (!entry) { return 3; }
 	rt = (int) entry(argc>1?argc-1:argc,argc>1?(argv+1):argv);
 //#else
