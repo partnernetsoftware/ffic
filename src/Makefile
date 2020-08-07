@@ -1,6 +1,7 @@
 #CC=cc
-CC=gcc -O1
 #CC=gcc
+CC=gcc -O1 -I ../tinycc/
+#CC=tcc
 default: 
 	#cd .. && git submodule init && git submodule update
 	#git submodule update --init --recursive
