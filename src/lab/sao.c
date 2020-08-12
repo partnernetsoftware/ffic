@@ -1,4 +1,6 @@
 //WARNING: dont go production unless gc() is done
+//TODO: design ffi like https://luajit.org/ext_ffi.html
+//TODO: ref ffi https://common-lisp.net/project/cffi/manual/cffi-manual.html#Introduction
 #define SAO_VERSION "0.0.9"
 #define SAO_AUTHOR "Wanjo Chan"
 #define SAO_CAT(a, ...) SAO_PRIMITIVE_CAT(a, __VA_ARGS__)

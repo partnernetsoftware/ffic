@@ -1,7 +1,6 @@
 # ffic
 
-* "scripting c in ffi-mode" with extern ffic()
-* survived from the painful libc header files.
+* "scripting c in ffi-mode" (based on tinycc) with extern ffic() to survive from the painful libc header files.
 
 # examples
 
