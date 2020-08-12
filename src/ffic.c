@@ -14,12 +14,13 @@
 //#endif
 //#endif
 
-# include "ffic.h"
 #ifdef FFIC_ONE_SOURCE
 # include "tcc.h"
 # include "libtcc.c"
+# include "ffic.h"
 # define tcc(f) f
 #else
+# include "ffic.h"
 #ifdef _WIN64
 # define tcc(f) ffic("libtcc64",#f)
 #elif defined(_WIN32)
@@ -45,6 +46,7 @@ int main(int argc, char **argv, char **envp){
 	//tcc(tcc_set_options)(tcc_ptr, "-nostdlib");
 	tcc(tcc_set_options)(tcc_ptr, "-D_WIN32");
 	tcc(tcc_set_options)(tcc_ptr, "-DTCC_TARGET_PE");
+	tcc(tcc_set_options)(tcc_ptr, "-DTCC_TARGET_I386");
 #else
 	//tcc(tcc_set_options)(tcc_ptr, "-nostdlib");
 	//tcc(tcc_set_options)(tcc_ptr, "-I/usr/lib");
@@ -69,7 +71,7 @@ int main(int argc, char **argv, char **envp){
 
 	tcc(tcc_add_file)(tcc_ptr,(argc>1) ? argv[1] : "-");
 
-	if (tcc(tcc_relocate)(tcc_ptr, 1/*TCC_RELOCATE_AUTO*/) < 0) return 2;
+	if (tcc(tcc_relocate)(tcc_ptr, (void*)1/*TCC_RELOCATE_AUTO*/) < 0) return 2;
 
 	int rt;
 //#ifdef FFIC_ONE_SOURCE
