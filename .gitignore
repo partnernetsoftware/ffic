@@ -7,3 +7,4 @@ tccrun.i
 config.h
 scheme
 sao
+*.exe
