@@ -33,7 +33,7 @@ ffic_string ffic_sosuffix = ".so";
 # define SIZEOF_POINTER 8 //default 64
 # endif
 #endif
-#ifndef FFIC_ONE_SOURCE
+#ifndef ONE_SOURCE
 typedef struct __FILE FILE;//
 #endif
 typedef signed char ffic_i8;
@@ -67,17 +67,17 @@ extern void*(*ffic_raw(const char*, const char*, ...))();
 # elif FFIC==1 //}{
 #  if defined(_WIN32) || defined(_WIN64) //{
 #ifdef UNICODE
-#ifndef FFIC_ONE_SOURCE
+#ifndef ONE_SOURCE
 extern ffic_ptr LoadLibraryW(const char*);
 #endif
 #define dlopen(l,c) LoadLibraryW(l)
 #else
-#ifndef FFIC_ONE_SOURCE
+#ifndef ONE_SOURCE
 extern ffic_ptr LoadLibraryA(const char*);
 #endif
 #define dlopen(l,c) LoadLibraryA(l)
 #endif
-#ifndef FFIC_ONE_SOURCE
+#ifndef ONE_SOURCE
 extern ffic_ptr GetProcAddress(ffic_ptr,const char*);
 #else
 //#define dlsym(l,c) GetProcAddress(l,c)
@@ -93,7 +93,7 @@ extern ffic_ptr dlsym(ffic_ptr, const char*);
 extern int printf(const char*,...);
 extern int strcmp(const char*,const char*);//TODO improve speed https://answer-id.com/59773438
 extern void exit(int);
-#ifndef FFIC_ONE_SOURCE
+#ifndef ONE_SOURCE
 extern int fprintf(FILE*,const char*,...);
 extern int fflush(void*);
 #endif

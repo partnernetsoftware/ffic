@@ -8,3 +8,4 @@ config.h
 scheme
 sao
 *.exe
+upx_osx
