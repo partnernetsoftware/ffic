@@ -111,6 +111,7 @@ int main(int argc, char **argv, char **envp){
  ffic("libtcc","tcc_set_output_type")(tcc_ptr, 1 );
  ffic("libtcc","tcc_define_symbol")(tcc_ptr, "FFIC", "2");
  ffic("libtcc","tcc_set_options")(tcc_ptr, "-nostdinc");
+ ffic("libtcc","tcc_set_options")(tcc_ptr, "-DTCC_LIBTCC1=222");
  if(0==ffic("libtcc","tcc_get_symbol")(tcc_ptr, "ffic"))
   ffic("libtcc","tcc_add_symbol")(tcc_ptr, "ffic", ffic);
  if(0==ffic("libtcc","tcc_get_symbol")(tcc_ptr, "ffic_raw"))
