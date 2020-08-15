@@ -10,6 +10,8 @@ default:
 	make pp
 	#cc ffic.c -I ../tinycc/ -o ffic
 	${CC} ffic.pp.c -L. -ldl -ltcc -o ffic
+	make tcc -C ../tinycc/
+	../tinycc/tcc -I ../tinycc -DONE_SOURCE=1 ffic.c -o ffic_static
 	ls -al ffic*
 	make test
 osx:
@@ -27,6 +29,8 @@ lnx:
 test:
 	cat tests/42.c | ./ffic
 	./ffic tests/42.c
+	cat tests/42.c | ./ffic_static
+	./ffic_static tests/42.c
 #
 tcc:
 	tcc -I. -I../tinycc/ -run -nostdlib ffic.c 
