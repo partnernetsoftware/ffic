@@ -2,29 +2,29 @@
 #CC=gcc
 CC=gcc -O1 -I ../tinycc/
 #CC=tcc
-default: 
-	#cd .. && git submodule init && git submodule update
-	#git submodule update --init --recursive
-	ls -al ffic*
-	#echo "#define TCC_VERSION \"`head ../tinycc/VERSION`\"" > config.h
-	make pp
-	#cc ffic.c -I ../tinycc/ -o ffic
-	${CC} ffic.pp.c -L. -ldl -ltcc -o ffic
-	#make tcc -C ../tinycc/
-	#../tinycc/configure --cc=../tinycc/tcc
-	#make cross -C ../tinycc/
-	cd ../tinycc/ && make clean && ./configure && make && ./configure --cc=./tcc && make cross-x86_64-osx
-	cp ../tinycc/x86_64-osx-libtcc1.a ./
-	#../tinycc/tcc -DTCC_TARGET_X86_64 -DTCC_TARGET_MACHO -DTCC_LIBTCC1="\"x86_64-osx-libtcc1.a\"" -L. -I ../tinycc -DONE_SOURCE=1 ffic.c -o ffic_static
-	../tinycc/tcc -DTCC_TARGET_X86_64 -DTCC_TARGET_MACHO -DCONFIG_TCCDIR="\".\"" -DTCC_LIBTCC1="\"x86_64-osx-libtcc1.a\"" -L. -I ../tinycc -DONE_SOURCE=1 ffic.c -o ffic_static
-	ls -al ffic*
-	make test
+#CC=../tinycc/x86_64-osx-tcc
+#CC=../tinycc/tcc
+tcc:
+	#cd ../tinycc/ && make clean && ./configure && make && ./configure --cc=./tcc && make && make cross-x86_64-osx && make libtcc.osx && mv libtcc.dylib ../src/
+	cd ../tinycc/ && make clean && ./configure && make && make libtcc.osx && ./configure --cc=./tcc && make && make cross-x86_64-osx && mv libtcc.dylib ../src/
 osx:
-	make libtcc.osx -C ../tinycc/
-	#make libtcc.a -C ../tinycc/
-	mv ../tinycc/libtcc.dylib ./
-	make default
-	cp ffic ffic_osx
+	#git submodule update --init --recursive
+	#cd .. && git submodule init && git submodule update
+	#echo "#define TCC_VERSION \"`head ../tinycc/VERSION`\"" > config.h
+	#make tcc
+	#cd ../tinycc/ && make clean && ./configure && make && make libtcc.osx && ./configure --cc=./tcc && make && make cross-x86_64-osx
+	${CC} -E ffic.c -I. -I../tinycc/ | sed 's/^#.*//g' | sed "/^$$/d" > ffic_osx.pp.c
+	#${CC} ffic_osx.pp.c -L. -ldl -ltcc -o ffic_osx
+	${CC} -DCONFIG_TCCDIR="\".\"" -DTCC_LIBTCC1="\"x86_64-osx-libtcc1.a\"" -L. ffic_osx.pp.c -ldl -ltcc -o ffic_osx
+	#../tinycc/tcc -DTCC_TARGET_X86_64 -DTCC_TARGET_MACHO -DCONFIG_TCCDIR="\".\"" -DTCC_LIBTCC1="\"x86_64-osx-libtcc1.a\"" -L. ffic_osx.pp.c -ldl -ltcc -o ffic_osx
+	cp ../tinycc/x86_64-osx-libtcc1.a ./
+	#../tinycc/tcc -DTCC_TARGET_X86_64 -DTCC_TARGET_MACHO -DCONFIG_TCCDIR="\".\"" -DTCC_LIBTCC1="\"x86_64-osx-libtcc1.a\"" -L. -I ../tinycc -DONE_SOURCE=1 ffic.c -o ffic_static_osx
+	${CC} -DCONFIG_TCCDIR="\".\"" -DTCC_LIBTCC1="\"x86_64-osx-libtcc1.a\"" -L. -I ../tinycc -DONE_SOURCE=1 ffic.c -o ffic_static_osx
+	ls -al ffic*
+	cat tests/42.c | ./ffic_osx
+	./ffic_osx tests/42.c
+	cat tests/42.c | ./ffic_static_osx
+	./ffic_static_osx tests/42.c
 	./ffic_osx tests/fib.c 5
 lnx:
 	make libtcc.so -C ../tinycc/
@@ -34,19 +34,18 @@ lnx:
 test:
 	cat tests/42.c | ./ffic
 	./ffic tests/42.c
-	cat tests/42.c | ./ffic_static
-	./ffic_static tests/42.c
-#
-tcc:
-	tcc -I. -I../tinycc/ -run -nostdlib ffic.c 
-	#tcc -nostdlib -E ffic.c -I ../tinycc/ -o ffic.pp.c
+	cat tests/42.c | ./ffic_static_osx
+	./ffic_static_osx tests/42.c
 pp:
-	${CC} -E ffic.c -I. -I../tinycc/ -o ffic.pp.c
-	#${CC} -E ffic.c -I. -I../tinycc/ | sed 's/^#.*//g' > ffic.pp.c
+	#${CC} -E ffic.c -I. -I../tinycc/ -o ffic.pp.c
+	##${CC} -E ffic.c -I. -I../tinycc/ | sed 's/^#.*//g' > ffic.pp.c
 	${CC} -E ffic.c -I. -I../tinycc/ | sed 's/^#.*//g' | sed "/^$$/d" > ffic.pp.c
 clean:
 	rm -f *.o
 ##################################################### lab for sao
+
+###$(X)%.i : %.c $(LIBTCC_INC)
+###	$S$(CC) -E $< $(DEFINES) $(CFLAGS) | sed 's/^#.*//g' | sed "/^$$/d" > $@
 
 pp_sao:
 	${CC} -E sao.c | sed 's/^#.*//g' | sed "/^$$/d" > sao.osx.pp.c
@@ -71,4 +70,8 @@ osx_sao:
 play:
 	cat play.sao | ./ffic sao.c d
 
+
+TCC_X = i386 x86_64 i386-win32 x86_64-win32 x86_64-osx arm arm64 arm-wince c67
+TCC_X += riscv64
+# TCC_X += arm-fpa arm-fpa-ld arm-vfp arm-eabi
 
