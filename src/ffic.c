@@ -27,8 +27,8 @@ int main(int argc, char **argv, char **envp){
 	}
 	tcc(tcc_set_output_type)(tcc_ptr, 1/*TCC_OUTPUT_MEMORY*/);
 	tcc(tcc_define_symbol)(tcc_ptr, "FFIC", "2");//for .c using ffic.h
-	//tcc(tcc_set_options)(tcc_ptr, "-L.");//find .a from current by default
-	tcc(tcc_set_options)(tcc_ptr, "-DCONFIG_LDDIR=\".\"");//find .a from current by default
+	tcc(tcc_set_options)(tcc_ptr, "-L.");//find .a from current by default
+	//tcc(tcc_set_options)(tcc_ptr, "-DCONFIG_LDDIR=\".\"");//find .a from current by default
 	//tcc(tcc_set_options)(tcc_ptr, "-L..");//find from .. then
 #ifdef _WIN32
 	tcc(tcc_set_options)(tcc_ptr, "-D_WIN32");
