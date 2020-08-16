@@ -10,8 +10,13 @@ default:
 	make pp
 	#cc ffic.c -I ../tinycc/ -o ffic
 	${CC} ffic.pp.c -L. -ldl -ltcc -o ffic
-	make tcc -C ../tinycc/
-	../tinycc/tcc -I ../tinycc -DONE_SOURCE=1 ffic.c -o ffic_static
+	#make tcc -C ../tinycc/
+	#../tinycc/configure --cc=../tinycc/tcc
+	#make cross -C ../tinycc/
+	cd ../tinycc/ && make clean && ./configure && make && ./configure --cc=./tcc && make cross-x86_64-osx
+	cp ../tinycc/x86_64-osx-libtcc1.a ./
+	#../tinycc/tcc -DTCC_TARGET_X86_64 -DTCC_TARGET_MACHO -DTCC_LIBTCC1="\"x86_64-osx-libtcc1.a\"" -L. -I ../tinycc -DONE_SOURCE=1 ffic.c -o ffic_static
+	../tinycc/tcc -DTCC_TARGET_X86_64 -DTCC_TARGET_MACHO -DCONFIG_TCCDIR="\".\"" -DTCC_LIBTCC1="\"x86_64-osx-libtcc1.a\"" -L. -I ../tinycc -DONE_SOURCE=1 ffic.c -o ffic_static
 	ls -al ffic*
 	make test
 osx:
@@ -65,4 +70,5 @@ osx_sao:
 	ls -al sao*
 play:
 	cat play.sao | ./ffic sao.c d
+
 

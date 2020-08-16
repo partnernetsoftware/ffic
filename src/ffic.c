@@ -21,33 +21,23 @@
 int main(int argc, char **argv, char **envp){
 
 	ffic_ptr tcc_ptr = tcc(tcc_new)();
-	if (!tcc_ptr) {
-		tcc(_tcc_error)("Unable new tcc, memory full?");
-		return 1;
-	}
 	tcc(tcc_set_output_type)(tcc_ptr, 1/*TCC_OUTPUT_MEMORY*/);
 	tcc(tcc_define_symbol)(tcc_ptr, "FFIC", "2");//for .c using ffic.h
 	tcc(tcc_set_options)(tcc_ptr, "-L.");//find .a from current by default
-	//tcc(tcc_set_options)(tcc_ptr, "-DCONFIG_LDDIR=\".\"");//find .a from current by default
-	//tcc(tcc_set_options)(tcc_ptr, "-L..");//find from .. then
+	tcc(tcc_set_options)(tcc_ptr, "-DCONFIG_LDDIR=\".\"");//find .a from current by default
 #ifdef _WIN32
 	tcc(tcc_set_options)(tcc_ptr, "-D_WIN32");
 #endif
 #ifdef _APPLE_
-	tcc(tcc_set_options)(tcc_ptr, "-nostdinc");
 	tcc(tcc_set_options)(tcc_ptr, "-D_APPLE_");
 	tcc(tcc_set_options)(tcc_ptr, "-DTCC_TARGET_MACHO");
 #elif defined(_WIN64)
 	tcc(tcc_set_options)(tcc_ptr, "-D_WIN64");
 	tcc(tcc_set_options)(tcc_ptr, "-DTCC_TARGET_PE");
 	tcc(tcc_set_options)(tcc_ptr, "-DTCC_TARGET_X86_64");
-	//tcc(tcc_set_options)(tcc_ptr, "-DTCC_LIBTCC1=\"\\\"x86_64-win32-libtcc1.a\\\"\"");
 #elif defined(_WIN32)
 	tcc(tcc_set_options)(tcc_ptr, "-DTCC_TARGET_PE");
 	tcc(tcc_set_options)(tcc_ptr, "-DTCC_TARGET_I386");
-	//tcc(tcc_set_options)(tcc_ptr, "-DTCC_LIBTCC1=\"\\\"i386-win32-libtcc1.a\\\"\"");
-	//tcc(tcc_set_options)(tcc_ptr, "-DTCC_LIBTCC1=i386-win32-libtcc1.a");
-	//tcc(tcc_set_options)(tcc_ptr, "-DTCC_LIBTCC1=111");
 #endif
 
 	if(0==tcc(tcc_get_symbol)(tcc_ptr, "ffic"))

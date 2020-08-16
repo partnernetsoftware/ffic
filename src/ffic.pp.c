@@ -104,14 +104,10 @@ ffic_ptr(*ffic(const char* libname, const char* funcname, ...))()
 }
 int main(int argc, char **argv, char **envp){
  ffic_ptr tcc_ptr = ffic("libtcc","tcc_new")();
- if (!tcc_ptr) {
-  ffic("libtcc","_tcc_error")("Unable new tcc, memory full?");
-  return 1;
- }
  ffic("libtcc","tcc_set_output_type")(tcc_ptr, 1 );
  ffic("libtcc","tcc_define_symbol")(tcc_ptr, "FFIC", "2");
- ffic("libtcc","tcc_set_options")(tcc_ptr, "-nostdinc");
- ffic("libtcc","tcc_set_options")(tcc_ptr, "-DTCC_LIBTCC1=222");
+ ffic("libtcc","tcc_set_options")(tcc_ptr, "-L.");
+ ffic("libtcc","tcc_set_options")(tcc_ptr, "-DCONFIG_LDDIR=\".\"");
  if(0==ffic("libtcc","tcc_get_symbol")(tcc_ptr, "ffic"))
   ffic("libtcc","tcc_add_symbol")(tcc_ptr, "ffic", ffic);
  if(0==ffic("libtcc","tcc_get_symbol")(tcc_ptr, "ffic_raw"))
