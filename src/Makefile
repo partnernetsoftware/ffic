@@ -12,6 +12,7 @@ tcc:
 osx:
 	cp ../tinycc/libtcc.dylib ./
 	cp ../tinycc/x86_64-osx-libtcc1.a ./
+	#git submodule add https://github.com/partnernetsoftware/tinyccbinary.git
 	#git submodule update --init --recursive
 	#cd .. && git submodule init && git submodule update
 	#echo "#define TCC_VERSION \"`head ../tinycc/VERSION`\"" > config.h
