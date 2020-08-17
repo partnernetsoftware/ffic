@@ -74,24 +74,29 @@ extern ffic_ptr LoadLibraryW(const char*);
 #define dlopen(l,c) LoadLibraryW(l)
 #else
 #ifndef ONE_SOURCE
-extern ffic_ptr LoadLibraryA(const char*);
+//extern ffic_ptr LoadLibraryA(const char*);
+extern ffic_ptr LoadLibraryA();
 #endif
 #define dlopen(l,c) LoadLibraryA(l)
 #endif
 #ifndef ONE_SOURCE
-extern ffic_ptr GetProcAddress(ffic_ptr,const char*);
+//extern ffic_ptr GetProcAddress(ffic_ptr,const char*);
+extern ffic_ptr GetProcAddress();
 #else
 //#define dlsym(l,c) GetProcAddress(l,c)
 #endif
 //extern ffic_ptr GetProcAddress(void*,const char*);
 #define ffic_dlsym GetProcAddress
 #   else //}{
-extern ffic_ptr dlopen(const char*,int);
-extern ffic_ptr dlsym(ffic_ptr, const char*);
+//extern ffic_ptr dlopen(const char*,int);
+extern ffic_ptr dlopen();
+//extern ffic_ptr dlsym(ffic_ptr, const char*);
+extern ffic_ptr dlsym();
 #define ffic_dlsym dlsym
 #   endif //}
 #define ffic_dlopen dlopen 
 extern int printf(const char*,...);
+//extern int printf();
 extern int strcmp(const char*,const char*);//TODO improve speed https://answer-id.com/59773438
 extern void exit(int);
 #ifndef ONE_SOURCE
@@ -125,11 +130,16 @@ ffic_ptr(*ffic_raw(const char* part1, const char* funcname, const char* part2))(
 	_ffic_strcat(libfilename, (part1)? part1 : ffic_libcname, (part2)? part2 : ffic_sosuffix );
 	//return ffic_dlsym(ffic_dlopen(libfilename,0x100 | 0x1/*RTLD_LAZY*/), funcname);
 	ffic_ptr addr = 0;
-	//addr = ffic_dlsym(ffic_dlopen(libfilename,0x101), funcname);
-	addr = ffic_dlsym(ffic_dlopen(libfilename,0), funcname);
+	//fprintf(ffic_os_std(1),"DEBUG: %s.%s\n", libfilename, funcname);fflush(ffic_os_std(1));
+	printf("----- %s(%s).%s \n",part1,libfilename,funcname);
+	addr = ffic_dlsym(ffic_dlopen(libfilename,0x101), funcname);
+	//addr = ffic_dlsym(ffic_dlopen(libfilename,0x0), funcname);
 	if(!addr) {
-		fprintf(ffic_os_std(1),"WARN: Not found %s.%s\n", part1, funcname);fflush(ffic_os_std(1));
+		printf("----- => not found\n");
+		//fprintf(ffic_os_std(1),"WARN: Not found %s.%s\n", part1, funcname);fflush(ffic_os_std(1));
 		//fprintf(ffic_std[1],"WARN: Not found %s.%s\n", part1, funcname);fflush(ffic_std[1]);
+	}else{
+		//printf("----- => %d",addr);
 	}
 	return addr;
 }
