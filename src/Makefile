@@ -33,10 +33,9 @@ osx:
 	./ffic_static_osx tests/42.c
 	./ffic_osx tests/fib.c 5
 lnx:
-	make libtcc.so -C ../tinycc/
+	cd ../tinycc/ && make clean && sleep 1 && ./configure && make && make libtcc.so && ./configure --cc=./tcc && make && make cross-x86_64
 	cp ../tinycc/libtcc.so ./
-	make default
-	cp ffic ffic_lnx
+	cp ../tinycc/x86_64-libtcc1.a ./
 test:
 	cat tests/42.c | ./ffic
 	./ffic tests/42.c
