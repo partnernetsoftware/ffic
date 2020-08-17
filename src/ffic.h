@@ -125,7 +125,8 @@ ffic_ptr(*ffic_raw(const char* part1, const char* funcname, const char* part2))(
 	_ffic_strcat(libfilename, (part1)? part1 : ffic_libcname, (part2)? part2 : ffic_sosuffix );
 	//return ffic_dlsym(ffic_dlopen(libfilename,0x100 | 0x1/*RTLD_LAZY*/), funcname);
 	ffic_ptr addr = 0;
-	addr = ffic_dlsym(ffic_dlopen(libfilename,0x101), funcname);
+	//addr = ffic_dlsym(ffic_dlopen(libfilename,0x101), funcname);
+	addr = ffic_dlsym(ffic_dlopen(libfilename,0), funcname);
 	if(!addr) {
 		fprintf(ffic_os_std(1),"WARN: Not found %s.%s\n", part1, funcname);fflush(ffic_os_std(1));
 		//fprintf(ffic_std[1],"WARN: Not found %s.%s\n", part1, funcname);fflush(ffic_std[1]);
