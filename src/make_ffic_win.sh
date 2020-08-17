@@ -19,12 +19,13 @@ RTCC=../tinyccbinary
 #$CC32 $RTCC/libtcc.c -DLIBTCC_AS_DLL -shared -o libtcc32.dll
 #$CC64 $RTCC/libtcc.c -DLIBTCC_AS_DLL -shared -o libtcc64.dll
 #
-#$CC32 -I. ffic.c -o ffic32.exe
-#$CC64 -I. ffic.c -o ffic64.exe
-
 CC32="sh ../tinyccbinary/build.osx/tccwin32.sh"
-$CC32 -DONE_SOURCE=1 -I. ffic.c -o ffic_static_32.exe
 CC64="sh ../tinyccbinary/build.osx/tccwin64.sh"
+
+$CC32 -I. ffic.c -o ffic32.exe
+$CC64 -I. ffic.c -o ffic64.exe
+
+$CC32 -DONE_SOURCE=1 -I. ffic.c -o ffic_static_32.exe
 $CC64 -DONE_SOURCE=1 -I. ffic.c -o ffic_static_64.exe
 
 ./upx -f -o ffic_static_upx_32.exe ffic_static_32.exe

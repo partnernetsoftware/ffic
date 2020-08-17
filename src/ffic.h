@@ -6,6 +6,7 @@ typedef double (*ffic_func_d)();
 typedef long (*ffic_func_l)();
 typedef int (*ffic_func_i)();
 typedef float (*ffic_func_f)();
+#define ffic_import_func(n,t) t(*n)()
 typedef char* ffic_string;
 typedef int* ffic_wstring;
 #define ffic_tmp_string(n) (char[n]){0}
@@ -59,8 +60,8 @@ typedef unsigned long long int ffic_u64;
 #endif
 #ifdef FFIC
 # if FFIC==2 //{
-extern void*(*ffic(const char*, const char*, ...))();
-extern void*(*ffic_raw(const char*, const char*, ...))();
+extern void*(*ffic(const char*, const char*))();
+extern void*(*ffic_raw(const char*, const char*, const char*))();
 #  ifndef libc
 #  define libc(f) ffic(0,#f)
 #  endif
@@ -163,7 +164,7 @@ ffic_u64 ffic_microtime(void)
 	}
 	return ((ffic_u64)tv.tv_sec*(ffic_u64)1000 + (((ffic_u64)tv.tv_usec)/(ffic_u64)1000)%(ffic_u64)1000);
 }
-ffic_ptr(*ffic(const char* libname, const char* funcname, ...))()
+ffic_ptr(*ffic(const char* libname, const char* funcname))()
 {
 	ffic_ptr addr = 0;
 	if(!libname){//special libc tuning
