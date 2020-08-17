@@ -1,6 +1,10 @@
 [submodule "tinycc"]
 	path = tinycc
 	url = https://repo.or.cz/tinycc.git
+[submodule "tinyccbinary"]
+	path = tinyccbinary
+	url = https://github.com/partnernetsoftware/tinyccbinary.git
+	
 #[submodule "libffi"]
 #	path = libffi
 #	url = https://github.com/libffi/libffi.git
