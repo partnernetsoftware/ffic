@@ -20,6 +20,9 @@ RTCC=../tinyccbinary
 #$CC64 $RTCC/libtcc.c -DLIBTCC_AS_DLL -shared -o libtcc64.dll
 #
 CC32="sh ../tinyccbinary/build.osx/tccwin32.sh"
+#CC32="../tinyccbinary/build.osx/tcc -L. -DCONFIG_LDDIR="\".\"" -DTCC_LIBTCC1="\"i386-win32-libtcc1.a\"" -I $RTCC/win32/include -I $RTCC/win32/include/winapi -I $RTCC/build.osx -I $RTCC/include -I $RTCC -L $RTCC/win32/lib"
+#CC32="$RTCC/build.osx/i386-win32-tcc -L. -DCONFIG_LDDIR="\".\"" -DTCC_LIBTCC1="\"i386-win32-libtcc1.a\"" -I $RTCC/win32/include -I $RTCC/win32/include/winapi -I $RTCC/include -I $RTCC/build.osx -I. -I $RTCC -L $RTCC/win32/lib -L."
+#CC32="$RTCC/build.osx/tcc -DTCC_TARGET_PE -DTCC_TARGET_I386 -D_WIN32 -DCONFIG_LDDIR="\".\"" -DTCC_LIBTCC1="\"i386-win32-libtcc1.a\"" -I $RTCC/win32/include -I $RTCC/win32/include/winapi -I $RTCC/include -I $RTCC/build.osx -I. -I $RTCC -L $RTCC/win32/lib -L."
 CC64="sh ../tinyccbinary/build.osx/tccwin64.sh"
 
 $CC32 -I. ffic.c -o ffic32.exe

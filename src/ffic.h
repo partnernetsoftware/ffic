@@ -81,11 +81,11 @@ extern ffic_ptr LoadLibraryA();
 #endif
 #ifndef ONE_SOURCE
 //extern ffic_ptr GetProcAddress(ffic_ptr,const char*);
-extern ffic_ptr GetProcAddress();
+//extern ffic_ptr GetProcAddress();
 #else
 //#define dlsym(l,c) GetProcAddress(l,c)
 #endif
-//extern ffic_ptr GetProcAddress(void*,const char*);
+extern ffic_ptr GetProcAddress(void*,const char*);
 #define ffic_dlsym GetProcAddress
 #   else //}{
 //extern ffic_ptr dlopen(const char*,int);
