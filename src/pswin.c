@@ -75,19 +75,9 @@ int main(int argc, char **argv, char **envp){
 #define FALSE 0
 #define STATUS_WAIT_0 ((DWORD)0x00000000L)
 #define WAIT_OBJECT_0 ((STATUS_WAIT_0) + 0)
-
-	//DWORD pid = (DWORD) kernel32_GetCurrentProcessId();
-	//printf("pid=%d\n",pid);
-
 	if (!psapi_EnumProcesses(procList, sizeof(procList), &procCount)) return 0;
 	procCount = procCount / sizeof(DWORD);//
 	char *arg1 = (argc>1) ? argv[1] : 0;
-	 //char name[256];
-   //if (strstr(process_name_in, ".exe")) {
-   //    snprintf (name, sizeof(name), "%s", process_name_in);
-   //} else {
-   //    snprintf (name, sizeof(name), "%s.exe", process_name_in);
-   //}
 	for (DWORD procIdx=0; procIdx<procCount; procIdx++) {
 		HANDLE hProcess = kernel32_OpenProcess(PROCESS_ALL_ACCESS, FALSE, procList[procIdx]);
 		if(hProcess){
@@ -101,14 +91,12 @@ int main(int argc, char **argv, char **envp){
 				if(strcmpi(szProcessName, arg1) == 0) {
 					printf("%d\t[KILL]\t%s\n",procList[procIdx],processName);
 					//DWORD result = WAIT_OBJECT_0;
-					//while(result == WAIT_OBJECT_0)
-					//{
+					//while(result == WAIT_OBJECT_0) {
 					//	result = (DWORD) kernel32_WaitForSingleObject(hProcess, 100);
-						kernel32_TerminateProcess(hProcess, 0);
+					kernel32_TerminateProcess(hProcess, 0);
 					//}
 					continue;
 				}else{
-					//printf("%d\t\t%s\n",procList[procIdx],szProcessName);
 					printf("%d\t\t%s\n",procList[procIdx],processName);
 				}
 			}else{
