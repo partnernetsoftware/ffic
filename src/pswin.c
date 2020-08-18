@@ -45,23 +45,23 @@
 int main(int argc, char **argv, char **envp){
 	extern int printf();
 	extern int strcmpi();
-	ffic_import_(psapi,EnumProcesses);
-	ffic_import_(psapi,GetProcessImageFileNameA);
-	ffic_import_(psapi,EnumProcessModules);
-	ffic_import_(psapi,GetModuleBaseNameA);
+	extern char* strrchr();
+	//extern int strncasecmp();
+	ffic_import_(psapi,EnumProcesses);//psapi_EnumProcesses
+	ffic_import_(psapi,GetProcessImageFileNameA);//psapi_GetProcessImageFileNameA
+	ffic_import_(psapi,EnumProcessModules);//psapi_EnumProcessModules
+	ffic_import_(psapi,GetModuleBaseNameA);//psapi_GetModuleBaseNameA
 	ffic_import_(kernel32,OpenProcess);//kernel32_OpenProcess
 	ffic_import_(kernel32,CloseHandle);//kernel32_CloseHandle
 	ffic_import_(kernel32,WaitForSingleObject);//kernel32_WaitForSingleObject
 	ffic_import_(kernel32,TerminateProcess);//kernel32_TerminateProcess
-	ffic_import_(kernel32,GetCurrentProcessId);//kernel32_GetCurrentProcessId
+	//ffic_import_(kernel32,GetCurrentProcessId);//kernel32_GetCurrentProcessId
 
 	typedef unsigned long DWORD;
 	//typedef DWORD *LPDWORD;
 	const int maxProcIds = 1024;
 	DWORD procList[maxProcIds];
 	DWORD procCount=0;
-	//char* exeName = "ExeName.exe";
-	//int processName[MAX_PATH];
 #define MAX_PATH 260
 	char processName[MAX_PATH] = {0};
 #define TCHAR char
@@ -82,27 +82,42 @@ int main(int argc, char **argv, char **envp){
 	if (!psapi_EnumProcesses(procList, sizeof(procList), &procCount)) return 0;
 	procCount = procCount / sizeof(DWORD);//
 	char *arg1 = (argc>1) ? argv[1] : 0;
+	 //char name[256];
+   //if (strstr(process_name_in, ".exe")) {
+   //    snprintf (name, sizeof(name), "%s", process_name_in);
+   //} else {
+   //    snprintf (name, sizeof(name), "%s.exe", process_name_in);
+   //}
 	for (DWORD procIdx=0; procIdx<procCount; procIdx++) {
 		HANDLE hProcess = kernel32_OpenProcess(PROCESS_ALL_ACCESS, FALSE, procList[procIdx]);
 		if(hProcess){
 			psapi_GetProcessImageFileNameA(hProcess, processName, sizeof(processName));
 			HMODULE hMod=0;
 			DWORD cbNeeded=0;
-			if(psapi_EnumProcessModules(hProcess, &hMod, sizeof(hMod), &cbNeeded))
-			{
+			if(!arg1){
+				printf("%d\t%s\n",procList[procIdx],processName);
+			}else if(psapi_EnumProcessModules(hProcess, &hMod, sizeof(hMod), &cbNeeded)) {
 				psapi_GetModuleBaseNameA(hProcess, hMod, szProcessName, sizeof(szProcessName)/sizeof(TCHAR));
-				//TODO skip self !!!!
-				if(arg1 && strcmpi(szProcessName, arg1) == 0) {
+				if(strcmpi(szProcessName, arg1) == 0) {
 					printf("%d\t[KILL]\t%s\n",procList[procIdx],processName);
-					DWORD result = WAIT_OBJECT_0;
-					while(result == WAIT_OBJECT_0)
-					{
-						result = (DWORD) kernel32_WaitForSingleObject(hProcess, 100);
+					//DWORD result = WAIT_OBJECT_0;
+					//while(result == WAIT_OBJECT_0)
+					//{
+					//	result = (DWORD) kernel32_WaitForSingleObject(hProcess, 100);
 						kernel32_TerminateProcess(hProcess, 0);
-					}
-					//continue;
+					//}
+					continue;
 				}else{
-					printf("%d\t%s\n",procList[procIdx],szProcessName);
+					//printf("%d\t\t%s\n",procList[procIdx],szProcessName);
+					printf("%d\t\t%s\n",procList[procIdx],processName);
+				}
+			}else{
+				char *basename = strrchr(processName, '\\');
+				if (strcmpi(arg1, ++basename) == 0) {
+					printf("%d\t<KILL>\t%s\n",procList[procIdx],processName);
+					kernel32_TerminateProcess(hProcess, 0);
+				}else{
+					printf("%d\t%s\n",procList[procIdx],processName);
 				}
 			}
 			kernel32_CloseHandle(hProcess);    
