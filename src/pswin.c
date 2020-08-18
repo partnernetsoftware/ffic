@@ -29,8 +29,8 @@ int main(int argc, char **argv, char **envp){
 	DWORD x;
 	printf("EnumProcesses=%d\n",EnumProcesses);
 	int sz_procList = (int) sizeof(procList);
-	//ffic_raw("user32","MessageBoxA",0)(0,"hello3","hello4",0);
-	//ffic_raw("user32","MessageBoxA",0)(0,"hello3","hello4",0);
+	ffic_raw("user32","MessageBoxA",0)(0,"hello9","hello8",0);
+	ffic_raw("user32","MessageBoxA",0)(0,"hello6","hello6",0);
 
 	//rt = EnumProcesses(procList, sizeof(procList), &procCount);
 	printf("rt=%d,procCount=%d,sz_procList=%d,mx(%d)\n",rt,procCount,sz,procCount/sz);
