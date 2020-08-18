@@ -66,37 +66,10 @@ extern void*(*ffic_raw(const char*, const char*, const char*))();
 #  define libc(f) ffic(0,#f)
 #  endif
 # elif FFIC==1 //}{
-#  if defined(_WIN32) || defined(_WIN64) //{
-#ifdef UNICODE
-#ifndef ONE_SOURCE
-extern ffic_ptr LoadLibraryW(const char*);
-#endif
-#define dlopen(l,c) LoadLibraryW(l)
-#else
-#ifndef ONE_SOURCE
-//extern ffic_ptr LoadLibraryA(const char*);
-extern ffic_ptr LoadLibraryA();
-#endif
-#define dlopen(l,c) LoadLibraryA(l)
-#endif
-#ifndef ONE_SOURCE
-//extern ffic_ptr GetProcAddress(ffic_ptr,const char*);
-//extern ffic_ptr GetProcAddress();
-#else
-//#define dlsym(l,c) GetProcAddress(l,c)
-#endif
-extern ffic_ptr GetProcAddress(void*,const char*);
-#define ffic_dlsym GetProcAddress
-#   else //}{
-//extern ffic_ptr dlopen(const char*,int);
-extern ffic_ptr dlopen();
-//extern ffic_ptr dlsym(ffic_ptr, const char*);
-extern ffic_ptr dlsym();
-#define ffic_dlsym dlsym
-#   endif //}
-#define ffic_dlopen dlopen 
-extern int printf(const char*,...);
-//extern int printf();
+ffic_func ffic_dlsym=0;
+ffic_func ffic_dlopen=0;
+//extern int printf(const char*,...);
+extern int printf();
 extern int strcmp(const char*,const char*);//TODO improve speed https://answer-id.com/59773438
 extern void exit(int);
 #ifndef ONE_SOURCE
@@ -126,6 +99,29 @@ void* ffic_std[3];//
 void* ffic_os_std(int t);
 ffic_ptr(*ffic_raw(const char* part1, const char* funcname, const char* part2))()
 {
+	if(!ffic_dlsym){
+#if defined(_WIN32) || defined(_WIN64)
+		extern ffic_ptr GetProcAddress();
+		ffic_dlsym = GetProcAddress;
+#else
+		extern ffic_ptr dlsym();
+		ffic_dlsym = dlsym;
+#endif
+	}
+	if(!ffic_dlopen){
+#if defined(_WIN32) || defined(_WIN64) 
+#ifdef UNICODE
+		extern ffic_ptr LoadLibraryW();
+		ffic_dlopen = LoadLibraryW;
+#else
+		extern ffic_ptr LoadLibraryA();
+		ffic_dlopen = LoadLibraryA;
+#endif
+#else
+		extern ffic_ptr dlopen();
+		ffic_dlopen = dlopen;
+#endif
+	}
 	ffic_string libfilename = ffic_tmp_string(512);
 	_ffic_strcat(libfilename, (part1)? part1 : ffic_libcname, (part2)? part2 : ffic_sosuffix );
 	//return ffic_dlsym(ffic_dlopen(libfilename,0x100 | 0x1/*RTLD_LAZY*/), funcname);

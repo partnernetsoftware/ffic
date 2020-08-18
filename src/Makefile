@@ -1,32 +1,32 @@
 #CC=cc
 #CC=gcc
-CC=gcc -O1 -I ../tinycc/
+CC=gcc -O1 -I ../tinyccbinary/
 #CC=tcc
-#CC=../tinycc/x86_64-osx-tcc
-#CC=../tinycc/tcc
+#CC=../tinyccbinary/x86_64-osx-tcc
+#CC=../tinyccbinary/tcc
 tcc:
 	# using current tcc (gcc)
-	cd ../tinycc/ && make clean && sleep 1 && ./configure && make && make libtcc.osx && ./configure --cc=./tcc && make && make cross-x86_64-osx
+	cd ../tinyccbinary/ && make clean && sleep 1 && ./configure && make && make libtcc.osx && ./configure --cc=./tcc && make && make cross-x86_64-osx
 	# when tcc is fixed for .dylib:
-	#cd ../tinycc/ && make clean && sleep 1 && ./configure && make tcc && ./configure --cc=./tcc && make libtcc.osx && make cross-x86_64-osx && make
+	#cd ../tinyccbinary/ && make clean && sleep 1 && ./configure && make tcc && ./configure --cc=./tcc && make libtcc.osx && make cross-x86_64-osx && make
 osx:
-	cp ../tinycc/libtcc.dylib ./
-	cp ../tinycc/x86_64-osx-libtcc1.a ./
+	cp ../tinyccbinary/libtcc.dylib ./
+	cp ../tinyccbinary/x86_64-osx-libtcc1.a ./
 	#git submodule add https://github.com/partnernetsoftware/tinyccbinary.git
 	#git submodule update --init --recursive
 	#cd .. && git submodule init && git submodule update
-	#echo "#define TCC_VERSION \"`head ../tinycc/VERSION`\"" > config.h
+	#echo "#define TCC_VERSION \"`head ../tinyccbinary/VERSION`\"" > config.h
 	#make tcc
-	#cd ../tinycc/ && make clean && ./configure && make && make libtcc.osx && ./configure --cc=./tcc && make && make cross-x86_64-osx
-	#${CC} -E ffic.c -I. -I../tinycc/ | sed 's/^#.*//g' | sed "/^$$/d" > ffic_osx.pp.c
-	../tinycc/tcc -DTCC_TARGET_X86_64 -DTCC_TARGET_MACHO -E ffic.c -I. -I../tinycc/ | sed 's/^#.*//g' | sed "/^$$/d" > ffic_osx.pp.c
+	#cd ../tinyccbinary/ && make clean && ./configure && make && make libtcc.osx && ./configure --cc=./tcc && make && make cross-x86_64-osx
+	#${CC} -E ffic.c -I. -I../tinyccbinary/ | sed 's/^#.*//g' | sed "/^$$/d" > ffic_osx.pp.c
+	../tinyccbinary/tcc -DTCC_TARGET_X86_64 -DTCC_TARGET_MACHO -E ffic.c -I. -I../tinyccbinary/ | sed 's/^#.*//g' | sed "/^$$/d" > ffic_osx.pp.c
 	#${CC} ffic_osx.pp.c -L. -ldl -ltcc -o ffic_osx
 	#${CC} -DCONFIG_TCCDIR="\".\"" -DTCC_LIBTCC1="\"x86_64-osx-libtcc1.a\"" -L. ffic_osx.pp.c -ldl -ltcc -o ffic_osx
-	#../tinycc/tcc -DTCC_TARGET_X86_64 -DTCC_TARGET_MACHO -DCONFIG_TCCDIR="\".\"" -DTCC_LIBTCC1="\"x86_64-osx-libtcc1.a\"" -L. ffic_osx.pp.c -ldl -ltcc -o ffic_osx
-	gcc -O1 -I ../tinycc/ -DTCC_TARGET_X86_64 -DTCC_TARGET_MACHO -DCONFIG_TCCDIR="\".\"" -DTCC_LIBTCC1="\"x86_64-osx-libtcc1.a\"" -L. ffic_osx.pp.c -ldl -ltcc -o ffic_osx
-	#../tinycc/tcc -DTCC_TARGET_X86_64 -DTCC_TARGET_MACHO -DCONFIG_TCCDIR="\".\"" -DTCC_LIBTCC1="\"x86_64-osx-libtcc1.a\"" -L. ffic_osx.pp.c -ldl -ltcc -o ffic_osx
+	#../tinyccbinary/tcc -DTCC_TARGET_X86_64 -DTCC_TARGET_MACHO -DCONFIG_TCCDIR="\".\"" -DTCC_LIBTCC1="\"x86_64-osx-libtcc1.a\"" -L. ffic_osx.pp.c -ldl -ltcc -o ffic_osx
+	gcc -O1 -I ../tinyccbinary/ -DTCC_TARGET_X86_64 -DTCC_TARGET_MACHO -DCONFIG_TCCDIR="\".\"" -DTCC_LIBTCC1="\"x86_64-osx-libtcc1.a\"" -L. ffic_osx.pp.c -ldl -ltcc -o ffic_osx
+	#../tinyccbinary/tcc -DTCC_TARGET_X86_64 -DTCC_TARGET_MACHO -DCONFIG_TCCDIR="\".\"" -DTCC_LIBTCC1="\"x86_64-osx-libtcc1.a\"" -L. ffic_osx.pp.c -ldl -ltcc -o ffic_osx
 	#${CC} -DCONFIG_TCCDIR="\".\"" -DTCC_LIBTCC1="\"x86_64-osx-libtcc1.a\"" -L. -I ../tinycc -DONE_SOURCE=1 ffic.c -o ffic_static_osx
-	../tinycc/tcc -DTCC_TARGET_X86_64 -DTCC_TARGET_MACHO -DCONFIG_TCCDIR="\".\"" -DTCC_LIBTCC1="\"x86_64-osx-libtcc1.a\"" -L. -I ../tinycc -DONE_SOURCE=1 ffic.c -o ffic_static_osx
+	../tinyccbinary/tcc -DTCC_TARGET_X86_64 -DTCC_TARGET_MACHO -DCONFIG_TCCDIR="\".\"" -DTCC_LIBTCC1="\"x86_64-osx-libtcc1.a\"" -L. -I ../tinycc -DONE_SOURCE=1 ffic.c -o ffic_static_osx
 	ls -al ffic*
 	cat tests/42.c | ./ffic_osx
 	./ffic_osx tests/42.c
@@ -34,18 +34,18 @@ osx:
 	./ffic_static_osx tests/42.c
 	./ffic_osx tests/fib.c 5
 lnx:
-	cd ../tinycc/ && make clean && sleep 1 && ./configure && make && make libtcc.so && ./configure --cc=./tcc && make && make cross-x86_64
-	cp ../tinycc/libtcc.so ./
-	cp ../tinycc/x86_64-libtcc1.a ./
+	cd ../tinyccbinary/ && make clean && sleep 1 && ./configure && make && make libtcc.so && ./configure --cc=./tcc && make && make cross-x86_64
+	cp ../tinyccbinary/libtcc.so ./
+	cp ../tinyccbinary/x86_64-libtcc1.a ./
 test:
 	cat tests/42.c | ./ffic
 	./ffic tests/42.c
 	cat tests/42.c | ./ffic_static_osx
 	./ffic_static_osx tests/42.c
 pp:
-	#${CC} -E ffic.c -I. -I../tinycc/ -o ffic.pp.c
-	##${CC} -E ffic.c -I. -I../tinycc/ | sed 's/^#.*//g' > ffic.pp.c
-	${CC} -E ffic.c -I. -I../tinycc/ | sed 's/^#.*//g' | sed "/^$$/d" > ffic.pp.c
+	#${CC} -E ffic.c -I. -I../tinyccbinary/ -o ffic.pp.c
+	##${CC} -E ffic.c -I. -I../tinyccbinary/ | sed 's/^#.*//g' > ffic.pp.c
+	${CC} -E ffic.c -I. -I../tinyccbinary/ | sed 's/^#.*//g' | sed "/^$$/d" > ffic.pp.c
 clean:
 	rm -f *.o
 ##################################################### lab for sao
