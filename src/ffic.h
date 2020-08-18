@@ -7,6 +7,7 @@ typedef long (*ffic_func_l)();
 typedef int (*ffic_func_i)();
 typedef float (*ffic_func_f)();
 #define ffic_import_func(n,t) t(*n)()
+#define ffic_import_(c,n) ffic_func c##_##n = ffic_raw(#c,#n,0)
 typedef char* ffic_string;
 typedef int* ffic_wstring;
 #define ffic_tmp_string(n) (char[n]){0}
@@ -60,8 +61,10 @@ typedef unsigned long long int ffic_u64;
 #endif
 #ifdef FFIC
 # if FFIC==2 //{
-extern void*(*ffic(const char*, const char*))();
-extern void*(*ffic_raw(const char*, const char*, const char*))();
+//extern void*(*ffic(const char*, const char*))();
+extern ffic_func ffic;
+//extern void*(*ffic_raw(const char*, const char*, const char*))();
+extern ffic_func ffic_raw;
 #  ifndef libc
 #  define libc(f) ffic(0,#f)
 #  endif

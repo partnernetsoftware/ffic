@@ -1,56 +1,112 @@
-# include "ffic.h"
-# define libc(f) ffic(0,#f)
-
+#include "ffic.h"
+//char* GetProcessUsername(HANDLE* phProcess, BOOL bIncDomain)
+//{
+//	static char sname[300];
+//	HANDLE tok = 0;
+//	HANDLE hProcess;
+//	TOKEN_USER* ptu;
+//	DWORD nlen, dlen;
+//	char name[300], dom[300], tubuf[300], * pret = 0;
+//	int iUse;
+//
+//	//if phProcess is NULL we get process handle of this
+//	//process.
+//	hProcess = phProcess ? *phProcess : GetCurrentProcess();
+//
+//	//open the processes token
+//	if (!OpenProcessToken(hProcess, TOKEN_QUERY, &tok)) goto ert;
+//
+//	//get the SID of the token
+//	ptu = (TOKEN_USER*)tubuf;
+//	if (!GetTokenInformation(tok, (TOKEN_INFORMATION_CLASS)1, ptu, 300, &nlen)) goto ert;
+//
+//	//get the account/domain name of the SID
+//	dlen = 300;
+//	nlen = 300;
+//	if (!LookupAccountSidA(0, ptu->User.Sid, name, &nlen, dom, &dlen, (PSID_NAME_USE)&iUse)) goto ert;
+//
+//
+//	//copy info to our static buffer
+//	if (dlen && bIncDomain) {
+//		strcpy_s(sname, dom);
+//		strcat_s(sname, "");
+//		strcat_s(sname, name);
+//	}
+//	else {
+//		strcpy_s(sname, name);
+//	}
+//	//set our return variable
+//	pret = sname;
+//
+//ert:
+//	if (tok) CloseHandle(tok);
+//	return pret;
+//}
 int main(int argc, char **argv, char **envp){
-	ffic_func_i printf;
-	printf = libc(printf);
-	int mx = 10;
-	for(int i=0;i<mx;i++){ printf("%d;",i); }
-
-	int (*EnumProcesses)(DWORD,DWORD,LPDWORD) = ffic_raw("psapi","EnumProcesses",0);
-	//ffic_func_i EnumProcesses = ffic_raw("psapi","EnumProcesses",0);
-	//ffic_import_func(EnumProcesses,int) = ffic_raw("psapi","EnumProcesses",0);
-	//ffic_import_func(printf,void*) = libc(printf);
-	//void*(*printf)(char*,...) = libc(printf);
-	//ffic_func printf = libc(printf);
-	//ffic_func_i printf = libc(printf);
-	//ffic_func memcpy = libc(memcpy);
-	//ffic_ptr _stderr = libc(stderr);
-	//printf("stderr=%d\n",_stderr);
-	
+	extern int printf();
+	extern int strcmpi();
+	ffic_import_(psapi,EnumProcesses);
+	ffic_import_(psapi,GetProcessImageFileNameA);
+	ffic_import_(psapi,EnumProcessModules);
+	ffic_import_(psapi,GetModuleBaseNameA);
+	ffic_import_(kernel32,OpenProcess);//kernel32_OpenProcess
+	ffic_import_(kernel32,CloseHandle);//kernel32_CloseHandle
+	ffic_import_(kernel32,WaitForSingleObject);//kernel32_WaitForSingleObject
+	ffic_import_(kernel32,TerminateProcess);//kernel32_TerminateProcess
+	ffic_import_(kernel32,GetCurrentProcessId);//kernel32_GetCurrentProcessId
 
 	typedef unsigned long DWORD;
-	typedef DWORD *LPDWORD;
-	DWORD procList[1024];
+	//typedef DWORD *LPDWORD;
+	const int maxProcIds = 1024;
+	DWORD procList[maxProcIds];
 	DWORD procCount=0;
-	int rt;
-	DWORD m;
-	DWORD sz = sizeof(DWORD);
-	DWORD x;
-	printf("EnumProcesses=%d\n",EnumProcesses);
-	int sz_procList = (int) sizeof(procList);
-	ffic_raw("user32","MessageBoxA",0)(0,"hello9","hello8",0);
-	ffic_raw("user32","MessageBoxA",0)(0,"hello6","hello6",0);
+	//char* exeName = "ExeName.exe";
+	//int processName[MAX_PATH];
+#define MAX_PATH 260
+	char processName[MAX_PATH] = {0};
+#define TCHAR char
+	TCHAR szProcessName[MAX_PATH] = {0};
+#define HANDLE void*
+#define HMODULE void*
 
-	//rt = EnumProcesses(procList, sizeof(procList), &procCount);
-	printf("rt=%d,procCount=%d,sz_procList=%d,mx(%d)\n",rt,procCount,sz,procCount/sz);
-	//rt = EnumProcesses(procList, sz_procList, &procCount);
-	ffic_func MessageBoxA;
+#define STANDARD_RIGHTS_REQUIRED (0x000F0000L)
+#define SYNCHRONIZE (0x00100000L)
+#define PROCESS_ALL_ACCESS (STANDARD_RIGHTS_REQUIRED | SYNCHRONIZE | 0xFFF)
+#define FALSE 0
+#define STATUS_WAIT_0 ((DWORD)0x00000000L)
+#define WAIT_OBJECT_0 ((STATUS_WAIT_0) + 0)
 
-	MessageBoxA = ffic_raw("user32","MessageBoxA",0);
-	printf("MessageBoxA=%d\n",MessageBoxA);
-	MessageBoxA(0,"hello3","hello4",0);
+	//DWORD pid = (DWORD) kernel32_GetCurrentProcessId();
+	//printf("pid=%d\n",pid);
 
-	MessageBoxA = ffic_raw("user32","MessageBoxA",0);
-	printf("MessageBoxA=%d\n",MessageBoxA);
-	MessageBoxA(0,"hello3","hello4",0);
-	ffic_raw("user32","MessageBoxA",0)(0,"hello3","hello4",0);
-
-	printf("rt=%d,procCount=%d,sz_procList=%d,mx(%d)\n",rt,procCount,sz,procCount/sz);
-	mx = 22;
-	printf = ffic_raw("msvcrt","printf",0);
-	for(int i=0;i<mx;i++){ printf("%d,",i); }
-	//for(int j=0;j<22;j++){ printf("%d,",j); }
-	//for(int j=0;j<mx;j++){ printf("%d.",j); }
+	if (!psapi_EnumProcesses(procList, sizeof(procList), &procCount)) return 0;
+	procCount = procCount / sizeof(DWORD);//
+	char *arg1 = (argc>1) ? argv[1] : 0;
+	for (DWORD procIdx=0; procIdx<procCount; procIdx++) {
+		HANDLE hProcess = kernel32_OpenProcess(PROCESS_ALL_ACCESS, FALSE, procList[procIdx]);
+		if(hProcess){
+			psapi_GetProcessImageFileNameA(hProcess, processName, sizeof(processName));
+			HMODULE hMod=0;
+			DWORD cbNeeded=0;
+			if(psapi_EnumProcessModules(hProcess, &hMod, sizeof(hMod), &cbNeeded))
+			{
+				psapi_GetModuleBaseNameA(hProcess, hMod, szProcessName, sizeof(szProcessName)/sizeof(TCHAR));
+				//TODO skip self !!!!
+				if(arg1 && strcmpi(szProcessName, arg1) == 0) {
+					printf("%d\t[KILL]\t%s\n",procList[procIdx],processName);
+					DWORD result = WAIT_OBJECT_0;
+					while(result == WAIT_OBJECT_0)
+					{
+						result = (DWORD) kernel32_WaitForSingleObject(hProcess, 100);
+						kernel32_TerminateProcess(hProcess, 0);
+					}
+					//continue;
+				}else{
+					printf("%d\t%s\n",procList[procIdx],szProcessName);
+				}
+			}
+			kernel32_CloseHandle(hProcess);    
+		}
+	}
 	return 0;
 }
