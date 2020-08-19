@@ -1,9 +1,59 @@
 #include "ffic.h"
+//char* GetProcessUsername(HANDLE* phProcess, BOOL bIncDomain)
+//{
+//	static char sname[300];
+//	HANDLE tok = 0;
+//	HANDLE hProcess;
+//	TOKEN_USER* ptu;
+//	DWORD nlen, dlen;
+//	char name[300], dom[300], tubuf[300], * pret = 0;
+//	int iUse;
+//
+//	//if phProcess is NULL we get process handle of this
+//	//process.
+//	hProcess = phProcess ? *phProcess : GetCurrentProcess();
+//
+//	//open the processes token
+//	if (!OpenProcessToken(hProcess, TOKEN_QUERY, &tok)) goto ert;
+//
+//	//get the SID of the token
+//	ptu = (TOKEN_USER*)tubuf;
+//	if (!GetTokenInformation(tok, (TOKEN_INFORMATION_CLASS)1, ptu, 300, &nlen)) goto ert;
+//
+//	//get the account/domain name of the SID
+//	dlen = 300;
+//	nlen = 300;
+//	if (!LookupAccountSidA(0, ptu->User.Sid, name, &nlen, dom, &dlen, (PSID_NAME_USE)&iUse)) goto ert;
+//
+//
+//	//copy info to our static buffer
+//	if (dlen && bIncDomain) {
+//		strcpy_s(sname, dom);
+//		strcat_s(sname, "");
+//		strcat_s(sname, name);
+//	}
+//	else {
+//		strcpy_s(sname, name);
+//	}
+//	//set our return variable
+//	pret = sname;
+//
+//ert:
+//	if (tok) CloseHandle(tok);
+//	return pret;
+//}
 int main(int argc, char **argv, char **envp){
 	extern int printf();
 	extern int strcmpi();
 	extern char* strrchr();
-#define ffic_import_my ffic_import_
+
+//	//typedef int(__attribute__((__stdcall__)) *ffic_api)();
+//	typedef void*(__attribute__((__stdcall__)) *ffic_api)();
+//#define ffic_import_my(c,n) ffic_api c##_##n = (ffic_api) ffic_raw(#c,#n,0)
+
+#define ffic_import_my(c,n) ffic_func c##_##n = (ffic_func) ffic_raw(#c,#n,0)
+	
+	//extern int strncasecmp();
 	ffic_import_my(psapi,EnumProcesses);//psapi_EnumProcesses
 	ffic_import_my(psapi,GetProcessImageFileNameA);//psapi_GetProcessImageFileNameA
 	ffic_import_my(psapi,EnumProcessModules);//psapi_EnumProcessModules
@@ -12,6 +62,7 @@ int main(int argc, char **argv, char **envp){
 	ffic_import_my(kernel32,CloseHandle);//kernel32_CloseHandle
 	ffic_import_my(kernel32,WaitForSingleObject);//kernel32_WaitForSingleObject
 	ffic_import_my(kernel32,TerminateProcess);//kernel32_TerminateProcess
+	//ffic_import_my(kernel32,GetCurrentProcessId);//kernel32_GetCurrentProcessId
 
 	typedef unsigned long DWORD;
 	//typedef DWORD *LPDWORD;
@@ -46,7 +97,11 @@ int main(int argc, char **argv, char **envp){
 				psapi_GetModuleBaseNameA(hProcess, hMod, szProcessName, sizeof(szProcessName)/sizeof(TCHAR));
 				if(strcmpi(szProcessName, arg1) == 0) {
 					printf("%d\t[KILL]\t%s\n",procList[procIdx],processName);
+					//DWORD result = WAIT_OBJECT_0;
+					//while(result == WAIT_OBJECT_0) {
+					//	result = (DWORD) kernel32_WaitForSingleObject(hProcess, 100);
 					kernel32_TerminateProcess(hProcess, 0);
+					//}
 					continue;
 				}else{
 					printf("%d\t\t%s\n",procList[procIdx],processName);
