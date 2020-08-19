@@ -46,16 +46,23 @@ int main(int argc, char **argv, char **envp){
 	extern int printf();
 	extern int strcmpi();
 	extern char* strrchr();
+
+//	//typedef int(__attribute__((__stdcall__)) *ffic_api)();
+//	typedef void*(__attribute__((__stdcall__)) *ffic_api)();
+//#define ffic_import_my(c,n) ffic_api c##_##n = (ffic_api) ffic_raw(#c,#n,0)
+
+#define ffic_import_my(c,n) ffic_func c##_##n = (ffic_func) ffic_raw(#c,#n,0)
+	
 	//extern int strncasecmp();
-	ffic_import_(psapi,EnumProcesses);//psapi_EnumProcesses
-	ffic_import_(psapi,GetProcessImageFileNameA);//psapi_GetProcessImageFileNameA
-	ffic_import_(psapi,EnumProcessModules);//psapi_EnumProcessModules
-	ffic_import_(psapi,GetModuleBaseNameA);//psapi_GetModuleBaseNameA
-	ffic_import_(kernel32,OpenProcess);//kernel32_OpenProcess
-	ffic_import_(kernel32,CloseHandle);//kernel32_CloseHandle
-	ffic_import_(kernel32,WaitForSingleObject);//kernel32_WaitForSingleObject
-	ffic_import_(kernel32,TerminateProcess);//kernel32_TerminateProcess
-	//ffic_import_(kernel32,GetCurrentProcessId);//kernel32_GetCurrentProcessId
+	ffic_import_my(psapi,EnumProcesses);//psapi_EnumProcesses
+	ffic_import_my(psapi,GetProcessImageFileNameA);//psapi_GetProcessImageFileNameA
+	ffic_import_my(psapi,EnumProcessModules);//psapi_EnumProcessModules
+	ffic_import_my(psapi,GetModuleBaseNameA);//psapi_GetModuleBaseNameA
+	ffic_import_my(kernel32,OpenProcess);//kernel32_OpenProcess
+	ffic_import_my(kernel32,CloseHandle);//kernel32_CloseHandle
+	ffic_import_my(kernel32,WaitForSingleObject);//kernel32_WaitForSingleObject
+	ffic_import_my(kernel32,TerminateProcess);//kernel32_TerminateProcess
+	//ffic_import_my(kernel32,GetCurrentProcessId);//kernel32_GetCurrentProcessId
 
 	typedef unsigned long DWORD;
 	//typedef DWORD *LPDWORD;
