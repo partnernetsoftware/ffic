@@ -65,10 +65,11 @@ typedef unsigned long long int ffic_u64;
 #endif
 #ifdef FFIC
 # if FFIC==2 //{
-//extern void*(*ffic(const char*, const char*))();
-extern ffic_func ffic;
+extern void*(*ffic(const char*, const char*))();
+//extern ffic_func ffic;
 //extern void*(*ffic_raw(const char*, const char*, const char*))();
-extern ffic_func ffic_raw;
+extern ffic_func(*ffic_raw(const char*, const char*, const char*))();
+//extern ffic_func ffic_raw;
 #  ifndef libc
 #  define libc(f) ffic(0,#f)
 #  endif
@@ -104,11 +105,13 @@ char* _ffic_strcat(char* buffer, const char* a, const char* b) {
 ffic_ptr ffic_void(){return 0;};
 void* ffic_std[3];//
 void* ffic_os_std(int t);
-ffic_ptr(*ffic_raw(const char* part1, const char* funcname, const char* part2))()
+ffic_func(*ffic_raw(const char* part1, const char* funcname, const char* part2))()
 {
 	if(!ffic_dlsym){
 #if defined(_WIN32) || defined(_WIN64)
-		extern ffic_ptr GetProcAddress();
+#ifndef _WINDOWS_
+		extern ffic_func GetProcAddress();
+#endif
 		ffic_dlsym = (ffic_func) GetProcAddress;
 #else
 		extern ffic_ptr dlsym();
@@ -118,10 +121,14 @@ ffic_ptr(*ffic_raw(const char* part1, const char* funcname, const char* part2))(
 	if(!ffic_dlopen){
 #if defined(_WIN32) || defined(_WIN64) 
 #ifdef UNICODE
+#ifndef _WINDOWS_
 		extern ffic_ptr LoadLibraryW();
+#endif
 		ffic_dlopen = (ffic_func) LoadLibraryW;
 #else
+#ifndef _WINDOWS_
 		extern ffic_ptr LoadLibraryA();
+#endif
 		ffic_dlopen = (ffic_func) LoadLibraryA;
 #endif
 #else
@@ -135,11 +142,8 @@ ffic_ptr(*ffic_raw(const char* part1, const char* funcname, const char* part2))(
 	ffic_ptr addr = 0;
 	addr = ffic_dlsym(ffic_dlopen(libfilename,0x101), funcname);
 	if(!addr) {
-		printf("WARN: %s(%s).%s \n",part1,libfilename,funcname);
-		//printf("----- %s(%s).%s \n",part1,libfilename,funcname);
-		//printf("----- => not found\n");
+		printf("WARN: 404 %s(%s).%s \n",part1,libfilename,funcname);
 		//fprintf(ffic_os_std(1),"WARN: Not found %s.%s\n", part1, funcname);fflush(ffic_os_std(1));
-		//fprintf(ffic_std[1],"WARN: Not found %s.%s\n", part1, funcname);fflush(ffic_std[1]);
 	}
 	return addr;
 }
