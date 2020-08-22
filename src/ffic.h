@@ -103,9 +103,7 @@ char* _ffic_strcat(char* buffer, const char* a, const char* b) {
  return buffer;
 }
 ffic_ptr ffic_void(){return 0;};
-void* ffic_std[3];//
-void* ffic_os_std(int t);
-ffic_func(*ffic_raw(const char* part1, const char* funcname, const char* part2))()
+ffic_func(*ffic_core(const char *libfilename,const char* funcname))()
 {
 	if(!ffic_dlsym){
 #if defined(_WIN32) || defined(_WIN64)
@@ -136,17 +134,19 @@ ffic_func(*ffic_raw(const char* part1, const char* funcname, const char* part2))
 		ffic_dlopen = dlopen;
 #endif
 	}
+	return ffic_dlsym(ffic_dlopen(libfilename,0x100 | 0x1/*RTLD_LAZY*/), funcname);
+}
+ffic_func(*ffic_raw(const char* part1, const char* funcname, const char* part2))()
+{
 	ffic_string libfilename = ffic_tmp_string(512);
 	_ffic_strcat(libfilename, (part1)? part1 : ffic_libcname, (part2)? part2 : ffic_sosuffix );
-	//return ffic_dlsym(ffic_dlopen(libfilename,0x100 | 0x1/*RTLD_LAZY*/), funcname);
-	ffic_ptr addr = 0;
-	addr = ffic_dlsym(ffic_dlopen(libfilename,0x101), funcname);
+	ffic_ptr addr = ffic_core(libfilename,funcname);
 	if(!addr) {
 		printf("WARN: 404 %s(%s).%s \n",part1,libfilename,funcname);
-		//fprintf(ffic_os_std(1),"WARN: Not found %s.%s\n", part1, funcname);fflush(ffic_os_std(1));
 	}
 	return addr;
 }
+void* ffic_std[3];//
 void* ffic_os_std(int t){
 	if(ffic_std[t]) return ffic_std[t];
 	ffic_std[t] = ffic_raw(0,(ffic_os==ffic_os_win)?"_fdopen":"fdopen",0)(ffic_raw(0,(ffic_os==ffic_os_win)?"_dup":"dup",0)(t),(t==0)?"r":"w");
