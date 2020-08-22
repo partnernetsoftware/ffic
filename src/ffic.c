@@ -40,11 +40,14 @@ int main(int argc, char **argv, char **envp){
 	tcc(tcc_set_options)(tcc_ptr, "-DTCC_TARGET_I386");
 #endif
 
-	if(0==tcc(tcc_get_symbol)(tcc_ptr, "ffic"))
-		tcc(tcc_add_symbol)(tcc_ptr, "ffic", ffic);
+	if(0==tcc(tcc_get_symbol)(tcc_ptr, "ffic_core"))
+		tcc(tcc_add_symbol)(tcc_ptr, "ffic_core", ffic_core);
 
 	if(0==tcc(tcc_get_symbol)(tcc_ptr, "ffic_raw"))
 		tcc(tcc_add_symbol)(tcc_ptr, "ffic_raw", ffic_raw);
+
+	if(0==tcc(tcc_get_symbol)(tcc_ptr, "ffic"))
+		tcc(tcc_add_symbol)(tcc_ptr, "ffic", ffic);
 
 	tcc(tcc_add_file)(tcc_ptr,(argc>1) ? argv[1] : "-");
 
