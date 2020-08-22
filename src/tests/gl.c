@@ -32,6 +32,82 @@ int main(){
 	import(opengl32,glGetString);//
 	dump_d(glGetString);
 
+	typedef unsigned int WORD;
+	typedef unsigned long DWORD;
+	typedef unsigned char BYTE;
+typedef struct {
+	WORD nSize;
+	WORD nVersion;
+	DWORD dwFlags;
+	BYTE iPixelType;
+
+	BYTE cColorBits;
+
+	BYTE cRedBits;
+	BYTE cRedShift;
+	BYTE cGreenBits;
+	BYTE cGreenShift;
+	BYTE cBlueBits;
+	BYTE cBlueShift;
+
+	BYTE cAlphaBits;
+	BYTE cAlphaShift;
+	BYTE cAccumBits;
+	BYTE cAccumRedBits;
+	BYTE cAccumGreenBits;
+	BYTE cAccumBlueBits;
+	BYTE cAccumAlphaBits;
+
+	BYTE cDepthBits;
+
+	BYTE cStencilBits;
+	BYTE cAuxBuffers;
+
+	BYTE iLayerType;
+
+	BYTE bReserved;
+
+	DWORD dwLayerMask;
+	DWORD dwVisibleMask;
+	DWORD dwDamageMask;
+} PIXELFORMATDESCRIPTOR, * PPIXELFORMATDESCRIPTOR, *LPPIXELFORMATDESCRIPTOR;
+
+#define PFD_SUPPORT_OPENGL 32
+#define PFD_DRAW_TO_WINDOW 4
+#define PFD_DOUBLEBUFFER 1
+#define PFD_MAIN_PLANE 0
+#define PFD_TYPE_RGBA 0
+PIXELFORMATDESCRIPTOR pfd = {
+	sizeof(PIXELFORMATDESCRIPTOR),
+	1,//nVersion
+	PFD_SUPPORT_OPENGL | PFD_DRAW_TO_WINDOW | PFD_DOUBLEBUFFER,
+	PFD_TYPE_RGBA,
+	16,
+	0,0,0,0,0,0,
+	0,
+	0,
+	0,
+	0,0,0,0,
+	16,
+	0,
+	0,
+	PFD_MAIN_PLANE,
+	0,
+	0,0,0,
+};
+
+//import(opengl32,wglChoosePixelFormat);
+//int pixelFormat = wglChoosePixelFormat(hdc, &pfd);
+//dump_d(pixelFormat);
+//import(opengl32,wglSetPixelFormat);
+//dump_d(wglSetPixelFormat(hdc, pixelFormat, &pfd));
+
+	import(gdi32,ChoosePixelFormat);//
+	int pixelFormat = ChoosePixelFormat(hdc, &pfd);
+	dump_d(pixelFormat);
+	import(gdi32,SetPixelFormat);//
+	dump_d(SetPixelFormat(hdc, pixelFormat, &pfd));
+
 	import(opengl32,wglCreateContext);//
 	dump_d(wglCreateContext);
 	void* hdgl = wglCreateContext(hdc);
