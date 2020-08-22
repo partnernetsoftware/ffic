@@ -49,6 +49,10 @@ int main(int argc, char **argv, char **envp){
 	if(0==tcc(tcc_get_symbol)(tcc_ptr, "ffic"))
 		tcc(tcc_add_symbol)(tcc_ptr, "ffic", ffic);
 
+	//TODO compile
+	//if(0==tcc(tcc_get_symbol)(tcc_ptr, "ffic_compile"))
+	//	tcc(tcc_add_symbol)(tcc_ptr, "ffic_compile", tcc(tcc_compile_string));
+
 	tcc(tcc_add_file)(tcc_ptr,(argc>1) ? argv[1] : "-");
 
 	if (tcc(tcc_relocate)(tcc_ptr, (void*)1/*TCC_RELOCATE_AUTO*/) < 0) return 2;

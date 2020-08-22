@@ -6,6 +6,7 @@ extern ffic_func (*ffic_raw())();
 
 #define import(c,m) ffic_func m = ffic_raw(#c,#m,0)
 #define dump_d(x) printf("%s=%d\n", #x, x)
+#define dump_ld(x) printf("%s=%ld\n", #x, x)
 #define dump_s(x) printf("%s=%s\n", #x, x)
 
 int main(){
@@ -27,8 +28,8 @@ int main(){
 	dump_d(GetDesktopWindow);
 	import(user32,GetDC);//
 	dump_d(GetDC);
-	void* hdc = GetDC(GetDesktopWindow());//
-	dump_d(hdc);
+	long hdc = (long) GetDC(GetDesktopWindow());//
+	dump_ld(hdc);
 	import(opengl32,glGetString);//
 	dump_d(glGetString);
 
@@ -103,14 +104,14 @@ PIXELFORMATDESCRIPTOR pfd = {
 //dump_d(wglSetPixelFormat(hdc, pixelFormat, &pfd));
 
 	import(gdi32,ChoosePixelFormat);//
-	int pixelFormat = ChoosePixelFormat(hdc, &pfd);
+	int pixelFormat = (int) ChoosePixelFormat(hdc, &pfd);
 	dump_d(pixelFormat);
 	import(gdi32,SetPixelFormat);//
 	dump_d(SetPixelFormat(hdc, pixelFormat, &pfd));
 
 	import(opengl32,wglCreateContext);//
 	dump_d(wglCreateContext);
-	void* hdgl = wglCreateContext(hdc);
+	long hdgl = (long) wglCreateContext(hdc);
 	dump_d(hdgl);
 	import(opengl32,wglMakeCurrent);//opengl32,wglMakeCurrent
 	dump_d(wglMakeCurrent);
@@ -125,6 +126,33 @@ PIXELFORMATDESCRIPTOR pfd = {
 	char* s_GL_VERSION = glGetString(GL_VERSION);
 	//printf("s_GL_VERSION = %s\n",s_GL_VERSION);
 	dump_s(s_GL_VERSION);
+
+	import(opengl32,glClear);
+#define GL_COLOR_BUFFER_BIT 0x00004000
+#define GL_DEPTH_BUFFER_BIT 0x00000100
+#define GL_COLOR 0x1800
+	//glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glClear(GL_COLOR_BUFFER_BIT );
+	import(opengl32,glBegin);
+	import(opengl32,glColor3f);
+	import(opengl32,glVertex3f);
+	import(opengl32,glEnd);
+	import(opengl32,glFlush);
+#define GL_POLYGON 0x0009
+	glBegin(GL_POLYGON);
+	glColor3f(1,0,0);glVertex3f(-0.6,0.75,0.5);
+	glColor3f(0,1,0);glVertex3f(0.6,-0.75,0);
+	glColor3f(0,0,1);glVertex3f(0,0.75,0);
+	glEnd();
+	glFlush();
+
+//	typedef float GLfloat;
+//	static const GLfloat red[] = {1.0f, 0.0f, 0.0f, 1.1f };
+//	import(opengl32,glClearBufferfv);
+//	glClearBufferfv(GL_COLOR,0,red);
+
+	dump_s(s_GL_VERSION);
+	
 	return 0;
 }
 
