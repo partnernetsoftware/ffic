@@ -151,7 +151,14 @@ PIXELFORMATDESCRIPTOR pfd = {
 //	import(opengl32,glClearBufferfv);
 //	glClearBufferfv(GL_COLOR,0,red);
 
-	dump_s(s_GL_VERSION);
+	char* s_GL_RENDERER = glGetString(GL_RENDERER);
+	dump_s(s_GL_RENDERER);
+
+	char* s_GL_VENDOR = glGetString(GL_VENDOR);
+	dump_s(s_GL_VENDOR);
+
+	char* s_GL_EXTENSIONS = glGetString(GL_EXTENSIONS);
+	dump_s(s_GL_EXTENSIONS);
 	
 	return 0;
 }
