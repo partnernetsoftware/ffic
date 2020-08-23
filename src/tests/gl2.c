@@ -9,117 +9,8 @@ extern ffic_func (*ffic_raw())();
 #define dump_ld(x) printf("%s=%ld\n", #x, x)
 #define dump_s(x) printf("%s=%s\n", #x, x)
 
-typedef unsigned int UINT;
-int WndProc(ffic_ptr hwnd, UINT msg, ffic_ptr wparam, ffic_ptr lparam)
-{
-	return 0;
-}
 int main(){
 	
-	ffic_func printf = ffic(0,"printf");
-
-	import(kernel32,GetModuleHandleA);
-	dump_d(GetModuleHandleA);
-	void* inst = GetModuleHandleA(0);
-	dump_d(inst);
-
-#define CreateDialogA(hInstance,lpName,hWndParent,lpDialogFunc) CreateDialogParamA(hInstance,lpName,hWndParent,lpDialogFunc,0L)
-	
-	import(user32,CreateDialogParamA);
-	dump_d(CreateDialogParamA);
-
-	dump_d(CreateDialogA(inst,"NAME",0,0));
-
-	return 0;
-
-#define	WNDPROC ffic_func
-#define HINSTANCE ffic_ptr
-#define HICON ffic_ptr
-#define HCURSOR ffic_ptr
-#define HBRUSH ffic_ptr
-#define LPCSTR char*
-
-  typedef struct tagWNDCLASSA {
-    UINT style;
-    WNDPROC lpfnWndProc;
-    int cbClsExtra;
-    int cbWndExtra;
-    HINSTANCE hInstance;
-    HICON hIcon;
-    HCURSOR hCursor;
-    HBRUSH hbrBackground;
-    LPCSTR lpszMenuName;
-    LPCSTR lpszClassName;
-  } WNDCLASSA,*PWNDCLASSA,*NPWNDCLASSA,*LPWNDCLASSA;
-
-//    wc.hInstance     = hInstance;
-//    wc.lpszClassName = szAppName;
-//    wc.lpfnWndProc   = (WNDPROC)WndProc;
-//    wc.style         = CS_DBLCLKS|CS_VREDRAW|CS_HREDRAW;
-//    wc.hbrBackground = (HBRUSH)GetStockObject(BLACK_BRUSH);
-//    wc.hIcon         = LoadIcon(NULL, IDI_APPLICATION);
-//    wc.hCursor       = LoadCursor(NULL, IDC_ARROW);
-	
-	WNDCLASSA wc = {0};
-	wc.hInstance = inst;
-	wc.lpfnWndProc = (ffic_func) WndProc;
-	wc.lpszClassName = "testwin";
-	
-	import(user32,RegisterClassA);
-	dump_d(RegisterClassA);
-	dump_d(RegisterClassA(&wc));
-
-	import(user32,CreateWindowExA);
-	dump_d(CreateWindowExA);
-
-#define WS_OVERLAPPED 0x00000000L
-#define WS_POPUP 0x80000000L
-#define WS_CHILD 0x40000000L
-#define WS_MINIMIZE 0x20000000L
-#define WS_VISIBLE 0x10000000L
-#define WS_DISABLED 0x08000000L
-#define WS_CLIPSIBLINGS 0x04000000L
-#define WS_CLIPCHILDREN 0x02000000L
-#define WS_MAXIMIZE 0x01000000L
-#define WS_CAPTION 0x00C00000L
-#define WS_BORDER 0x00800000L
-#define WS_DLGFRAME 0x00400000L
-#define WS_VSCROLL 0x00200000L
-#define WS_HSCROLL 0x00100000L
-#define WS_SYSMENU 0x00080000L
-#define WS_THICKFRAME 0x00040000L
-#define WS_GROUP 0x00020000L
-#define WS_TABSTOP 0x00010000L
-#define WS_MINIMIZEBOX 0x00020000L
-#define WS_MAXIMIZEBOX 0x00010000L
-#define WS_TILED WS_OVERLAPPED
-#define WS_ICONIC WS_MINIMIZE
-#define WS_SIZEBOX WS_THICKFRAME
-#define WS_TILEDWINDOW WS_OVERLAPPEDWINDOW
-#define WS_OVERLAPPEDWINDOW (WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME | WS_MINIMIZEBOX | WS_MAXIMIZEBOX)
-#define WS_POPUPWINDOW (WS_POPUP | WS_BORDER | WS_SYSMENU)
-#define WS_CHILDWINDOW (WS_CHILD)
-	
-#define CW_USEDEFAULT ((int)0x80000000)
-	
-#define CreateWindowA(lpClassName,lpWindowName,dwStyle,x,y,nWidth,nHeight,hWndParent,hMenu,hInstance,lpParam) CreateWindowExA(0L,lpClassName,lpWindowName,dwStyle,x,y,nWidth,nHeight,hWndParent,hMenu,hInstance,lpParam)
-	
-	void* hwnd = CreateWindowA(
-			wc.lpszClassName,
-			"title",
-			WS_OVERLAPPEDWINDOW|WS_VISIBLE,
-			0,
-			0,
-			360,
-			240,
-			0,0,
-			inst,
-			0
-			);
-	dump_d(hwnd);
-	//while(1)printf(".");
-	return 0;
-
 //	ffic_func MessageBoxA = (ffic_func) ffic_raw("user32","MessageBoxA",0);
 //	MessageBoxA(0,"hello6","hello5",0);
 //	MessageBoxA = ffic_raw("user32","MessageBoxA",0);
@@ -127,6 +18,7 @@ int main(){
 //	//libc(printf)("okok\n");
 //	//libc(fprintf)(libc(stderr),"ffi_fprintf(libc(stderr))");
 
+	ffic_func printf = ffic(0,"printf");
 
 //	import(opengl32,glfwInit)
 //	ffic_func opengl32_glfwInit = ffic_raw("opengl32","glfwInit",0);
