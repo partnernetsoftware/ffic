@@ -9,28 +9,45 @@ extern ffic_func (*ffic_raw())();
 #define dump_ld(x) printf("%s=%ld\n", #x, x)
 #define dump_s(x) printf("%s=%s\n", #x, x)
 
+ffic_func DefWindowProc;
+ffic_func _printf;
+
 typedef unsigned int UINT;
 int WndProc(ffic_ptr hwnd, UINT msg, ffic_ptr wparam, ffic_ptr lparam)
 {
-	return 0;
+	_printf("msg=%d\n",msg);
+	switch(msg){
+		case 512:
+		case 160:
+			return 0;
+	}
+	return DefWindowProc(hwnd,msg,wparam,lparam);
 }
 int main(){
 	
 	ffic_func printf = ffic(0,"printf");
+	_printf = printf;
 
 	import(kernel32,GetModuleHandleA);
 	dump_d(GetModuleHandleA);
 	void* inst = GetModuleHandleA(0);
 	dump_d(inst);
 
-#define CreateDialogA(hInstance,lpName,hWndParent,lpDialogFunc) CreateDialogParamA(hInstance,lpName,hWndParent,lpDialogFunc,0L)
-	
-	import(user32,CreateDialogParamA);
-	dump_d(CreateDialogParamA);
+	import(user32,DefWindowProcA);
+	dump_d(DefWindowProcA);
+	DefWindowProc = DefWindowProcA;
 
-	dump_d(CreateDialogA(inst,"NAME",0,0));
+	import(user32,GetMessageA);
+	dump_d(GetMessageA);
+	import(user32,TranslateMessage);
+	dump_d(TranslateMessage);
+	import(user32,DispatchMessageA);
+	dump_d(DispatchMessageA);
 
-	return 0;
+//#define CreateDialogA(hInstance,lpName,hWndParent,lpDialogFunc) CreateDialogParamA(hInstance,lpName,hWndParent,lpDialogFunc,0L)
+//	import(user32,CreateDialogParamA);
+//	dump_d(CreateDialogParamA);
+//	dump_d(CreateDialogA(inst,"NAME",0,0));
 
 #define	WNDPROC ffic_func
 #define HINSTANCE ffic_ptr
@@ -63,6 +80,7 @@ int main(){
 	WNDCLASSA wc = {0};
 	wc.hInstance = inst;
 	wc.lpfnWndProc = (ffic_func) WndProc;
+	//wc.lpfnWndProc = (ffic_func) DefWindowProcA;
 	wc.lpszClassName = "testwin";
 	
 	import(user32,RegisterClassA);
@@ -104,6 +122,23 @@ int main(){
 	
 #define CreateWindowA(lpClassName,lpWindowName,dwStyle,x,y,nWidth,nHeight,hWndParent,hMenu,hInstance,lpParam) CreateWindowExA(0L,lpClassName,lpWindowName,dwStyle,x,y,nWidth,nHeight,hWndParent,hMenu,hInstance,lpParam)
 	
+	typedef unsigned int WORD;
+	typedef unsigned long DWORD;
+	typedef unsigned char BYTE;
+	
+#define HWND ffic_ptr
+#define POINT ffic_ptr
+#define WPARAM ffic_ptr
+#define LPARAM ffic_ptr
+  typedef struct tagMSG {
+    HWND hwnd;
+    UINT message;
+    WPARAM wParam;
+    LPARAM lParam;
+    DWORD time;
+    POINT pt;
+  } MSG,*PMSG,*NPMSG,*LPMSG;
+	
 	void* hwnd = CreateWindowA(
 			wc.lpszClassName,
 			"title",
@@ -117,7 +152,14 @@ int main(){
 			0
 			);
 	dump_d(hwnd);
-	//while(1)printf(".");
+	MSG msg;
+	while(1){
+		while(GetMessageA(&msg,hwnd)){
+			TranslateMessage(&msg);
+			DispatchMessageA(&msg);
+			printf(".");
+		}
+	}
 	return 0;
 
 //	ffic_func MessageBoxA = (ffic_func) ffic_raw("user32","MessageBoxA",0);
@@ -141,9 +183,6 @@ int main(){
 	import(opengl32,glGetString);//
 	dump_d(glGetString);
 
-	typedef unsigned int WORD;
-	typedef unsigned long DWORD;
-	typedef unsigned char BYTE;
 typedef struct {
 	WORD nSize;
 	WORD nVersion;
