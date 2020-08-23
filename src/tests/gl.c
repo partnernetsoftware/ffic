@@ -13,14 +13,44 @@ ffic_func DefWindowProc;
 ffic_func _printf;
 
 typedef unsigned int UINT;
+#define HDC ffic_ptr
+#define WINBOOL char
+#define RECT ffic_ptr
+typedef unsigned int WORD;
+typedef unsigned long DWORD;
+typedef unsigned char BYTE;
+
 int WndProc(ffic_ptr hwnd, UINT msg, ffic_ptr wparam, ffic_ptr lparam)
 {
-	_printf("msg=%d\n",msg);
+  typedef struct tagPAINTSTRUCT {
+    HDC hdc;
+    WINBOOL fErase;
+    RECT rcPaint;
+    WINBOOL fRestore;
+    WINBOOL fIncUpdate;
+    BYTE rgbReserved[32];
+  } PAINTSTRUCT,*PPAINTSTRUCT,*NPPAINTSTRUCT,*LPPAINTSTRUCT;
+	
+	import(user32,BeginPaint);
+	import(user32,EndPaint);
+#define WM_PAINT 0x000F
+	
+	PAINTSTRUCT ps = {0};
 	switch(msg){
+		case WM_PAINT:
+			//display();
+			BeginPaint(hwnd, &ps);
+			EndPaint(hwnd, &ps);
+			return 0;
+
 		case 512:
 		case 160:
+		case 32:
+		case 132:
+		case 127:
 			return 0;
 	}
+	_printf("msg=%d\n",msg);
 	return DefWindowProc(hwnd,msg,wparam,lparam);
 }
 int main(){
@@ -122,10 +152,6 @@ int main(){
 	
 #define CreateWindowA(lpClassName,lpWindowName,dwStyle,x,y,nWidth,nHeight,hWndParent,hMenu,hInstance,lpParam) CreateWindowExA(0L,lpClassName,lpWindowName,dwStyle,x,y,nWidth,nHeight,hWndParent,hMenu,hInstance,lpParam)
 	
-	typedef unsigned int WORD;
-	typedef unsigned long DWORD;
-	typedef unsigned char BYTE;
-	
 #define HWND ffic_ptr
 #define POINT ffic_ptr
 #define WPARAM ffic_ptr
@@ -152,15 +178,6 @@ int main(){
 			0
 			);
 	dump_d(hwnd);
-	MSG msg;
-	while(1){
-		while(GetMessageA(&msg,hwnd)){
-			TranslateMessage(&msg);
-			DispatchMessageA(&msg);
-			printf(".");
-		}
-	}
-	return 0;
 
 //	ffic_func MessageBoxA = (ffic_func) ffic_raw("user32","MessageBoxA",0);
 //	MessageBoxA(0,"hello6","hello5",0);
@@ -178,7 +195,8 @@ int main(){
 	dump_d(GetDesktopWindow);
 	import(user32,GetDC);//
 	dump_d(GetDC);
-	long hdc = (long) GetDC(GetDesktopWindow());//
+	//long hdc = (long) GetDC(GetDesktopWindow());//
+	long hdc = (long) GetDC(hwnd);//
 	dump_ld(hdc);
 	import(opengl32,glGetString);//
 	dump_d(glGetString);
@@ -258,7 +276,7 @@ PIXELFORMATDESCRIPTOR pfd = {
 
 	import(opengl32,wglCreateContext);//
 	dump_d(wglCreateContext);
-	long hdgl = (long) wglCreateContext(hdc);
+	ffic_ptr hdgl = (ffic_ptr) wglCreateContext(hdc);
 	dump_d(hdgl);
 	import(opengl32,wglMakeCurrent);//opengl32,wglMakeCurrent
 	dump_d(wglMakeCurrent);
@@ -307,6 +325,14 @@ PIXELFORMATDESCRIPTOR pfd = {
 	char* s_GL_EXTENSIONS = glGetString(GL_EXTENSIONS);
 	dump_s(s_GL_EXTENSIONS);
 	
+	MSG msg;
+	while(1){
+		while(GetMessageA(&msg,hwnd)){
+			TranslateMessage(&msg);
+			DispatchMessageA(&msg);
+			printf(".");
+		}
+	}
 	return 0;
 }
 
