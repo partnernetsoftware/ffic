@@ -25,6 +25,7 @@ typedef unsigned int UINT;
 typedef unsigned int WORD;
 typedef unsigned long DWORD;
 typedef unsigned char BYTE;
+typedef unsigned long *DWORD_PTR;
 
 #define	WNDPROC ffic_func
 #define HINSTANCE ffic_ptr
@@ -137,8 +138,8 @@ ffic_ptr WndProc(ffic_ptr hwnd, UINT msg, ffic_ptr wParam, ffic_ptr lParam)
 		//	}
 		//	return 0;
 		case WM_SIZE:
-			//glViewport(0, 0, LOWORD(lParam), HIWORD(lParam));
-			glViewport(0, 0, 0, 0);
+			glViewport(0, 0, LOWORD(lParam), HIWORD(lParam));
+			//glViewport(0, 0, 0, 0);
 			PostMessage(hwnd, WM_PAINT, 0, 0);
 			return 0;
 		case WM_PAINT:
@@ -276,7 +277,7 @@ int main(){
 	void* hwnd = CreateWindowA(
 			wc.lpszClassName,
 			"Test Title",
-			WS_OVERLAPPEDWINDOW|WS_VISIBLE,
+			WS_OVERLAPPEDWINDOW|WS_VISIBLE| WS_CLIPSIBLINGS | WS_CLIPCHILDREN,
 			0,
 			0,
 			360,
