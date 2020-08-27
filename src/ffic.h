@@ -180,7 +180,8 @@ ffic_u64 ffic_microtime(void)
 ffic_ptr(*ffic(const char* libname, const char* funcname))()
 {
 	ffic_ptr addr = 0;
-	if(!libname){//special libc tuning
+	if(libname && 'c'==*libname && 0==*(libname+1)) libname=0;
+	if(!libname){
 		if(!_ffic_os_sleep) _ffic_os_sleep = (ffic_os==ffic_os_win) ? ffic_raw("kernel32","Sleep",0) : ffic_raw(ffic_libcname,"usleep",0);
 		if(!strcmp("stderr",funcname) || !strcmp("2",funcname)){ return ffic_os_std(2); }
 		else if(!strcmp("stdout",funcname) || !strcmp("1",funcname)){ return ffic_os_std(1); }

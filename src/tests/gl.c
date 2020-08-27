@@ -4,7 +4,10 @@ extern ffic_func (*ffic())();
 extern ffic_func (*ffic_raw())();
 # define libc(f) ffic(0,#f)
 
-#define import(c,m) ffic_func m = ffic_raw(#c,#m,0)
+//#define import(c,m) ffic_func m = ffic_raw(#c,#m,0)
+#define import(c,m) ffic_func m = ffic(#c,#m,0)
+#define import_(m,c,...) import(c,m)
+#define var(m,...) import_(m,##__VA_ARGS__,c)
 #define dump_d(x) printf("%s=%d\n", #x, x)
 #define dump_ld(x) printf("%s=%ld\n", #x, x)
 #define dump_s(x) printf("%s=%s\n", #x, x)
@@ -20,6 +23,14 @@ typedef unsigned int WORD;
 typedef unsigned long DWORD;
 typedef unsigned char BYTE;
 
+//extern int $;
+
+typedef struct _FFF {
+	ffic_func f;
+	//ffic_string s;
+	char* s;
+} FFF;
+
 int WndProc(ffic_ptr hwnd, UINT msg, ffic_ptr wparam, ffic_ptr lparam)
 {
   typedef struct tagPAINTSTRUCT {
@@ -31,7 +42,8 @@ int WndProc(ffic_ptr hwnd, UINT msg, ffic_ptr wparam, ffic_ptr lparam)
     BYTE rgbReserved[32];
   } PAINTSTRUCT,*PPAINTSTRUCT,*NPPAINTSTRUCT,*LPPAINTSTRUCT;
 	
-	import(user32,BeginPaint);
+	//import(user32,BeginPaint);
+	var(BeginPaint,user32);
 	import(user32,EndPaint);
 #define WM_PAINT 0x000F
 	
@@ -43,22 +55,30 @@ int WndProc(ffic_ptr hwnd, UINT msg, ffic_ptr wparam, ffic_ptr lparam)
 			EndPaint(hwnd, &ps);
 			return 0;
 
-		case 512:
-		case 160:
-		case 32:
-		case 132:
-		case 127:
-			return 0;
+//		case 512:
+//		case 160:
+//		case 32:
+//		case 132:
+//		case 127:
+//			return 0;
 	}
 	_printf("msg=%d\n",msg);
-	return DefWindowProc(hwnd,msg,wparam,lparam);
+	return (int) DefWindowProc(hwnd,msg,wparam,lparam);
 }
+
+//ffic_func testf = (ffic_func) WndProc;
+FFF testFFF = {.f=WndProc, .s="WndProc"};
+
 int main(){
 	
-	ffic_func printf = ffic(0,"printf");
+	//ffic_func printf = ffic(0,"printf");
+	var(printf);
 	_printf = printf;
 
-	import(kernel32,GetModuleHandleA);
+	dump_s(testFFF.s);
+
+	//import(kernel32,GetModuleHandleA);
+	var(GetModuleHandleA,kernel32);
 	dump_d(GetModuleHandleA);
 	void* inst = GetModuleHandleA(0);
 	dump_d(inst);
@@ -292,38 +312,40 @@ PIXELFORMATDESCRIPTOR pfd = {
 	//printf("s_GL_VERSION = %s\n",s_GL_VERSION);
 	dump_s(s_GL_VERSION);
 
-	import(opengl32,glClear);
+		import(opengl32,glClear);
 #define GL_COLOR_BUFFER_BIT 0x00004000
 #define GL_DEPTH_BUFFER_BIT 0x00000100
 #define GL_COLOR 0x1800
-	//glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	glClear(GL_COLOR_BUFFER_BIT );
-	import(opengl32,glBegin);
-	import(opengl32,glColor3f);
-	import(opengl32,glVertex3f);
-	import(opengl32,glEnd);
-	import(opengl32,glFlush);
+		//glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		glClear(GL_COLOR_BUFFER_BIT );
+		import(opengl32,glBegin);
+		import(opengl32,glColor3f);
+		import(opengl32,glVertex3f);
+		import(opengl32,glEnd);
+		import(opengl32,glFlush);
 #define GL_POLYGON 0x0009
-	glBegin(GL_POLYGON);
-	glColor3f(1,0,0);glVertex3f(-0.6,0.75,0.5);
-	glColor3f(0,1,0);glVertex3f(0.6,-0.75,0);
-	glColor3f(0,0,1);glVertex3f(0,0.75,0);
-	glEnd();
-	glFlush();
+		glBegin(GL_POLYGON);
+		glColor3f(1,0,0);glVertex3f(-0.6,0.75,0.5);
+		glColor3f(0,1,0);glVertex3f(0.6,-0.75,0);
+		glColor3f(0,0,1);glVertex3f(0,0.75,0);
+		glEnd();
+		glFlush();
 
-//	typedef float GLfloat;
-//	static const GLfloat red[] = {1.0f, 0.0f, 0.0f, 1.1f };
-//	import(opengl32,glClearBufferfv);
-//	glClearBufferfv(GL_COLOR,0,red);
+		//	typedef float GLfloat;
+		//	static const GLfloat red[] = {1.0f, 0.0f, 0.0f, 1.1f };
+		//	import(opengl32,glClearBufferfv);
+		//	glClearBufferfv(GL_COLOR,0,red);
 
-	char* s_GL_RENDERER = glGetString(GL_RENDERER);
-	dump_s(s_GL_RENDERER);
+		char* s_GL_RENDERER = glGetString(GL_RENDERER);
+		dump_s(s_GL_RENDERER);
 
-	char* s_GL_VENDOR = glGetString(GL_VENDOR);
-	dump_s(s_GL_VENDOR);
+		char* s_GL_VENDOR = glGetString(GL_VENDOR);
+		dump_s(s_GL_VENDOR);
 
-	char* s_GL_EXTENSIONS = glGetString(GL_EXTENSIONS);
-	dump_s(s_GL_EXTENSIONS);
+		char* s_GL_EXTENSIONS = glGetString(GL_EXTENSIONS);
+	if(0){
+		dump_s(s_GL_EXTENSIONS);
+	}
 	
 	MSG msg;
 	while(1){
