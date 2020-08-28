@@ -13,40 +13,39 @@
 //typedef ffic_ptr (__attribute__((__stdcall__)) *ffic_func)();
 //extern ffic_func (*ffic())();
 //extern ffic_func (*ffic_raw())();
-#include <windows.h>			/* must include this before GL/gl.h */
-#include "ffic.h"
 
-#define import0(c,m) ffic_func m = (ffic_func) ffic(#c,#m)
-#define import1(m,c,...) import0(c,m)
-#define import(m,...) import1(m,##__VA_ARGS__,c)
-//#define _(m,...) import(m,##__VA_ARGS__,c)
-//# define libc(f) ffic(0,#f)
-//////////////////////////////////////// ffic
-
-#define dump_d(x) printf("%s=%d\n", #x, x)
-#define dump_ld(x) printf("%s=%ld\n", #x, x)
-#define dump_s(x) printf("%s=%s\n", #x, x)
-
+//#include <windows.h>			/* must include this before GL/gl.h */
 #ifndef _WINDOWS_
-#define HWND ffic_ptr
-#define POINT ffic_ptr
-#define WPARAM ffic_ptr
-#define LPARAM ffic_ptr
+//#define _WINDOWS_
+typedef long LONG;
+typedef unsigned int UINT_PTR,*PUINT_PTR;
+typedef long LONG_PTR,*PLONG_PTR;
+struct HWND__ { int unused; }; typedef struct HWND__ *HWND;
+typedef struct tagPOINT {
+	LONG x;
+	LONG y;
+} POINT,*PPOINT,*NPPOINT,*LPPOINT;
+typedef UINT_PTR WPARAM;
+typedef LONG_PTR LPARAM;
 typedef unsigned int UINT;
-#define HDC ffic_ptr
+struct HDC__ { int unused; }; typedef struct HDC__ *HDC;
 #define WINBOOL char
-#define RECT ffic_ptr
 typedef unsigned int WORD;
 typedef unsigned long DWORD;
 typedef unsigned char BYTE;
 typedef unsigned long *DWORD_PTR;
 
-#define	WNDPROC ffic_func
-#define HINSTANCE ffic_ptr
-#define HICON ffic_ptr
-#define HCURSOR ffic_ptr
-#define HBRUSH ffic_ptr
-#define LPCSTR char*
+typedef LONG_PTR LRESULT;
+typedef LRESULT (__attribute__((__stdcall__)) *WNDPROC)(HWND,UINT,WPARAM,LPARAM);
+struct HINSTANCE__ { int unused; }; typedef struct HINSTANCE__ *HINSTANCE;
+//typedef HINSTANCE HMODULE;
+struct HICON__ { int unused; }; typedef struct HICON__ *HICON;
+typedef HICON HCURSOR;
+  struct HBRUSH__ { int unused; }; typedef struct HBRUSH__ *HBRUSH;
+//#define LPCSTR char*
+#define CONST const
+#define CHAR char 
+	typedef CONST CHAR *LPCSTR,*PCSTR;
 
 #define WS_OVERLAPPED 0x00000000L
 #define WS_POPUP 0x80000000L
@@ -112,8 +111,15 @@ typedef struct tagWNDCLASSA {
 #define LOBYTE(w) ((BYTE)((DWORD_PTR)(w) & 0xff))
 #define HIBYTE(w) ((BYTE)((DWORD_PTR)(w) >> 8))
 
-#define NULL (void*)0
+#define NULL ((void*)0)
 #define FALSE 0
+  typedef struct tagRECT {
+    LONG left;
+    LONG top;
+    LONG right;
+    LONG bottom;
+  } RECT,*PRECT,*NPRECT,*LPRECT;
+
 	typedef struct tagPAINTSTRUCT {
 		HDC hdc;
 		WINBOOL fErase;
@@ -160,14 +166,27 @@ typedef struct {
 	DWORD dwDamageMask;
 } PIXELFORMATDESCRIPTOR, * PPIXELFORMATDESCRIPTOR, *LPPIXELFORMATDESCRIPTOR;
 
-#define PFD_SUPPORT_OPENGL 32
-#define PFD_DRAW_TO_WINDOW 4
+#define PFD_SUPPORT_OPENGL 0x00000020
+#define PFD_DRAW_TO_WINDOW 0x00000004
 #define PFD_DOUBLEBUFFER 1
 #define PFD_MAIN_PLANE 0
 #define PFD_TYPE_RGBA 0
 
 #endif
-	void
+#include "ffic.h"
+
+#define import0(c,m) ffic_func m = (ffic_func) ffic(#c,#m)
+#define import1(m,c,...) import0(c,m)
+#define import(m,...) import1(m,##__VA_ARGS__,c)
+//#define _(m,...) import(m,##__VA_ARGS__,c)
+//# define libc(f) ffic(0,#f)
+//////////////////////////////////////// ffic
+
+#define dump_d(x) printf("%s=%d\n", #x, x)
+#define dump_ld(x) printf("%s=%ld\n", #x, x)
+#define dump_s(x) printf("%s=%s\n", #x, x)
+
+void
 display()
 {
 //	import0(user32,DestroyWindow);
@@ -291,9 +310,10 @@ CreateOpenGLWindow(char* title, int x, int y, int width, int height,
 		wc.lpszClassName = "OpenGL";
 
 		if (!RegisterClass(&wc)) {
+			printf("RegisterClass() failed \n");
 		//	MessageBox(NULL, "RegisterClass() failed:  "
 		//			"Cannot register window class.", "Error", MB_OK);
-		//	return NULL;
+			return NULL;
 		}
 	}
 
