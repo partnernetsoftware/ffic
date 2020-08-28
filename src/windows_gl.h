@@ -10,24 +10,22 @@ typedef UINT_PTR WPARAM;
 typedef LONG_PTR LPARAM;
 typedef unsigned int UINT;
 struct HDC__ { int unused; }; typedef struct HDC__ *HDC;
-typedef int WINBOOL;
-typedef unsigned int WORD;
 typedef unsigned long DWORD;
-//typedef unsigned char BYTE;
-typedef unsigned short BYTE;
-typedef unsigned long *DWORD_PTR;
+typedef int WINBOOL;
+typedef unsigned char BYTE;
+typedef unsigned short WORD;
+typedef unsigned long ULONG_PTR,*PULONG_PTR;
+typedef ULONG_PTR DWORD_PTR,*PDWORD_PTR;
 
 typedef LONG_PTR LRESULT;
 typedef LRESULT (__attribute__((__stdcall__)) *WNDPROC)(HWND,UINT,WPARAM,LPARAM);
 struct HINSTANCE__ { int unused; }; typedef struct HINSTANCE__ *HINSTANCE;
-//typedef HINSTANCE HMODULE;
 struct HICON__ { int unused; }; typedef struct HICON__ *HICON;
 typedef HICON HCURSOR;
-  struct HBRUSH__ { int unused; }; typedef struct HBRUSH__ *HBRUSH;
-//#define LPCSTR char*
+struct HBRUSH__ { int unused; }; typedef struct HBRUSH__ *HBRUSH;
 #define CONST const
 #define CHAR char 
-	typedef CONST CHAR *LPCSTR,*PCSTR;
+typedef CONST CHAR *LPCSTR,*PCSTR;
 
 #define WS_OVERLAPPED 0x00000000L
 #define WS_POPUP 0x80000000L
@@ -56,9 +54,9 @@ typedef HICON HCURSOR;
 #define WS_OVERLAPPEDWINDOW (WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME | WS_MINIMIZEBOX | WS_MAXIMIZEBOX)
 #define WS_POPUPWINDOW (WS_POPUP | WS_BORDER | WS_SYSMENU)
 #define WS_CHILDWINDOW (WS_CHILD)
-	
+
 #define CW_USEDEFAULT ((int)0x80000000)
-	
+
 typedef struct tagMSG {
 	HWND hwnd;
 	UINT message;
@@ -95,50 +93,50 @@ typedef struct tagWNDCLASSA {
 
 #define NULL ((void*)0)
 #define FALSE 0
-  typedef struct tagRECT {
-    LONG left;
-    LONG top;
-    LONG right;
-    LONG bottom;
-  } RECT,*PRECT,*NPRECT,*LPRECT;
+typedef struct tagRECT {
+	LONG left;
+	LONG top;
+	LONG right;
+	LONG bottom;
+} RECT,*PRECT,*NPRECT,*LPRECT;
 
-	typedef struct tagPAINTSTRUCT {
-		HDC hdc;
-		WINBOOL fErase;
-		RECT rcPaint;
-		WINBOOL fRestore;
-		WINBOOL fIncUpdate;
-		BYTE rgbReserved[32];
-	} PAINTSTRUCT,*PPAINTSTRUCT,*NPPAINTSTRUCT,*LPPAINTSTRUCT;
+typedef struct tagPAINTSTRUCT {
+	HDC hdc;
+	WINBOOL fErase;
+	RECT rcPaint;
+	WINBOOL fRestore;
+	WINBOOL fIncUpdate;
+	BYTE rgbReserved[32];
+} PAINTSTRUCT,*PPAINTSTRUCT,*NPPAINTSTRUCT,*LPPAINTSTRUCT;
 
-  typedef struct tagPIXELFORMATDESCRIPTOR {
-    WORD nSize;
-    WORD nVersion;
-    DWORD dwFlags;
-    BYTE iPixelType;
-    BYTE cColorBits;
-    BYTE cRedBits;
-    BYTE cRedShift;
-    BYTE cGreenBits;
-    BYTE cGreenShift;
-    BYTE cBlueBits;
-    BYTE cBlueShift;
-    BYTE cAlphaBits;
-    BYTE cAlphaShift;
-    BYTE cAccumBits;
-    BYTE cAccumRedBits;
-    BYTE cAccumGreenBits;
-    BYTE cAccumBlueBits;
-    BYTE cAccumAlphaBits;
-    BYTE cDepthBits;
-    BYTE cStencilBits;
-    BYTE cAuxBuffers;
-    BYTE iLayerType;
-    BYTE bReserved;
-    DWORD dwLayerMask;
-    DWORD dwVisibleMask;
-    DWORD dwDamageMask;
-  } PIXELFORMATDESCRIPTOR,*PPIXELFORMATDESCRIPTOR,*LPPIXELFORMATDESCRIPTOR;
+typedef struct tagPIXELFORMATDESCRIPTOR {
+	WORD nSize;
+	WORD nVersion;
+	DWORD dwFlags;
+	BYTE iPixelType;
+	BYTE cColorBits;
+	BYTE cRedBits;
+	BYTE cRedShift;
+	BYTE cGreenBits;
+	BYTE cGreenShift;
+	BYTE cBlueBits;
+	BYTE cBlueShift;
+	BYTE cAlphaBits;
+	BYTE cAlphaShift;
+	BYTE cAccumBits;
+	BYTE cAccumRedBits;
+	BYTE cAccumGreenBits;
+	BYTE cAccumBlueBits;
+	BYTE cAccumAlphaBits;
+	BYTE cDepthBits;
+	BYTE cStencilBits;
+	BYTE cAuxBuffers;
+	BYTE iLayerType;
+	BYTE bReserved;
+	DWORD dwLayerMask;
+	DWORD dwVisibleMask;
+	DWORD dwDamageMask;
+} PIXELFORMATDESCRIPTOR,*PPIXELFORMATDESCRIPTOR,*LPPIXELFORMATDESCRIPTOR;
 
 #define PFD_SUPPORT_OPENGL 0x00000020
 #define PFD_DRAW_TO_WINDOW 0x00000004

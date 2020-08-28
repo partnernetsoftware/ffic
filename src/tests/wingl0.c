@@ -14,8 +14,8 @@
 //extern ffic_func (*ffic())();
 //extern ffic_func (*ffic_raw())();
 
-#include <windows.h>
-//#include "windows_play.h"
+//#include <windows.h>
+#include "windows_gl.h"
 #include "ffic.h"
 
 #define import0(c,m) ffic_func m = (ffic_func) ffic(#c,#m)
@@ -29,16 +29,16 @@
 #define dump_ld(x) printf("%s=%ld\n", #x, x)
 #define dump_s(x) printf("%s=%s\n", #x, x)
 
-void
+	void
 display()
 {
-//	import0(user32,DestroyWindow);
-//	import0(user32,PostQuitMessage);
-//	import0(user32,PostMessageA);
-//#define PostMessage PostMessageA
+	//	import0(user32,DestroyWindow);
+	//	import0(user32,PostQuitMessage);
+	//	import0(user32,PostMessageA);
+	//#define PostMessage PostMessageA
 	import0(user32,BeginPaint);
 	import0(user32,EndPaint);
-//	import0(user32,FillRect);
+	//	import0(user32,FillRect);
 
 	import0(opengl32,glClear);
 #define GL_COLOR_BUFFER_BIT 0x00004000
@@ -69,7 +69,7 @@ display()
 ffic_ptr WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 { 
 	import0(c,printf);
-	
+
 	import0(opengl32,glViewport);
 	import0(user32,DestroyWindow);
 	import0(user32,PostQuitMessage);
@@ -104,13 +104,13 @@ ffic_ptr WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		case WM_CLOSE:
 			PostQuitMessage(0);
 			return 0;
-		default:
-			dump_d(uMsg);
+		//default:
+			//dump_d(uMsg);
 	}
 
 	import0(user32,DefWindowProcA);
 #define DefWindowProc DefWindowProcA
-	
+
 	return DefWindowProc(hWnd, uMsg, wParam, lParam); 
 }
 
@@ -154,8 +154,8 @@ CreateOpenGLWindow(char* title, int x, int y, int width, int height,
 
 		if (!RegisterClass(&wc)) {
 			printf("RegisterClass() failed \n");
-		//	MessageBox(NULL, "RegisterClass() failed:  "
-		//			"Cannot register window class.", "Error", MB_OK);
+			//	MessageBox(NULL, "RegisterClass() failed:  "
+			//			"Cannot register window class.", "Error", MB_OK);
 			return NULL;
 		}
 	}
@@ -165,9 +165,9 @@ CreateOpenGLWindow(char* title, int x, int y, int width, int height,
 			x, y, width, height, NULL, NULL, hInstance, NULL);
 
 	if (hWnd == NULL) {
-	//	MessageBox(NULL, "CreateWindow() failed:  Cannot create a window.",
-	//			"Error", MB_OK);
-	//	return NULL;
+		//	MessageBox(NULL, "CreateWindow() failed:  Cannot create a window.",
+		//			"Error", MB_OK);
+		//	return NULL;
 	}
 
 	import0(user32,GetDC);//
@@ -186,9 +186,9 @@ CreateOpenGLWindow(char* title, int x, int y, int width, int height,
 	ffic_func_i ChoosePixelFormat = (ffic_func_i) ffic("gdi32","ChoosePixelFormat");
 	pf = ChoosePixelFormat(hDC, &pfd);
 	if (pf == 0) {
-	//	MessageBox(NULL, "ChoosePixelFormat() failed:  "
-	//			"Cannot find a suitable pixel format.", "Error", MB_OK); 
-	//	return 0;
+		//	MessageBox(NULL, "ChoosePixelFormat() failed:  "
+		//			"Cannot find a suitable pixel format.", "Error", MB_OK); 
+		//	return 0;
 	} 
 
 	import0(gdi32,SetPixelFormat);//
@@ -222,7 +222,7 @@ int main()
 
 	import0(c,printf);
 	hWnd = CreateOpenGLWindow("minimal", 0, 0, 256, 256, PFD_TYPE_RGBA, 0);
-	dump_d(hWnd);
+	dump_ld(hWnd);
 	if (hWnd == NULL){
 		import0(c,exit);
 		exit(1);
@@ -230,8 +230,10 @@ int main()
 
 	import0(user32,GetDC);//
 	hDC = GetDC(hWnd);
+	dump_ld(hDC);
 	import0(opengl32,wglCreateContext);
 	hRC = wglCreateContext(hDC);
+	dump_ld(hRC);
 	import0(opengl32,wglMakeCurrent);
 	wglMakeCurrent(hDC, hRC);
 
