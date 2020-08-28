@@ -129,7 +129,7 @@ ffic_func(*ffic_core(const char *libfilename,const char* funcname))()
 #endif
 #else
 		extern dlopen();
-		ffic_dlopen = dlopen;
+		ffic_dlopen = (ffic_func) dlopen;
 #endif
 	}
 	//return ffic_dlsym(ffic_dlopen(libfilename,0x100 | 0x1/*RTLD_LAZY*/), funcname);
