@@ -57,9 +57,10 @@ int main(int argc, char **argv, char **envp){
 
 	if (tcc(tcc_relocate)(tcc_ptr, (void*)1/*TCC_RELOCATE_AUTO*/) < 0) return 2;
 
-	int (*entry)() = tcc(tcc_get_symbol)(tcc_ptr, "main");
+	//int (*entry)() = tcc(tcc_get_symbol)(tcc_ptr, "main");
+	ffic_func_i entry = tcc(tcc_get_symbol)(tcc_ptr, "main");
 	if (!entry) { return 3; }
-	int rt = (int) entry(argc>1?argc-1:argc,argc>1?(argv+1):argv);
+	int rt = entry(argc>1?argc-1:argc,argc>1?(argv+1):argv);
 	tcc(tcc_delete)(tcc_ptr);
 	return rt;
 }

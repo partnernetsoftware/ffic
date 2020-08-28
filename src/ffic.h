@@ -2,9 +2,9 @@
 #define FFIC_H
 typedef void* ffic_ptr;
 typedef ffic_ptr(
-#ifdef _WIN32
+//#ifdef _WIN32
 		__attribute__((__stdcall__))
-#endif
+//#endif
 		*ffic_func)();
 typedef double (*ffic_func_d)();
 typedef long (*ffic_func_l)();
@@ -39,9 +39,9 @@ ffic_string ffic_sosuffix = ".so";
 # define SIZEOF_POINTER 8 //default 64
 # endif
 #endif
-#ifndef ONE_SOURCE
-typedef struct __FILE FILE;//
-#endif
+//#ifndef ONE_SOURCE
+//typedef struct __FILE FILE;//
+//#endif
 typedef signed char ffic_i8;
 typedef unsigned char ffic_u8;
 typedef signed short int ffic_i16;
@@ -77,10 +77,11 @@ extern int printf(const char*,...);
 //extern int printf();
 extern int strcmp(const char*,const char*);//TODO improve speed https://answer-id.com/59773438
 extern void exit(int);
-#ifndef ONE_SOURCE
-extern int fprintf(FILE*,const char*,...);
-extern int fflush(void*);
-#endif
+//#ifndef ONE_SOURCE
+////extern int fprintf(FILE*,const char*,...);
+////extern int fprintf();
+////extern int fflush(void*);
+//#endif
 //////////////////////////////////////////////////////////////////////////
 #if 0
 ffic_string *envp_store;
@@ -109,7 +110,7 @@ ffic_func(*ffic_core(const char *libfilename,const char* funcname))()
 #endif
 		ffic_dlsym = (ffic_func) GetProcAddress;
 #else
-		extern ffic_ptr dlsym();
+		extern dlsym();
 		ffic_dlsym = (ffic_func) dlsym;
 #endif
 	}
@@ -117,17 +118,17 @@ ffic_func(*ffic_core(const char *libfilename,const char* funcname))()
 #if defined(_WIN32) || defined(_WIN64) 
 #ifdef UNICODE
 #ifndef _WINDOWS_
-		extern ffic_ptr LoadLibraryW();
+		extern LoadLibraryW();
 #endif
 		ffic_dlopen = (ffic_func) LoadLibraryW;
 #else
 #ifndef _WINDOWS_
-		extern ffic_ptr LoadLibraryA();
+		extern LoadLibraryA();
 #endif
 		ffic_dlopen = (ffic_func) LoadLibraryA;
 #endif
 #else
-		extern ffic_ptr dlopen();
+		extern dlopen();
 		ffic_dlopen = dlopen;
 #endif
 	}
@@ -138,19 +139,19 @@ ffic_func(*ffic_raw(const char* part1, const char* funcname, const char* part2))
 {
 	ffic_string libfilename = ffic_tmp_string(512);
 	_ffic_strcat(libfilename, (part1)? part1 : ffic_libcname, (part2)? part2 : ffic_sosuffix );
-	ffic_ptr addr = ffic_core(libfilename,funcname);
+	ffic_func addr = ffic_core(libfilename,funcname);
 	if(!addr) {
 		printf("WARN: 404 %s(%s).%s \n",part1,libfilename,funcname);
 	}
 	return addr;
 }
 void* ffic_std[3];//
-void* ffic_os_std(int t){
+ffic_ptr ffic_os_std(int t){
 	if(ffic_std[t]) return ffic_std[t];
 	ffic_std[t] = ffic_raw(0,(ffic_os==ffic_os_win)?"_fdopen":"fdopen",0)(ffic_raw(0,(ffic_os==ffic_os_win)?"_dup":"dup",0)(t),(t==0)?"r":"w");
 	return ffic_std[t];
 }
-static ffic_func _ffic_os_sleep = (ffic_ptr)0;
+static ffic_func _ffic_os_sleep = 0;
 ffic_ptr ffic_usleep(int nano_seconds) { _ffic_os_sleep( (ffic_os==ffic_os_win) ? (nano_seconds/1000) : nano_seconds ); return 0; }
 ffic_ptr ffic_msleep(int microseconds) { _ffic_os_sleep( (ffic_os==ffic_os_win) ? (microseconds) : microseconds*1000 ); return 0; }
 ffic_ptr ffic_sleep(int seconds) { _ffic_os_sleep( (ffic_os==ffic_os_win) ? (seconds*1000) : (seconds*1000000) ); return 0; }
@@ -159,7 +160,7 @@ ffic_u64 ffic_microtime(void)
 {
 	//struct timeval tv;
 	struct { long tv_sec; long tv_usec; } tv;
-	static ffic_func ffic_gettimeofday=(ffic_ptr)0;
+	static ffic_func ffic_gettimeofday=0;
 	if(ffic_os == ffic_os_win){
 		if (!ffic_gettimeofday) ffic_gettimeofday = ffic_raw("kernel32","GetSystemTimePreciseAsFileTime",0);
 		if (!ffic_gettimeofday) ffic_gettimeofday = ffic_raw("kernel32","GetSystemTimeAsFileTime",0);
@@ -186,22 +187,18 @@ ffic_ptr(*ffic(const char* libname, const char* funcname))()
 		if(!strcmp("stderr",funcname) || !strcmp("2",funcname)){ return ffic_os_std(2); }
 		else if(!strcmp("stdout",funcname) || !strcmp("1",funcname)){ return ffic_os_std(1); }
 		else if(!strcmp("stdin",funcname) || !strcmp("0",funcname)){ return ffic_os_std(0); }
-		else if(!strcmp("microtime",funcname)){ return (ffic_ptr) ffic_microtime; }
+		else if(!strcmp("microtime",funcname)){ return ffic_microtime; }
 		else if(!strcmp("usleep",funcname)){ return ffic_usleep; }
 		else if(!strcmp("sleep",funcname)){ return ffic_sleep; }
 		else if(!strcmp("msleep",funcname)){ return ffic_msleep; }
 		else if(!strcmp("fileno",funcname) && ffic_os == ffic_os_win){ funcname = "_fileno"; }
-		else if(!strcmp("void",funcname)){ return ffic_void; }
+		else if(!strcmp("void",funcname)){ return (ffic_ptr) ffic_void; }
 		else if(!strcmp("setmode",funcname)){
-			if(ffic_os == ffic_os_win){ funcname = "_setmode"; }else{ addr = ffic_void; }
+			if(ffic_os == ffic_os_win){ funcname = "_setmode"; }else{ addr = (ffic_ptr) ffic_void; }
 		}
 		else if(!strcmp("strdup",funcname) && ffic_os == ffic_os_win){ funcname = "_strdup"; }
 	}
 	if(!addr) addr = ffic_raw(libname,funcname,0);
-	if(!addr) {
-		fprintf(ffic_os_std(1),"WARN: Not found %s.%s\n", libname, funcname);fflush(ffic_os_std(1));
-		return ffic_void;
-	}
 	return addr;
 }
 #  ifndef libc
