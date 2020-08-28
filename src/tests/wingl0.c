@@ -1,13 +1,4 @@
-
-/* An example of the minimal Win32 & OpenGL program.  It only works in
-	 16 bit color modes or higher (since it doesn't create a
-	 palette). */
-
-
-//#include <GL/gl.h>			/* OpenGL header file */
-//#include <GL/glu.h>			/* OpenGL utilities header file */
-//#include <stdio.h>
-
+//https://www.opengl.org/archives/resources/code/samples/win32_tutorial/minimal.c
 //////////////////////////////////////// ffic
 //typedef void* ffic_ptr;
 //typedef ffic_ptr (__attribute__((__stdcall__)) *ffic_func)();
@@ -16,30 +7,22 @@
 
 //#include <windows.h>
 #include "windows_gl.h"
+//https://www.khronos.org/registry/OpenGL/api/GLES/1.0/gl.h
 #include "ffic.h"
 
 #define import0(c,m) ffic_func m = (ffic_func) ffic(#c,#m)
 #define import1(m,c,...) import0(c,m)
 #define import(m,...) import1(m,##__VA_ARGS__,c)
-//#define _(m,...) import(m,##__VA_ARGS__,c)
-//# define libc(f) ffic(0,#f)
 //////////////////////////////////////// ffic
 
 #define dump_d(x) printf("%s=%d\n", #x, x)
 #define dump_ld(x) printf("%s=%ld\n", #x, x)
 #define dump_s(x) printf("%s=%s\n", #x, x)
 
-	void
-display()
+void display()
 {
-	//	import0(user32,DestroyWindow);
-	//	import0(user32,PostQuitMessage);
-	//	import0(user32,PostMessageA);
-	//#define PostMessage PostMessageA
 	import0(user32,BeginPaint);
 	import0(user32,EndPaint);
-	//	import0(user32,FillRect);
-
 	import0(opengl32,glClear);
 #define GL_COLOR_BUFFER_BIT 0x00004000
 #define GL_DEPTH_BUFFER_BIT 0x00000100
@@ -104,7 +87,7 @@ ffic_ptr WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		case WM_CLOSE:
 			PostQuitMessage(0);
 			return 0;
-		//default:
+			//default:
 			//dump_d(uMsg);
 	}
 
