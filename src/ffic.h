@@ -101,7 +101,7 @@ char* _ffic_strcat(char* buffer, const char* a, const char* b) {
  return buffer;
 }
 ffic_ptr ffic_void(){return 0;};
-ffic_func(*ffic_core(const char *libfilename,const char* funcname))()
+ffic_func (*ffic_core(const char *libfilename,const char* funcname))()
 {
 	if(!ffic_dlsym){
 #if defined(_WIN32) || defined(_WIN64)
@@ -139,7 +139,7 @@ ffic_func(*ffic_raw(const char* part1, const char* funcname, const char* part2))
 {
 	ffic_string libfilename = ffic_tmp_string(512);
 	_ffic_strcat(libfilename, (part1)? part1 : ffic_libcname, (part2)? part2 : ffic_sosuffix );
-	ffic_func addr = ffic_core(libfilename,funcname);
+	ffic_func addr = (ffic_func) ffic_core(libfilename,funcname);
 	if(!addr) {
 		printf("WARN: 404 %s(%s).%s \n",part1,libfilename,funcname);
 	}
