@@ -4,13 +4,15 @@ CC=gcc -O1 -I ../tinyccbinary/
 #CC=tcc
 #CC=../tinyccbinary/x86_64-osx-tcc
 #CC=../tinyccbinary/tcc
+
+tcc-osx:
+	mkdir -p tcc_osx && cd tcc_osx && ../../tinycc/configure && make clean && sleep 1 && make tcc && make libtcc.osx && ../../tinycc/configure --cc=./tcc && make && make cross-x86_64-osx cross-x86_64-win32 cross-i386-win32 && sleep 1
+	cp tcc_osx/libtcc.dylib ./
+	cp tcc_osx/x86_64-osx-libtcc1.a ./
+submodule:
+	#cd .. && git submodule add --force https://github.com/partnernetsoftware/tinyccbinary.git && git submodule update --init --recursive
+	cd .. && git submodule init && git submodule update
 osx:
-	cd ../tinyccbinary/build.osx/ && ../configure && make clean && sleep 1 && make tcc && make libtcc.osx && ../configure --cc=./tcc && make && make cross-x86_64-osx cross-x86_64-win32 cross-i386-win32 && sleep 1
-	cp ../tinyccbinary/build.osx/libtcc.dylib ./
-	cp ../tinyccbinary/build.osx/x86_64-osx-libtcc1.a ./
-	#git submodule add https://github.com/partnernetsoftware/tinyccbinary.git
-	#git submodule update --init --recursive
-	#cd .. && git submodule init && git submodule update
 	#echo "#define TCC_VERSION \"`head ../tinyccbinary/VERSION`\"" > config.h
 	#make tcc
 	#cd ../tinyccbinary/ && make clean && ./configure && make && make libtcc.osx && ./configure --cc=./tcc && make && make cross-x86_64-osx
