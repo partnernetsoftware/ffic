@@ -24,6 +24,7 @@ decl0(libglfw,glfwWindowShouldClose);
 decl0(libglfw,glfwSwapBuffers);
 decl0(libglfw,glfwPollEvents);
 decl0(libglfw,glfwTerminate);
+decl0(libGL,glGetString);
 decl0(libGL,glBegin);
 decl0(libGL,glColor3f);
 decl0(libGL,glVertex3f);
@@ -37,6 +38,8 @@ void ffic_init(){
 	init0(libglfw,glfwSwapBuffers);
 	init0(libglfw,glfwPollEvents);
 	init0(libglfw,glfwTerminate);
+	//import(opengl32,glGetString);//
+	init0(libGL,glGetString);
 	init0(libGL,glBegin);
 	init0(libGL,glColor3f);
 	init0(libGL,glVertex3f);
@@ -81,6 +84,19 @@ int main(int argc, char ** argv)
 	/* Make the window's context current */
 	glfwMakeContextCurrent(window);
 
+#define GL_VENDOR     0x1F00
+#define GL_RENDERER   0x1F01
+#define GL_VERSION    0x1F02
+#define GL_EXTENSIONS 0x1F03
+	char* s_GL_VERSION = glGetString(GL_VERSION);
+	dump_s(s_GL_VERSION);
+	char* s_GL_RENDERER = glGetString(GL_RENDERER);
+	dump_s(s_GL_RENDERER);
+	char* s_GL_VENDOR = glGetString(GL_VENDOR);
+	dump_s(s_GL_VENDOR);
+	char* s_GL_EXTENSIONS = glGetString(GL_EXTENSIONS);
+	dump_s(s_GL_EXTENSIONS);
+	
 	/* Loop until the user closes the window */
 	while (!glfwWindowShouldClose(window))
 	{

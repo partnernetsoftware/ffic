@@ -45,7 +45,7 @@
 //TODO predefine ffic_func ffic_libc_$func;
 enum { SAO_ITR(DEFINE_ENUM_LIBC,fprintf,malloc,memset,memcpy,strcpy,strlen,strdup,strcmp,strchr,strcat,printf,putc,getc,isalnum,isdigit,isalpha,fopen,fread,fgets,fgetc,fclose,feof,fputc,fflush,free,system,atol,atoi,atof,  usleep,msleep,sleep,setmode,fileno,stdin,stdout,stderr,microtime,exit) };
 #define libc(f) libc_(libc_##f,#f)
-#include "ffic.h" //github.com/partnernetsoftware/ffic/blob/master/src/ffic.h
+#include "../ffic.h" //github.com/partnernetsoftware/ffic/blob/master/src/ffic.h
 ffic_func libc_a[libc_exit+1];
 ffic_func libc_(int fi,const ffic_string fn){ return libc_a[fi]?libc_a[fi]:(libc_a[fi]=ffic(0,fn)); }
 #define SAO_NULL (void*)0  //this one is faster then ((void*)0) or just 0
