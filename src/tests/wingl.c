@@ -157,6 +157,7 @@ CreateOpenGLWindow(char* title, int x, int y, int width, int height,
 
 	/* there is no guarantee that the contents of the stack that become
 		 the pfd are zeroed, therefore _make sure_ to clear these bits. */
+	import0(c,memset);
 	memset(&pfd, 0, sizeof(pfd));
 	pfd.nSize        = sizeof(pfd);
 	pfd.nVersion     = 1;
