@@ -9,10 +9,4 @@ scheme
 sao
 *.exe
 upx_osx
-src/arm-libtcc1.a
-src/arm-wince-libtcc1.a
-src/arm64-libtcc1.a
-src/i386-libtcc1.a
-src/riscv64-libtcc1.a
-src/x86_64-libtcc1.a
 bin_win32

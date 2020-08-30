@@ -13,6 +13,3 @@
 [submodule "tinycc"]
 	path = tinycc
 	url = https://github.com/mirror/tinycc.git
-[submodule "tinyccbinary"]
-	path = tinyccbinary
-	url = https://github.com/partnernetsoftware/tinyccbinary.git
