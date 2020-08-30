@@ -2,9 +2,9 @@
 #define FFIC_H
 typedef void* ffic_ptr;
 typedef ffic_ptr(
-//#ifdef _WIN32
+#ifdef _WIN32
 		__attribute__((__stdcall__))
-//#endif
+#endif
 		*ffic_func)();
 typedef double (*ffic_func_d)();
 typedef long (*ffic_func_l)();
@@ -101,7 +101,7 @@ char* _ffic_strcat(char* buffer, const char* a, const char* b) {
  return buffer;
 }
 ffic_ptr ffic_void(){return 0;};
-ffic_func (*ffic_core(const char *libfilename,const char* funcname))()
+ffic_ptr (*ffic_core(const char *libfilename,const char* funcname))()
 {
 	if(!ffic_dlsym){
 #if defined(_WIN32) || defined(_WIN64)
@@ -110,7 +110,7 @@ ffic_func (*ffic_core(const char *libfilename,const char* funcname))()
 #endif
 		ffic_dlsym = (ffic_func) GetProcAddress;
 #else
-		extern dlsym();
+		extern ffic_ptr dlsym();
 		ffic_dlsym = (ffic_func) dlsym;
 #endif
 	}
@@ -128,18 +128,18 @@ ffic_func (*ffic_core(const char *libfilename,const char* funcname))()
 		ffic_dlopen = (ffic_func) LoadLibraryA;
 #endif
 #else
-		extern dlopen();
+		extern ffic_ptr dlopen();
 		ffic_dlopen = (ffic_func) dlopen;
 #endif
 	}
 	//return ffic_dlsym(ffic_dlopen(libfilename,0x100 | 0x1/*RTLD_LAZY*/), funcname);
 	return ffic_dlsym(ffic_dlopen(libfilename,0x101), funcname);
 }
-ffic_func(*ffic_raw(const char* part1, const char* funcname, const char* part2))()
+ffic_ptr(*ffic_raw(const char* part1, const char* funcname, const char* part2))()
 {
 	ffic_string libfilename = ffic_tmp_string(512);
 	_ffic_strcat(libfilename, (part1)? part1 : ffic_libcname, (part2)? part2 : ffic_sosuffix );
-	ffic_func addr = (ffic_func) ffic_core(libfilename,funcname);
+	ffic_ptr addr = ffic_core(libfilename,funcname);
 	if(!addr) {
 		printf("WARN: 404 %s(%s).%s \n",part1,libfilename,funcname);
 	}
@@ -162,8 +162,8 @@ ffic_u64 ffic_microtime(void)
 	struct { long tv_sec; long tv_usec; } tv;
 	static ffic_func ffic_gettimeofday=0;
 	if(ffic_os == ffic_os_win){
-		if (!ffic_gettimeofday) ffic_gettimeofday = ffic_raw("kernel32","GetSystemTimePreciseAsFileTime",0);
-		if (!ffic_gettimeofday) ffic_gettimeofday = ffic_raw("kernel32","GetSystemTimeAsFileTime",0);
+		if (!ffic_gettimeofday) ffic_gettimeofday = (ffic_func) ffic_raw("kernel32","GetSystemTimePreciseAsFileTime",0);
+		if (!ffic_gettimeofday) ffic_gettimeofday = (ffic_func) ffic_raw("kernel32","GetSystemTimeAsFileTime",0);
 		static const ffic_u64 epoch = 116444736000000000;
 		struct _FILETIME { unsigned long dwLowDateTime; unsigned long dwHighDateTime; } file_time;
 		ffic_gettimeofday(&file_time);
@@ -173,7 +173,7 @@ ffic_u64 ffic_microtime(void)
 		tv.tv_sec = (microseconds_since_1970 / (ffic_u64) 1000000);
 		tv.tv_usec = microseconds_since_1970 % (ffic_u64) 1000000;
 	}else{
-		if (!ffic_gettimeofday) ffic_gettimeofday = ffic_raw(0,"gettimeofday",0);
+		if (!ffic_gettimeofday) ffic_gettimeofday = (ffic_func) ffic_raw(0,"gettimeofday",0);
 		ffic_gettimeofday(&tv, 0);
 	}
 	return ((ffic_u64)tv.tv_sec*(ffic_u64)1000 + (((ffic_u64)tv.tv_usec)/(ffic_u64)1000)%(ffic_u64)1000);
@@ -183,11 +183,11 @@ ffic_ptr(*ffic(const char* libname, const char* funcname))()
 	ffic_ptr addr = 0;
 	if(libname && 'c'==*libname && 0==*(libname+1)) libname=0;
 	if(!libname){
-		if(!_ffic_os_sleep) _ffic_os_sleep = (ffic_os==ffic_os_win) ? ffic_raw("kernel32","Sleep",0) : ffic_raw(ffic_libcname,"usleep",0);
+		if(!_ffic_os_sleep) _ffic_os_sleep = (ffic_func)((ffic_os==ffic_os_win) ? ffic_raw("kernel32","Sleep",0) : ffic_raw(ffic_libcname,"usleep",0));
 		if(!strcmp("stderr",funcname) || !strcmp("2",funcname)){ return ffic_os_std(2); }
 		else if(!strcmp("stdout",funcname) || !strcmp("1",funcname)){ return ffic_os_std(1); }
 		else if(!strcmp("stdin",funcname) || !strcmp("0",funcname)){ return ffic_os_std(0); }
-		else if(!strcmp("microtime",funcname)){ return ffic_microtime; }
+		else if(!strcmp("microtime",funcname)){ return (ffic_ptr) ffic_microtime; }
 		else if(!strcmp("usleep",funcname)){ return ffic_usleep; }
 		else if(!strcmp("sleep",funcname)){ return ffic_sleep; }
 		else if(!strcmp("msleep",funcname)){ return ffic_msleep; }

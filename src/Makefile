@@ -15,14 +15,16 @@ osx:
 	#make tcc
 	#cd ../tinyccbinary/ && make clean && ./configure && make && make libtcc.osx && ./configure --cc=./tcc && make && make cross-x86_64-osx
 	#${CC} -E ffic.c -I. -I../tinyccbinary/ | sed 's/^#.*//g' | sed "/^$$/d" > ffic_osx.pp.c
-	../tinyccbinary/build.osx/tcc -DTCC_TARGET_X86_64 -DTCC_TARGET_MACHO -E ffic.c -I. -I../tinyccbinary/include -I../tinyccbinary/ | sed 's/^#.*//g' | sed "/^$$/d" > ffic_osx.pp.c
+	../tinyccbinary/build.osx/tcc -DTCC_TARGET_X86_64 -DTCC_TARGET_MACHO -E ffic.c -I. -I../tinyccbinary/include -I../tinyccbinary/ | sed 's/^#.*//g' | sed "/^$$/d" > ffic.osx.i
 	#${CC} ffic_osx.pp.c -L. -ldl -ltcc -o ffic_osx
 	#${CC} -DCONFIG_TCCDIR="\".\"" -DTCC_LIBTCC1="\"x86_64-osx-libtcc1.a\"" -L. ffic_osx.pp.c -ldl -ltcc -o ffic_osx
 	#../tinyccbinary/tcc -DTCC_TARGET_X86_64 -DTCC_TARGET_MACHO -DCONFIG_TCCDIR="\".\"" -DTCC_LIBTCC1="\"x86_64-osx-libtcc1.a\"" -L. ffic_osx.pp.c -ldl -ltcc -o ffic_osx
-	gcc -O1 -I ../tinyccbinary/build.osx/tcc -DTCC_TARGET_X86_64 -DTCC_TARGET_MACHO -DCONFIG_TCCDIR="\".\"" -DTCC_LIBTCC1="\"x86_64-osx-libtcc1.a\"" -L. ffic_osx.pp.c -ldl -ltcc -o ffic_osx
+	#gcc -O1 -I ../tinyccbinary/build.osx/tcc -DTCC_TARGET_X86_64 -DTCC_TARGET_MACHO -DCONFIG_TCCDIR="\".\"" -DTCC_LIBTCC1="\"x86_64-osx-libtcc1.a\"" -L. ffic.osx.i -ldl -ltcc -o ffic_osx
+	gcc -O1 -I ../tinyccbinary/build.osx/tcc -DTCC_TARGET_X86_64 -DTCC_TARGET_MACHO -DCONFIG_TCCDIR="\".\"" -DTCC_LIBTCC1="\"x86_64-osx-libtcc1.a\"" -L. -Wl,-dead_strip ffic.osx.i -ldl -ltcc -o ffic_osx
 	#../tinyccbinary/tcc -DTCC_TARGET_X86_64 -DTCC_TARGET_MACHO -DCONFIG_TCCDIR="\".\"" -DTCC_LIBTCC1="\"x86_64-osx-libtcc1.a\"" -L. ffic_osx.pp.c -ldl -ltcc -o ffic_osx
 	#${CC} -DCONFIG_TCCDIR="\".\"" -DTCC_LIBTCC1="\"x86_64-osx-libtcc1.a\"" -L. -I ../tinycc -DONE_SOURCE=1 ffic.c -o ffic_static_osx
 	../tinyccbinary/build.osx/tcc -DTCC_TARGET_X86_64 -DTCC_TARGET_MACHO -DCONFIG_TCCDIR="\".\"" -DTCC_LIBTCC1="\"x86_64-osx-libtcc1.a\"" -L. -I../tinyccbinary -DONE_SOURCE=1 ffic.c -o ffic_static_osx
+	#gcc -DTCC_TARGET_X86_64 -DTCC_TARGET_MACHO -DCONFIG_TCCDIR="\".\"" -DTCC_LIBTCC1="\"x86_64-osx-libtcc1.a\"" -L. -I../tinyccbinary -DONE_SOURCE=1 -Wl,-dead_strip ffic.c -o ffic_static_osx_gcc_strip
 	ls -al ffic*
 	cat tests/42.c | ./ffic_osx
 	./ffic_osx tests/42.c
