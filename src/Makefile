@@ -39,6 +39,8 @@ osx:
 win:#build from osx...
 	cp tcc_osx/*-win32-libtcc1.a ./
 	rm ffic*.exe
+	sh tccwin32.sh -DONE_SOURCE=1 -I. ../tinycc/tcc.c -o tcc32.exe
+	sh tccwin64.sh -DONE_SOURCE=1 -I. ../tinycc/tcc.c -o tcc64.exe
 	sh tccwin32.sh ffic.c -o ffic32.exe
 	sh tccwin64.sh ffic.c -o ffic64.exe
 	sh tccwin32.sh -DONE_SOURCE=1 -I. ffic.c -o ffic_static_32.exe
