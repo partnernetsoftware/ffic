@@ -1,14 +1,48 @@
 //#include <GLFW/glfw3.h> 
-//#include "ffic.h"
+#ifdef FFIC
 typedef void* ffic_ptr;
 typedef ffic_ptr (__attribute__((__stdcall__)) *ffic_func)();
 extern ffic_func (*ffic())();
 extern ffic_func (*ffic_raw())();
+#else
+#include "ffic.h"
+#endif
 
+#define decl0(c,m) ffic_func m
+#define init0(c,m) m = (ffic_func) ffic(#c,#m)
 #define import0(c,m) ffic_func m = (ffic_func) ffic(#c,#m)
 #define import1(m,c,...) import0(c,m)
 #define import(m,...) import1(m,##__VA_ARGS__,c)
 
+//////////////////////////////////////////////  FFIC DECL
+//ffic_func c_printf;
+decl0(c,printf);
+decl0(libglfw,glfwInit);
+decl0(libglfw,glfwCreateWindow);
+decl0(libglfw,glfwMakeContextCurrent);
+decl0(libglfw,glfwWindowShouldClose);
+decl0(libglfw,glfwSwapBuffers);
+decl0(libglfw,glfwPollEvents);
+decl0(libglfw,glfwTerminate);
+decl0(libGL,glBegin);
+decl0(libGL,glColor3f);
+decl0(libGL,glVertex3f);
+decl0(libGL,glEnd);
+void ffic_init(){
+	init0(c,printf);
+	init0(libglfw,glfwInit);
+	init0(libglfw,glfwCreateWindow);
+	init0(libglfw,glfwMakeContextCurrent);
+	init0(libglfw,glfwWindowShouldClose);
+	init0(libglfw,glfwSwapBuffers);
+	init0(libglfw,glfwPollEvents);
+	init0(libglfw,glfwTerminate);
+	init0(libGL,glBegin);
+	init0(libGL,glColor3f);
+	init0(libGL,glVertex3f);
+	init0(libGL,glEnd);
+}
+//////////////////////////////////////////////  FFIC DECL
 #define dump_d(x) printf("%s=%d\n", #x, x)
 #define dump_ld(x) printf("%s=%ld\n", #x, x)
 #define dump_s(x) printf("%s=%s\n", #x, x)
@@ -23,21 +57,10 @@ typedef void GLFWwindow;
 //tcc -run osxgl.c
 int main(int argc, char ** argv)
 {
-	import0(c,printf);
-	import0(libglfw,glfwInit);
-	dump_d(glfwInit);
-	import0(libglfw,glfwCreateWindow);
-	dump_d(glfwCreateWindow);
-	import0(libglfw,glfwMakeContextCurrent);
-	import0(libglfw,glfwWindowShouldClose);
-	import0(libglfw,glfwSwapBuffers);
-	import0(libglfw,glfwPollEvents);
-	import0(libglfw,glfwTerminate);
+	ffic_init();//
 
-	import0(libGL,glBegin);
-	import0(libGL,glColor3f);
-	import0(libGL,glVertex3f);
-	import0(libGL,glEnd);
+	dump_d(glfwInit);
+	dump_d(glfwCreateWindow);
 
 	GLFWwindow* window;
 
