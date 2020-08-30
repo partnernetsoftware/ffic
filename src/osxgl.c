@@ -8,7 +8,7 @@ extern ffic_func (*ffic_raw())();
 #include "ffic.h"
 #endif
 
-#define decl0(c,m) ffic_func m
+#define decl0(c,m) static ffic_func m
 #define init0(c,m) m = (ffic_func) ffic(#c,#m)
 #define import0(c,m) ffic_func m = (ffic_func) ffic(#c,#m)
 #define import1(m,c,...) import0(c,m)
@@ -16,7 +16,7 @@ extern ffic_func (*ffic_raw())();
 
 //////////////////////////////////////////////  FFIC DECL
 //ffic_func c_printf;
-decl0(c,printf);
+//decl0(c,printf);
 decl0(libglfw,glfwInit);
 decl0(libglfw,glfwCreateWindow);
 decl0(libglfw,glfwMakeContextCurrent);
@@ -29,7 +29,7 @@ decl0(libGL,glColor3f);
 decl0(libGL,glVertex3f);
 decl0(libGL,glEnd);
 void ffic_init(){
-	init0(c,printf);
+	//init0(c,printf);
 	init0(libglfw,glfwInit);
 	init0(libglfw,glfwCreateWindow);
 	init0(libglfw,glfwMakeContextCurrent);
@@ -58,6 +58,8 @@ typedef void GLFWwindow;
 int main(int argc, char ** argv)
 {
 	ffic_init();//
+	//import0(c,printf);
+	import(printf);
 
 	dump_d(glfwInit);
 	dump_d(glfwCreateWindow);
@@ -82,7 +84,7 @@ int main(int argc, char ** argv)
 	/* Loop until the user closes the window */
 	while (!glfwWindowShouldClose(window))
 	{
-		/* Draw a triangle */
+		/* Draw a triangle ??? */
 		glBegin(GL_TRIANGLES);
 
 		glColor3f(1.0, 0.0, 0.0);    // Red
