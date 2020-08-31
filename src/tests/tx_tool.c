@@ -46,12 +46,13 @@ typedef unsigned char uint8_t;
 //	cas_printf_lock = 0;//reset
 //}
 
-ffic_func fprintf;
-ffic_ptr stderr;
-ffic_ptr stdout;
-ffic_ptr stdin;
-ffic_func fflush;
-ffic_func_i strlen;
+//#define decl0(c,m) static ffic_func m
+#define decl0(c,m) ffic_func c##_##m
+#define init0(c,m) c##_##m = (ffic_func) ffic(#c,#m)
+#define import0(c,m) ffic_func m = (ffic_func) ffic(#c,#m)
+#define import1(m,c,...) import0(c,m)
+#define import(m,...) import1(m,##__VA_ARGS__,c)
+
 ffic_func calloc;
 ffic_func c_printf;
 ffic_func free;
@@ -89,24 +90,46 @@ typedef long LONG;
 #define LPVOID ffic_ptr
 #define PEXCEPTION_POINTERS ffic_ptr
 
+//# define libc(f) ffic(0,#f)
+
+//TODO pile macro
+ffic_ptr stderr;
+ffic_ptr stdout;
+ffic_ptr stdin;
+decl0(c,stdin);//c_stdin
+decl0(c,stdout);//c_stdout
+decl0(c,stderr);//c_stderr
+decl0(c,fprintf);//c_fprintf
+decl0(c,fflush);//c_fflush
+decl0(c,printf);//c_printf
+decl0(c,strcmp);
+ffic_func_i c_strlen;
 void tx_ffic(){
-	c_printf = (ffic_func) ffic(0,"printf");
-	c_printf("c_printf=%d\n",c_printf);
-	c_strcmp = (ffic_func) ffic(0,"strcmp");
+	init0(c,stdin);
+	init0(c,stdout);
+	init0(c,stderr);
+	init0(c,fprintf);
+	init0(c,fflush);
+	init0(c,printf);
+	init0(c,strcmp);
+	c_strlen = (ffic_func_i) ffic("c","strlen");;//c_strlen
+
+	c_fprintf(c_stderr,"tx_ffic()");
+	c_fflush(c_stderr);
 }
 
 int tx_output(int f,char* timestamp,char* out,char* err){
 	char* txt = (f>=0) ? out : err;
 
-	fprintf(stderr, "# %s %s %s\n",timestamp,out,err);
-	fflush(stderr);
+	c_fprintf(stderr, "# %s %s %s\n",timestamp,out,err);
+	c_fflush(stderr);
 
-	int len = strlen(txt);
+	int len = c_strlen(txt);
 	char * txt_base64= calloc(4*len, sizeof(char));//calloc() auto init
-	b64_encode(txt,strlen(txt),txt_base64);
+	b64_encode(txt,c_strlen(txt),txt_base64);
 	//cas_printf("[\"%s\",\"%s\",\"%s\"]\n",timestamp,(f>=0)?"OK":"KO",txt_base64);
 	c_printf("[\"%s\",\"%s\",\"%s\"]\n",timestamp,(f>=0)?"OK":"KO",txt_base64);
-	fflush (stdout);
+	c_fflush (stdout);
 	free(txt_base64);
 	return f;
 }
@@ -124,11 +147,11 @@ int tx_split(char* line,char** argv){
 }
 
 int tx_unknown(char** argv, int argc, char* timestamp){
-	fprintf(stderr,"# timestamp=%s ",timestamp);
+	c_fprintf(stderr,"# timestamp=%s ",timestamp);
 	for(int i=0;i<argc;i++){
-		fprintf(stderr,"%s ",argv[i]);
+		c_fprintf(stderr,"%s ",argv[i]);
 	}
-	fprintf(stderr,"\n");
+	c_fprintf(stderr,"\n");
 
 	tx_output(0,timestamp,"wrong cmd","");
 	return 0;
@@ -160,7 +183,7 @@ int tx_read_config(char* str){
 	FILE *fp;
 	fp = (FILE*) fopen("config.txt" , "r");
 	if(fp == NULL) {
-		fprintf(stderr,"# Error opening config file");
+		c_fprintf(stderr,"# Error opening config file");
 		return(-1);
 	}
 	fgets (str, 1024, fp);
@@ -174,7 +197,7 @@ int tx_login(char** argv, int argc, char* timestamp){
 
 	char str[512] = {0};
 	tx_read_config(str);
-	fprintf(stderr,"# Loaded config.txt\n");
+	c_fprintf(stderr,"# Loaded config.txt\n");
 
 	char* str_a[24];//
 	tx_split(str, str_a);
@@ -198,7 +221,7 @@ int tx_login(char** argv, int argc, char* timestamp){
 	strcpy(m_sTradeAccount[1], str_a[10]);
 
 	char szErrInfo[512];
-	fprintf(stderr,"# Logon START\n");
+	c_fprintf(stderr,"# Logon START\n");
 	nClientID = (int) Logon(m_nQsid,
 			m_sHost,
 			m_nPort,
@@ -211,10 +234,10 @@ int tx_login(char** argv, int argc, char* timestamp){
 			m_sTxPassword,
 			szErrInfo);
 	if(nClientID < 0){
-		fprintf(stderr,"# Logon KO %s\n",szErrInfo);
+		c_fprintf(stderr,"# Logon KO %s\n",szErrInfo);
 		tx_flag_quit = 1;
 	}else{
-		fprintf(stderr,"# Logon OK %d\n",nClientID);
+		c_fprintf(stderr,"# Logon OK %d\n",nClientID);
 	}
 	return 0;
 }
@@ -240,7 +263,7 @@ int tx_pc(char** argv, int argc, char* timestamp){
 
 //1 sh, 0 sz
 int tx_market(char* pszZqdm){
-	if (strlen(pszZqdm)>2 && (
+	if (c_strlen(pszZqdm)>2 && (
 				pszZqdm[0]=='6' && pszZqdm[1]=='0' && (pszZqdm[2]=='0' || pszZqdm[2]=='1')
 				|| //204--- for SH GuoZhai
 				pszZqdm[0]=='2' && pszZqdm[1]=='0' && pszZqdm[2]=='4'
@@ -257,7 +280,7 @@ int tx_quote(char** argv, int argc, char* timestamp){
 	long offset = atol(timestamp)>0?1:0;
 	if(argc-offset<1){
 		char * usage = "quote $stock\n";
-		fprintf(stderr,usage);
+		c_fprintf(stderr,usage);
 		tx_output(-1,timestamp,"",usage);
 		return 0;
 	}
@@ -275,7 +298,7 @@ int hq_bars(char** argv, int argc, char* timestamp){
 	long offset = atol(timestamp)>0?1:0;
 
 	if(argc-offset<2){
-		fprintf(stderr,"hq $stock $type $line $market\n");
+		c_fprintf(stderr,"hq $stock $type $line $market\n");
 		tx_output(-1,timestamp,"","hq $stock $type $line $market");
 		return 0;
 	}
@@ -365,7 +388,7 @@ int hq_conn(char** argv, int argc, char* timestamp){
 
 	if(argc-offset<2){
 		char * hq_usage = "conn $hq_server $hq_port\n";
-		fprintf(stderr,hq_usage);
+		c_fprintf(stderr,hq_usage);
 		tx_output(-1,timestamp,"",hq_usage);
 		return 0;
 	}
@@ -379,14 +402,14 @@ int hq_conn(char** argv, int argc, char* timestamp){
 		nPort = atol(argv[2+offset]);
 	}
 
-	fprintf(stderr,"# HQ CONN START %s :%d\n", pszHqSvrIP,nPort);
+	c_fprintf(stderr,"# HQ CONN START %s :%d\n", pszHqSvrIP,nPort);
 
 	nConn = TdxHq_Connect(pszHqSvrIP, nPort, szResult, szErrInfo);
 	if (nConn < 0) {
-		fprintf(stderr,"# HQ CONN KO %s\n",szErrInfo);
+		c_fprintf(stderr,"# HQ CONN KO %s\n",szErrInfo);
 		tx_flag_quit = 1;
 	} else {
-		fprintf(stderr,"# HQ CONN OK\n");
+		c_fprintf(stderr,"# HQ CONN OK\n");
 	}
 	free(szResult);
 	free(szErrInfo);
@@ -396,12 +419,12 @@ int hq_conn(char** argv, int argc, char* timestamp){
 int tx_cancel_order(char** argv, int argc, char* timestamp){
 	long offset = atol(timestamp)>0?1:0;
 	const char* usage = "# cancel $order_id\n";
-	if(argc<2){ fprintf(stderr,usage); return 0; }
+	if(argc<2){ c_fprintf(stderr,usage); return 0; }
 
 	char nMarket = 0;
 	for(int i=1;i<argc;i++){
 		char* pszHth = argv[i+offset];
-		fprintf(stderr,"# CancelOrder %s\n",pszHth);
+		c_fprintf(stderr,"# CancelOrder %s\n",pszHth);
 		char * szErrInfo = calloc(1024,sizeof(char));
 		char * szResult = calloc(1024,sizeof(char));
 		int f = CancelOrder(
@@ -420,7 +443,7 @@ int tx_cancel_order(char** argv, int argc, char* timestamp){
 int tx_order(char** argv, int argc, char* timestamp){
 	const char* usage = "# play \"$StockCode\" +/-$amount $price\n";
 	if(argc<4){
-		fprintf(stderr,usage);
+		c_fprintf(stderr,usage);
 		return 0;
 	}
 	long offset = atol(timestamp)>0?1:0;
@@ -441,7 +464,7 @@ int tx_order(char** argv, int argc, char* timestamp){
 		tx_output(-1,timestamp,"","too much");
 		return 0;
 	}
-	fprintf(stderr,"# SendOrder %f %d (%f) \"%s\"\n",fPrice,nQuantity,total,pszZqdm);
+	c_fprintf(stderr,"# SendOrder %f %d (%f) \"%s\"\n",fPrice,nQuantity,total,pszZqdm);
 
 	char * szErrInfo = calloc(1024,sizeof(char));
 	char * szResult = calloc(1024,sizeof(char));
@@ -463,15 +486,15 @@ int tx_order(char** argv, int argc, char* timestamp){
 
 int tx_init(){
 	char szErrInfo[1024];
-	fprintf(stderr,"# OpenTdx START\n");
+	c_fprintf(stderr,"# OpenTdx START\n");
 	char* pszClientVersion = "9.40";
 	char nCliType = 12;
 	char nVipTermFlag = 0;
 	if (OpenTdx(14, pszClientVersion, nCliType, nVipTermFlag, szErrInfo) < 0) {
-		fprintf(stderr,"# OpenTdx KO %s\n",szErrInfo);
+		c_fprintf(stderr,"# OpenTdx KO %s\n",szErrInfo);
 		tx_flag_quit = 1;
 	} else {
-		fprintf(stderr,"# OpenTdx OK\n");
+		c_fprintf(stderr,"# OpenTdx OK\n");
 	}
 	return 0;
 }
@@ -534,7 +557,7 @@ void tx_thread(LPTHREAD_START_ROUTINE func, char* line){
 
 int tx_call(char* cmd,char** argv,int argc, char* timestamp){
 	int rt = tx_type_get(tx_a,cmd)(argv,argc,timestamp);
-	fflush(stderr);
+	c_fflush(stderr);
 	return rt;
 }
 
@@ -551,8 +574,8 @@ DWORD WINAPI handle_request(LPVOID lpParameter)
 		strcpy(timestamp, argv[0]);
 		char* cmd = argv[0];
 		if(0==c_strcmp(cmd,"#")){
-			fprintf(stderr, "# COMMENT %s\n",line_out);
-			fflush (stderr);
+			c_fprintf(stderr, "# COMMENT %s\n",line_out);
+			c_fflush (stderr);
 			return 0;
 		}else if(atol(cmd)>0){
 			if(argc>1){
@@ -581,7 +604,7 @@ DWORD WINAPI handle_stdin(LPVOID lpParameter)
 
 //@usage: SetUnhandledExceptionFilter(MyUnhandledExceptionFilter);
 LONG WINAPI MyUnhandledExceptionFilter(PEXCEPTION_POINTERS pExceptionPtrs){
-	fprintf(stderr,"# MyUnhandledExceptionFilter()\n");
+	c_fprintf(stderr,"# MyUnhandledExceptionFilter()\n");
 	CloseTdx();
 	return 0;
 }

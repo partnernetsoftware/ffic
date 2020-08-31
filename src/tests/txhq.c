@@ -9,8 +9,8 @@
 
 //or check from "connect.cfg" of the software by broker !!!
 
-..\ffic_static_32.exe txhq.c
-..\tcc32 -I.. -L.. -run txhq.c
+//..\ffic_static_32.exe txhq.c
+//..\tcc32 -I.. -L.. -run txhq.c
 void main(int argc,char* argv[]) {
 
 	tx_ffic();
@@ -35,16 +35,16 @@ void main(int argc,char* argv[]) {
 			int count = hq_check_conn(NULL,0,NULL);
 			if( count<=0 ){
 				tx_flag_quit = 1;
-				fprintf(stderr,"# quit for count %d\n", count);
+				c_fprintf(stderr,"# quit for count %d\n", count);
 			}else{
-				//fprintf(stderr,"# count %d\n", count);
-				fprintf(stderr,".");
+				//c_fprintf(stderr,"# count %d\n", count);
+				c_fprintf(stderr,".");
 			}
-			fflush(stderr);
+			c_fflush(stderr);
 		}
 	}
-	fprintf(stderr,"# exit\n");
-	fflush(stderr);
+	c_fprintf(stderr,"# exit\n");
+	c_fflush(stderr);
 }
 
 
