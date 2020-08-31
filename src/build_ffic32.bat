@@ -16,6 +16,6 @@ ffic32.exe tests\win.c
 
 %CC% %INC% -DONE_SOURCE=1 ffic.c -o ffic_static_32.exe
 
-upx -f -o ffic_static_upx_32.exe ffic_static_32.exe 
+tools\upx -f -o ffic_static_upx_32.exe ffic_static_32.exe 
 
 dir ffic*.exe

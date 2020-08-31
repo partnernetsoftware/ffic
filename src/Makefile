@@ -33,7 +33,7 @@ osx:
 	${CC} ffic_static_osx.i -o ffic_static_osx
 	#gcc -DTCC_TARGET_X86_64 -DTCC_TARGET_MACHO -DCONFIG_TCCDIR="\".\"" -DTCC_LIBTCC1="\"x86_64-osx-libtcc1.a\"" -I../tinycc -I. -DONE_SOURCE=1 -E ffic.c > ffic_static_osx_gcc.i
 	#gcc -Wl,-dead_strip ffic_static_osx_gcc.i -o ffic_static_osx_gcc
-	./upx -f -o ffic_static_osx_gcc_upx ffic_static_osx_gcc
+	tools/upx -f -o ffic_static_osx_gcc_upx ffic_static_osx_gcc
 	ls -al ffic*
 	make test-osx
 win:#build from osx...
@@ -45,8 +45,8 @@ win:#build from osx...
 	sh tccwin64.sh ffic.c -o ffic64.exe
 	sh tccwin32.sh -DONE_SOURCE=1 -I. ffic.c -o ffic_static_32.exe
 	sh tccwin64.sh -DONE_SOURCE=1 -I. ffic.c -o ffic_static_64.exe
-	./upx -f -o ffic_static_upx_32.exe ffic_static_32.exe
-	./upx -f -o ffic_static_upx_64.exe ffic_static_64.exe
+	tools/upx -f -o ffic_static_upx_32.exe ffic_static_32.exe
+	tools/upx -f -o ffic_static_upx_64.exe ffic_static_64.exe
 	ls -al *.exe
 test:
 	cat tests/42.c | ./ffic
@@ -76,8 +76,7 @@ osx_sao:
 	rm -f sao_osx_upx
 	make pp_sao
 	${CC} sao.osx.pp.c -L. -o sao_osx
-	upx sao_osx -osao_osx_upx
-	#./upx_osx ./sao_osx
+	tools/upx sao_osx -osao_osx_upx
 	make test_sao_osx
 	ls -al sao*
 play:
