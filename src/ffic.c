@@ -24,6 +24,9 @@ int main(int argc, char **argv, char **envp){
 	tcc(tcc_set_output_type)(tcc_ptr, 1/*TCC_OUTPUT_MEMORY*/);
 	tcc(tcc_define_symbol)(tcc_ptr, "FFIC", "2");//for .c using ffic.h
 	tcc(tcc_set_options)(tcc_ptr, "-L.");//find .a from current by default
+	tcc(tcc_set_options)(tcc_ptr, "-Llib");//find .a from current by default
+	tcc(tcc_set_options)(tcc_ptr, "-L..");//then ..
+	tcc(tcc_set_options)(tcc_ptr, "-I..");//Include
 	tcc(tcc_set_options)(tcc_ptr, "-DCONFIG_LDDIR=\".\"");//find .a from current by default
 #ifdef _WIN32
 	tcc(tcc_set_options)(tcc_ptr, "-D_WIN32");
@@ -54,13 +57,17 @@ int main(int argc, char **argv, char **envp){
 	//	tcc(tcc_add_symbol)(tcc_ptr, "ffic_compile", tcc(tcc_compile_string));
 
 	tcc(tcc_add_file)(tcc_ptr,(argc>1) ? argv[1] : "-");
-
 	if (tcc(tcc_relocate)(tcc_ptr, (void*)1/*TCC_RELOCATE_AUTO*/) < 0) return 2;
 
 	//int (*entry)() = tcc(tcc_get_symbol)(tcc_ptr, "main");
+
 	ffic_func_i entry = tcc(tcc_get_symbol)(tcc_ptr, "main");
 	if (!entry) { return 3; }
 	int rt = entry(argc>1?argc-1:argc,argc>1?(argv+1):argv);
+
+	//int rt = tcc(tcc_run)(tcc_ptr, argc>1?argc-1:argc,argc>1?(argv+1):argv);
+	//int rt = tcc(tcc_run)(tcc_ptr, argc, argv);
+
 	tcc(tcc_delete)(tcc_ptr);
 	return rt;
 }
