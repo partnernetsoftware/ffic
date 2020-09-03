@@ -62,6 +62,8 @@ typedef long LONG;
 #define $use(c,m,t) (t) ffic(#c,#m)
 #define $import(c,m,n,t) $decl(t,n) = $use(c,m,t)
 #define $dump(v,t) c_printf(#v "=%" #t "\n",v)
+#define $link(n,c,m) n = $use(c,m,typeof(n))
+#define $linkx(c,m) c##_##m = $use(c,m,typeof(c##_##m))
 
 $decl(c_stdin,ffic_ptr);
 $decl(c_stdout,ffic_ptr);
@@ -84,6 +86,7 @@ $decl(c_strlen,ffic_func_i);
 $decl(c_atol,ffic_func_l);
 $decl(c_atof,ffic_func_f);
 
+$decl(tdx2m_IsConnectOK,ffic_func_i);
 $decl(tdx2m_OpenTdx,ffic_func_i);
 $decl(tdx2m_CloseTdx,ffic_func_i);
 $decl(tdx2m_Logon,ffic_func_i);
@@ -100,9 +103,13 @@ $decl(CloseHandle,ffic_func);
 $decl(CreateThread,ffic_func);
 
 void tx_init(){
-	c_stdin = $use(c,stdin,ffic_ptr);
-	c_stdout = $use(c,stdout,ffic_ptr);
-	c_stderr = $use(c,stderr,ffic_ptr);
+	$linkx(c,stdin);
+	$linkx(c,stdout);
+	$linkx(c,stderr);
+
+	//c_stdin = $use(c,stdin,ffic_ptr);
+	//c_stdout = $use(c,stdout,ffic_ptr);
+	//c_stderr = $use(c,stderr,ffic_ptr);
 
 	c_printf = $use(c,printf,ffic_func);
 	c_fprintf = $use(c,fprintf,ffic_func);
@@ -121,6 +128,7 @@ void tx_init(){
 	c_atol = $use(c,atol,ffic_func_l);
 	c_atof = $use(c,atol,ffic_func_f);
 
+	tdx2m_IsConnectOK = $use(tdx2m,IsConnectOK,ffic_func_i);
 	tdx2m_OpenTdx = $use(tdx2m,OpenTdx,ffic_func_i);
 	tdx2m_CloseTdx = $use(tdx2m,CloseTdx,ffic_func_i);
 	tdx2m_Logon = $use(tdx2m,Logon,ffic_func_i);

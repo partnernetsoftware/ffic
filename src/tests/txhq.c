@@ -45,6 +45,13 @@
 
 void main(int argc,char* argv[]) {
 
+	//$decl(c_printf,ffic_func) = $use(c,printf,ffic_func);
+	//$dump(c_printf,d);
+	//ffic_ptr x;
+	//x = (typeof(x)) 0;
+	//$dump(x,d);
+	//return;
+
 	tx_init();
 	tx_a = tx_a_hq;
 	if(argc<2){

@@ -13,3 +13,5 @@ bin_win32
 src/tests/TradeX-M.ini
 src/tests/TradeX-M.lic
 tdx2m.dll
+system.uid
+config.txt
