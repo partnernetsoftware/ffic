@@ -1,24 +1,9 @@
 #ifndef TX_TOOL_C
 #define TX_TOOL_C
 
-//#include "tcclib.h"
 #include "ffic.h"
-//#include "TradeX.h"
-#define size_t int
-typedef unsigned char uint8_t;
-#include "base64.h"
 #include "base64.c"
 
-//#ifdef _WIN32
-//#include <windows.h>
-//#include <process.h>
-//
-//#define tx_sleep(t) Sleep(t);
-//#else
-//extern int usleep(int t);
-//#define tx_sleep(t) usleep(t);
-//#endif
-//#define tx_sleep(t) ffic_msleep(t);
 #define tx_sleep ffic(0,"msleep")
 
 #define tx_arr_len(a) (sizeof(a)/sizeof(a[0]))
@@ -61,6 +46,7 @@ typedef long LONG;
 #define $decl(n,t) t n
 #define $use(c,m,t) (t) ffic(#c,#m)
 #define $import(c,m,n,t) $decl(t,n) = $use(c,m,t)
+//#define $import(c,m,n,t) $decl(t,n) = $use(c,m,typeof(n))
 #define $dump(v,t) c_printf(#v "=%" #t "\n",v)
 #define $link(n,c,m) n = $use(c,m,typeof(n))
 #define $linkx(c,m) c##_##m = $use(c,m,typeof(c##_##m))

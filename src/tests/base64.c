@@ -1,31 +1,23 @@
-#include "base64.h"
+unsigned char charTable[64] = 
+"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
-uint8_t charTable[64] = 
-	"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+int b64_encodedLength(int length) { return (length + 2) / 3 * 4; }
 
-size_t b64_encodedLength(size_t length)
+int b64_decodedLength(int length) { return length * 3 / 4; }
+
+void b64_encodeFirstByte(unsigned char *src, unsigned char *dst)
 {
-	return (length + 2) / 3 * 4;
+	// 1st b64 char
+	*dst = charTable[(src[0] & 0xfc) >> 2]; 
+	dst++;
+
+	// 2nd
+	*dst = (src[0] & 0x03) << 4;
+	*dst |= (src[1] & 0xf0) >> 4;
+	*dst = charTable[*dst];
 }
 
-size_t b64_decodedLength(size_t length)
-{
-	return length * 3 / 4;
-}
-
-void b64_encodeFirstByte(uint8_t *src, uint8_t *dst)
-{
-		// 1st b64 char
-		*dst = charTable[(src[0] & 0xfc) >> 2]; 
-		dst++;
-
-		// 2nd
-		*dst = (src[0] & 0x03) << 4;
-		*dst |= (src[1] & 0xf0) >> 4;
-		*dst = charTable[*dst];
-}
-
-void b64_encode(uint8_t *src, size_t len, uint8_t *dst)
+void b64_encode(unsigned char *src, int len, unsigned char *dst)
 {
 	while(len >= 3)
 	{
@@ -74,85 +66,25 @@ void b64_encode(uint8_t *src, size_t len, uint8_t *dst)
 	}
 }
 
-uint8_t lookupB64(uint8_t c)
+unsigned char B64[256] = {0};
+unsigned char lookupB64(unsigned char c)
 {
-	switch(c)
-	{
-		default:
-		case 'A': return 0;
-		case 'B': return 1;
-		case 'C': return 2;
-		case 'D': return 3;
-		case 'E': return 4;
-		case 'F': return 5;
-		case 'G': return 6;
-		case 'H': return 7;
-		case 'I': return 8;
-		case 'J': return 9;
-		case 'K': return 10;
-		case 'L': return 11;
-		case 'M': return 12;
-		case 'N': return 13;
-		case 'O': return 14;
-		case 'P': return 15;
-		case 'Q': return 16;
-		case 'R': return 17;
-		case 'S': return 18;
-		case 'T': return 19;
-		case 'U': return 20;
-		case 'V': return 21;
-		case 'W': return 22;
-		case 'X': return 23;
-		case 'Y': return 24;
-		case 'Z': return 25;
-		case 'a': return 26;
-		case 'b': return 27;
-		case 'c': return 28;
-		case 'd': return 29;
-		case 'e': return 30;
-		case 'f': return 31;
-		case 'g': return 32;
-		case 'h': return 33;
-		case 'i': return 34;
-		case 'j': return 35;
-		case 'k': return 36;
-		case 'l': return 37;
-		case 'm': return 38;
-		case 'n': return 39;
-		case 'o': return 40;
-		case 'p': return 41;
-		case 'q': return 42;
-		case 'r': return 43;
-		case 's': return 44;
-		case 't': return 45;
-		case 'u': return 46;
-		case 'v': return 47;
-		case 'w': return 48;
-		case 'x': return 49;
-		case 'y': return 50;
-		case 'z': return 51;
-		case '0': return 52;
-		case '1': return 53;
-		case '2': return 54;
-		case '3': return 55;
-		case '4': return 56;
-		case '5': return 57;
-		case '6': return 58;
-		case '7': return 59;
-		case '8': return 60;
-		case '9': return 61;
-		case '+': return 62;
-		case '/': return 63;
+	static unsigned char * p_B64 = 0;
+	if(!p_B64){
+		unsigned char i=0;
+		while(charTable[i]!=0) B64[i]=i;
+		p_B64 = B64;
 	}
+	return B64[c];
 }
 
-void decode2(uint8_t *src, uint8_t *dst)
+void decode2(unsigned char *src, unsigned char *dst)
 {
 	*dst = lookupB64(src[0]) << 2;
 	*dst |= (lookupB64(src[1]) & 0x30) >> 4;
 }
 
-void decode3(uint8_t *src, uint8_t *dst)
+void decode3(unsigned char *src, unsigned char *dst)
 {
 	decode2(src, dst);
 	dst++;
@@ -161,7 +93,7 @@ void decode3(uint8_t *src, uint8_t *dst)
 	*dst |= (lookupB64(src[2]) & 0x3c) >> 2;
 }
 
-void decode4(uint8_t *src, uint8_t *dst)
+void decode4(unsigned char *src, unsigned char *dst)
 {
 	decode3(src, dst);
 	dst += 2;
@@ -170,9 +102,9 @@ void decode4(uint8_t *src, uint8_t *dst)
 	*dst |= lookupB64(src[3]);
 }
 
-size_t b64_decode(uint8_t *src, size_t len, uint8_t *dst)
+int b64_decode(unsigned char *src, int len, unsigned char *dst)
 {
-	size_t dstLength = 0;
+	int dstLength = 0;
 
 	while(len >= 5)
 	{
@@ -182,7 +114,7 @@ size_t b64_decode(uint8_t *src, size_t len, uint8_t *dst)
 		len -= 4;
 		dstLength += 3;
 	}
-	
+
 	if(len == 4)
 	{
 		if(src[3] != '=')
