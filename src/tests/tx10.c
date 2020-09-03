@@ -2,7 +2,8 @@
 #include "tx_tool.c"
 int main(int argc, char *argv[]) {
 
-	tx_call("init",argv,argc,NULL);
+	//tx_call("init",argv,argc,NULL);
+	tx_call("start",argv,argc,NULL);
 	tx_call("login",NULL,0,NULL);
 
 	if(tx_flag_quit==0){
