@@ -13,44 +13,7 @@
 //..\ffic_static_32.exe txhq.c
 //..\tcc32 -I.. -L.. -run txhq.c
 
-//typedef char* ffic_string;
-//typedef void* ffic_ptr;
-//typedef struct {
-//	ffic_string c;
-//	ffic_string m;
-//	ffic_ptr f;
-//} ffic_def;
-
-//struct {
-//	struct {
-//		ffic_func printf;
-//	} c;
-//} lib;
-
-//struct {
-//	ffic_func printf;
-//} $c;
-
-//static struct _c {
-//};
-
-//extern int write (int fd, void *buf, int len);
-//static void __attribute__ ((constructor))
-//testc (void) {
-//	c_printf = $use(c,printf,ffic_func);
-//	//write (1, "constructor\n", 12);
-//}
-//static void __attribute__ ((destructor))
-//testd (void) { write (1, "destructor\n", 11); }
-
 void main(int argc,char* argv[]) {
-
-	//$decl(c_printf,ffic_func) = $use(c,printf,ffic_func);
-	//$dump(c_printf,d);
-	//ffic_ptr x;
-	//x = (typeof(x)) 0;
-	//$dump(x,d);
-	//return;
 
 	tx_init();
 	tx_a = tx_a_hq;
@@ -60,9 +23,7 @@ void main(int argc,char* argv[]) {
 		argv = argv_;
 		argc = tx_arr_len(argv_);
 	}
-
 	tx_call("conn",argv,argc,NULL);
-
 	tx_thread(&handle_stdin,0);
 
 	//long c = 0;

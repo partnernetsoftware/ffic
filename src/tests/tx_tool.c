@@ -62,6 +62,7 @@ $decl(c_fflush,ffic_func);
 $decl(c_calloc,ffic_func);
 $decl(c_strtok,ffic_func);
 $decl(c_strcpy,ffic_func);
+$decl(c_memset,ffic_func);
 $decl(c_free,ffic_func);
 $decl(c_fopen,ffic_func);
 $decl(c_fgets,ffic_func);
@@ -104,6 +105,7 @@ void tx_init(){
 	c_calloc = $use(c,calloc,ffic_func);
 	c_strtok = $use(c,strtok,ffic_func);
 	c_strcpy = $use(c,strcpy,ffic_func);
+	c_memset = $use(c,memset,ffic_func);
 	c_free = $use(c,free,ffic_func);
 	c_fopen = $use(c,fopen,ffic_func);
 	c_fclose = $use(c,fclose,ffic_func);
@@ -333,11 +335,15 @@ int hq_bars(char** argv, int argc, char* timestamp){
 
 	int nMarket = tx_market( pszZqdm );
 
+	//char szResult2[nCount*1024];
+	//c_memset(szResult2, '\0', nCount*1024);
+	//int f = tdx2m_TdxHq_GetSecurityBars(nConn, nCategory, nMarket, pszZqdm, 0, &nCount, &szResult2, szErrInfo);
+	//tx_output(f,timestamp,szResult2,szErrInfo);
+
 	char * szResult = c_calloc(1024*nCount,sizeof(char));
 	int f = tdx2m_TdxHq_GetSecurityBars(nConn, nCategory, nMarket, pszZqdm, 0, &nCount, szResult, szErrInfo);
 	tx_output(f,timestamp,szResult,szErrInfo);
 	c_free(szResult);
-
 	c_free(szErrInfo);
 	return 0;
 }
