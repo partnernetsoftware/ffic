@@ -4,9 +4,8 @@ int main(int argc, char *argv[]) {
 
 	tx_init();
 
-	//tx_call("init",argv,argc,NULL);
-	tx_call("start",argv,argc,NULL);
-	tx_call("login",NULL,0,NULL);
+	tx_call("start",argv,argc,0);
+	tx_call("login",0,0,0);
 
 	if(tx_flag_quit==0){
 		tx_thread(&handle_stdin,0);
@@ -22,7 +21,7 @@ int main(int argc, char *argv[]) {
 		}
 	}
 
-	tx_call("exit",NULL,0,NULL);
+	tx_call("exit",0,0,0);
 
 	return 0;
 }
