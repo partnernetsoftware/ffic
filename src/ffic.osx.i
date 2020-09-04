@@ -112,7 +112,11 @@ int main(int argc, char **argv, char **envp){
 	ffic_ptr tcc_ptr = ffic("libtcc","tcc_new")();
 	ffic("libtcc","tcc_set_output_type")(tcc_ptr, 1 );
 	ffic("libtcc","tcc_define_symbol")(tcc_ptr, "FFIC", "2");
+	ffic("libtcc","tcc_set_options")(tcc_ptr, "-Llib");
 	ffic("libtcc","tcc_set_options")(tcc_ptr, "-L.");
+	ffic("libtcc","tcc_set_options")(tcc_ptr, "-L..");
+	ffic("libtcc","tcc_set_options")(tcc_ptr, "-I.");
+	ffic("libtcc","tcc_set_options")(tcc_ptr, "-I..");
 	ffic("libtcc","tcc_set_options")(tcc_ptr, "-DCONFIG_LDDIR=\".\"");
 	if(0==ffic("libtcc","tcc_get_symbol")(tcc_ptr, "ffic_core"))
 		ffic("libtcc","tcc_add_symbol")(tcc_ptr, "ffic_core", ffic_core);
@@ -121,10 +125,7 @@ int main(int argc, char **argv, char **envp){
 	if(0==ffic("libtcc","tcc_get_symbol")(tcc_ptr, "ffic"))
 		ffic("libtcc","tcc_add_symbol")(tcc_ptr, "ffic", ffic);
 	ffic("libtcc","tcc_add_file")(tcc_ptr,(argc>1) ? argv[1] : "-");
-	if (ffic("libtcc","tcc_relocate")(tcc_ptr, (void*)1 ) < 0) return 2;
-	ffic_func_i entry = ffic("libtcc","tcc_get_symbol")(tcc_ptr, "main");
-	if (!entry) { return 3; }
-	int rt = entry(argc>1?argc-1:argc,argc>1?(argv+1):argv);
+	int rt = ((ffic_func_i)ffic("libtcc","tcc_run"))(tcc_ptr, argc>1?argc-1:argc,argc>1?(argv+1):argv);
 	ffic("libtcc","tcc_delete")(tcc_ptr);
 	return rt;
 }
