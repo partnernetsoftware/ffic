@@ -4,43 +4,6 @@
 #include "ffic.h"
 #include "base64.c"
 
-#define tx_sleep ffic(0,"msleep")
-
-#define tx_arr_len(a) (sizeof(a)/sizeof(a[0]))
-
-// Note: sete sets a ’byte’ not the word
-//char tx_cas(int *ptr, int old, int new) {
-//	unsigned char ret;
-//	__asm__ __volatile__ (
-//			" lock\n"
-//			" cmpxchgl %2,%1\n"
-//			" sete %0\n"
-//			: "=q" (ret), "=m" (*ptr)
-//			: "r" (new), "m" (*ptr), "a" (old)
-//			: "memory");
-//	return ret;
-//}
-
-//int cas_printf_lock = 0;
-//int cas_printf(char *format, ...){
-//	for(int i=0;i<3;i++){if(!tx_cas(&cas_printf_lock, 0, 1)){tx_sleep(1000);printf("CAS");}else break;}
-//	va_list args;
-//	va_start (args, format);
-//	vprintf(format, args);
-//	va_end (args);
-//	cas_printf_lock = 0;//reset
-//}
-
-#define NULL ((void*)0)
-#define FILE void
-typedef unsigned long DWORD;
-typedef long LONG;
-#define HANDLE ffic_ptr
-#define LPTHREAD_START_ROUTINE ffic_ptr
-#define WINAPI
-#define LPVOID ffic_ptr
-#define PEXCEPTION_POINTERS ffic_ptr
-
 ///////////////////////////////////////////////////////////////////////
 //TODO merge as line-def mode
 #define $decl(n,t) t n
@@ -50,6 +13,8 @@ typedef long LONG;
 #define $dump(v,t) c_printf(#v "=%" #t "\n",v)
 #define $link(n,c,m) n = $use(c,m,typeof(n))
 #define $linkx(c,m) c##_##m = $use(c,m,typeof(c##_##m))
+
+$decl(tx_sleep,ffic_func);
 
 $decl(c_stdin,ffic_ptr);
 $decl(c_stdout,ffic_ptr);
@@ -98,6 +63,8 @@ void tx_init(){
 	//c_stdout = $use(c,stdout,ffic_ptr);
 	//c_stderr = $use(c,stderr,ffic_ptr);
 
+	tx_sleep = $use(c,msleep,ffic_func);
+	
 	c_printf = $use(c,printf,ffic_func);
 	c_fprintf = $use(c,fprintf,ffic_func);
 	c_sprintf = $use(c,sprintf,ffic_func);
@@ -155,9 +122,9 @@ int tx_split(char* line,char** argv){
 	char* pch;
 	const char * DLM = " \t\r\n";
 	pch = c_strtok(line,DLM);
-	while (pch != NULL) {
+	while (pch) {
 		argv[c++] = pch;
-		pch = c_strtok(NULL,DLM);
+		pch = c_strtok(0,DLM);
 	}
 	return c;
 }
@@ -182,7 +149,7 @@ struct _tx_method_desc {
 tx_func tx_type_get(tx_method_desc * self, const char* name)
 {
 	tx_method_desc * fn = self;
-	while(fn->fp!=NULL){
+	while(fn->fp){
 		if(0==c_strcmp(fn->name,name)) {
 			return fn->fp;
 		}
@@ -196,9 +163,9 @@ int nClientID = -1;
 char m_sTradeAccount[2][16] = {"",""};
 
 int tx_read_config(char* str){
-	FILE *fp;
-	fp = (FILE*) c_fopen("config.txt" , "r");
-	if(fp == NULL) {
+	ffic_ptr fp;
+	fp = c_fopen("config.txt" , "r");
+	if(!fp) {
 		c_fprintf(c_stderr,"# Error opening config file");
 		return(-1);
 	}
@@ -535,7 +502,7 @@ tx_method_desc tx_a_hq[] = {
 
 	"quit",    tx_quit,
 	"q",       tx_quit,
-	"",        NULL
+	"",        0
 };
 
 //TODO order list
@@ -564,7 +531,7 @@ tx_method_desc tx_a_tx[] = {
 	"q",       tx_quit,
 
 	"exit",    tx_exit,
-	"",        NULL
+	"",        0
 };
 
 tx_method_desc * tx_a = tx_a_tx;
@@ -573,12 +540,12 @@ int tx_call(char* cmd,char** argv,int argc, char* timestamp){
 	return tx_type_get(tx_a,cmd)(argv,argc,timestamp);
 }
 
-void tx_thread(LPTHREAD_START_ROUTINE func, char* line){
-	DWORD tid;
-	CloseHandle(CreateThread(NULL,1024,func,line,0,&tid));
+void tx_thread(ffic_ptr func, char* line){
+	unsigned long tid;
+	CloseHandle(CreateThread(0,1024,func,line,0,&tid));
 }
 
-DWORD WINAPI handle_request(LPVOID lpParameter)
+unsigned long handle_request(ffic_ptr lpParameter)
 {
 	char* argv[30];
 	char line[1024];
@@ -605,14 +572,13 @@ DWORD WINAPI handle_request(LPVOID lpParameter)
 	return 0;
 }
 
-DWORD WINAPI handle_stdin(LPVOID lpParameter)
+unsigned long handle_stdin(ffic_ptr lpParameter)
 {
 	while(!tx_flag_quit){
 		int len = 1024;
 		char line[len];
 		c_fgets(line,len,c_stdin);
-		if( NULL==line ) {
-		}else{
+		if( line ) {
 			tx_thread(&handle_request,line);
 		}
 	}
@@ -620,12 +586,13 @@ DWORD WINAPI handle_stdin(LPVOID lpParameter)
 	return 0;
 }
 
+//@ref  __attribute__((dllimport)) LPTOP_LEVEL_EXCEPTION_FILTER __attribute__((__stdcall__)) SetUnhandledExceptionFilter(LPTOP_LEVEL_EXCEPTION_FILTER lpTopLevelExceptionFilter);
 //@usage: SetUnhandledExceptionFilter(MyUnhandledExceptionFilter);
-LONG WINAPI MyUnhandledExceptionFilter(PEXCEPTION_POINTERS pExceptionPtrs){
-	c_fprintf(c_stderr,"# MyUnhandledExceptionFilter()\n");
-	tdx2m_CloseTdx();
-	return 0;
-}
+//long MyUnhandledExceptionFilter(ffic_ptr pExceptionPtrs){
+//	c_fprintf(c_stderr,"# MyUnhandledExceptionFilter()\n");
+//	tdx2m_CloseTdx();
+//	return 0;
+//}
 
 #endif
 

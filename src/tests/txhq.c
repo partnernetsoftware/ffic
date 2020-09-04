@@ -13,6 +13,8 @@
 //..\ffic_static_32.exe txhq.c
 //..\tcc32 -I.. -L.. -run txhq.c
 
+#define tx_arr_len(a) (sizeof(a)/sizeof(a[0]))
+
 void main(int argc,char* argv[]) {
 
 	tx_init();
@@ -23,14 +25,14 @@ void main(int argc,char* argv[]) {
 		argv = argv_;
 		argc = tx_arr_len(argv_);
 	}
-	tx_call("conn",argv,argc,NULL);
+	tx_call("conn",argv,argc,0);
 	tx_thread(&handle_stdin,0);
 
 	//long c = 0;
 	while(!tx_flag_quit){
 		tx_sleep(5000);
 		if(nConn>=0){
-			int count = hq_check_conn(NULL,0,NULL);
+			int count = hq_check_conn(argv,argc,0);
 			if( count<=0 ){
 				tx_flag_quit = 1;
 				c_fprintf(c_stderr,"# quit for count %d\n", count);
