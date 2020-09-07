@@ -110,8 +110,14 @@ ffic_ptr (*ffic_core(const char *libfilename,const char* funcname))()
 #endif
 		ffic_dlsym = (ffic_func) GetProcAddress;
 #else
+#if defined(__APPLE__)
 		extern ffic_ptr dlsym();
 		ffic_dlsym = (ffic_func) dlsym;
+#else
+		//extern void* __libc_dlsym(void*, const char*);
+		extern void* __libc_dlsym();
+		ffic_dlsym = (ffic_func) __libc_dlsym;
+#endif
 #endif
 	}
 	if(!ffic_dlopen){
@@ -128,8 +134,14 @@ ffic_ptr (*ffic_core(const char *libfilename,const char* funcname))()
 		ffic_dlopen = (ffic_func) LoadLibraryA;
 #endif
 #else
+#if defined(__APPLE__)
 		extern ffic_ptr dlopen();
 		ffic_dlopen = (ffic_func) dlopen;
+#else
+		//extern ffic_ptr __libc_dlopen_mode(const char*, int);
+		extern ffic_ptr __libc_dlopen_mode();
+		ffic_dlopen = (ffic_func) __libc_dlopen_mode;
+#endif
 #endif
 	}
 	//return ffic_dlsym(ffic_dlopen(libfilename,0x100 | 0x1/*RTLD_LAZY*/), funcname);
