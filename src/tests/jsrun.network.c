@@ -16,18 +16,34 @@ ffic_ptr (*ffic_core(const char *libfilename,const char* funcname))()
 	static ffic_func ffic_dlopen;
 	static ffic_func ffic_dlsym;
 	if(!ffic_dlsym){
+#if defined(__APPLE__)
+		extern ffic_ptr dlsym();
+		ffic_dlsym = (ffic_func) dlsym;
+#else
+		//extern void* __libc_dlsym(void*, const char*);
 		extern void* __libc_dlsym();
 		ffic_dlsym = (ffic_func) __libc_dlsym;
+#endif
 	}
 	if(!ffic_dlopen){
+#if defined(__APPLE__)
+		extern ffic_ptr dlopen();
+		ffic_dlopen = (ffic_func) dlopen;
+#else
+		//extern ffic_ptr __libc_dlopen_mode(const char*, int);
 		extern ffic_ptr __libc_dlopen_mode();
 		ffic_dlopen = (ffic_func) __libc_dlopen_mode;
+#endif
 	}
 	static ffic_ptr ffic_ptr_libc;
 	ffic_ptr _lib = libfilename ?
 		ffic_dlopen(libfilename,0x103)
 		:
+#if defined(__APPLE__)
+		ffic_ptr_libc ? ffic_ptr_libc : (ffic_ptr_libc = ffic_dlopen("libc.dylib",0x103))
+#else
 		ffic_ptr_libc ? ffic_ptr_libc : (ffic_ptr_libc = ffic_dlopen("libc.so.6",0x103))
+#endif
 		;
 	//return ffic_dlsym(ffic_dlopen(libfilename,0x101), funcname);
 	//return ffic_dlsym(ffic_dlopen(libfilename,0x103), funcname);
@@ -52,18 +68,48 @@ static ffic_func_i c_sscanf;
 static ffic_func c_memset;
 static ffic_func_lu c_htonl;
 static ffic_func_su c_htons;
+#define  AF_INET                2
+#define  AF_INET6               23
+#define  SOCK_STREAM            1
+#define  SOCK_DGRAM             2
+#define  SOCK_RAW               3           // Raw sockets allow new IPv4 protocols to be implemented in user space. A raw socket receives or sends the raw datagram not including link level headers
+#define  SOCK_RDM               4
+#define  SOCK_SEQPACKET         5
 static int str_to_sockaddr( const char* str , struct sockaddr_in* addr ) {
 	int c1,c2,c3,c4,port;
 	int ret = c_sscanf(str,"%u.%u.%u.%u:%u",&c1,&c2,&c3,&c4,&port);
+	//dump(port,d);
 	if( ret != 5 )  return -1;
 	c_memset(addr,0,sizeof(*addr));
-	addr->sin_family = 2;
+	addr->sin_family = AF_INET;
 	addr->sin_port = c_htons(port);
+	//addr->sin_port = c_htonl(port);
 	addr->sin_addr.S_un.S_addr = c_htonl((c1<<24)+(c2<<16)+(c3<<8)+c4);
+	//dump(addr->sin_addr.S_un.S_addr,ld);
+	//addr->sin_addr.S_un.S_addr = c_htons((c1<<24)+(c2<<16)+(c3<<8)+c4);
 	return 0;
+}
+static ffic_func c_setsockopt;
+#define cast(x,p) ((x)(p))
+#define SO_REUSEADDR 0x0004
+#define SO_EXCLUSIVEADDRUSE ((int)(~SO_REUSEADDR))
+#define SOL_SOCKET 0xffff
+#define socket_t int
+static void reuse_socket( socket_t sock ) {
+	int on = 1;
+#ifdef _WIN32
+	c_setsockopt(sock,SOL_SOCKET,SO_EXCLUSIVEADDRUSE,cast(const char*,&on),sizeof(int));
+#endif // _WIN32
+	c_setsockopt(sock,SOL_SOCKET,SO_REUSEADDR,cast(const char*,&on),sizeof(int));
 }
 int main () {
 	_printf = (ffic_func_i) ffic_core(0,"printf");
+	c_sscanf = (ffic_func_i) ffic_core(0,"sscanf");
+	c_memset = (ffic_func) ffic_core(0,"memset");
+	c_htonl = (ffic_func) ffic_core(0,"htonl");
+	c_htons = (ffic_func) ffic_core(0,"htons");
+	c_setsockopt = (ffic_func) ffic_core(0,"setsockopt");
+
 	//ffic_ptr _libdl = ffic_core("/lib/x86_64-linux-gnu/libdl.so.2","dlopen");
 	ffic_func _dlopen = (ffic_func) ffic_core("libdl.so.2","dlopen");
 	ffic_func _dlsym = (ffic_func) ffic_core("libdl.so.2","dlsym");
@@ -75,22 +121,21 @@ int main () {
 	struct sockaddr_in ipv4;
 	int ret;
 	int sock;
-	sock = socket(2,1,0);
+	sock = socket(AF_INET,SOCK_STREAM,0);
 	dump(sock,d);
-	//         static void reuse_socket( socket_t sock ) {
-	//     int on = 1;
-	// #ifdef _WIN32
-	//     setsockopt(sock,SOL_SOCKET,SO_EXCLUSIVEADDRUSE,cast(const char*,&on),sizeof(int));
-	// #endif // _WIN32
-	//     setsockopt(sock,SOL_SOCKET,SO_REUSEADDR,cast(const char*,&on),sizeof(int));
-	// }
-	// reuse_socket(sock);
-#define cast(x,p) ((x)(p))
-	str_to_sockaddr("39.156.69.79:80",&ipv4);
+
+	//int rt_convert = str_to_sockaddr("39.156.69.79:80",&ipv4);
+	int rt_convert = str_to_sockaddr("127.0.0.1:22",&ipv4);
+	dump(rt_convert,d);
+
+	reuse_socket(sock);
+
 	ffic_func_i connect = (ffic_func_i) ffic_core(0,"connect");
 	ret = connect(sock,cast(struct sockaddr*,&ipv4),sizeof(ipv4));
 	dump(ret,d);
-	system("nslookup baidu.com");
+
+	//ffic_func_i system = (ffic_func_i) ffic_core(0,"system");
+	//system("nslookup baidu.com");
 	// extern int system();
 	// //system("ls -al /lib/x86_64-linux-gnu/");
 	// //extern ffic_func dlopen;
