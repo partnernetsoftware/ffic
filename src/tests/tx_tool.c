@@ -58,16 +58,17 @@ void tx_init(){
 	$linkx(c,stdin);
 	$linkx(c,stdout);
 	$linkx(c,stderr);
+	$linkx(c,printf);
+	$linkx(c,fprintf);
+	$linkx(c,sprintf);
 
 	//c_stdin = $use(c,stdin,ffic_ptr);
 	//c_stdout = $use(c,stdout,ffic_ptr);
 	//c_stderr = $use(c,stderr,ffic_ptr);
-
 	tx_sleep = $use(c,msleep,ffic_func);
-	
-	c_printf = $use(c,printf,ffic_func);
-	c_fprintf = $use(c,fprintf,ffic_func);
-	c_sprintf = $use(c,sprintf,ffic_func);
+	//c_printf = $use(c,printf,ffic_func);
+	//c_fprintf = $use(c,fprintf,ffic_func);
+	//c_sprintf = $use(c,sprintf,ffic_func);
 	c_fflush = $use(c,fflush,ffic_func);
 	c_calloc = $use(c,calloc,ffic_func);
 	c_strtok = $use(c,strtok,ffic_func);
@@ -98,6 +99,8 @@ void tx_init(){
 
 	CloseHandle = $use(kernel32,CloseHandle,ffic_func);
 	CreateThread = $use(kernel32,CreateThread,ffic_func);
+	c_fprintf(c_stderr, "# tx_init()\n");
+	c_fflush(c_stderr);
 }
 ///////////////////////////////////////////////////////////////////////
 
@@ -537,7 +540,9 @@ tx_method_desc tx_a_tx[] = {
 tx_method_desc * tx_a = tx_a_tx;
 
 int tx_call(char* cmd,char** argv,int argc, char* timestamp){
-	return tx_type_get(tx_a,cmd)(argv,argc,timestamp);
+	int rt = tx_type_get(tx_a,cmd)(argv,argc,timestamp);
+	c_fflush(c_stderr);
+	return rt;
 }
 
 void tx_thread(ffic_ptr func, char* line){
@@ -567,7 +572,6 @@ unsigned long handle_request(ffic_ptr lpParameter)
 			}
 		}
 		tx_call(cmd,argv,argc,timestamp);
-		c_fflush(c_stderr);
 	}
 	return 0;
 }
