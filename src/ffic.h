@@ -71,10 +71,7 @@ extern ffic_func(*ffic_raw(const char*, const char*, const char*))();
 #  define libc(f) ffic(0,#f)
 #  endif
 # elif FFIC==1 //}{
-ffic_func ffic_dlsym=0;
-ffic_func ffic_dlopen=0;
-extern int printf(const char*,...);
-//extern int printf();
+ffic_func_i ffic_printf;
 extern int strcmp(const char*,const char*);//TODO improve speed https://answer-id.com/59773438
 extern void exit(int);
 //#ifndef ONE_SOURCE
@@ -103,6 +100,8 @@ char* _ffic_strcat(char* buffer, const char* a, const char* b) {
 ffic_ptr ffic_void(){return 0;};
 ffic_ptr (*ffic_core(const char *libfilename,const char* funcname))()
 {
+	static ffic_func ffic_dlsym;
+	static ffic_func ffic_dlopen;
 	if(!ffic_dlsym){
 #if defined(_WIN32) || defined(_WIN64)
 #ifndef _WINDOWS_
@@ -153,7 +152,12 @@ ffic_ptr(*ffic_raw(const char* part1, const char* funcname, const char* part2))(
 	_ffic_strcat(libfilename, (part1)? part1 : ffic_libcname, (part2)? part2 : ffic_sosuffix );
 	ffic_ptr addr = ffic_core(libfilename,funcname);
 	if(!addr) {
-		printf("WARN: 404 %s(%s).%s \n",part1,libfilename,funcname);
+		if(!ffic_printf){
+			extern int printf(const char*,...);
+			//extern int printf();
+			ffic_printf = (ffic_func_i) printf;
+		}
+		ffic_printf("WARN: 404 %s(%s).%s \n",part1,libfilename,funcname);
 	}
 	return addr;
 }

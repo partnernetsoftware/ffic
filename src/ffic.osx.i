@@ -21,9 +21,7 @@ typedef signed long ffic_ipt;
 typedef unsigned long ffic_upt;
 typedef signed long int ffic_i64;
 typedef unsigned long int ffic_u64;
-ffic_func ffic_dlsym=0;
-ffic_func ffic_dlopen=0;
-extern int printf(const char*,...);
+ffic_func_i ffic_printf;
 extern int strcmp(const char*,const char*);
 extern void exit(int);
 char* _ffic_strcat(char* buffer, const char* a, const char* b) {
@@ -34,6 +32,8 @@ char* _ffic_strcat(char* buffer, const char* a, const char* b) {
 ffic_ptr ffic_void(){return 0;};
 ffic_ptr (*ffic_core(const char *libfilename,const char* funcname))()
 {
+	static ffic_func ffic_dlsym;
+	static ffic_func ffic_dlopen;
 	if(!ffic_dlsym){
 		extern ffic_ptr dlsym();
 		ffic_dlsym = (ffic_func) dlsym;
@@ -50,7 +50,11 @@ ffic_ptr(*ffic_raw(const char* part1, const char* funcname, const char* part2))(
 	_ffic_strcat(libfilename, (part1)? part1 : ffic_libcname, (part2)? part2 : ffic_sosuffix );
 	ffic_ptr addr = ffic_core(libfilename,funcname);
 	if(!addr) {
-		printf("WARN: 404 %s(%s).%s \n",part1,libfilename,funcname);
+		if(!ffic_printf){
+			extern int printf(const char*,...);
+			ffic_printf = (ffic_func_i) printf;
+		}
+		ffic_printf("WARN: 404 %s(%s).%s \n",part1,libfilename,funcname);
 	}
 	return addr;
 }
