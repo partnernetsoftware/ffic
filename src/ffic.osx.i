@@ -112,7 +112,12 @@ ffic_ptr(*ffic(const char* libname, const char* funcname))()
 	if(!addr) addr = ffic_raw(libname,funcname,0);
 	return addr;
 }
-int main(int argc, char **argv, char **envp){
+int main(int argc, char **argv){
+	extern char* getenv();
+	extern char* strcat();
+	extern int printf(const char*,...);
+	char PWD[256]="-L";
+	strcat(PWD,getenv("PWD"));
 	ffic_ptr tcc_ptr = ffic("libtcc","tcc_new")();
 	ffic("libtcc","tcc_set_output_type")(tcc_ptr, 1 );
 	ffic("libtcc","tcc_define_symbol")(tcc_ptr, "FFIC", "2");
@@ -121,14 +126,22 @@ int main(int argc, char **argv, char **envp){
 	ffic("libtcc","tcc_set_options")(tcc_ptr, "-L..");
 	ffic("libtcc","tcc_set_options")(tcc_ptr, "-I.");
 	ffic("libtcc","tcc_set_options")(tcc_ptr, "-I..");
+	ffic("libtcc","tcc_set_options")(tcc_ptr, PWD);
 	ffic("libtcc","tcc_set_options")(tcc_ptr, "-DCONFIG_LDDIR=\".\"");
+	ffic("libtcc","tcc_set_options")(tcc_ptr, "-D__APPLE__");
+	ffic("libtcc","tcc_set_options")(tcc_ptr, "-DTCC_TARGET_MACHO");
+	ffic("libtcc","tcc_set_options")(tcc_ptr, "-DTCC_TARGET_X86_64");
 	if(0==ffic("libtcc","tcc_get_symbol")(tcc_ptr, "ffic_core"))
 		ffic("libtcc","tcc_add_symbol")(tcc_ptr, "ffic_core", ffic_core);
 	if(0==ffic("libtcc","tcc_get_symbol")(tcc_ptr, "ffic_raw"))
 		ffic("libtcc","tcc_add_symbol")(tcc_ptr, "ffic_raw", ffic_raw);
-	if(0==ffic("libtcc","tcc_get_symbol")(tcc_ptr, "ffic"))
+	if(!ffic("libtcc","tcc_get_symbol")(tcc_ptr, "ffic"))
 		ffic("libtcc","tcc_add_symbol")(tcc_ptr, "ffic", ffic);
-	ffic("libtcc","tcc_add_file")(tcc_ptr,(argc>1) ? argv[1] : "-");
+	if(argc>1){
+		ffic("libtcc","tcc_add_file")(tcc_ptr,argv[1]);
+	}else{
+		ffic("libtcc","tcc_add_file")(tcc_ptr,"-");
+	}
 	int rt = ((ffic_func_i)ffic("libtcc","tcc_run"))(tcc_ptr, argc>1?argc-1:argc,argc>1?(argv+1):argv);
 	ffic("libtcc","tcc_delete")(tcc_ptr);
 	return rt;
