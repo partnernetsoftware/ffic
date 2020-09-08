@@ -14,11 +14,11 @@ tcc-reset:
 	git -C ../tinycc/ reset --hard
 	git -C ../tinycc/ pull
 tcc-osx:
-	#mkdir -p tcc_osx && cd tcc_osx && ../../tinycc/configure && make clean && sleep 1 && make tcc && make libtcc.osx && ../../tinycc/configure --cc=./tcc && make && make cross-x86_64-osx cross-x86_64-win32 cross-i386-win32 && sleep 1
 	rm -f *.a
 	rm -rf tcc_osx
 	mkdir -p tcc_osx && cd tcc_osx && ../../tinycc/configure && make clean && sleep 1 && make tcc && make libtcc.osx && ../../tinycc/configure --cc=./tcc && make && make cross && sleep 1
-	#mkdir -p tcc_osx && cd tcc_osx && ../../tinycc/configure && make clean && sleep 1 && make tcc && ../../tinycc/configure --cc=./tcc && make libtcc.osx && make && make cross && sleep 1
+	# still has problem for libtcc.dylib build by tcc...
+	#mkdir -p tcc_osx && cd tcc_osx && ../../tinycc/configure && make clean && sleep 1 && make tcc && ../../tinycc/configure --cc=./tcc && rm -f *.o && make libtcc.osx && make tcc && make cross && sleep 1
 	cp tcc_osx/libtcc.dylib ./
 	#cp tcc_osx/x86_64-osx-libtcc1.a ./
 	cp tcc_osx/*-win32-libtcc1.a ./
@@ -35,7 +35,9 @@ osx:
 	echo "#define TCC_VERSION \"`head ../tinycc/VERSION`\"" > config.h
 	${CC} -E ffic.c -I. -I../tinycc/ | sed 's/^#.*//g' | sed "/^$$/d" > ffic.osx.i
 	${CC} -DTCC_TARGET_X86_64 -DTCC_TARGET_MACHO -E ffic.c -I. | sed 's/^#.*//g' | sed "/^$$/d" > ffic.osx.i
+	#gcc -O1 -DTCC_TARGET_X86_64 -DTCC_TARGET_MACHO -DCONFIG_TCCDIR="\".\"" -DTCC_LIBTCC1="\"x86_64-osx-libtcc1.a\"" -L. -Wl,-dead_strip ffic.osx.i -ldl -ltcc -o ffic_osx
 	gcc -O1 -DTCC_TARGET_X86_64 -DTCC_TARGET_MACHO -DCONFIG_TCCDIR="\".\"" -DTCC_LIBTCC1="\"x86_64-osx-libtcc1.a\"" -L. -Wl,-dead_strip ffic.osx.i -ldl -ltcc -o ffic_osx
+	${CC} -DTCC_TARGET_X86_64 -DTCC_TARGET_MACHO -DCONFIG_TCCDIR="\".\"" -DTCC_LIBTCC1="\"x86_64-osx-libtcc1.a\"" -L.  ffic.osx.i -o ffic_osx_tcc
 	${CC} -DTCC_TARGET_X86_64 -DTCC_TARGET_MACHO -DCONFIG_TCCDIR="\".\"" -DTCC_LIBTCC1="\"x86_64-osx-libtcc1.a\"" -L. -I../tinycc -I. -DONE_SOURCE=1 -E ffic.c > ffic_static_osx.i
 	${CC} ffic_static_osx.i -o ffic_static_osx
 	#gcc -DTCC_TARGET_X86_64 -DTCC_TARGET_MACHO -DCONFIG_TCCDIR="\".\"" -DTCC_LIBTCC1="\"x86_64-osx-libtcc1.a\"" -I../tinycc -I. -DONE_SOURCE=1 -E ffic.c > ffic_static_osx_gcc.i
