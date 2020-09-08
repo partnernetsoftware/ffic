@@ -16,7 +16,9 @@ tcc-reset:
 tcc-osx:
 	#mkdir -p tcc_osx && cd tcc_osx && ../../tinycc/configure && make clean && sleep 1 && make tcc && make libtcc.osx && ../../tinycc/configure --cc=./tcc && make && make cross-x86_64-osx cross-x86_64-win32 cross-i386-win32 && sleep 1
 	rm -f *.a
+	rm -rf tcc_osx
 	mkdir -p tcc_osx && cd tcc_osx && ../../tinycc/configure && make clean && sleep 1 && make tcc && make libtcc.osx && ../../tinycc/configure --cc=./tcc && make && make cross && sleep 1
+	#mkdir -p tcc_osx && cd tcc_osx && ../../tinycc/configure && make clean && sleep 1 && make tcc && ../../tinycc/configure --cc=./tcc && make libtcc.osx && make && make cross && sleep 1
 	cp tcc_osx/libtcc.dylib ./
 	#cp tcc_osx/x86_64-osx-libtcc1.a ./
 	cp tcc_osx/*-win32-libtcc1.a ./
