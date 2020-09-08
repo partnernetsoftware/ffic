@@ -6,14 +6,19 @@ CC=tcc_osx/tcc
 #CC=../tinyccbinary/x86_64-osx-tcc
 #CC=../tinyccbinary/tcc
 
+all:
+	make tcc-osx
+	make osx
+	make win
 tcc-reset:
 	git -C ../tinycc/ reset --hard
 	git -C ../tinycc/ pull
 tcc-osx:
 	#mkdir -p tcc_osx && cd tcc_osx && ../../tinycc/configure && make clean && sleep 1 && make tcc && make libtcc.osx && ../../tinycc/configure --cc=./tcc && make && make cross-x86_64-osx cross-x86_64-win32 cross-i386-win32 && sleep 1
+	rm -f *.a
 	mkdir -p tcc_osx && cd tcc_osx && ../../tinycc/configure && make clean && sleep 1 && make tcc && make libtcc.osx && ../../tinycc/configure --cc=./tcc && make && make cross && sleep 1
 	cp tcc_osx/libtcc.dylib ./
-	cp tcc_osx/x86_64-osx-libtcc1.a ./
+	#cp tcc_osx/x86_64-osx-libtcc1.a ./
 	cp tcc_osx/*-win32-libtcc1.a ./
 	#cp tcc_osx/*-libtcc1.a ./
 submodule:

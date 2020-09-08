@@ -65,6 +65,7 @@ typedef unsigned long long int ffic_u64;
 #endif
 #ifdef FFIC
 # if FFIC==2 //{
+extern ffic_func(*ffic_core(const char*, const char*))();
 extern ffic_func(*ffic(const char*, const char*))();
 extern ffic_func(*ffic_raw(const char*, const char*, const char*))();
 #  ifndef libc
