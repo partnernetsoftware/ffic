@@ -1,4 +1,4 @@
-#include "ffic.h"
+//#include "ffic.h"
 //../bin/tcc.osx -I. -run tests/env.c
 int main(int argc, char* argv[]){
 	extern int printf(const char*,...);
