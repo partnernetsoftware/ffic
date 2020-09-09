@@ -7,24 +7,31 @@ CC=./tcc_osx/tcc
 #CC=../tinyccbinary/tcc
 
 all:
-	make tcc-osx
-	make osx
-	make win
+	make tcc_osx # the tcc build at osx with default cc
+	make bin_ffic_osx # bin of ffic for osx 64
+	make bin_ffic_win # bin of ffic for win 32/64
 	
 tcc-reset:
 	git -C ../tinycc/ reset --hard
 	git -C ../tinycc/ pull
 
-tcc_bin:
-	../tcc_osx/x86_64-osx-tcc -B../tcc_osx -DTCC_TARGET_X86_64 -DTCC_TARGET_MACHO -DCONFIG_TCCDIR="\".\"" -DTCC_LIBTCC1="\"x86_64-osx-libtcc1.a\"" -I../tinycc -I. -DONE_SOURCE=1 ffic.c -o ../bin/ffic_static_osx
-	../bin/ffic_static_osx tests/env.c
-	#../tcc_osx/x86_64-osx-tcc -DTCC_TARGET_X86_64 -DTCC_TARGET_MACHO -D__APPLE__ -DCONFIG_TCCDIR="\".\"" -DTCC_LIBTCC1="\"x86_64-osx-libtcc1.a\"" -I../tinycc -I. -DONE_SOURCE=1 -E ffic.c | sed 's/^#.*//g' | sed "/^\\s*$$/d" > ffic_static_osx.i
-	#../tcc_osx/x86_64-osx-tcc -DTCC_TARGET_X86_64 -DTCC_TARGET_MACHO -D__APPLE__ -DTCC_LIBTCC1="\"x86_64-osx-libtcc1.a\"" -I../tinycc -I. -DONE_SOURCE=1 -E ffic.c | sed 's/^#.*//g' | sed "/^\\s*$$/d" > ffic_static_osx2.i
-	#../tcc_osx/x86_64-osx-tcc -DTCC_TARGET_X86_64 -DTCC_TARGET_MACHO -DCONFIG_TCCDIR="\".\"" -DTCC_LIBTCC1="\"x86_64-osx-libtcc1.a\"" -L. ffic_static_osx.i -o ffic_static_osx
-	#../tcc_osx/tcc -DTCC_TARGET_X86_64 -DTCC_TARGET_MACHO -DCONFIG_TCCDIR="\".\"" -DTCC_LIBTCC1="\"x86_64-osx-libtcc1.a\"" -L. ffic.osx.i -o ffic_osx_tcc
+bin_ffic_osx:
+	../tcc_osx/x86_64-osx-tcc -B../tcc_osx -DTCC_TARGET_X86_64 -DTCC_TARGET_MACHO -DCONFIG_TCCDIR="\".\"" -DTCC_LIBTCC1="\"x86_64-osx-libtcc1.a\"" -I../tinycc -I. -DONE_SOURCE=1 ffic.c -o ../bin/ffic64.osx
+	../bin/ffic64.osx tests/env.c
+
+# TODO
+#../tcc_osx/x86_64-osx-tcc -DTCC_TARGET_X86_64 -DTCC_TARGET_MACHO -D__APPLE__ -DCONFIG_TCCDIR="\".\"" -DTCC_LIBTCC1="\"x86_64-osx-libtcc1.a\"" -I../tinycc -I. -DONE_SOURCE=1 -E ffic.c | sed 's/^#.*//g' | sed "/^\\s*$$/d" > ffic_static_osx.i
+#../tcc_osx/x86_64-osx-tcc -DTCC_TARGET_X86_64 -DTCC_TARGET_MACHO -D__APPLE__ -DTCC_LIBTCC1="\"x86_64-osx-libtcc1.a\"" -I../tinycc -I. -DONE_SOURCE=1 -E ffic.c | sed 's/^#.*//g' | sed "/^\\s*$$/d" > ffic_static_osx2.i
+#../tcc_osx/x86_64-osx-tcc -DTCC_TARGET_X86_64 -DTCC_TARGET_MACHO -DCONFIG_TCCDIR="\".\"" -DTCC_LIBTCC1="\"x86_64-osx-libtcc1.a\"" -L. ffic_static_osx.i -o ffic_static_osx
+#../tcc_osx/tcc -DTCC_TARGET_X86_64 -DTCC_TARGET_MACHO -DCONFIG_TCCDIR="\".\"" -DTCC_LIBTCC1="\"x86_64-osx-libtcc1.a\"" -L. ffic.osx.i -o ffic_osx_tcc
 ###tcc_tcc_osx:# build tcc from tcc_osx
 ###	rm -rf ../tcc_tcc_osx && mkdir -p ../tcc_tcc_osx && cd ../tcc_tcc_osx && ../tinycc/configure --prefix=. --cc="../tcc_osx/x86_64-osx-tcc -I../src -L../tcc_osx" && make clean && rm -f ../tinycc/config.h && cp -f ../src/config.h ./ && cp -f ../tcc_osx/x86_64-osx-libtcc1.a ./ && make tcc
 ###	ls -al ../tcc_tcc_osx/
+#cp ../tcc_osx/libtcc.dylib ./
+#cp ../tcc_osx/x86_64-osx-libtcc1.a ./
+#cp ../tcc_osx/*-win32-libtcc1.a ./
+#cp tcc_osx/*-libtcc1.a ./
+
 tcc_osx:#with system cc
 	echo "#define TCC_VERSION \"`head ../tinycc/VERSION`\"" > config.h
 	echo "#ifndef CONFIG_TCCDIR" >> config.h
@@ -33,10 +40,6 @@ tcc_osx:#with system cc
 	rm -rf ../tcc_osx && mkdir -p ../tcc_osx && cd ../tcc_osx && ../../tinycc/configure && make clean && sleep 1 && rm -f ../tinycc/config.h && cp -f ../src/config.h ./ && make libtcc.osx && make cross && make tcc
 	ls -al ../tcc_osx/
 	../tcc_osx/x86_64-osx-tcc -vv
-	#cp ../tcc_osx/libtcc.dylib ./
-	#cp ../tcc_osx/x86_64-osx-libtcc1.a ./
-	#cp ../tcc_osx/*-win32-libtcc1.a ./
-	#cp tcc_osx/*-libtcc1.a ./
 submodule:
 	#cd .. && git submodule add --force https://github.com/mirror/tinycc.git && git submodule update --init --recursive
 	cd .. && git submodule init && git submodule update
@@ -45,44 +48,38 @@ test-osx:
 	./ffic_static_osx tests/42.c
 	cat tests/42.c | ./ffic_osx
 	./ffic_osx tests/42.c
-osx-ko:
+osx_lab:
 	mkdir -p ../bin/
 	gcc -DTCC_TARGET_X86_64 -DTCC_TARGET_MACHO -E ffic.c -I. | sed 's/^#.*//g' | sed "/^$$/d" > ffic_osx.i
 	gcc -DTCC_TARGET_X86_64 -DTCC_TARGET_MACHO -DCONFIG_TCCDIR="\".\"" -DTCC_LIBTCC1="\"x86_64-osx-libtcc1.a\"" -I../tinycc -I. -DONE_SOURCE=1 -E ffic.c | sed 's/^#.*//g' | sed "/^$$/d" > ffic_static_osx.i
 	gcc -DTCC_TARGET_X86_64 -DTCC_TARGET_MACHO -DCONFIG_TCCDIR="\".\"" -DTCC_LIBTCC1="\"x86_64-osx-libtcc1.a\"" -L. -B../bin ffic_osx.i -o ../bin/ffic_osx
 	gcc ffic_static_osx.i -o ../bin/ffic_static_osx
 	ls -al ../bin/
-osx-tcc:# build tcc at osx with (system default cc)
-	#echo "#define CONFIG_TCCDIR \".\"\n#define TCC_VERSION \"`head ../tinycc/VERSION`\"" > config.h
-	echo "#define TCC_VERSION \"`head ../tinycc/VERSION`\"" > config.h
-	echo "#define CONFIG_TCCDIR \".\"" >> config.h
-	rm -rf ../tcc_osx && mkdir -p ../tcc_osx && cd ../tcc_osx && ../tinycc/configure --prefix=. && make clean && rm -f ../tinycc/config.h && cp -f ../src/config.h ./ && make cross-x86_64-osx #&& make tcc
-	../tcc_osx/x86_64-osx-tcc -vv
-osx-prev:
-	echo "#define TCC_VERSION \"`head ../tinycc/VERSION`\"" > config.h
-	${CC} -E ffic.c -I. -I../tinycc/ | sed 's/^#.*//g' | sed "/^$$/d" > ffic_osx.i
-	${CC} -DTCC_TARGET_X86_64 -DTCC_TARGET_MACHO -E ffic.c -I. | sed 's/^#.*//g' | sed "/^$$/d" > ffic_osx.i
-	#gcc -O1 -DTCC_TARGET_X86_64 -DTCC_TARGET_MACHO -DCONFIG_TCCDIR="\".\"" -DTCC_LIBTCC1="\"x86_64-osx-libtcc1.a\"" -L. -Wl,-dead_strip ffic_osx.i -ldl -ltcc -o ffic_osx
-	gcc -O1 -DTCC_TARGET_X86_64 -DTCC_TARGET_MACHO -DCONFIG_TCCDIR="\".\"" -DTCC_LIBTCC1="\"x86_64-osx-libtcc1.a\"" -L. -Wl,-dead_strip ffic_osx.i -ldl -ltcc -o ffic_osx
-	${CC} -DTCC_TARGET_X86_64 -DTCC_TARGET_MACHO -DCONFIG_TCCDIR="\".\"" -DTCC_LIBTCC1="\"x86_64-osx-libtcc1.a\"" -L. -I../tinycc -I. -DONE_SOURCE=1 -E ffic.c > ffic_static_osx.i
-	${CC} ffic_static_osx.i -o ffic_static_osx
-	#gcc -O1 -DTCC_TARGET_X86_64 -DTCC_TARGET_MACHO -DCONFIG_TCCDIR="\".\"" -DTCC_LIBTCC1="\"x86_64-osx-libtcc1.a\"" -L. -Wl,-dead_strip ffic.osx.i -ldl -ltcc -o ffic_osx
-	#gcc -DTCC_TARGET_X86_64 -DTCC_TARGET_MACHO -DCONFIG_TCCDIR="\".\"" -DTCC_LIBTCC1="\"x86_64-osx-libtcc1.a\"" -I../tinycc -I. -DONE_SOURCE=1 -E ffic.c > ffic_static_osx_gcc.i
-	#gcc -Wl,-dead_strip ffic_static_osx_gcc.i -o ffic_static_osx_gcc
-	#tools/upx -f -o ffic_static_osx_gcc_upx ffic_static_osx_gcc
-	ls -al ffic*
-	make test-osx
-win:#build from osx...
+###osx:
+###	echo "#define TCC_VERSION \"`head ../tinycc/VERSION`\"" > config.h
+###	${CC} -E ffic.c -I. -I../tinycc/ | sed 's/^#.*//g' | sed "/^$$/d" > ffic_osx.i
+###	${CC} -DTCC_TARGET_X86_64 -DTCC_TARGET_MACHO -E ffic.c -I. | sed 's/^#.*//g' | sed "/^$$/d" > ffic_osx.i
+###	#gcc -O1 -DTCC_TARGET_X86_64 -DTCC_TARGET_MACHO -DCONFIG_TCCDIR="\".\"" -DTCC_LIBTCC1="\"x86_64-osx-libtcc1.a\"" -L. -Wl,-dead_strip ffic_osx.i -ldl -ltcc -o ffic_osx
+###	gcc -O1 -DTCC_TARGET_X86_64 -DTCC_TARGET_MACHO -DCONFIG_TCCDIR="\".\"" -DTCC_LIBTCC1="\"x86_64-osx-libtcc1.a\"" -L. -Wl,-dead_strip ffic_osx.i -ldl -ltcc -o ffic_osx
+###	${CC} -DTCC_TARGET_X86_64 -DTCC_TARGET_MACHO -DCONFIG_TCCDIR="\".\"" -DTCC_LIBTCC1="\"x86_64-osx-libtcc1.a\"" -L. -I../tinycc -I. -DONE_SOURCE=1 -E ffic.c > ffic_static_osx.i
+###	${CC} ffic_static_osx.i -o ffic_static_osx
+###	#gcc -O1 -DTCC_TARGET_X86_64 -DTCC_TARGET_MACHO -DCONFIG_TCCDIR="\".\"" -DTCC_LIBTCC1="\"x86_64-osx-libtcc1.a\"" -L. -Wl,-dead_strip ffic.osx.i -ldl -ltcc -o ffic_osx
+###	#gcc -DTCC_TARGET_X86_64 -DTCC_TARGET_MACHO -DCONFIG_TCCDIR="\".\"" -DTCC_LIBTCC1="\"x86_64-osx-libtcc1.a\"" -I../tinycc -I. -DONE_SOURCE=1 -E ffic.c > ffic_static_osx_gcc.i
+###	#gcc -Wl,-dead_strip ffic_static_osx_gcc.i -o ffic_static_osx_gcc
+###	#tools/upx -f -o ffic_static_osx_gcc_upx ffic_static_osx_gcc
+###	ls -al ffic*
+###	make test-osx
+bin_ffic_win:#build from osx...
 	cp ../tcc_osx/*-win32-libtcc1.a ./
 	rm -f ffic*.exe
 	sh tccwin32.sh -DONE_SOURCE=1 -I. ../tinycc/tcc.c -o ../bin/tcc32.exe
 	sh tccwin64.sh -DONE_SOURCE=1 -I. ../tinycc/tcc.c -o ../bin/tcc64.exe
-	sh tccwin32.sh ffic.c -o ../bin/ffic32.exe
-	sh tccwin64.sh ffic.c -o ../bin/ffic64.exe
-	sh tccwin32.sh -DONE_SOURCE=1 -I. ffic.c -o ../bin/ffic_static_32.exe
-	sh tccwin64.sh -DONE_SOURCE=1 -I. ffic.c -o ../bin/ffic_static_64.exe
-	tools/upx -f -o ../bin/ffic_static_upx_32.exe ../bin/ffic_static_32.exe
-	tools/upx -f -o ../bin/ffic_static_upx_64.exe ../bin/ffic_static_64.exe
+	sh tccwin32.sh ffic.c -o ../bin/ffic32s.exe
+	sh tccwin64.sh ffic.c -o ../bin/ffic64s.exe
+	sh tccwin32.sh -DONE_SOURCE=1 -I. ffic.c -o ../bin/ffic32.exe
+	sh tccwin64.sh -DONE_SOURCE=1 -I. ffic.c -o ../bin/ffic64.exe
+	tools/upx -f -o ../bin/ffic32upx.exe ../bin/ffic32.exe
+	tools/upx -f -o ../bin/ffic64upx.exe ../bin/ffic64.exe
 	ls -al ../bin/*.exe
 test:
 	cat tests/42.c | ./ffic
