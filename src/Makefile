@@ -7,22 +7,27 @@ CC=tcc_osx/tcc
 #CC=../tinyccbinary/tcc
 
 all:
-	make tcc-osx
+	make tcc_osx
 	make osx
 	make win
-tcc-reset:
+tcc_git_reset:
 	git -C ../tinycc/ reset --hard
 	git -C ../tinycc/ pull
-tcc-osx:
-	rm -f *.a
-	rm -rf tcc_osx
-	mkdir -p tcc_osx && cd tcc_osx && ../../tinycc/configure && make clean && sleep 1 && make tcc && make libtcc.osx && ../../tinycc/configure --cc=./tcc && make && make cross && sleep 1
+tcc_tcc_osx:# build tcc from tcc-osx
+	mkdir -p ../bin && cd ../bin && ../tinycc/configure --cc="../tcc_osx/tcc -I.." && rm -f *.o && make libtcc.osx && make tcc && make cross && sleep 1
+	# fail
+	#mkdir -p tcc_osx && cd tcc_osx && ../../tinycc/configure && make clean && sleep 1 && make tcc && make libtcc.osx && ../../tinycc/configure --cc=./tcc && make && make cross && sleep 1
 	# still has problem for libtcc.dylib build by tcc...
-	#mkdir -p tcc_osx && cd tcc_osx && ../../tinycc/configure && make clean && sleep 1 && make tcc && ../../tinycc/configure --cc=./tcc && rm -f *.o && make libtcc.osx && make tcc && make cross && sleep 1
-	cp tcc_osx/libtcc.dylib ./
+	#mkdir -p tcc_osx && cd tcc_osx && ../../tinycc/configure && make clean && sleep 1 && make tcc && ../../tinycc/configure --cc="./tcc -I.." && rm -f *.o && make libtcc.osx && make tcc && make cross && sleep 1
+	#cp tcc_osx/libtcc.dylib ./
 	#cp tcc_osx/x86_64-osx-libtcc1.a ./
-	cp tcc_osx/*-win32-libtcc1.a ./
+	#cp tcc_osx/*-win32-libtcc1.a ./
 	#cp tcc_osx/*-libtcc1.a ./
+tcc_osx:# build tcc at osx with (system default cc)
+	rm -f *.a
+	rm -rf ../tcc_osx
+	mkdir -p ../tcc_osx && cd ../tcc_osx && ../tinycc/configure && make clean && sleep 1 && make tcc
+	../tcc_osx/tcc -vv
 submodule:
 	#cd .. && git submodule add --force https://github.com/mirror/tinycc.git && git submodule update --init --recursive
 	cd .. && git submodule init && git submodule update
@@ -37,7 +42,7 @@ osx:
 	${CC} -DTCC_TARGET_X86_64 -DTCC_TARGET_MACHO -E ffic.c -I. | sed 's/^#.*//g' | sed "/^$$/d" > ffic.osx.i
 	#gcc -O1 -DTCC_TARGET_X86_64 -DTCC_TARGET_MACHO -DCONFIG_TCCDIR="\".\"" -DTCC_LIBTCC1="\"x86_64-osx-libtcc1.a\"" -L. -Wl,-dead_strip ffic.osx.i -ldl -ltcc -o ffic_osx
 	gcc -O1 -DTCC_TARGET_X86_64 -DTCC_TARGET_MACHO -DCONFIG_TCCDIR="\".\"" -DTCC_LIBTCC1="\"x86_64-osx-libtcc1.a\"" -L. -Wl,-dead_strip ffic.osx.i -ldl -ltcc -o ffic_osx
-	${CC} -DTCC_TARGET_X86_64 -DTCC_TARGET_MACHO -DCONFIG_TCCDIR="\".\"" -DTCC_LIBTCC1="\"x86_64-osx-libtcc1.a\"" -L.  ffic.osx.i -o ffic_osx_tcc
+	${CC} -DTCC_TARGET_X86_64 -DTCC_TARGET_MACHO -DCONFIG_TCCDIR="\".\"" -DTCC_LIBTCC1="\"x86_64-osx-libtcc1.a\"" -L.  ffic.osx.i o ffic_osx_tcc
 	${CC} -DTCC_TARGET_X86_64 -DTCC_TARGET_MACHO -DCONFIG_TCCDIR="\".\"" -DTCC_LIBTCC1="\"x86_64-osx-libtcc1.a\"" -L. -I../tinycc -I. -DONE_SOURCE=1 -E ffic.c > ffic_static_osx.i
 	${CC} ffic_static_osx.i -o ffic_static_osx
 	#gcc -DTCC_TARGET_X86_64 -DTCC_TARGET_MACHO -DCONFIG_TCCDIR="\".\"" -DTCC_LIBTCC1="\"x86_64-osx-libtcc1.a\"" -I../tinycc -I. -DONE_SOURCE=1 -E ffic.c > ffic_static_osx_gcc.i

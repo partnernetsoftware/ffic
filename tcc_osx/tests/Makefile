@@ -1,0 +1,1 @@
+../../tinycc/tests/Makefile
