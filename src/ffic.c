@@ -20,12 +20,12 @@
 
 int main(int argc, char **argv){
 
-	extern char* getenv();
-	extern char* strcat();
-	extern int printf(const char*,...);
-	char PWD[256]="-L";
-	strcat(PWD,getenv("PWD"));
-	//printf("PWD:%s\n",PWD);
+	///extern char* getenv();
+	///extern int strcat(char *, const char *, unsigned long);
+	///extern int printf(const char*,...);
+	///char PWD[256]="-L";
+	///strcat(PWD,getenv("PWD"),255);
+	/////printf("PWD:%s\n",PWD);
 
 	ffic_ptr tcc_ptr = tcc(tcc_new)();
 	tcc(tcc_set_output_type)(tcc_ptr, 1/*TCC_OUTPUT_MEMORY*/);
@@ -39,7 +39,8 @@ int main(int argc, char **argv){
 	tcc(tcc_set_options)(tcc_ptr, "-I.");//Include
 	tcc(tcc_set_options)(tcc_ptr, "-I..");//Include
 
-	tcc(tcc_set_options)(tcc_ptr, PWD);//find .a from current by default
+	//TODO
+	//tcc(tcc_set_options)(tcc_ptr, PWD);//find .a from current by default
 
 	//TODO add the path(argv[1]) as -L...
 
