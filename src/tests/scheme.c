@@ -114,13 +114,13 @@ struct _FileChar {
 	//pFileChar next;
 };
 typedef struct {
-	FILE* fp;
+	void* fp;
 	FileChar * first;
 	FileChar * last;
 	FileChar * current;
 	long count;
 } FILEWrapper;
-FILEWrapper * FileWrapper_new(FILE* fp);
+FILEWrapper * FileWrapper_new(void* fp);
 long sao_is_digit(int c);
 long sao_is_alpha(int c);
 long sao_is_alphanumber(int c);
@@ -441,7 +441,7 @@ object *prim_exit(object *args) {
 }
 object *prim_read(object *args) {
 	//libc(assert)(is_null(args));
-	FILEWrapper * fw = FileWrapper_new((FILE*)libc(stdin));
+	FILEWrapper * fw = FileWrapper_new(libc(stdin));
 	return sao_load_expr(fw);
 }
 object *prim_vget(object *args) {
@@ -534,7 +534,7 @@ object *load_file(object *args) {
 #if defined(DEBUG)
 	libc(printf)("Evaluating file %s\n", filename);
 #endif
-	FILE *fp = libc(fopen)(filename, "r");
+	void*fp = libc(fopen)(filename, "r");
 	if (fp == 0) {
 		libc(printf)("Error opening file %s\n", filename);
 		return NIL;
@@ -568,7 +568,7 @@ static long ffi_microtime(void)
 #endif
 }
 #define NEW_OBJECT(t,name) t*name=libc(calloc)(sizeof(t),sizeof(char));
-FILEWrapper * FileWrapper_new(FILE* fp)
+FILEWrapper * FileWrapper_new(void* fp)
 {
 	//FILEWrapper * fw = libc(calloc)(sizeof(FILEWrapper),sizeof(char));
 	NEW_OBJECT(FILEWrapper,fw);
@@ -969,7 +969,7 @@ int main(int argc, char **argv)
 	ht_init(8192-1);
 	init_env();
 	libc(setmode)(libc(fileno)(libc(stdin)),0x8000/*O_BINARY*/);
-	FILEWrapper * fw = FileWrapper_new((FILE*)libc(stdin));
+	FILEWrapper * fw = FileWrapper_new(libc(stdin));
 	for(;;){
 		//producer:
 		FileWrapper_feed(fw);

@@ -1,30 +1,29 @@
 # FFIC
 
-* "c scripting in ffi-mode" (based on tinycc), providing an extern ffic() to survive the painful libc-headers...
+* "c-scripting in ffi-mode" (based on tinycc), providing an extern ffic() to survive the painful libc-headers...
 
-# Examples
+# Quick Examples
 
 ```
+echo 'extern void*(*ffic())(); unsigned long fib(int n){ if(n<=1) return 1; return n*fib(n-1); } void main(){ ffic("c","printf")("fib(%d)=%d\n",10,fib(10)); }' | ../bin/ffic64.osx
 
-echo 'extern void*(*ffic())(); unsigned long fib(int n){ if(n<=1) return 1; return n*fib(n-1); } void main(){ ffic("c","printf")("fib(%d)=%d\n",10,fib(10)); }' | ./ffic_osx
+../bin/ffic64.osx tests/42.c
 
-./ffic_osx tests/42.c
+../bin/ffic64.osx tests/fib.c 5
 
-./ffic_osx tests/fib.c 5
-
-echo "(exit)" | ./ffic_osx scheme.c
+echo "(exit)" | ../bin/ffic64.osx tests/scheme.c
 ```
-
-# TODO
-
-* full release for OSX/LNX/WIN32/WIN64
-* merge libdl
-* to try little libc.so from https://github.com/lattera/glibc/
 
 # Why?
 
 * c-lover but not much willing to handle the libc headers
 * Wanna have a tiny scripting tool to ease our life
+
+# TODO
+
+* full release for LNX
+* merge libdl?
+* for nostdlib, to try tiny libc.so from https://github.com/lattera/glibc/
 
 # Links for learning
 
