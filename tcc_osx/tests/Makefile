@@ -1,1 +1,1 @@
-../../tinycc/tests/Makefile
+../../../tinycc/tests/Makefile

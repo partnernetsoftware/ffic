@@ -1,1 +1,1 @@
-../tinycc/Makefile
+../../tinycc/Makefile

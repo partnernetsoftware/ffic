@@ -5,6 +5,7 @@ _del/
 tccrun
 tccrun.i
 *.o
+*.i
 config.h
 scheme
 sao
