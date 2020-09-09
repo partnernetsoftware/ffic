@@ -51,13 +51,14 @@ test-osx:
 	./ffic_static_osx tests/42.c
 	cat tests/42.c | ./ffic_osx
 	./ffic_osx tests/42.c
-osx_lab:
-	mkdir -p ../bin/
-	gcc -DTCC_TARGET_X86_64 -DTCC_TARGET_MACHO -E ffic.c -I. | sed 's/^#.*//g' | sed "/^$$/d" > ffic_osx.i
-	gcc -DTCC_TARGET_X86_64 -DTCC_TARGET_MACHO -DCONFIG_TCCDIR="\".\"" -DTCC_LIBTCC1="\"x86_64-osx-libtcc1.a\"" -I../tinycc -I. -DONE_SOURCE=1 -E ffic.c | sed 's/^#.*//g' | sed "/^$$/d" > ffic_static_osx.i
-	gcc -DTCC_TARGET_X86_64 -DTCC_TARGET_MACHO -DCONFIG_TCCDIR="\".\"" -DTCC_LIBTCC1="\"x86_64-osx-libtcc1.a\"" -L. -B../bin ffic_osx.i -o ../bin/ffic_osx
-	gcc ffic_static_osx.i -o ../bin/ffic_static_osx
-	ls -al ../bin/
+###osx_lab:
+###	mkdir -p ../bin/
+###	gcc -DTCC_TARGET_X86_64 -DTCC_TARGET_MACHO -E ffic.c -I. | sed 's/^#.*//g' | sed "/^$$/d" > ffic_osx.i
+###	gcc -DTCC_TARGET_X86_64 -DTCC_TARGET_MACHO -DCONFIG_TCCDIR="\".\"" -DTCC_LIBTCC1="\"x86_64-osx-libtcc1.a\"" -I../tinycc -I. -DONE_SOURCE=1 -E ffic.c | sed 's/^#.*//g' | sed "/^$$/d" > ffic_static_osx.i
+###	gcc -DTCC_TARGET_X86_64 -DTCC_TARGET_MACHO -DCONFIG_TCCDIR="\".\"" -DTCC_LIBTCC1="\"x86_64-osx-libtcc1.a\"" -L. -B../bin ffic_osx.i -o ../bin/ffic_osx
+###	gcc ffic_static_osx.i -o ../bin/ffic_static_osx
+###	ls -al ../bin/
+
 ###osx:
 ###	echo "#define TCC_VERSION \"`head ../tinycc/VERSION`\"" > config.h
 ###	${CC} -E ffic.c -I. -I../tinycc/ | sed 's/^#.*//g' | sed "/^$$/d" > ffic_osx.i
