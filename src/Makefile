@@ -24,8 +24,11 @@ bin_ffic_osx:
 #../tcc_osx/x86_64-osx-tcc -DTCC_TARGET_X86_64 -DTCC_TARGET_MACHO -D__APPLE__ -DTCC_LIBTCC1="\"x86_64-osx-libtcc1.a\"" -I../tinycc -I. -DONE_SOURCE=1 -E ffic.c | sed 's/^#.*//g' | sed "/^\\s*$$/d" > ffic_static_osx2.i
 #../tcc_osx/x86_64-osx-tcc -DTCC_TARGET_X86_64 -DTCC_TARGET_MACHO -DCONFIG_TCCDIR="\".\"" -DTCC_LIBTCC1="\"x86_64-osx-libtcc1.a\"" -L. ffic_static_osx.i -o ffic_static_osx
 #../tcc_osx/tcc -DTCC_TARGET_X86_64 -DTCC_TARGET_MACHO -DCONFIG_TCCDIR="\".\"" -DTCC_LIBTCC1="\"x86_64-osx-libtcc1.a\"" -L. ffic.osx.i -o ffic_osx_tcc
-###tcc_tcc_osx:# build tcc from tcc_osx
-###	rm -rf ../tcc_tcc_osx && mkdir -p ../tcc_tcc_osx && cd ../tcc_tcc_osx && ../tinycc/configure --prefix=. --cc="../tcc_osx/x86_64-osx-tcc -I../src -L../tcc_osx" && make clean && rm -f ../tinycc/config.h && cp -f ../src/config.h ./ && cp -f ../tcc_osx/x86_64-osx-libtcc1.a ./ && make tcc
+tcc_tcc_osx:# build tcc from tcc_osx
+	../tcc_osx/x86_64-osx-tcc -B../tcc_osx -DTCC_TARGET_X86_64 -DTCC_TARGET_MACHO -DCONFIG_TCCDIR="\".\"" -DTCC_LIBTCC1="\"x86_64-osx-libtcc1.a\"" -I../tinycc -I. -DONE_SOURCE=1 ../tinycc/tcc.c -o ../bin/tcc64tcc.osx
+	../bin/tcc64tcc.osx -run tests/env.c
+	../bin/tcc64tcc.osx -B../bin tests/env.c -o tests/env.osx
+	./tests/env.osx
 ###	ls -al ../tcc_tcc_osx/
 #cp ../tcc_osx/libtcc.dylib ./
 #cp ../tcc_osx/x86_64-osx-libtcc1.a ./
