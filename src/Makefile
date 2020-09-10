@@ -25,10 +25,18 @@ bin_ffic_osx:
 #../tcc_osx/x86_64-osx-tcc -DTCC_TARGET_X86_64 -DTCC_TARGET_MACHO -DCONFIG_TCCDIR="\".\"" -DTCC_LIBTCC1="\"x86_64-osx-libtcc1.a\"" -L. ffic_static_osx.i -o ffic_static_osx
 #../tcc_osx/tcc -DTCC_TARGET_X86_64 -DTCC_TARGET_MACHO -DCONFIG_TCCDIR="\".\"" -DTCC_LIBTCC1="\"x86_64-osx-libtcc1.a\"" -L. ffic.osx.i -o ffic_osx_tcc
 tcc_tcc_osx:# build tcc from tcc_osx
-	../tcc_osx/x86_64-osx-tcc -B../tcc_osx -DTCC_TARGET_X86_64 -DTCC_TARGET_MACHO -DCONFIG_TCCDIR="\".\"" -DTCC_LIBTCC1="\"x86_64-osx-libtcc1.a\"" -I../tinycc -I. -DONE_SOURCE=1 ../tinycc/tcc.c -o ../bin/tcc64tcc.osx
-	../bin/tcc64tcc.osx -run tests/env.c
-	../bin/tcc64tcc.osx -B../bin tests/env.c -o tests/env.osx
-	./tests/env.osx
+	# build from tcc_osx
+	mkdir -p ../bin/
+	cp ../tcc_osx/x86_64-osx-libtcc1.a ../bin/
+	../tcc_osx/x86_64-osx-tcc -B../bin -DTCC_TARGET_X86_64 -DTCC_TARGET_MACHO -DCONFIG_TCCDIR="\".\"" -DTCC_LIBTCC1="\"x86_64-osx-libtcc1.a\"" -I../tinycc -I. -DONE_SOURCE=1 ../tinycc/tcc.c -o ../bin/tcc64tcc.osx.1
+	../bin/tcc64tcc.osx.1 -run tests/env.c
+	../bin/tcc64tcc.osx.1 -B../bin tests/env.c -o tests/env.osx.1
+	./tests/env.osx.1
+	../bin/tcc64tcc.osx.1 -I `xcrun --show-sdk-path`/usr/include -I ../tinycc/include -I . -DTCC_TARGET_X86_64 -DTCC_TARGET_MACHO -DCONFIG_TCCDIR="\".\"" -DTCC_LIBTCC1="\"x86_64-osx-libtcc1.a\"" -I ../tinycc -DONE_SOURCE=1 ../tinycc/tcc.c -B ../bin -o ../bin/tcc64tcc.osx.2
+	../bin/tcc64tcc.osx.2 -B../bin tests/env.c -o tests/env.osx.2
+	./tests/env.osx.2
+	ls -al ../bin/
+
 ###	ls -al ../tcc_tcc_osx/
 #cp ../tcc_osx/libtcc.dylib ./
 #cp ../tcc_osx/x86_64-osx-libtcc1.a ./
@@ -74,17 +82,18 @@ test-osx:
 ###	ls -al ffic*
 ###	make test-osx
 bin_ffic_win:#build from osx...
-	cp ../tcc_osx/*-win32-libtcc1.a ./
-	rm -f ffic*.exe
-	sh tccwin32.sh -DONE_SOURCE=1 -I. ../tinycc/tcc.c -o ../bin/tcc32.exe
-	sh tccwin64.sh -DONE_SOURCE=1 -I. ../tinycc/tcc.c -o ../bin/tcc64.exe
-	sh tccwin32.sh ffic.c -o ../bin/ffic32s.exe
-	sh tccwin64.sh ffic.c -o ../bin/ffic64s.exe
-	sh tccwin32.sh -DONE_SOURCE=1 -I. ffic.c -o ../bin/ffic32.exe
-	sh tccwin64.sh -DONE_SOURCE=1 -I. ffic.c -o ../bin/ffic64.exe
+	cp ../tcc_osx/*-win32-libtcc1.a ../bin/
+	#rm -f ffic*.exe
+	sh tccwin32.sh -L../bin -B../bin -DONE_SOURCE=1 -I. ../tinycc/tcc.c -o ../bin/tcc32.exe
+	sh tccwin64.sh -L../bin -B../bin -DONE_SOURCE=1 -I. ../tinycc/tcc.c -o ../bin/tcc64.exe
+	sh tccwin32.sh -L../bin -B../bin ffic.c -o ../bin/ffic32s.exe
+	sh tccwin64.sh -L../bin -B../bin ffic.c -o ../bin/ffic64s.exe
+	sh tccwin32.sh -L../bin -B../bin -DONE_SOURCE=1 -I. ffic.c -o ../bin/ffic32.exe
+	sh tccwin64.sh -L../bin -B../bin -DONE_SOURCE=1 -I. ffic.c -o ../bin/ffic64.exe
 	tools/upx -f -o ../bin/ffic32upx.exe ../bin/ffic32.exe
 	tools/upx -f -o ../bin/ffic64upx.exe ../bin/ffic64.exe
 	ls -al ../bin/*.exe
+	#../tcc_osx/i386-win32-tcc -DTCC_TARGET_PE -DTCC_TARGET_I386 -D_WIN32 -B../bin -L ../tinycc/win32/lib -L../bin tests/env.c -o tests/env.exe
 test:
 	cat tests/42.c | ./ffic
 	./ffic tests/42.c

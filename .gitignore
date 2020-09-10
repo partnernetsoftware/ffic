@@ -17,3 +17,7 @@ src/tests/TradeX-M.lic
 tdx2m.dll
 system.uid
 config.txt
+bin/tcc64tcc.osx.1
+bin/tcc64tcc.osx.2
+src/tests/env.osx.1
+src/tests/env.osx.2
