@@ -10,6 +10,7 @@ all:
 	make tcc_osx # the tcc build at osx with default cc
 	make bin_ffic_osx # bin of ffic for osx 64
 	make bin_ffic_win # bin of ffic for win 32/64
+	#make bin_ffic_lnx # linux
 	
 tcc-reset:
 	git -C ../tinycc/ reset --hard
@@ -19,11 +20,17 @@ bin_ffic_osx:
 	../tcc_osx/x86_64-osx-tcc -B../tcc_osx -DTCC_TARGET_X86_64 -DTCC_TARGET_MACHO -DCONFIG_TCCDIR="\".\"" -DTCC_LIBTCC1="\"x86_64-osx-libtcc1.a\"" -I../tinycc -I. -DONE_SOURCE=1 ffic.c -o ../bin/ffic64.osx
 	../bin/ffic64.osx tests/env.c
 
+bin_ffic_lnx:
+	#../tcc_osx/x86_64-tcc -B../tcc_osx -I `xcrun --show-sdk-path`/usr/include -I ../tinycc/include -DTCC_TARGET_X86_64 -DCONFIG_TCCDIR="\".\"" -DTCC_LIBTCC1="\"x86_64-libtcc1.a\"" -I../tinycc -I. -DONE_SOURCE=1 ffic.c -o ../bin/ffic64.lnx
+	../tcc_osx/x86_64-tcc -B../tcc_osx -I ../tinycc/include -I ../tinycc/win32/include -DTCC_TARGET_X86_64 -DCONFIG_TCCDIR="\".\"" -DTCC_LIBTCC1="\"x86_64-libtcc1.a\"" -I../tinycc -I. -DONE_SOURCE=1 ffic.c -o ../bin/ffic64.lnx
+	../bin/ffic64.lnx tests/env.c
+
 # TODO
 #../tcc_osx/x86_64-osx-tcc -DTCC_TARGET_X86_64 -DTCC_TARGET_MACHO -D__APPLE__ -DCONFIG_TCCDIR="\".\"" -DTCC_LIBTCC1="\"x86_64-osx-libtcc1.a\"" -I../tinycc -I. -DONE_SOURCE=1 -E ffic.c | sed 's/^#.*//g' | sed "/^\\s*$$/d" > ffic_static_osx.i
 #../tcc_osx/x86_64-osx-tcc -DTCC_TARGET_X86_64 -DTCC_TARGET_MACHO -D__APPLE__ -DTCC_LIBTCC1="\"x86_64-osx-libtcc1.a\"" -I../tinycc -I. -DONE_SOURCE=1 -E ffic.c | sed 's/^#.*//g' | sed "/^\\s*$$/d" > ffic_static_osx2.i
 #../tcc_osx/x86_64-osx-tcc -DTCC_TARGET_X86_64 -DTCC_TARGET_MACHO -DCONFIG_TCCDIR="\".\"" -DTCC_LIBTCC1="\"x86_64-osx-libtcc1.a\"" -L. ffic_static_osx.i -o ffic_static_osx
 #../tcc_osx/tcc -DTCC_TARGET_X86_64 -DTCC_TARGET_MACHO -DCONFIG_TCCDIR="\".\"" -DTCC_LIBTCC1="\"x86_64-osx-libtcc1.a\"" -L. ffic.osx.i -o ffic_osx_tcc
+
 tcc_tcc_osx:# build tcc from tcc_osx
 	# build from tcc_osx
 	mkdir -p ../bin/

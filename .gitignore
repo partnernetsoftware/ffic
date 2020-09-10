@@ -21,3 +21,5 @@ bin/tcc64tcc.osx.1
 bin/tcc64tcc.osx.2
 src/tests/env.osx.1
 src/tests/env.osx.2
+src/tcc_osx.log
+src/tcc_tcc_osx.log
