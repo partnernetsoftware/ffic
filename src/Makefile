@@ -2,7 +2,7 @@
 #CC=gcc
 #CC=gcc -O1 -I ../tinyccbinary/
 #CC=tcc
-CC=./tcc_osx/tcc
+CC=./bin/tcc
 #CC=../tinyccbinary/x86_64-osx-tcc
 #CC=../tinyccbinary/tcc
 
@@ -17,7 +17,8 @@ tcc-reset:
 	git -C ../tinycc/ pull
 
 bin_ffic_osx:
-	../tcc_osx/x86_64-osx-tcc -B../tcc_osx -DTCC_TARGET_X86_64 -DTCC_TARGET_MACHO -DCONFIG_TCCDIR="\".\"" -DTCC_LIBTCC1="\"x86_64-osx-libtcc1.a\"" -I../tinycc -I. -DONE_SOURCE=1 ffic.c -o ../bin/ffic64.osx
+	#../tcc_osx/x86_64-osx-tcc -B../tcc_osx -DTCC_TARGET_X86_64 -DTCC_TARGET_MACHO -DCONFIG_TCCDIR="\".\"" -DTCC_LIBTCC1="\"x86_64-osx-libtcc1.a\"" -I../tinycc -I. -DONE_SOURCE=1 ffic.c -o ../bin/ffic64.osx
+	../tcc_osx/tcc -B../tcc_osx -DTCC_TARGET_X86_64 -DTCC_TARGET_MACHO -DCONFIG_TCCDIR="\".\"" -DTCC_LIBTCC1="\"x86_64-osx-libtcc1.a\"" -I../tinycc -I. -DONE_SOURCE=1 ffic.c -o ../bin/ffic64.osx
 	#../bin/tcc64tcc.osx -I `xcrun --show-sdk-path`/usr/include -I ../tinycc/include -I . -DTCC_TARGET_X86_64 -DTCC_TARGET_MACHO -DCONFIG_TCCDIR="\".\"" -DTCC_LIBTCC1="\"x86_64-osx-libtcc1.a\"" -I ../tinycc -DONE_SOURCE=1 -B ../bin ffic.c -o ../bin/ffic64.osx
 	cp ../tcc_osx/x86_64-osx-libtcc1.a ./
 	../bin/ffic64.osx tests/env.c
@@ -46,20 +47,13 @@ tcc_tcc_osx:# build tcc from tcc_osx
 	./tests/env.osx.2
 	ls -al ../bin/
 
-###	ls -al ../tcc_tcc_osx/
-#cp ../tcc_osx/libtcc.dylib ./
-#cp ../tcc_osx/x86_64-osx-libtcc1.a ./
-#cp ../tcc_osx/*-win32-libtcc1.a ./
-#cp tcc_osx/*-libtcc1.a ./
-
 tcc_osx:#with system cc
 	echo "#define TCC_VERSION \"`head ../tinycc/VERSION`\"" > config.h
 	echo "#ifndef CONFIG_TCCDIR" >> config.h
 	echo "#define CONFIG_TCCDIR \".\"" >> config.h
 	echo "#endif" >> config.h
-	rm -rf ../tcc_osx && mkdir -p ../tcc_osx && cd ../tcc_osx && ../../tinycc/configure && make clean && sleep 1 && rm -f ../tinycc/config.h && cp -f ../src/config.h ./ && make && make libtcc.osx && make cross
-	ls -al ../tcc_osx/
-	../tcc_osx/x86_64-osx-tcc -vv
+	rm -rf ../tcc_osx && mkdir -p ../tcc_osx && cd ../tcc_osx && ../tinycc/configure && rm -f ../tinycc/config.h && cp -f ../src/config.h ./ && make && make libtcc.osx && make cross && cp -f *-tcc1.a ../bin/ && cp -f *-tcc ../bin/ && rm -rf ../tcc_osx && ls -al ../bin/
+	../bin/x86_64-osx-tcc -vv
 submodule:
 	#cd .. && git submodule add --force https://github.com/mirror/tinycc.git && git submodule update --init --recursive
 	cd .. && git submodule init && git submodule update
@@ -91,7 +85,7 @@ test-osx:
 ###	ls -al ffic*
 ###	make test-osx
 bin_ffic_win:#build from osx...
-	cp ../tcc_osx/*-win32-libtcc1.a ../bin/
+	#cp ../tcc_osx/*-win32-libtcc1.a ../bin/
 	sh tccwin32.sh -DONE_SOURCE=1 -I. ../tinycc/tcc.c -o ../bin/tcc32.exe
 	sh tccwin64.sh -DONE_SOURCE=1 -I. ../tinycc/tcc.c -o ../bin/tcc64.exe
 	sh tccwin32.sh ffic.c -o ../bin/ffic32s.exe
