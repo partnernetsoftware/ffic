@@ -57,7 +57,7 @@ tcc_osx:#with system cc
 	echo "#ifndef CONFIG_TCCDIR" >> config.h
 	echo "#define CONFIG_TCCDIR \".\"" >> config.h
 	echo "#endif" >> config.h
-	rm -rf ../tcc_osx && mkdir -p ../tcc_osx && cd ../tcc_osx && ../../tinycc/configure && make clean && sleep 1 && rm -f ../tinycc/config.h && cp -f ../src/config.h ./ && make libtcc.osx && make cross && make tcc
+	rm -rf ../tcc_osx && mkdir -p ../tcc_osx && cd ../tcc_osx && ../../tinycc/configure && make clean && sleep 1 && rm -f ../tinycc/config.h && cp -f ../src/config.h ./ && make && make libtcc.osx && make cross
 	ls -al ../tcc_osx/
 	../tcc_osx/x86_64-osx-tcc -vv
 submodule:

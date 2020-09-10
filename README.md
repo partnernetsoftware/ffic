@@ -21,9 +21,11 @@ echo "(exit)" | ../bin/ffic64.osx tests/scheme.c
 
 # TODO
 
-* full release for LNX
-* merge libdl?
+* release for LNX (after crt0/crt1/crtn is done)
+* merge libdl
+* tinyAI
 * for nostdlib, to try tiny libc.so from https://github.com/lattera/glibc/
+* tinyOS
 
 # Links for learning
 

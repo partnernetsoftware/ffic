@@ -31,6 +31,9 @@ int main(int argc, char* argv[], char** envp){
 	printf("win(_WIN32)=%d\n",_WIN32);
 #endif
 
+#ifdef TCC_LIBTCC1
+	printf("TCC_LIBTCC1=%s\n",TCC_LIBTCC1);
+#endif
 /* calling convention and ABI */
 //#if defined (__ARM_EABI__)
 //# if defined (__ARM_PCS_VFP)
