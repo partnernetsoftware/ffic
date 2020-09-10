@@ -83,13 +83,12 @@ test-osx:
 ###	make test-osx
 bin_ffic_win:#build from osx...
 	cp ../tcc_osx/*-win32-libtcc1.a ../bin/
-	#rm -f ffic*.exe
-	sh tccwin32.sh -L../bin -B../bin -DONE_SOURCE=1 -I. ../tinycc/tcc.c -o ../bin/tcc32.exe
-	sh tccwin64.sh -L../bin -B../bin -DONE_SOURCE=1 -I. ../tinycc/tcc.c -o ../bin/tcc64.exe
-	sh tccwin32.sh -L../bin -B../bin ffic.c -o ../bin/ffic32s.exe
-	sh tccwin64.sh -L../bin -B../bin ffic.c -o ../bin/ffic64s.exe
-	sh tccwin32.sh -L../bin -B../bin -DONE_SOURCE=1 -I. ffic.c -o ../bin/ffic32.exe
-	sh tccwin64.sh -L../bin -B../bin -DONE_SOURCE=1 -I. ffic.c -o ../bin/ffic64.exe
+	sh tccwin32.sh -DONE_SOURCE=1 -I. ../tinycc/tcc.c -o ../bin/tcc32.exe
+	sh tccwin64.sh -DONE_SOURCE=1 -I. ../tinycc/tcc.c -o ../bin/tcc64.exe
+	sh tccwin32.sh ffic.c -o ../bin/ffic32s.exe
+	sh tccwin64.sh ffic.c -o ../bin/ffic64s.exe
+	sh tccwin32.sh -DONE_SOURCE=1 -I. ffic.c -o ../bin/ffic32.exe
+	sh tccwin64.sh -DONE_SOURCE=1 -I. ffic.c -o ../bin/ffic64.exe
 	tools/upx -f -o ../bin/ffic32upx.exe ../bin/ffic32.exe
 	tools/upx -f -o ../bin/ffic64upx.exe ../bin/ffic64.exe
 	ls -al ../bin/*.exe

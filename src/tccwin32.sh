@@ -3,8 +3,8 @@ R_=$(pwd)
 RTCC=$(cd `dirname $0`/../tinycc; pwd)
 #echo RTCC=$RTCC
 
-CC32="../tcc_osx/i386-win32-tcc -L. -DCONFIG_LDDIR="\".\"" -DTCC_LIBTCC1="\"i386-win32-libtcc1.a\"" -I $RTCC/win32/include -I $RTCC/win32/include/winapi -I $RTCC/include -I $RTCC -I. -I $RTCC -L $RTCC/win32/lib -L."
+CC="$RTCC/../tcc_osx/i386-win32-tcc -L. -DCONFIG_LDDIR="\".\"" -DTCC_LIBTCC1="\"i386-win32-libtcc1.a\"" -I $RTCC/win32/include -I $RTCC/win32/include/winapi -I $RTCC/include -I $RTCC -I $RTCC -B $RTCC/../bin -L $RTCC/../bin -L $RTCC/win32/lib -L. -I."
 
-$CC32 $*
+$CC $*
 
 cd $R_
