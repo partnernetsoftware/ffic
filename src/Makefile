@@ -18,6 +18,8 @@ tcc-reset:
 
 bin_ffic_osx:
 	../tcc_osx/x86_64-osx-tcc -B../tcc_osx -DTCC_TARGET_X86_64 -DTCC_TARGET_MACHO -DCONFIG_TCCDIR="\".\"" -DTCC_LIBTCC1="\"x86_64-osx-libtcc1.a\"" -I../tinycc -I. -DONE_SOURCE=1 ffic.c -o ../bin/ffic64.osx
+	#../bin/tcc64tcc.osx -I `xcrun --show-sdk-path`/usr/include -I ../tinycc/include -I . -DTCC_TARGET_X86_64 -DTCC_TARGET_MACHO -DCONFIG_TCCDIR="\".\"" -DTCC_LIBTCC1="\"x86_64-osx-libtcc1.a\"" -I ../tinycc -DONE_SOURCE=1 -B ../bin ffic.c -o ../bin/ffic64.osx
+	cp ../tcc_osx/x86_64-osx-libtcc1.a ./
 	../bin/ffic64.osx tests/env.c
 
 bin_ffic_lnx:
