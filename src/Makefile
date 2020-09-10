@@ -36,8 +36,8 @@ bin_ffic_lnx:
 
 tcc_tcc_osx:# build tcc from tcc_osx
 	# build from tcc_osx
-	mkdir -p ../bin/
-	cp ../tcc_osx/x86_64-osx-libtcc1.a ../bin/
+	#mkdir -p ../bin/
+	#cp ../tcc_osx/x86_64-osx-libtcc1.a ../bin/
 	../tcc_osx/x86_64-osx-tcc -B../bin -DTCC_TARGET_X86_64 -DTCC_TARGET_MACHO -DCONFIG_TCCDIR="\".\"" -DTCC_LIBTCC1="\"x86_64-osx-libtcc1.a\"" -I../tinycc -I. -DONE_SOURCE=1 ../tinycc/tcc.c -o ../bin/tcc64tcc.osx.1
 	../bin/tcc64tcc.osx.1 -run tests/env.c
 	../bin/tcc64tcc.osx.1 -B../bin tests/env.c -o tests/env.osx.1
@@ -52,8 +52,8 @@ tcc_osx:#with system cc
 	echo "#ifndef CONFIG_TCCDIR" >> config.h
 	echo "#define CONFIG_TCCDIR \".\"" >> config.h
 	echo "#endif" >> config.h
-	rm -rf ../tcc_osx && mkdir -p ../tcc_osx && cd ../tcc_osx && ../tinycc/configure && rm -f ../tinycc/config.h && cp -f ../src/config.h ./ && make && make libtcc.osx && make cross && cp -f *-tcc1.a ../bin/ && cp -f *-tcc ../bin/ && rm -rf ../tcc_osx && ls -al ../bin/
-	../bin/x86_64-osx-tcc -vv
+	rm -rf ../tcc_osx && mkdir -p ../tcc_osx && cd ../tcc_osx && ../tinycc/configure && rm -f ../tinycc/config.h && cp -f ../src/config.h ./ && make && make libtcc.osx && make cross && cp -f *tcc1.a ../bin/
+	../tcc_osx/x86_64-osx-tcc -vv
 submodule:
 	#cd .. && git submodule add --force https://github.com/mirror/tinycc.git && git submodule update --init --recursive
 	cd .. && git submodule init && git submodule update
