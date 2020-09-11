@@ -26,6 +26,7 @@ bin_ffic_lnx:
 	#../tcc_osx/x86_64-tcc -B../tcc_osx -I `xcrun --show-sdk-path`/usr/include -I ../tinycc/include -DTCC_TARGET_X86_64 -DCONFIG_TCCDIR="\".\"" -DTCC_LIBTCC1="\"x86_64-libtcc1.a\"" -I../tinycc -I. -DONE_SOURCE=1 ffic.c -o ../bin/ffic64.lnx
 	../tcc_osx/x86_64-tcc -B../tcc_osx -I ../tinycc/include -I ../tinycc/win32/include -DTCC_TARGET_X86_64 -DCONFIG_TCCDIR="\".\"" -DTCC_LIBTCC1="\"x86_64-libtcc1.a\"" -I../tinycc -I. -DONE_SOURCE=1 ffic.c -o ../bin/ffic64.lnx
 	../bin/ffic64.lnx tests/env.c
+	../bin/ffic64.lnx tests/42.c
 
 # TODO
 #../tcc_osx/x86_64-osx-tcc -DTCC_TARGET_X86_64 -DTCC_TARGET_MACHO -D__APPLE__ -DCONFIG_TCCDIR="\".\"" -DTCC_LIBTCC1="\"x86_64-osx-libtcc1.a\"" -I../tinycc -I. -DONE_SOURCE=1 -E ffic.c | sed 's/^#.*//g' | sed "/^\\s*$$/d" > ffic_static_osx.i
@@ -40,6 +41,8 @@ tcc_tcc_osx:# build tcc from tcc_osx
 	#ffic todo fix ffic.c to get path of executable...:
 	cp ../tcc_osx/x86_64-osx-libtcc1.a ./
 	../tcc_osx/x86_64-osx-tcc -B../bin -DTCC_TARGET_X86_64 -DTCC_TARGET_MACHO -DCONFIG_TCCDIR="\".\"" -DTCC_LIBTCC1="\"x86_64-osx-libtcc1.a\"" -I../tinycc -I. -DONE_SOURCE=1 ../tinycc/tcc.c -o ../bin/tcc64tcc.osx.1
+	../tcc_osx/x86_64-osx-tcc -B../bin -DTCC_TARGET_X86_64 -DTCC_TARGET_MACHO -DCONFIG_TCCDIR="\".\"" -DTCC_LIBTCC1="\"x86_64-osx-libtcc1.a\"" -I../tinycc -I. -DONE_SOURCE=1 -run ffic.c tests/env.c
+	../bin/tcc64tcc.osx.1 -I `xcrun --show-sdk-path`/usr/include -I ../tinycc/include -I . -DTCC_TARGET_X86_64 -DTCC_TARGET_MACHO -DCONFIG_TCCDIR="\".\"" -DTCC_LIBTCC1="\"x86_64-osx-libtcc1.a\"" -I ../tinycc -DONE_SOURCE=1 -run ffic.c tests/env.c
 	../bin/tcc64tcc.osx.1 -run tests/env.c
 	../bin/tcc64tcc.osx.1 -B../bin tests/env.c -o tests/env.osx.1
 	./tests/env.osx.1

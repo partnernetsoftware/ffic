@@ -22,12 +22,16 @@ int main(int argc, char **argv){
 
 	///extern char* getenv();
 	///extern int strcat(char *, const char *, unsigned long);
-	///extern int printf(const char*,...);
+	extern int printf(const char*,...);
 	///char PWD[256]="-L";
 	///strcat(PWD,getenv("PWD"),255);
 	/////printf("PWD:%s\n",PWD);
 
 	ffic_ptr tcc_ptr = tcc(tcc_new)();
+	if(!tcc_ptr){
+		return 0;
+	}
+	
 	tcc(tcc_set_output_type)(tcc_ptr, 1/*TCC_OUTPUT_MEMORY*/);
 	tcc(tcc_define_symbol)(tcc_ptr, "FFIC", "2");//for .c using ffic.h
 
