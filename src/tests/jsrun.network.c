@@ -1,5 +1,6 @@
 //./bin/tcc64tcc.osx.1 -I `xcrun --show-sdk-path`/usr/include -I ../tinycc/include -I . -DTCC_TARGET_X86_64 -DTCC_TARGET_MACHO -DCONFIG_TCCDIR="\".\"" -DTCC_LIBTCC1="\"x86_64-osx-libtcc1.a\"" -I ../tinycc -DONE_SOURCE=1 -B ../bin -run tests/jsrun.network.c
 // ../bin/tcc64tcc.osx.1 -DTCC_TARGET_X86_64 -DTCC_TARGET_MACHO -DCONFIG_TCCDIR="\".\"" -DTCC_LIBTCC1="\"x86_64-osx-libtcc1.a\"" -I ../tinycc -DONE_SOURCE=1 -B ../bin -run tests/jsrun.network.c
+// ../bin/tcc64tcc.osx.1 -I `xcrun --show-sdk-path`/usr/include -DTCC_TARGET_X86_64 -DTCC_TARGET_MACHO -DCONFIG_TCCDIR="\".\"" -DTCC_LIBTCC1="\"x86_64-osx-libtcc1.a\"" -I ../tinycc -DONE_SOURCE=1 -B ../bin -run tests/jsrun.network.c
 //ffic by Wanjo Chan {
 typedef void* ffic_ptr;
 typedef ffic_ptr(*ffic_func)();
