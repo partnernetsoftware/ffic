@@ -36,13 +36,17 @@ int main(int argc, char **argv){
 	tcc(tcc_set_options)(tcc_ptr, "-L.");//find .a from current by default
 	tcc(tcc_set_options)(tcc_ptr, "-L..");//then ..
 
+	//tcc(tcc_set_options)(tcc_ptr, "-Lsrc/");
+	tcc(tcc_set_options)(tcc_ptr, "-B../bin/");//TODO get the dir of argv0
+
 	tcc(tcc_set_options)(tcc_ptr, "-I.");//Include
 	tcc(tcc_set_options)(tcc_ptr, "-I..");//Include
 
 	//TODO
 	//tcc(tcc_set_options)(tcc_ptr, PWD);//find .a from current by default
 
-	//TODO add the path(argv[1]) as -L...
+	//TODO add the path(self) as -L?
+	//TODO add the path(argv[1]) as -L?
 
 	//extern char ** environ;
 	//extern int strncmp();

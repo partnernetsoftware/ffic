@@ -45,6 +45,7 @@ int main(int argc, char* argv[], char** envp){
 //# define TRIPLET_ABI "gnu"
 //#endif
 	
+	printf("------------------------------------------------------------\n");
 #ifdef _WIN32
 #else
 	//if(!envp){ printf("empty envp?\n"); }
@@ -53,11 +54,28 @@ int main(int argc, char* argv[], char** envp){
 #endif
 
 	int ii = 0;
-
 	while (envp && envp[ii] != 0) 
 	{
 		printf("%s\n",envp[ii]); 
 		ii++;
 	}
+	for(int j=0; j<argc; j++){
+		printf("%d: %s\n",j,argv[j]);
+	}
+	printf("------------------------------------------------------------\n");
+	//extern void getcwd();
+	//char buffer[255];
+	//getcwd(buffer,255);
+	//printf("getcwd=%s\n",buffer);
+
+	//TODO
+	//Mac OS X: _NSGetExecutablePath() (man 3 dyld)
+	//Linux: readlink /proc/self/exe
+	//Solaris: getexecname()
+	//FreeBSD: sysctl CTL_KERN KERN_PROC KERN_PROC_PATHNAME -1
+	//FreeBSD if it has procfs: readlink /proc/curproc/file (FreeBSD doesn't have procfs by default)
+	//NetBSD: readlink /proc/curproc/exe
+	//DragonFly BSD: readlink /proc/curproc/file
+	//Windows: GetModuleFileName() with hModule = NULL
 	return 0;	
 }
