@@ -238,6 +238,7 @@ int tx_unknown(char** argv, int argc, char* timestamp){
 		c_fprintf(c_stderr,"%s ",argv[i]);
 	}
 	c_fprintf(c_stderr,"\n");
+	c_fflush(c_stderr);
 
 	tx_output(0,timestamp,"wrong cmd","");
 	return 0;
