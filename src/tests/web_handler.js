@@ -4,7 +4,6 @@ var o2s = JSON.stringify;//
 var s2o = s => trycatch(()=>JSON.parse(s,true))
 var iconv = require('iconv-lite');
 var spawn = require('child_process').spawn;
-//var base64_decode = (t) => Buffer.from(t||'', 'base64').toString();
 var base64_decode_x = (t) => Buffer.from(t||'', 'base64');
 var trim = s => (s?s.trim():s);
 var out = d => (console.log(d),d);
@@ -21,7 +20,7 @@ var start_child = (child_name,exe_name)=>{
 			if(ccbb){
 				var b64s = o.pop();
 				var b = base64_decode_x( b64s );
-				var sutf8 = iconv.decode(b, 'GB18030');//GBK not ok here?
+				var sutf8 = iconv.decode(b, 'GB18030');
 				var line = ccbb.line;
 				try{
 					delete cb_pool[timestamp_id];//delete after call
@@ -34,9 +33,7 @@ var start_child = (child_name,exe_name)=>{
 			}
 		}
 	});
-	the_child.stderr.on('data', (data)=>{
-		err(iconv.decode(new Buffer(data), 'GBK'));
-	});
+	the_child.stderr.on('data', (data)=>{ err(iconv.decode(new Buffer(data), 'GBK')); });
 	the_child.on('close', (code)=>{
 		err('## '+child_name+'.close:' + code);
 		try{ the_child.kill("SIGINT"); }catch(ex){ err('## '+child_name+'.kill:'+ex) }

@@ -1,4 +1,4 @@
-//node512 --harmony_destructuring --harmony_default_parameters server512
+//node512 --harmony_destructuring --harmony_default_parameters server512 %*
 
 const fs = require('fs');
 
@@ -14,5 +14,4 @@ const fs = require('fs');
 		.on('error',console.log)
 		.on('request', require(handler)({argo}))
 		.listen({port,host})
-})
-({argo:(a=>(a||require('process').argv||[]).reduce((r,e)=>((m=e.match(/^(\/|--?)([\w-]*)="?(.*)"?$/))&&(r[m[2]]=m[3]),r),{}))(),logger:console})
+})({argo:(a=>(a||require('process').argv||[]).reduce((r,e)=>((m=e.match(/^(\/|--?)([\w-]*)="?(.*)"?$/))&&(r[m[2]]=m[3]),r),{}))(),logger:console})
