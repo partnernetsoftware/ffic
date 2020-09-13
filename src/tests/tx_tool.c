@@ -5,6 +5,7 @@
 #include "base64.c"
 
 ///////////////////////////////////////////////////////////////////////
+#define ffic_string_new(name,size) char name[size];c_memset(name,0,sizeof(name));
 //TODO merge as line-def mode
 #define $decl(n,t) t n
 #define $use(c,m,t) (t) ffic(#c,#m)
@@ -28,7 +29,7 @@ $decl(c_calloc,ffic_func);
 $decl(c_strtok,ffic_func);
 $decl(c_strcpy,ffic_func);
 $decl(c_memset,ffic_func);
-$decl(c_free,ffic_func);
+//$decl(c_free,ffic_func);
 $decl(c_fopen,ffic_func);
 $decl(c_fgets,ffic_func);
 $decl(c_fclose,ffic_func);
@@ -44,12 +45,112 @@ $decl(tdx2m_CloseTdx,ffic_func_i);
 $decl(tdx2m_Logon,ffic_func_i);
 $decl(tdx2m_GetMachineInfo,ffic_func_i);
 $decl(tdx2m_GetQuote,ffic_func_i);
+	//     nCategory   - 表示查询信息的种类，
+	//                  0 资金情况
+	//                  1 持仓情况
+	//                  2 当日委托
+	//                  3 当日成交
+	//                  4 可撤单表
+	//                  5 股东代码
+	//                  6 融资余额
+	//                  7 融券余额
+	//                  8 可融证券
+	//                  9
+	//                 10
+	//                 11
+	//                 12 可申购新股查询
+	//                 13 新股申购额度查询
+	//                 14 配号查询
+	//                 15 中签查询
 $decl(tdx2m_QueryData,ffic_func_i);
 $decl(tdx2m_CancelOrder,ffic_func_i);
 $decl(tdx2m_SendOrder,ffic_func_i);
 $decl(tdx2m_TdxHq_GetSecurityBars,ffic_func_i);
 $decl(tdx2m_TdxHq_GetSecurityCount,ffic_func_i);
 $decl(tdx2m_TdxHq_Connect,ffic_func_i);
+//int LogonEx(
+//		int nQsid,
+//		const char *pszHost,
+//		short nPort,
+//		const char *pszVersion,
+//		short nYybId,
+//		char nAccountType,
+//		const char *pszAccountNo,
+//		const char *pszTradeAccount,
+//		const char *pszJyPassword,
+//		const char *pszTxPassword,
+//		const char* pszOtherInfo,
+//		char *pszErrInfo);
+//
+//void Logoff(int nClientID);
+//
+//int CancelOrderEx(
+//		int nClientID,
+//		char nMarket,
+//		const char *pszHth,
+//		const char *pszGddm,
+//		char *pszResult,
+//		char *pszErrInfo);
+//	int GetTradableQuantity(
+//			int nClientID,
+//			char nCategory,
+//			int nPriceType,
+//			const char *pszGddm,
+//			const char *pszZqdm,
+//			float fPrice,
+//			char *pszResult,
+//			char *pszErrInfo);
+// 融资融券账户直接还款
+//	int Repay(
+//			int nClientID,
+//			const char *pszAmount,
+//			char *pszResult,
+//			char *pszErrInfo);
+//	int QueryHistoryData(
+//			int nClientID,
+//			int nCategory,
+//			const char *pszBeginDate,
+//			const char *pszEndDate,
+//			char *pszResult,
+//			char *pszErrInfo);
+//// 单账户批量下单
+//int SendOrders(
+//		int nClientID,
+//		int nCategory[],
+//		int nPriceType[],
+//		const char *pszGddm[],
+//		const char *pszZqdm[],
+//		float fPrice[],
+//		int nQuantity[],
+//		int nCount,
+//		char* pszResultOK[],
+//		char* pszResultFail[],
+//		char* pszErrInfo);
+// 单账户批量撤单
+//int CancelOrders(
+//		int nClientID,
+//		const char nMarket[],
+//		const char *pszOrderID[],
+//		int nCount,
+//		char* pszResultOK[],
+//		char* pszResultFail[],
+//		char* pszErrInfo);
+	// 单账户批量获取五档报价
+	//int GetQuotes(
+	//		int nClientID,
+	//		const char *pszZqdm[],
+	//		int nCount,
+	//		char* pszResultOK[],
+	//		char* pszResultFail[],
+	//		char* pszErrInfo);
+	// 一键打新
+	//int QuickIPO(int nClientID);
+	//int QuickIPODetail(
+	//		int nClientID,
+	//		int nCount,
+	//		char* pszResultOK[],
+	//		char* pszResultFail[],
+	//		char* pszErrInfo);
 
 $decl(CloseHandle,ffic_func);
 $decl(CreateThread,ffic_func);
@@ -74,7 +175,7 @@ void tx_init(){
 	c_strtok = $use(c,strtok,ffic_func);
 	c_strcpy = $use(c,strcpy,ffic_func);
 	c_memset = $use(c,memset,ffic_func);
-	c_free = $use(c,free,ffic_func);
+	//c_free = $use(c,free,ffic_func);
 	c_fopen = $use(c,fopen,ffic_func);
 	c_fclose = $use(c,fclose,ffic_func);
 	c_fgets = $use(c,fgets,ffic_func);
@@ -111,12 +212,11 @@ int tx_output(int f,char* timestamp,char* out,char* err){
 	c_fflush(c_stderr);
 
 	int len = c_strlen(txt);
-	char * txt_base64= c_calloc(4*len, sizeof(char));//calloc() auto init
+	ffic_string_new(txt_base64,4*len);
 	b64_encode(txt,c_strlen(txt),txt_base64);
 	//cas_printf("[\"%s\",\"%s\",\"%s\"]\n",timestamp,(f>=0)?"OK":"KO",txt_base64);
 	c_printf("[\"%s\",\"%s\",\"%s\"]\n",timestamp,(f>=0)?"OK":"KO",txt_base64);
 	c_fflush(c_stdout);
-	c_free(txt_base64);
 	return f;
 }
 
@@ -206,7 +306,7 @@ int tx_login(char** argv, int argc, char* timestamp){
 	c_strcpy(m_sTradeAccount[0], str_a[9]);
 	c_strcpy(m_sTradeAccount[1], str_a[10]);
 
-	char szErrInfo[512];
+	ffic_string_new(szErrInfo,1024);
 	c_fprintf(c_stderr,"# Logon START\n");
 	nClientID = (int) tdx2m_Logon(m_nQsid,
 			m_sHost,
@@ -240,10 +340,9 @@ int hq_quit(){
 
 int tx_pc(char** argv, int argc, char* timestamp){
 	int len_out = 2048;
-	char * szResult = c_calloc(len_out,sizeof(char));
+	ffic_string_new(szResult,len_out);
 	tdx2m_GetMachineInfo(nClientID, szResult, len_out);
 	tx_output(1,timestamp,szResult,"");
-	c_free(szResult);
 	return 0;
 }
 
@@ -270,13 +369,11 @@ int tx_quote(char** argv, int argc, char* timestamp){
 		tx_output(-1,timestamp,"",usage);
 		return 0;
 	}
-	char * szErrInfo = c_calloc(1024,sizeof(char));
+	ffic_string_new(szErrInfo,1024);
 	char* pszZqdm = argv[1+offset];
-	char * szResult = c_calloc(1024*4,sizeof(char));
+	ffic_string_new(szResult,1024*4);
 	int f = tdx2m_GetQuote(nClientID, pszZqdm, szResult, szErrInfo);
 	tx_output(f,timestamp,szResult,szErrInfo);
-	c_free(szResult);
-	c_free(szErrInfo);
 	return 0;
 }
 
@@ -289,7 +386,7 @@ int hq_bars(char** argv, int argc, char* timestamp){
 		return 0;
 	}
 
-	char * szErrInfo = c_calloc(1024,sizeof(char));
+	ffic_string_new(szErrInfo,1024);
 
 	char* pszZqdm = argv[1+offset];
 
@@ -310,11 +407,9 @@ int hq_bars(char** argv, int argc, char* timestamp){
 	//int f = tdx2m_TdxHq_GetSecurityBars(nConn, nCategory, nMarket, pszZqdm, 0, &nCount, &szResult2, szErrInfo);
 	//tx_output(f,timestamp,szResult2,szErrInfo);
 
-	char * szResult = c_calloc(1024*nCount,sizeof(char));
+	ffic_string_new(szResult,1024*nCount);
 	int f = tdx2m_TdxHq_GetSecurityBars(nConn, nCategory, nMarket, pszZqdm, 0, &nCount, szResult, szErrInfo);
 	tx_output(f,timestamp,szResult,szErrInfo);
-	c_free(szResult);
-	c_free(szErrInfo);
 	return 0;
 }
 
@@ -327,10 +422,9 @@ int hq_check_conn(char** argv, int argc, char* timestamp){
 	if(argc-offset>1){
 		nMarket = (int) c_atol(argv[1+offset]);
 	}
-	char * szErrInfo = c_calloc(1024,sizeof(char));
+	ffic_string_new(szErrInfo,1024);
 	short pnCount = 0;
 	int f = tdx2m_TdxHq_GetSecurityCount(nConn, nMarket, &pnCount, szErrInfo);
-	c_free(szErrInfo);
 	if(f>=0 && pnCount>0) return (int) pnCount;
 	else return f;
 }
@@ -338,7 +432,7 @@ int hq_check_conn(char** argv, int argc, char* timestamp){
 int hq_market_stock_count(char** argv, int argc, char* timestamp){
 	long offset = c_atol(timestamp)>0?1:0;
 
-	char * szErrInfo = c_calloc(1024,sizeof(char));
+	ffic_string_new(szErrInfo,1024);
 
 	int nMarket = 0;//0 sz 1 sh .... TMP
 	if(argc-offset>1){
@@ -348,28 +442,20 @@ int hq_market_stock_count(char** argv, int argc, char* timestamp){
 	short pnCount = 0;
 	int f = tdx2m_TdxHq_GetSecurityCount(nConn, nMarket, &pnCount, szErrInfo);
 
-	char * szResult = c_calloc(1024,sizeof(char));
+	ffic_string_new(szResult,1024);
 	c_sprintf(szResult,"pnCount=%d",pnCount);
 
 	tx_output(f,timestamp,szResult,szErrInfo);
-
-	c_free(szResult);
-
-	c_free(szErrInfo);
 	return 0;
 }
 
 int tx_info(char** argv, int argc, char* timestamp){
 	long offset = c_atol(timestamp)>0?1:0;
-
 	int t = (argc-offset>1)?c_atol(argv[1+offset]):0;
-
-	char * szErrInfo = c_calloc(1024,sizeof(char));
-	char * szResult = c_calloc(1024*128,sizeof(char));
+	ffic_string_new(szResult,1024*128);
+	ffic_string_new(szErrInfo,1024);
 	int f = tdx2m_QueryData(nClientID, t, szResult, szErrInfo);
 	tx_output(f,timestamp,szResult,szErrInfo);
-	c_free(szResult);
-	c_free(szErrInfo);
 	return 0;
 }
 
@@ -383,8 +469,8 @@ int hq_conn(char** argv, int argc, char* timestamp){
 		return 0;
 	}
 
-	char * szErrInfo = c_calloc(1024,sizeof(char));
-	char * szResult = c_calloc(1024*10,sizeof(char));
+	ffic_string_new(szErrInfo,1024);
+	ffic_string_new(szResult,1024*10);
 
 	char * pszHqSvrIP = argv[1+offset];
 	int nPort = 7709;
@@ -401,8 +487,6 @@ int hq_conn(char** argv, int argc, char* timestamp){
 	} else {
 		c_fprintf(c_stderr,"# HQ CONN OK\n");
 	}
-	c_free(szResult);
-	c_free(szErrInfo);
 	return 0;
 }
 
@@ -415,8 +499,8 @@ int tx_cancel_order(char** argv, int argc, char* timestamp){
 	for(int i=1;i<argc;i++){
 		char* pszHth = argv[i+offset];
 		c_fprintf(c_stderr,"# CancelOrder %s\n",pszHth);
-		char * szErrInfo = c_calloc(1024,sizeof(char));
-		char * szResult = c_calloc(1024,sizeof(char));
+		ffic_string_new(szErrInfo,1024);
+		ffic_string_new(szResult,1024);
 		int f = tdx2m_CancelOrder(
 				nClientID,
 				nMarket,
@@ -424,8 +508,6 @@ int tx_cancel_order(char** argv, int argc, char* timestamp){
 				szResult,
 				szErrInfo);
 		tx_output(f,timestamp,szResult,szErrInfo);
-		c_free(szResult);
-		c_free(szErrInfo);
 	}
 	return 0;
 }
@@ -456,8 +538,8 @@ int tx_order(char** argv, int argc, char* timestamp){
 	}
 	c_fprintf(c_stderr,"# SendOrder %f %d (%f) \"%s\"\n",fPrice,nQuantity,total,pszZqdm);
 
-	char * szErrInfo = c_calloc(1024,sizeof(char));
-	char * szResult = c_calloc(1024,sizeof(char));
+	ffic_string_new(szErrInfo,1024);
+	ffic_string_new(szResult,1024);
 	int f = tdx2m_SendOrder(nClientID,
 			nCategory,
 			nPriceType,
@@ -468,14 +550,11 @@ int tx_order(char** argv, int argc, char* timestamp){
 			szResult,
 			szErrInfo);
 	tx_output(f,timestamp,szResult,szErrInfo);
-	c_free(szResult);
-	c_free(szErrInfo);
-
 	return 0;
 }
 
 int tx_start(){
-	char szErrInfo[1024];
+	ffic_string_new(szErrInfo,1024);
 	c_fprintf(c_stderr,"# OpenTdx START\n");
 	char* pszClientVersion = "9.40";
 	char nCliType = 12;
