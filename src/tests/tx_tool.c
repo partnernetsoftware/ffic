@@ -76,7 +76,12 @@ int (*tdx2m_SendOrder)(
 		char *pszResult,
 		char *pszErrInfo);
 $decl(tdx2m_TdxHq_GetSecurityBars,ffic_func_i);
-$decl(tdx2m_TdxHq_GetSecurityCount,ffic_func_i);
+int (*tdx2m_TdxHq_GetSecurityCount)(
+    int nConnID,
+    char nMarket,
+    short *pnCount,
+    char *pszErrInfo);
+//$decl(tdx2m_TdxHq_GetSecurityCount,ffic_func_i);
 $decl(tdx2m_TdxHq_Connect,ffic_func_i);
 //int LogonEx(
 //		int nQsid,
@@ -206,7 +211,8 @@ void tx_init(){
 	$linkx(tdx2m,SendOrder);
 
 	tdx2m_TdxHq_GetSecurityBars = $use(tdx2m,TdxHq_GetSecurityBars,ffic_func_i);
-	tdx2m_TdxHq_GetSecurityCount = $use(tdx2m,TdxHq_GetSecurityCount,ffic_func_i);
+	//tdx2m_TdxHq_GetSecurityCount = $use(tdx2m,TdxHq_GetSecurityCount,ffic_func_i);
+	$linkx(tdx2m,TdxHq_GetSecurityCount);
 	tdx2m_TdxHq_Connect = $use(tdx2m,TdxHq_Connect,ffic_func_i);
 
 	CloseHandle = $use(kernel32,CloseHandle,ffic_func);
@@ -384,7 +390,7 @@ int tx_quote(char** argv, int argc, char* timestamp){
 	}
 	ffic_string_new(szErrInfo,1024);
 	char* pszZqdm = argv[1+offset];
-	ffic_string_new(szResult,1024*4);
+	ffic_string_new(szResult,1024*10);
 	int f = tdx2m_GetQuote(nClientID, pszZqdm, szResult, szErrInfo);
 	tx_output(f,timestamp,szResult,szErrInfo);
 	return 0;
@@ -426,21 +432,23 @@ int hq_bars(char** argv, int argc, char* timestamp){
 	return 0;
 }
 
-int hq_check_conn(char** argv, int argc, char* timestamp){
-	if(tx_flag_quit==1){
-		return 0;
-	}
-	long offset = c_atol(timestamp)>0?1:0;
-	int nMarket = 0;//0 sz 1 sh .... TMP
-	if(argc-offset>1){
-		nMarket = (int) c_atol(argv[1+offset]);
-	}
-	ffic_string_new(szErrInfo,1024);
-	short pnCount = 0;
-	int f = tdx2m_TdxHq_GetSecurityCount(nConn, nMarket, &pnCount, szErrInfo);
-	if(f>=0 && pnCount>0) return (int) pnCount;
-	else return f;
-}
+//int hq_check_conn(char** argv, int argc, char* timestamp){
+//	if(tx_flag_quit==1){
+//		return 0;
+//	}
+//	long offset = c_atol(timestamp)>0?1:0;
+//	int nMarket = 0;//0 sz 1 sh .... TMP
+//	if(argc-offset>1){
+//		nMarket = (int) c_atol(argv[1+offset]);
+//	}
+//	ffic_string_new(szErrInfo,1024);
+//	short pnCount;
+//	int f = tdx2m_TdxHq_GetSecurityCount(nConn, nMarket, &pnCount, szErrInfo);
+//	$dump(pnCount,f);
+//	return (int) pnCount;
+//	if(f>=0 && pnCount>0) return (int) pnCount;
+//	else return f;
+//}
 
 int hq_market_stock_count(char** argv, int argc, char* timestamp){
 	long offset = c_atol(timestamp)>0?1:0;
@@ -457,7 +465,6 @@ int hq_market_stock_count(char** argv, int argc, char* timestamp){
 
 	ffic_string_new(szResult,1024);
 	c_sprintf(szResult,"pnCount=%d",pnCount);
-
 	tx_output(f,timestamp,szResult,szErrInfo);
 	return 0;
 }
