@@ -21,7 +21,8 @@ void main(int argc,char* argv[]) {
 	tx_a = tx_a_hq;
 	if(argc<2){
 		//char * argv_[] = {"conn","139.159.195.177","7709"};
-		char * argv_[] = {"conn","114.118.82.209","7709"};
+		//char * argv_[] = {"conn","114.118.82.209","7709"};
+		char * argv_[] = {"conn","113.105.92.100","7709"};
 		argv = argv_;
 		argc = tx_arr_len(argv_);
 	}

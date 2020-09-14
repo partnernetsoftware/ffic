@@ -13,7 +13,7 @@ int main(int argc, char *argv[]) {
 		while(!tx_flag_quit){
 			tx_sleep(4000);
 			if(nClientID>=0){
-				if( 0==tdx2m_IsConnectOK( nClientID ) ){
+				if( !tdx2m_IsConnectOK( nClientID ) ){
 					tx_flag_quit = 1;
 					c_fprintf(c_stderr,"# IsConnectOK(%d)=%d\n",nClientID);
 				}

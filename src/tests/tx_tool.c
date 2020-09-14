@@ -64,7 +64,17 @@ $decl(tdx2m_GetQuote,ffic_func_i);
 	//                 15 中签查询
 $decl(tdx2m_QueryData,ffic_func_i);
 $decl(tdx2m_CancelOrder,ffic_func_i);
-$decl(tdx2m_SendOrder,ffic_func_i);
+//$decl(tdx2m_SendOrder,ffic_func_i);//error for maybe arguments packing
+int (*tdx2m_SendOrder)(
+		int nClientID,
+		int nCategory,
+		int PriceType,
+		const char *pszGddm,
+		const char *pszZqdm,
+		float fPrice,
+		int nQuantity,
+		char *pszResult,
+		char *pszErrInfo);
 $decl(tdx2m_TdxHq_GetSecurityBars,ffic_func_i);
 $decl(tdx2m_TdxHq_GetSecurityCount,ffic_func_i);
 $decl(tdx2m_TdxHq_Connect,ffic_func_i);
@@ -183,7 +193,7 @@ void tx_init(){
 	c_strcmp = $use(c,strcmp,ffic_func_i);
 	c_strlen = $use(c,strlen,ffic_func_i);
 	c_atol = $use(c,atol,ffic_func_l);
-	c_atof = $use(c,atol,ffic_func_f);
+	c_atof = $use(c,atof,ffic_func_f);
 
 	tdx2m_IsConnectOK = $use(tdx2m,IsConnectOK,ffic_func_i);
 	tdx2m_OpenTdx = $use(tdx2m,OpenTdx,ffic_func_i);
@@ -193,7 +203,8 @@ void tx_init(){
 	tdx2m_GetQuote = $use(tdx2m,GetQuote,ffic_func_i);
 	tdx2m_QueryData = $use(tdx2m,QueryData,ffic_func_i);
 	tdx2m_CancelOrder = $use(tdx2m,CancelOrder,ffic_func_i);
-	tdx2m_SendOrder = $use(tdx2m,SendOrder,ffic_func_i);
+	$linkx(tdx2m,SendOrder);
+
 	tdx2m_TdxHq_GetSecurityBars = $use(tdx2m,TdxHq_GetSecurityBars,ffic_func_i);
 	tdx2m_TdxHq_GetSecurityCount = $use(tdx2m,TdxHq_GetSecurityCount,ffic_func_i);
 	tdx2m_TdxHq_Connect = $use(tdx2m,TdxHq_Connect,ffic_func_i);
@@ -282,12 +293,13 @@ int tx_flag_quit = 0;
 
 int tx_login(char** argv, int argc, char* timestamp){
 
-	char str[512] = {0};
-	tx_read_config(str);
+	//char str[512] = {0};
+	ffic_string_new(str_config,512);
+	tx_read_config(str_config);
 	c_fprintf(c_stderr,"# Loaded config.txt\n");
 
 	char* str_a[24];//
-	tx_split(str, str_a);
+	tx_split(str_config, str_a);
 
 	int m_nQsid=c_atol(str_a[0]);
 	char m_sHost[64]={0};
@@ -514,7 +526,7 @@ int tx_cancel_order(char** argv, int argc, char* timestamp){
 }
 
 int tx_order(char** argv, int argc, char* timestamp){
-	const char* usage = "# play \"$StockCode\" +/-$amount $price\n";
+	const char* usage = "# play $StockCode +/-$amount $price\n";
 	if(argc<4){
 		c_fprintf(c_stderr,usage);
 		return 0;
@@ -527,27 +539,29 @@ int tx_order(char** argv, int argc, char* timestamp){
 
 	const char* pszGddm = m_sTradeAccount[ tx_market( pszZqdm) ];
 
-	float fPrice = c_atof(argv[3+offset]);
+	float fPrice = (float) c_atof(argv[3+offset]);
 	int nQuantity = (int) c_atol(argv[2+offset]);
 
 	int nCategory = (nQuantity>0) ? 0 : 1;//0 buy, 1 sell
 
-	float total = fPrice*nQuantity;
+	float total = fPrice*nQuantity;//for debug only
 	if(total>99999 || total<-99999){
 		tx_output(-1,timestamp,"","too much");
 		return 0;
 	}
-	c_fprintf(c_stderr,"# SendOrder %f %d (%f) \"%s\"\n",fPrice,nQuantity,total,pszZqdm);
+	c_fprintf(c_stderr,"# SendOrder %f,%d,(%f),\"%s\"\n",fPrice,nQuantity,total,pszZqdm);
 
 	ffic_string_new(szErrInfo,1024);
 	ffic_string_new(szResult,1024);
-	int f = tdx2m_SendOrder(nClientID,
+
+	int f = tdx2m_SendOrder
+		(nClientID,
 			nCategory,
 			nPriceType,
 			pszGddm,
 			pszZqdm,
 			fPrice,
-			(nQuantity>0)?nQuantity:-nQuantity,//
+			(nQuantity>0)?nQuantity:-nQuantity,
 			szResult,
 			szErrInfo);
 	tx_output(f,timestamp,szResult,szErrInfo);
@@ -661,6 +675,7 @@ unsigned long handle_stdin(ffic_ptr lpParameter)
 	while(!tx_flag_quit){
 		int len = 1024;
 		char line[len];
+		//ffic_string_new(line,1024);//ko
 		c_fgets(line,len,c_stdin);
 		if( line ) {
 			tx_thread(&handle_request,line);
