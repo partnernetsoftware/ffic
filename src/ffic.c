@@ -18,11 +18,43 @@
 #endif
 #endif
 
+void $0(char* path, int* p_size){
+#ifdef _WIN32
+	void(
+#ifdef _WIN32
+		__attribute__((__stdcall__))
+#endif
+			*c_GetModuleFileName)(int,char*,int*);
+	c_GetModuleFileName = (typeof(c_GetModuleFileName)) ffic("kernel32","GetModuleFileNameA");
+	c_GetModuleFileName(0,path,p_size);
+#else
+# ifdef __APPLE__
+	void(*c___NSGetExecutablePath)(char*,int*) = ffic("libc","_NSGetExecutablePath");
+	c___NSGetExecutablePath(path,p_size);
+# endif
+#endif
+	extern char* strrchr(const char*,int);
+	char *basename = strrchr(path,
+#ifdef _WIN32
+			'\\'
+#else
+			'/'
+#endif
+			);
+	if(basename && *(basename+1)!=0){
+		*basename = 0;
+	}
+}
+
+#define dump_ld(v) printf(#v "=%ld\n",(long int)v)
+#define dump_d(v) printf(#v "=%d\n",(int)v)
+#define dump_s(v) printf(#v "=%s\n",(char*)v)
+#define dump(v,t) dump##_##t(v)
+extern int printf(const char*,...);
 int main(int argc, char **argv){
 
 	///extern char* getenv();
 	///extern int strcat(char *, const char *, unsigned long);
-	extern int printf(const char*,...);
 	///char PWD[256]="-L";
 	///strcat(PWD,getenv("PWD"),255);
 	/////printf("PWD:%s\n",PWD);
@@ -35,14 +67,19 @@ int main(int argc, char **argv){
 	tcc(tcc_set_output_type)(tcc_ptr, 1/*TCC_OUTPUT_MEMORY*/);
 	tcc(tcc_define_symbol)(tcc_ptr, "FFIC", "2");//for .c using ffic.h
 
-	tcc(tcc_set_options)(tcc_ptr, "-Llib");//find .a from current by default
-
-	tcc(tcc_set_options)(tcc_ptr, "-L.");//find .a from current by default
-	tcc(tcc_set_options)(tcc_ptr, "-L..");//then ..
-
-	//tcc(tcc_set_options)(tcc_ptr, "-Lsrc/");
-	tcc(tcc_set_options)(tcc_ptr, "-B../bin/");//TODO get the dir of argv0
-
+	tcc(tcc_set_options)(tcc_ptr, "-Llib");
+	tcc(tcc_set_options)(tcc_ptr, "-L.");
+	tcc(tcc_set_options)(tcc_ptr, "-L..");
+#ifdef _WIN32
+	char Bdir[512]={"-L"};
+#else
+	char Bdir[512]={"-B"};
+#endif
+	int size = 500;
+	//dump(Bdir,s);
+	$0(& Bdir[2], &size);
+	//dump(Bdir,s);
+	tcc(tcc_set_options)(tcc_ptr, Bdir);//TODO get the dir of argv0
 	tcc(tcc_set_options)(tcc_ptr, "-I.");//Include
 	tcc(tcc_set_options)(tcc_ptr, "-I..");//Include
 

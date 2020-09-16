@@ -67,6 +67,7 @@ int main(int argc, char* argv[], char** envp){
 		printf("%d: %s\n",j,argv[j]);
 	}
 	printf("------------------------------------------------------------\n");
+
 	//extern void getcwd();
 	//char buffer[255];
 	//getcwd(buffer,255);
@@ -77,7 +78,9 @@ typedef ffic_ptr(
 		__attribute__((__stdcall__))
 #endif
 		*ffic_func)();
+
 	extern ffic_func(*ffic(const char*, const char*))();
+
 	char path[512]; int size = 512;
 #ifdef _WIN32
 	ffic_func c_GetModuleFileName = ffic("kernel32","GetModuleFileNameA");
@@ -89,6 +92,25 @@ typedef ffic_ptr(
 	c___NSGetExecutablePath(path,&size);
 #endif
 	dump(path,s);
+
+	extern char* strrchr(const char*,int);
+	//char *basename = strrchr(path, '\\');
+	char *basename = strrchr(path,
+#ifdef _WIN32
+			'\\'
+#else
+			'/'
+#endif
+			);
+	if(basename && *(basename+1)!=0){
+		dump(basename,s);
+		*basename = 0;
+		dump(path,s);
+	}
+	
+	//TODO basename()
+	//TODO zend_dirname()
+	//https://github.com/php/php-src/blob/09904242af6b3d9bcc1c1c8c21cb81d128382b3f/Zend/zend_compile.c
 	//TODO
 	//Mac OS X: _NSGetExecutablePath() (man 3 dyld)
 	//Linux: readlink /proc/self/exe

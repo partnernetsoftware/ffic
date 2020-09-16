@@ -19,7 +19,7 @@ tcc-reset:
 bin_ffic_osx:
 	#../tcc_osx/x86_64-osx-tcc -B../tcc_osx -DTCC_TARGET_X86_64 -DTCC_TARGET_MACHO -DCONFIG_TCCDIR="\".\"" -DTCC_LIBTCC1="\"x86_64-osx-libtcc1.a\"" -I../tinycc -I. -DONE_SOURCE=1 ffic.c -o ../bin/ffic64.osx
 	../tcc_osx/tcc -B../tcc_osx -DTCC_TARGET_X86_64 -DTCC_TARGET_MACHO -DCONFIG_TCCDIR="\".\"" -DTCC_LIBTCC1="\"x86_64-osx-libtcc1.a\"" -I../tinycc -I. -DONE_SOURCE=1 ffic.c -o ../bin/ffic64.osx
-	cp ../tcc_osx/x86_64-osx-libtcc1.a ./
+	cp ../tcc_osx/x86_64-osx-libtcc1.a ../bin/
 	../bin/ffic64.osx tests/env.c
 
 bin_ffic_lnx:
@@ -39,7 +39,7 @@ tcc_tcc_osx:# build tcc from tcc_osx
 	#mkdir -p ../bin/
 	cp ../tcc_osx/x86_64-osx-libtcc1.a ../bin/
 	#ffic todo fix ffic.c to get path of executable...:
-	cp ../tcc_osx/x86_64-osx-libtcc1.a ./
+	#cp ../tcc_osx/x86_64-osx-libtcc1.a ./
 	../tcc_osx/x86_64-osx-tcc -B../bin -DTCC_TARGET_X86_64 -DTCC_TARGET_MACHO -DCONFIG_TCCDIR="\".\"" -DTCC_LIBTCC1="\"x86_64-osx-libtcc1.a\"" -I../tinycc -I. -DONE_SOURCE=1 ../tinycc/tcc.c -o ../bin/tcc64tcc.osx.1
 	../tcc_osx/x86_64-osx-tcc -B../bin -DTCC_TARGET_X86_64 -DTCC_TARGET_MACHO -DCONFIG_TCCDIR="\".\"" -DTCC_LIBTCC1="\"x86_64-osx-libtcc1.a\"" -I../tinycc -I. -DONE_SOURCE=1 -run ffic.c tests/env.c
 	../bin/tcc64tcc.osx.1 -I `xcrun --show-sdk-path`/usr/include -I ../tinycc/include -I . -DTCC_TARGET_X86_64 -DTCC_TARGET_MACHO -DCONFIG_TCCDIR="\".\"" -DTCC_LIBTCC1="\"x86_64-osx-libtcc1.a\"" -I ../tinycc -DONE_SOURCE=1 -run ffic.c tests/env.c
@@ -90,6 +90,7 @@ test-osx:
 ###	ls -al ffic*
 ###	make test-osx
 bin_ffic_win:#build from osx...
+	rm -f ../bin/ffic*.exe
 	#cp ../tcc_osx/*-win32-libtcc1.a ../bin/
 	sh tccwin32.sh -DONE_SOURCE=1 -I. ../tinycc/tcc.c -o ../bin/tcc32.exe
 	sh tccwin64.sh -DONE_SOURCE=1 -I. ../tinycc/tcc.c -o ../bin/tcc64.exe
