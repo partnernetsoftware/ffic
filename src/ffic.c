@@ -47,10 +47,11 @@ void $0(char* path, int* p_size){
 	}
 }
 
-#define dump_ld(v) printf(#v "=%ld\n",(long int)v)
-#define dump_d(v) printf(#v "=%d\n",(int)v)
-#define dump_s(v) printf(#v "=%s\n",(char*)v)
-#define dump(v,t) dump##_##t(v)
+//#define dump_ld(v) printf(#v "=%ld\n",(long int)v)
+//#define dump_d(v) printf(#v "=%d\n",(int)v)
+//#define dump_s(v) printf(#v "=%s\n",(char*)v)
+//#define dump(v,t) dump##_##t(v)
+#define dump(v,t) printf(#v "=%" #t "\n", v)
 extern int printf(const char*,...);
 int main(int argc, char **argv){
 
@@ -132,6 +133,19 @@ int main(int argc, char **argv){
 
 	//tcc(tcc_add_file)(tcc_ptr,(argc>1) ? argv[1] : "-");
 	if(argc>1){
+
+		//TODO get dirname from argv[1]
+//	char *basename = strrchr(path,
+//#ifdef _WIN32
+//			'\\'
+//#else
+//			'/'
+//#endif
+//			);
+//	if(basename && *(basename+1)!=0){
+//		*basename = 0;
+//	}
+		
 		tcc(tcc_add_file)(tcc_ptr,argv[1]);
 	}else{
 		tcc(tcc_add_file)(tcc_ptr,"-");
