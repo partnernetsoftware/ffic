@@ -93,10 +93,12 @@ test-osx:
 bin_ffic_win:#build from osx...
 	rm -f ../bin/ffic*.exe
 	#cp ../tcc_osx/*-win32-libtcc1.a ../bin/
+	sh tccwin32.sh -DONE_SOURCE=1 -I. ../tinycc/tcc.c -E | sed 's/^#.*//g' | sed "/^$$/d" > tcc32.exe.i
 	sh tccwin32.sh -DONE_SOURCE=1 -I. ../tinycc/tcc.c -o ../bin/tcc32.exe
 	sh tccwin64.sh -DONE_SOURCE=1 -I. ../tinycc/tcc.c -o ../bin/tcc64.exe
 	sh tccwin32.sh ffic.c -o ../bin/ffic32s.exe
 	sh tccwin64.sh ffic.c -o ../bin/ffic64s.exe
+	sh tccwin32.sh -DONE_SOURCE=1 -I. ffic.c -E | sed 's/^#.*//g' | sed "/^$$/d" > ffic32.exe.i
 	sh tccwin32.sh -DONE_SOURCE=1 -I. ffic.c -o ../bin/ffic32.exe
 	#../tcc_osx/i386-win32-tcc -DTCC_TARGET_PE -DTCC_TARGET_I386 -D_WIN32 -L. -DCONFIG_LDDIR="." -I ../tinycc/win32/include -I ../tinycc/win32/include/winapi -I ../tinycc/include -I ../tinycc -I ../tinycc -B ../tinycc/../bin -L ../tinycc/../bin -L ../tinycc/win32/lib -L. -I. -DTCC_LIBTCC1="\"\"" -DONE_SOURCE=1 -I. ../tinycc/lib/libtcc1.c ../tinycc/lib/alloca86.S ../tinycc/lib/alloca86-bt.S ../tinycc/win32/lib/chkstk.S ../tinycc/win32/lib/crt1.c ../tinycc/win32/lib/crt1w.c ../tinycc/win32/lib/wincrt1.c ../tinycc/win32/lib/wincrt1w.c ../tinycc/win32/lib/dllcrt1.c ../tinycc/win32/lib/dllmain.c ../tinycc/lib/bcheck.c ../tinycc/lib/bt-exe.c ../tinycc/lib/bt-log.c ffic.c -o ../bin/ffic32.exe
 	#../tinycc/../tcc_osx/i386-win32-tcc -L. -DCONFIG_LDDIR="." -DTCC_LIBTCC1="\"\"" -I ../tinycc/win32/include -I ../tinycc/win32/include/winapi -I ../tinycc/include -I ../tinycc -I ../tinycc -B ../tinycc/../bin -L ../tinycc/../bin -L ../tinycc/win32/lib -L. -I. -DONE_SOURCE=1 -I. ../tinycc/lib/libtcc1.c ../tinycc/lib/alloca86.S ../tinycc/lib/alloca86-bt.S ../tinycc/win32/lib/chkstk.S ../tinycc/win32/lib/crt1.c ../tinycc/win32/lib/crt1w.c ../tinycc/win32/lib/wincrt1.c ../tinycc/win32/lib/wincrt1w.c ../tinycc/win32/lib/dllcrt1.c ../tinycc/win32/lib/dllmain.c ../tinycc/lib/bcheck.c ../tinycc/lib/bt-exe.c ../tinycc/lib/bt-log.c ffic.c -o ../bin/ffic32.exe
