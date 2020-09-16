@@ -22,10 +22,10 @@
 void $0(char* path, int* p_size){
 #ifdef _WIN32
 	void(
-#ifdef _WIN32
 		__attribute__((__stdcall__))
-#endif
-			*c_GetModuleFileName)(int,char*,int*);
+			*c_GetModuleFileName)(
+				//int,char*,int*
+				);
 	c_GetModuleFileName = (typeof(c_GetModuleFileName)) ffic("kernel32","GetModuleFileNameA");
 	c_GetModuleFileName(0,path,p_size);
 #else
