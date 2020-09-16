@@ -18,6 +18,7 @@
 #endif
 #endif
 
+//TODO move to ffic.h later
 void $0(char* path, int* p_size){
 #ifdef _WIN32
 	void(
