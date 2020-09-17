@@ -58,6 +58,7 @@ main (int argc, char **argv) {
 		ffic_func tcc_add_file;
 		ffic_func_i tcc_run;
 		ffic_func tcc_delete;
+		ffic_func_i tcc_relocate;
 	}      _tcc = {
 		(ffic_func) tcc (tcc_new),
 		(ffic_func) tcc (tcc_set_output_type),
@@ -68,6 +69,7 @@ main (int argc, char **argv) {
 		(ffic_func) tcc (tcc_add_file),
 		(ffic_func_i) tcc (tcc_run),
 		(ffic_func) tcc (tcc_delete),
+		(ffic_func_i) tcc (tcc_relocate),
 	};
 
 	ffic_ptr tcc_ptr = _tcc.tcc_new ();
@@ -122,8 +124,15 @@ main (int argc, char **argv) {
 		_tcc.tcc_add_file (tcc_ptr, "-");
 	}
 
-	int rt = _tcc.tcc_run (tcc_ptr, argc > 1 ? argc - 1 : argc, argc > 1 ? (argv + 1) : argv);
 
+	if ( _tcc.tcc_relocate (tcc_ptr, (void*)1/*TCC_RELOCATE_AUTO*/) < 0) return 2;
+	int (*entry)() = _tcc.tcc_get_symbol(tcc_ptr, "main");
+	int rt = entry( argc > 1 ? argc - 1 : argc, argc > 1 ? (argv + 1) : argv);
+	//int rt = _tcc.tcc_run (tcc_ptr, argc > 1 ? argc - 1 : argc, argc > 1 ? (argv + 1) : argv);
 	_tcc.tcc_delete (tcc_ptr);
 	return rt;
+}
+int
+runmain (int argc, char **argv) {
+	return main(argc,argv);
 }
