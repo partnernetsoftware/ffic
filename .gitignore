@@ -24,3 +24,4 @@ src/tests/env.osx.2
 src/tcc_osx.log
 src/tcc_tcc_osx.log
 ffic32a.def
+*.BAK
