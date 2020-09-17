@@ -5,4 +5,7 @@
 -nlp
 -nsob
 -ndj
--di8
+-nfc1
+-nfcb
+-nfbs
+-di0
