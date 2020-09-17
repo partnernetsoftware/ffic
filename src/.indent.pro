@@ -9,5 +9,4 @@
 -nfcb
 -nfbs
 -di0
--d1
 -cd0

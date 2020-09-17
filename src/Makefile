@@ -22,6 +22,7 @@ bin_ffic_osx:
 
 bin_ffic_lnx:
 	../tcc_osx/x86_64-tcc -B../tcc_osx -DTCC_TARGET_X86_64 -DCONFIG_TCCDIR="\".\"" -DTCC_LIBTCC1="\"\"" -I../tinycc -I. -DONE_SOURCE=1 ffic.c ../tinycc/lib/libtcc1.c ../tinycc/lib/alloca86_64.S ../tinycc/lib/alloca86_64-bt.S ../tinycc/lib/va_list.c ../tinycc/lib/dsohandle.c ../tinycc/lib/bcheck.c ../tinycc/lib/bt-log.c -o ../bin/ffic64.lnx
+	# ../tcc_osx/x86_64-tcc -B../tcc_osx -DTCC_TARGET_X86_64 -DCONFIG_TCCDIR="\".\"" -DTCC_LIBTCC1="\"\"" -I../tinycc -I. -DONE_SOURCE=1 ffic.c ../tinycc/lib/libtcc1.c ../tinycc/lib/alloca86_64.S ../tinycc/lib/alloca86_64-bt.S ../tinycc/lib/va_list.c ../tinycc/lib/dsohandle.c ../tinycc/lib/bcheck.c ../tinycc/lib/bt-log.c -o ../bin/ffic64.lnx
 
 ### tcc_tcc_osx:# lab: build tcc from tcc_osx
 ### 	# build from tcc_osx
