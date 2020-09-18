@@ -46,7 +46,7 @@ $0 (char *path, int *p_size) {
 #define dump(v,t) printf(#v "=%" #t "\n", v)
 extern int printf (const char *,...);
 int
-main (int argc, char **argv) {
+main (int argc, char **argv, char **envp) {
 	//TODO make list - macro:
 	const struct {
 		ffic_func tcc_new;
@@ -127,12 +127,12 @@ main (int argc, char **argv) {
 
 	if ( _tcc.tcc_relocate (tcc_ptr, (void*)1/*TCC_RELOCATE_AUTO*/) < 0) return 2;
 	int (*entry)() = _tcc.tcc_get_symbol(tcc_ptr, "main");
-	int rt = entry( argc > 1 ? argc - 1 : argc, argc > 1 ? (argv + 1) : argv);
+	int rt = entry( argc > 1 ? argc - 1 : argc, argc > 1 ? (argv + 1) : argv, envp);
 	//int rt = _tcc.tcc_run (tcc_ptr, argc > 1 ? argc - 1 : argc, argc > 1 ? (argv + 1) : argv);
 	_tcc.tcc_delete (tcc_ptr);
 	return rt;
 }
 int
-runmain (int argc, char **argv) {
-	return main(argc,argv);
+runmain (int argc, char **argv, char ** envp) {
+	return main(argc,argv,envp);
 }
