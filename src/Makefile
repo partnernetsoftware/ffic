@@ -17,15 +17,13 @@ tcc-reset:
 	git -C ../tinycc/ pull
 
 bin_ffic_osx:
-	# build with tcc1 source
 	# rm -f ../bin/ffic64.osx && ../tcc_osx/tcc -B../tcc_osx -DTCC_TARGET_X86_64 -DTCC_TARGET_MACHO -DCONFIG_TCCDIR="\".\"" -DTCC_LIBTCC1="\"\"" -I../tinycc -I. -DONE_SOURCE=1 ffic.c ../tinycc/lib/libtcc1.c ../tinycc/lib/alloca86_64.S ../tinycc/lib/alloca86_64-bt.S ../tinycc/lib/va_list.c ../tinycc/lib/dsohandle.c ../tinycc/lib/bcheck.c ../tinycc/lib/bt-log.c -o ../bin/ffic64.osx && ../bin/ffic64.osx tests/env.c
-	rm -f ../bin/ffic64.osx && ../tcc_osx/tcc -nostdlib -DTCC_TARGET_X86_64 -DTCC_TARGET_MACHO -I../tinycc -I. -DONE_SOURCE=1 ffic.c -lc -o ../bin/ffic64.osx
+	rm -f ../bin/ffic64.osx && ../tcc_osx/tcc -nostdlib -DTCC_TARGET_X86_64 -DTCC_TARGET_MACHO -DTCC_LIBTCC1="\"\"" -I../tinycc -I. -DONE_SOURCE=1 ffic.c -lc -o ../bin/ffic64.osx
 	../bin/ffic64.osx tests/env.c
 	ls -al ../bin/*.osx
 
 bin_ffic_lnx:
-	../tcc_osx/x86_64-tcc -B../tcc_osx -DTCC_TARGET_X86_64 -DCONFIG_TCCDIR="\".\"" -DTCC_LIBTCC1="\"\"" -I../tinycc -I. -DONE_SOURCE=1 ffic.c ../tinycc/lib/libtcc1.c ../tinycc/lib/alloca86_64.S ../tinycc/lib/alloca86_64-bt.S ../tinycc/lib/va_list.c ../tinycc/lib/dsohandle.c ../tinycc/lib/bcheck.c ../tinycc/lib/bt-log.c -o ../bin/ffic64.lnx
-	# ../tcc_osx/x86_64-tcc -B../tcc_osx -DTCC_TARGET_X86_64 -DCONFIG_TCCDIR="\".\"" -DTCC_LIBTCC1="\"\"" -I../tinycc -I. -DONE_SOURCE=1 ffic.c ../tinycc/lib/libtcc1.c ../tinycc/lib/alloca86_64.S ../tinycc/lib/alloca86_64-bt.S ../tinycc/lib/va_list.c ../tinycc/lib/dsohandle.c ../tinycc/lib/bcheck.c ../tinycc/lib/bt-log.c -o ../bin/ffic64.lnx
+	rm -f ../bin/ffic64.lnx && ../tcc_osx/x86_64-tcc -nostdlib -DTCC_TARGET_X86_64 -I../tinycc -I. -I ../tinycc/include -Ilnx -DONE_SOURCE=1 ffic.c -lc -o ../bin/ffic64.lnx
 
 ### tcc_tcc_osx:# lab: build tcc from tcc_osx
 ### 	# build from tcc_osx
@@ -91,9 +89,10 @@ bin_ffic_win:#build from osx...
 	sh tccwin64.sh ffic.c -o ../bin/ffic64s.exe
 	# ffic32a.exe: single release file (not depends on tcc1)
 	# with i386-win32-tcc
-	rm -f ../bin/ffic32a.exe && ../tcc_osx/i386-win32-tcc -c ../tinycc/lib/alloca86.S && ../tcc_osx/i386-win32-tcc -DTCC_LIBTCC1="\"\"" -DONE_SOURCE=1 -nostdlib -I../tinycc/include -I../tinycc/win32/include -I../tinycc/win32/include/winapi -I../tinycc -I. ../tinycc/lib/libtcc1.c ../tinycc/win32/lib/crt1.c ffic.c ../tinycc/win32/lib/msvcrt.def ../tinycc/win32/lib/kernel32.def alloca86.o -o ../bin/ffic32a.exe
+	rm -f ../bin/ffic32a.exe && ../tcc_osx/i386-win32-tcc -DTCC_LIBTCC1="\"\"" -DTCC_TARGET_PE -DTCC_TARGET_I386 -D_WIN32 -DONE_SOURCE=1 -nostdlib -I../tinycc/include -I../tinycc/win32/include -I../tinycc/win32/include/winapi -I../tinycc -I. ../tinycc/lib/libtcc1.c ../tinycc/win32/lib/crt1.c  ../tinycc/lib/alloca86.S ../tinycc/win32/lib/chkstk.S ffic.c ../tinycc/win32/lib/msvcrt.def ../tinycc/win32/lib/kernel32.def -o ../bin/ffic32a.exe
 	# with tcc (not support load .def yet)
-	#rm -f ../bin/ffic32b.exe && ../tcc_osx/tcc -m32 -DTCC_TARGET_PE -DTCC_TARGET_I386 -D_WIN32 -c ../tinycc/lib/alloca86.S && ../tcc_osx/i386-win32-tcc -DTCC_TARGET_PE -DTCC_TARGET_I386 -D_WIN32 -DONE_SOURCE=1 -nostdlib -I../tinycc/include -I../tinycc/win32/include -I../tinycc/win32/include/winapi -I../tinycc -I. ../tinycc/lib/libtcc1.c ../tinycc/win32/lib/crt1.c ffic.c ../tinycc/win32/lib/msvcrt.def ../tinycc/win32/lib/kernel32.def alloca86.o -o ../bin/ffic32b.exe
+	# ##  ../tcc_osx/tcc -m32 -DTCC_TARGET_PE -DTCC_TARGET_I386 -D_WIN32 -c ../tinycc/lib/alloca86.S &&
+	# rm -f ../bin/ffic32b.exe && ../tcc_osx/tcc -m32 -DTCC_TARGET_PE -DTCC_TARGET_I386 -D_WIN32 -DONE_SOURCE=1 -nostdlib -I../tinycc/include -I../tinycc/win32/include -I../tinycc/win32/include/winapi -I../tinycc -I. ../tinycc/lib/libtcc1.c ../tinycc/win32/lib/crt1.c alloca86.o chkstk.o ffic.c -o ../bin/ffic32b.exe
 	#../tcc_osx/tcc -DTCC_TARGET_PE -DTCC_TARGET_I386 -D_WIN32 -DONE_SOURCE=1 -nostdlib -I../tinycc/include -I../tinycc/win32/include -I../tinycc/win32/include/winapi -I../tinycc -I. ../tinycc/lib/libtcc1.c ../tinycc/win32/lib/crt1.c ffic.c -o ../bin/ffic32b.exe
 	sh tccwin32.sh ../tinycc/libtcc.c -DLIBTCC_AS_DLL -shared -o ../bin/libtcc32.dll
 	sh tccwin64.sh ../tinycc/libtcc.c -DLIBTCC_AS_DLL -shared -o ../bin/libtcc64.dll

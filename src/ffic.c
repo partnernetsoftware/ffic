@@ -71,7 +71,6 @@ main (int argc, char **argv, char **envp) {
 		(ffic_func) tcc (tcc_delete),
 		(ffic_func_i) tcc (tcc_relocate),
 	};
-
 	ffic_ptr tcc_ptr = _tcc.tcc_new ();
 	if (!tcc_ptr)
 		return 0;
@@ -86,16 +85,11 @@ main (int argc, char **argv, char **envp) {
 	char Bdir[512] = {"-B"};
 #endif
 	int size = 500;
-	//dump (Bdir, s);
 	$0 (&Bdir[2], &size);
-	//dump (Bdir, s);
 	_tcc.tcc_set_options (tcc_ptr, Bdir);
 	_tcc.tcc_set_options (tcc_ptr, "-I.");
 	_tcc.tcc_set_options (tcc_ptr, "-I..");
 	_tcc.tcc_set_options (tcc_ptr, "-DCONFIG_LDDIR=\".\"");
-#ifdef _WIN32
-	_tcc.tcc_set_options (tcc_ptr, "-D_WIN32");
-#endif
 #ifdef __APPLE__
 	_tcc.tcc_set_options (tcc_ptr, "-D__APPLE__");
 	_tcc.tcc_set_options (tcc_ptr, "-DTCC_TARGET_MACHO");
@@ -107,6 +101,12 @@ main (int argc, char **argv, char **envp) {
 #elif defined(_WIN32)
 	_tcc.tcc_set_options (tcc_ptr, "-DTCC_TARGET_PE");
 	_tcc.tcc_set_options (tcc_ptr, "-DTCC_TARGET_I386");
+#endif
+#ifdef _WIN32
+	_tcc.tcc_set_options (tcc_ptr, "-D_WIN32");
+	_tcc.tcc_add_symbol(tcc_ptr,"alloca",alloca);
+	extern void*(*__chkstk)();
+	_tcc.tcc_add_symbol(tcc_ptr,"__chkstk",__chkstk);
 #endif
 
 	if (0 == _tcc.tcc_get_symbol (tcc_ptr, "ffic_core"))
@@ -124,10 +124,10 @@ main (int argc, char **argv, char **envp) {
 		_tcc.tcc_add_file (tcc_ptr, "-");
 	}
 
-
 	if ( _tcc.tcc_relocate (tcc_ptr, (void*)1/*TCC_RELOCATE_AUTO*/) < 0) return 2;
 	int (*entry)() = _tcc.tcc_get_symbol(tcc_ptr, "main");
 	int rt = entry( argc > 1 ? argc - 1 : argc, argc > 1 ? (argv + 1) : argv, envp);
+
 	//int rt = _tcc.tcc_run (tcc_ptr, argc > 1 ? argc - 1 : argc, argc > 1 ? (argv + 1) : argv);
 	_tcc.tcc_delete (tcc_ptr);
 	return rt;
