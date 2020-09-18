@@ -2,9 +2,7 @@
 #CC=gcc
 #CC=gcc -O1 -I ../tinyccbinary/
 #CC=tcc
-CC=./bin/tcc
-#CC=../tinyccbinary/x86_64-osx-tcc
-#CC=../tinyccbinary/tcc
+CC=../tcc_osx/tcc
 
 all:
 	make tcc_osx # the tcc build at osx with default cc
@@ -115,9 +113,9 @@ clean:
 ###	$S$(CC) -E $< $(DEFINES) $(CFLAGS) | sed 's/^#.*//g' | sed "/^$$/d" > $@
 
 pp_sao:
-	${CC} -E sao.c | sed 's/^#.*//g' | sed "/^$$/d" > sao.osx.pp.c
-	${CC} -E -DTCC_TARGET_PE -DTCC_TARGET_I386 -D_WIN32 sao.c | sed 's/^#.*//g' | sed "/^$$/d" > sao.win32.pp.c
-	${CC} -E -DTCC_TARGET_PE -DTCC_TARGET_I386 -D_WIN32 -D_WIN64 sao.c | sed 's/^#.*//g' | sed "/^$$/d" > sao.win64.pp.c
+	${CC} -E lab/sao.c | sed 's/^#.*//g' | sed "/^$$/d" > lab/sao.osx.pp.c
+	${CC} -E -DTCC_TARGET_PE -DTCC_TARGET_I386 -D_WIN32 lab/sao.c | sed 's/^#.*//g' | sed "/^$$/d" > lab/sao.win32.pp.c
+	#${CC} -E -DTCC_TARGET_PE -DTCC_TARGET_X86_64 -D_WIN32 -D_WIN64 -D_WIN64 sao.c | sed 's/^#.*//g' | sed "/^$$/d" > lab/sao.win64.pp.c
 run_sao:
 	make osx_sao
 	cat tests/test.sao | ./ffic sao.c
@@ -133,8 +131,8 @@ osx_sao:
 	tools/upx sao_osx -osao_osx_upx
 	make test_sao_osx
 	ls -al sao*
-play:
-	cat play.sao | ./ffic sao.c d
+sao_play:
+	cat lab/play.sao | ../bin/ffic64.osx lab/sao.c d
 
 
 #TCC_X = i386 x86_64 i386-win32 x86_64-win32 x86_64-osx arm arm64 arm-wince c67
