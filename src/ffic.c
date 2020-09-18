@@ -133,7 +133,7 @@ int main(int argc, char **argv, char **envp)
 		_tcc.tcc_add_file(tcc_ptr, "-");
 	}
 
-#if 1
+#if 0
 	if (_tcc.tcc_relocate(tcc_ptr, (void *)1 /*TCC_RELOCATE_AUTO*/) < 0)
 		return 2;
 	int (*entry)() = _tcc.tcc_get_symbol(tcc_ptr, "main");
@@ -143,8 +143,4 @@ int main(int argc, char **argv, char **envp)
 #endif
 	_tcc.tcc_delete(tcc_ptr);
 	return rt;
-}
-int runmain(int argc, char **argv, char **envp)
-{
-	return main(argc, argv, envp);
 }

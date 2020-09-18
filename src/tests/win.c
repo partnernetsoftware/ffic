@@ -1,5 +1,6 @@
 typedef void* ffic_ptr;
 typedef ffic_ptr(__attribute__((__stdcall__)) *ffic_func)();
+//typedef ffic_ptr(*ffic_func)();
 extern ffic_ptr(*ffic())();
 extern ffic_ptr(*ffic_raw())();
 # define libc(f) ffic(0,#f)
@@ -34,4 +35,8 @@ int main(){
 	//libc(fprintf)(libc(stderr),"ffi_fprintf(libc(stderr))\n");
 	c_fprintf(c_stderr,"ffi_fprintf(libc(stderr))\n");
 	return 0;
+}
+
+int _runmain(){
+	return main();
 }
