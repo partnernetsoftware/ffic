@@ -122,3 +122,7 @@ typedef ffic_ptr(
 	//Windows: GetModuleFileName() with hModule = NULL
 	return 0;	
 }
+//tcc(-tcc1)
+int _runmain(int argc, char* argv[], char** envp){
+	return main(argc,argv,envp);
+}
