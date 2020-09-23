@@ -1,14 +1,10 @@
-#CC=cc
-#CC=gcc
-#CC=gcc -O1 -I ../tinyccbinary/
-#CC=tcc
-CC=../tcc_osx/tcc
+CC=../bin/tcc
 
 all:
 	make tcc_osx # the tcc build at osx with default cc
 	make bin_ffic_osx # bin of ffic for osx 64
 	make bin_ffic_win # bin of ffic for win 32/64
-	#make bin_ffic_lnx # linux
+	make bin_ffic_lnx # linux
 	
 tcc-reset:
 	git -C ../tinycc/ reset --hard
@@ -19,27 +15,27 @@ bin_ffic_osx:
 	../bin/ffic64.osx tests/env.c
 	ls -al ../bin/*.osx
 
-bin_ffic_lnx:
+build_config_h:
 	echo "#define TCC_VERSION \"`head ../tinycc/VERSION`\"" > config.h
 	echo "#ifndef CONFIG_TCCDIR" >> config.h
 	echo "#define CONFIG_TCCDIR \".\"" >> config.h
 	echo "#endif" >> config.h
+	
+bin_ffic_lnx:
+	make build_config_h
 	rm -f ../bin/ffic64.lnx
 	cd ../ && ./dkrun.sh partnernetsoftware/dtcctcc tcc -static -nostdlib -DTCC_LIBTCC1="\"\"" -Itinycc src/ffic.c -o bin/ffic64.lnx /usr/local/lib/tcc/libtcc1.a /usr/lib/crt1.o -lc -DONE_SOURCE=1 -Isrc
 	cd .. && ./dkrun.sh partnernetsoftware/dtcctcc bin/ffic64.lnx src/tests/env.c
 
 tcc_osx:#with system cc
-	echo "#define TCC_VERSION \"`head ../tinycc/VERSION`\"" > config.h
-	echo "#ifndef CONFIG_TCCDIR" >> config.h
-	echo "#define CONFIG_TCCDIR \".\"" >> config.h
-	echo "#endif" >> config.h
-	rm -rf ../tcc_osx && mkdir -p ../tcc_osx && cd ../tcc_osx && ../tinycc/configure && rm -f ../tinycc/config.h && cp -f ../src/config.h ./ && make && make libtcc.osx && make cross && cp -f *tcc1.a ../bin/
+	make build_config_h
+	rm -rf ../tcc_osx && mkdir -p ../tcc_osx && cd ../tcc_osx && ../tinycc/configure && rm -f ../tinycc/config.h && cp -f ../src/config.h ./ && make && make libtcc.osx && make cross #&& cp -f *tcc1.a ../bin/
 	../tcc_osx/tcc -vv
 	#../tcc_osx/x86_64-osx-tcc -vv
-submodule:
+submodule_init:
 	#cd .. && git submodule add --force https://github.com/mirror/tinycc.git --depth 1 && git submodule update --init --recursive
 	cd .. && git submodule init && git submodule update
-test-osx:
+test_osx:
 	cat tests/42.c | ./ffic_static_osx
 	./ffic_static_osx tests/42.c
 	cat tests/42.c | ./ffic_osx
