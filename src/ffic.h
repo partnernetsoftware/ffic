@@ -114,6 +114,10 @@ ffic_ptr (*ffic_core(const char *libfilename,const char* funcname))()
 		extern ffic_ptr dlsym();
 		ffic_dlsym = (ffic_func) dlsym;
 #else
+		//
+		extern void* dlsym();
+		ffic_dlsym = (ffic_func) dlsym;
+		//glibc:
 		//extern void* __libc_dlsym(void*, const char*);
 		extern void* __libc_dlsym();
 		ffic_dlsym = (ffic_func) __libc_dlsym;
@@ -138,9 +142,12 @@ ffic_ptr (*ffic_core(const char *libfilename,const char* funcname))()
 		extern ffic_ptr dlopen();
 		ffic_dlopen = (ffic_func) dlopen;
 #else
+		extern ffic_ptr dlopen();
+		ffic_dlopen = (ffic_func) dlopen;
+		//glibc:
 		//extern ffic_ptr __libc_dlopen_mode(const char*, int);
-		extern ffic_ptr __libc_dlopen_mode();
-		ffic_dlopen = (ffic_func) __libc_dlopen_mode;
+		//extern ffic_ptr __libc_dlopen_mode();
+		//ffic_dlopen = (ffic_func) __libc_dlopen_mode;
 #endif
 #endif
 	}
