@@ -119,8 +119,8 @@ ffic_ptr (*ffic_core(const char *libfilename,const char* funcname))()
 		ffic_dlsym = (ffic_func) dlsym;
 		//glibc:
 		//extern void* __libc_dlsym(void*, const char*);
-		extern void* __libc_dlsym();
-		ffic_dlsym = (ffic_func) __libc_dlsym;
+		//extern void* __libc_dlsym();
+		//ffic_dlsym = (ffic_func) __libc_dlsym;
 #endif
 #endif
 	}
