@@ -54,6 +54,7 @@ int main(int argc, char* argv[], char** envp){
 #else
 	//if(!envp){ printf("empty envp?\n"); }
 	extern char ** environ;
+	if(!envp)
 	envp = environ;
 #endif
 

@@ -19,16 +19,14 @@ bin_ffic_osx:
 	../bin/ffic64.osx tests/env.c
 	ls -al ../bin/*.osx
 
-# TODO library 'c' not found, still some error...
 bin_ffic_lnx:
 	echo "#define TCC_VERSION \"`head ../tinycc/VERSION`\"" > config.h
 	echo "#ifndef CONFIG_TCCDIR" >> config.h
 	echo "#define CONFIG_TCCDIR \".\"" >> config.h
 	echo "#endif" >> config.h
-	#docker run -v $PWD:/w -w /w  -ti partnernetsoftware/dtccgcc tcc -static -nostdlib -Itinycc src/ffic.c -o bin/ffic64.lnx /usr/local/lib/tcc/libtcc1.a /usr/lib/crt1.o -lc -DONE_SOURCE=1 -I.
 	rm -f ../bin/ffic64.lnx
-	cd ../ && docker run -v $$PWD:/w -w /w  -ti partnernetsoftware/dtcctcc tcc -static -nostdlib -DTCC_LIBTCC1="\"\"" -Itinycc src/ffic.c -o bin/ffic64.lnx /usr/local/lib/tcc/libtcc1.a /usr/lib/crt1.o -lc -DONE_SOURCE=1 -Isrc
-	cd .. && docker run -v $$PWD:/w -w /w  -ti partnernetsoftware/dtcctcc bin/ffic64.lnx src/tests/env.c
+	cd ../ && ./dkrun.sh partnernetsoftware/dtcctcc tcc -static -nostdlib -DTCC_LIBTCC1="\"\"" -Itinycc src/ffic.c -o bin/ffic64.lnx /usr/local/lib/tcc/libtcc1.a /usr/lib/crt1.o -lc -DONE_SOURCE=1 -Isrc
+	cd .. && ./dkrun.sh partnernetsoftware/dtcctcc bin/ffic64.lnx src/tests/env.c
 
 tcc_osx:#with system cc
 	echo "#define TCC_VERSION \"`head ../tinycc/VERSION`\"" > config.h
