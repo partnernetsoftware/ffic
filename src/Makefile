@@ -50,7 +50,7 @@ tcc_osx:#with system cc
 	../tcc_osx/tcc -vv
 	#../tcc_osx/x86_64-osx-tcc -vv
 submodule:
-	#cd .. && git submodule add --force https://github.com/mirror/tinycc.git && git submodule update --init --recursive
+	#cd .. && git submodule add --force https://github.com/mirror/tinycc.git --depth 1 && git submodule update --init --recursive
 	cd .. && git submodule init && git submodule update
 test-osx:
 	cat tests/42.c | ./ffic_static_osx

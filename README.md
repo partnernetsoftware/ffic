@@ -21,7 +21,8 @@ echo "(exit)" | ../bin/ffic64.osx tests/scheme.c
 
 # TODO
 
-* release for LNX (after crt0/crt1/crtn is done)
+* using docker to build ffic64.lnx
+* docker: partnernetsoftware/ffic
 * merge libdl
 * tinyAI
 * for nostdlib, to try tiny libc.so from https://github.com/lattera/glibc/
