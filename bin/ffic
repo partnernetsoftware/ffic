@@ -1,0 +1,9 @@
+#!/bin/sh
+
+R0=$(cd `dirname $0`; pwd)
+
+if [[ $OSTYPE == darwin* ]]; then
+	$R0/ffic64.osx $*
+else
+	$R0/ffic64.lnx $*
+fi
