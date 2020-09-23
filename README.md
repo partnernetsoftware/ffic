@@ -5,13 +5,13 @@
 # Quick Examples
 
 ```
-echo 'extern void*(*ffic())(); unsigned long fib(int n){ if(n<=1) return 1; return n*fib(n-1); } void main(){ ffic("c","printf")("fib(%d)=%d\n",10,fib(10)); }' | ../bin/ffic64.osx
+echo 'extern void*(*ffic())(); unsigned long fib(int n){ if(n<=1) return 1; return n*fib(n-1); } void main(){ ffic("c","printf")("fib(%d)=%d\n",10,fib(10)); }' | ../bin/ffic
 
-../bin/ffic64.osx tests/42.c
+../bin/ffic tests/42.c
 
-../bin/ffic64.osx tests/fib.c 5
+../bin/ffic tests/fib.c 5
 
-echo "(exit)" | ../bin/ffic64.osx tests/scheme.c
+echo "(exit)" | ../bin/ffic tests/scheme.c
 ```
 
 # Why?
@@ -21,12 +21,11 @@ echo "(exit)" | ../bin/ffic64.osx tests/scheme.c
 
 # TODO
 
-* using docker to build ffic64.lnx
-* docker: partnernetsoftware/ffic
+* tinyAI/NN
 * merge libdl
-* tinyAI
-* for nostdlib, to try tiny libc.so from https://github.com/lattera/glibc/
-* tinyOS
+* tiny syscall wrapper
+* tiny libc from https://github.com/lattera/glibc/
+* tiny OS kernel
 
 # Links for learning
 
