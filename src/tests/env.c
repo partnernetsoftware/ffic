@@ -82,16 +82,18 @@ typedef ffic_ptr(
 	extern ffic_func(*ffic(const char*, const char*))();
 
 	char path[512]; int size = 512;
-#ifdef _WIN32
-	ffic_func c_GetModuleFileName = ffic("kernel32","GetModuleFileNameA");
-	dump(c_GetModuleFileName,ld);
-	c_GetModuleFileName(0,path,&size);
-#else
-	ffic_func c___NSGetExecutablePath = ffic("libc","_NSGetExecutablePath");
-	dump(c___NSGetExecutablePath,ld);
-	c___NSGetExecutablePath(path,&size);
-#endif
-	dump(path,s);
+///#ifdef _WIN32
+///	ffic_func c_GetModuleFileName = ffic("kernel32","GetModuleFileNameA");
+///	dump(c_GetModuleFileName,ld);
+///	c_GetModuleFileName(0,path,&size);
+///#else
+///#ifdef __APPLE__
+///	ffic_func c___NSGetExecutablePath = ffic("libc","_NSGetExecutablePath");
+///	dump(c___NSGetExecutablePath,ld);
+///	c___NSGetExecutablePath(path,&size);
+///#endif
+///#endif
+///	dump(path,s);
 
 	extern char* strrchr(const char*,int);
 	//char *basename = strrchr(path, '\\');

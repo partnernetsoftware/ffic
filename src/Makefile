@@ -15,31 +15,20 @@ tcc-reset:
 	git -C ../tinycc/ pull
 
 bin_ffic_osx:
-	# rm -f ../bin/ffic64.osx && ../tcc_osx/tcc -B../tcc_osx -DTCC_TARGET_X86_64 -DTCC_TARGET_MACHO -DCONFIG_TCCDIR="\".\"" -DTCC_LIBTCC1="\"\"" -I../tinycc -I. -DONE_SOURCE=1 ffic.c ../tinycc/lib/libtcc1.c ../tinycc/lib/alloca86_64.S ../tinycc/lib/alloca86_64-bt.S ../tinycc/lib/va_list.c ../tinycc/lib/dsohandle.c ../tinycc/lib/bcheck.c ../tinycc/lib/bt-log.c -o ../bin/ffic64.osx && ../bin/ffic64.osx tests/env.c
 	rm -f ../bin/ffic64.osx && ../tcc_osx/tcc -nostdlib -DTCC_TARGET_X86_64 -DTCC_TARGET_MACHO -DTCC_LIBTCC1="\"\"" -I../tinycc -I. -DONE_SOURCE=1 ffic.c -lc -o ../bin/ffic64.osx
 	../bin/ffic64.osx tests/env.c
 	ls -al ../bin/*.osx
 
+# TODO library 'c' not found, still some error...
 bin_ffic_lnx:
-	rm -f ../bin/ffic64.lnx && ../tcc_osx/x86_64-tcc -nostdlib -DTCC_TARGET_X86_64 -I../tinycc -I. -I ../tinycc/include -Ilnx -DONE_SOURCE=1 ffic.c -lc -o ../bin/ffic64.lnx
-
-### tcc_tcc_osx:# lab: build tcc from tcc_osx
-### 	# build from tcc_osx
-### 	#mkdir -p ../bin/
-### 	cp ../tcc_osx/x86_64-osx-libtcc1.a ../bin/
-### 	#ffic todo fix ffic.c to get path of executable...:
-### 	cp ../tcc_osx/x86_64-osx-libtcc1.a ./
-### 	../tcc_osx/x86_64-osx-tcc -L../bin -B../bin -DTCC_TARGET_X86_64 -DTCC_TARGET_MACHO -DCONFIG_TCCDIR="\".\"" -DTCC_LIBTCC1="\"x86_64-osx-libtcc1.a\"" -I../tinycc -I. -DONE_SOURCE=1 ../tinycc/tcc.c -o ../bin/tcc64tcc.osx.1
-### 	../tcc_osx/x86_64-osx-tcc -L../bin -B../bin -DTCC_TARGET_X86_64 -DTCC_TARGET_MACHO -DCONFIG_TCCDIR="\".\"" -DTCC_LIBTCC1="\"x86_64-osx-libtcc1.a\"" -I../tinycc -I. -DONE_SOURCE=1 -run ffic.c tests/env.c
-### 	../bin/tcc64tcc.osx.1 -L../bin -B../bin -I `xcrun --show-sdk-path`/usr/include -I ../tinycc/include -I . -DTCC_TARGET_X86_64 -DTCC_TARGET_MACHO -DCONFIG_TCCDIR="\".\"" -DTCC_LIBTCC1="\"x86_64-osx-libtcc1.a\"" -I ../tinycc -DONE_SOURCE=1 -run ffic.c tests/env.c
-### 	#../bin/tcc64tcc.osx.1 -run tests/env.c
-### 	#../bin/tcc64tcc.osx.1 -L../bin -B../bin tests/env.c -o tests/env.osx.1
-### 	#./tests/env.osx.1
-### 	../bin/tcc64tcc.osx.1 -I `xcrun --show-sdk-path`/usr/include -I ../tinycc/include -I . -DTCC_TARGET_X86_64 -DTCC_TARGET_MACHO -DCONFIG_TCCDIR="\".\"" -DTCC_LIBTCC1="\"x86_64-osx-libtcc1.a\"" -I ../tinycc -DONE_SOURCE=1 ../tinycc/tcc.c -B ../bin -o ../bin/tcc64tcc.osx.2
-### 	#../bin/tcc64tcc.osx.2 -B../bin tests/env.c -o tests/env.osx.2
-### 	#./tests/env.osx.2
-### 	../bin/tcc64tcc.osx -I `xcrun --show-sdk-path`/usr/include -I ../tinycc/include -I . -DTCC_TARGET_X86_64 -DTCC_TARGET_MACHO -DCONFIG_TCCDIR="\".\"" -DTCC_LIBTCC1="\"x86_64-osx-libtcc1.a\"" -I ../tinycc -DONE_SOURCE=1 -B ../bin ffic.c -o ../bin/ffic64.osx
-### 	ls -al ../bin/
+	echo "#define TCC_VERSION \"`head ../tinycc/VERSION`\"" > config.h
+	echo "#ifndef CONFIG_TCCDIR" >> config.h
+	echo "#define CONFIG_TCCDIR \".\"" >> config.h
+	echo "#endif" >> config.h
+	#docker run -v $PWD:/w -w /w  -ti partnernetsoftware/dtccgcc tcc -static -nostdlib -Itinycc src/ffic.c -o bin/ffic64.lnx /usr/local/lib/tcc/libtcc1.a /usr/lib/crt1.o -lc -DONE_SOURCE=1 -I.
+	rm -f ../bin/ffic64.lnx
+	cd ../ && docker run -v $$PWD:/w -w /w  -ti partnernetsoftware/dtcctcc tcc -static -nostdlib -DTCC_LIBTCC1="\"\"" -Itinycc src/ffic.c -o bin/ffic64.lnx /usr/local/lib/tcc/libtcc1.a /usr/lib/crt1.o -lc -DONE_SOURCE=1 -Isrc
+	cd .. && docker run -v $$PWD:/w -w /w  -ti partnernetsoftware/dtcctcc bin/ffic64.lnx src/tests/env.c
 
 tcc_osx:#with system cc
 	echo "#define TCC_VERSION \"`head ../tinycc/VERSION`\"" > config.h
@@ -57,28 +46,7 @@ test-osx:
 	./ffic_static_osx tests/42.c
 	cat tests/42.c | ./ffic_osx
 	./ffic_osx tests/42.c
-###osx_lab:
-###	mkdir -p ../bin/
-###	gcc -DTCC_TARGET_X86_64 -DTCC_TARGET_MACHO -E ffic.c -I. | sed 's/^#.*//g' | sed "/^$$/d" > ffic_osx.i
-###	gcc -DTCC_TARGET_X86_64 -DTCC_TARGET_MACHO -DCONFIG_TCCDIR="\".\"" -DTCC_LIBTCC1="\"x86_64-osx-libtcc1.a\"" -I../tinycc -I. -DONE_SOURCE=1 -E ffic.c | sed 's/^#.*//g' | sed "/^$$/d" > ffic_static_osx.i
-###	gcc -DTCC_TARGET_X86_64 -DTCC_TARGET_MACHO -DCONFIG_TCCDIR="\".\"" -DTCC_LIBTCC1="\"x86_64-osx-libtcc1.a\"" -L. -B../bin ffic_osx.i -o ../bin/ffic_osx
-###	gcc ffic_static_osx.i -o ../bin/ffic_static_osx
-###	ls -al ../bin/
 
-###osx:
-###	echo "#define TCC_VERSION \"`head ../tinycc/VERSION`\"" > config.h
-###	${CC} -E ffic.c -I. -I../tinycc/ | sed 's/^#.*//g' | sed "/^$$/d" > ffic_osx.i
-###	${CC} -DTCC_TARGET_X86_64 -DTCC_TARGET_MACHO -E ffic.c -I. | sed 's/^#.*//g' | sed "/^$$/d" > ffic_osx.i
-###	#gcc -O1 -DTCC_TARGET_X86_64 -DTCC_TARGET_MACHO -DCONFIG_TCCDIR="\".\"" -DTCC_LIBTCC1="\"x86_64-osx-libtcc1.a\"" -L. -Wl,-dead_strip ffic_osx.i -ldl -ltcc -o ffic_osx
-###	gcc -O1 -DTCC_TARGET_X86_64 -DTCC_TARGET_MACHO -DCONFIG_TCCDIR="\".\"" -DTCC_LIBTCC1="\"x86_64-osx-libtcc1.a\"" -L. -Wl,-dead_strip ffic_osx.i -ldl -ltcc -o ffic_osx
-###	${CC} -DTCC_TARGET_X86_64 -DTCC_TARGET_MACHO -DCONFIG_TCCDIR="\".\"" -DTCC_LIBTCC1="\"x86_64-osx-libtcc1.a\"" -L. -I../tinycc -I. -DONE_SOURCE=1 -E ffic.c > ffic_static_osx.i
-###	${CC} ffic_static_osx.i -o ffic_static_osx
-###	#gcc -O1 -DTCC_TARGET_X86_64 -DTCC_TARGET_MACHO -DCONFIG_TCCDIR="\".\"" -DTCC_LIBTCC1="\"x86_64-osx-libtcc1.a\"" -L. -Wl,-dead_strip ffic.osx.i -ldl -ltcc -o ffic_osx
-###	#gcc -DTCC_TARGET_X86_64 -DTCC_TARGET_MACHO -DCONFIG_TCCDIR="\".\"" -DTCC_LIBTCC1="\"x86_64-osx-libtcc1.a\"" -I../tinycc -I. -DONE_SOURCE=1 -E ffic.c > ffic_static_osx_gcc.i
-###	#gcc -Wl,-dead_strip ffic_static_osx_gcc.i -o ffic_static_osx_gcc
-###	#tools/upx -f -o ffic_static_osx_gcc_upx ffic_static_osx_gcc
-###	ls -al ffic*
-###	make test-osx
 bin_ffic_win:#build from osx...
 	rm -f ../bin/ffic*.exe
 	sh tccwin32.sh -DONE_SOURCE=1 -I. ../tinycc/tcc.c -o ../bin/tcc32.exe

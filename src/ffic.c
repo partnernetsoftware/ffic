@@ -28,6 +28,9 @@ void $0(char *path, int *p_size)
 #ifdef __APPLE__
 	void (*c___NSGetExecutablePath)(char *, int *) = ffic("libc", "_NSGetExecutablePath");
 	c___NSGetExecutablePath(path, p_size);
+#else
+	//extern void strcpy(char*,char*);
+	strcpy(path,"./");//TODO !!!... linux using /proc
 #endif
 #endif
 	extern char *strrchr(const char *, int);
