@@ -2,12 +2,12 @@
 #define FFIC 1
 #endif
 
-#ifdef ONE_SOURCE
+#ifdef ONE_SOURCE //static
 #include "tcc.h"
 #include "libtcc.c"
 #include "ffic.h"
 #define tcc(f) f
-#else
+#else //
 #include "ffic.h"
 #ifdef _WIN64
 #define tcc(f) ffic("libtcc64", #f)
@@ -18,6 +18,7 @@
 #endif
 #endif
 
+//GET THE PATH OF THIS PROGRAM
 void $0(char *path, int *p_size)
 {
 #ifdef _WIN32
@@ -30,7 +31,7 @@ void $0(char *path, int *p_size)
 	c___NSGetExecutablePath(path, p_size);
 #else
 	//extern void strcpy(char*,char*);
-	strcpy(path,"./");//TODO !!!... linux using /proc
+	strcpy(path, "./"); //TODO !!!... linux using /proc/self
 #endif
 #endif
 	extern char *strrchr(const char *, int);
@@ -41,10 +42,8 @@ void $0(char *path, int *p_size)
 													 '/'
 #endif
 	);
-	if (basename && *(basename + 1) != 0)
-	{
+	if (basename && !(*(basename + 1)))
 		*basename = 0;
-	}
 }
 
 #define dump(v, t) printf(#v "=%" #t "\n", v)
@@ -108,20 +107,20 @@ int main(int argc, char **argv, char **envp)
 	_tcc.tcc_set_options(tcc_ptr, "-DTCC_TARGET_I386");
 	_tcc.tcc_add_symbol(tcc_ptr, "__udivdi3", __udivdi3);
 	_tcc.tcc_add_symbol(tcc_ptr, "__umoddi3", __umoddi3);
-	extern void*(*__chkstk)(void*);//TODO
+	extern void *(*__chkstk)(void *); //TODO
 	_tcc.tcc_add_symbol(tcc_ptr, "__chkstk", __chkstk);
+	//_tcc.tcc_add_symbol(tcc_ptr,"alloca",alloca);
+#else
+	//TODO tcc_add_symbol(?)
 #endif
 #ifdef _WIN32
 	_tcc.tcc_set_options(tcc_ptr, "-D_WIN32");
-	//_tcc.tcc_add_symbol(tcc_ptr,"alloca",alloca);
-	//_tcc.tcc_add_symbol(tcc_ptr,"__chkstk",__chkstk);
-	//_tcc.tcc_add_symbol(tcc_ptr,"__umoddi3",__umoddi3);
 #endif
 
-	if (0 == _tcc.tcc_get_symbol(tcc_ptr, "ffic_core"))
+	if (!_tcc.tcc_get_symbol(tcc_ptr, "ffic_core"))
 		_tcc.tcc_add_symbol(tcc_ptr, "ffic_core", ffic_core);
 
-	if (0 == _tcc.tcc_get_symbol(tcc_ptr, "ffic_raw"))
+	if (!_tcc.tcc_get_symbol(tcc_ptr, "ffic_raw"))
 		_tcc.tcc_add_symbol(tcc_ptr, "ffic_raw", ffic_raw);
 
 	if (!_tcc.tcc_get_symbol(tcc_ptr, "ffic"))
@@ -129,6 +128,7 @@ int main(int argc, char **argv, char **envp)
 
 	if (argc > 1)
 	{
+		//TODO get path of the argv1
 		_tcc.tcc_add_file(tcc_ptr, argv[1]);
 	}
 	else
