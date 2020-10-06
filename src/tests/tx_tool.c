@@ -64,6 +64,31 @@ $decl(tdx2m_GetQuote,ffic_func_i);
 	//                 15 中签查询
 $decl(tdx2m_QueryData,ffic_func_i);
 $decl(tdx2m_CancelOrder,ffic_func_i);
+//     nClientID  - 客户端ID
+//     nCategory  - 表示委托的种类，
+//                  0 买入
+//                  1 卖出
+//                  2 融资买入
+//                  3 融券卖出
+//                  4 买券还券
+//                  5 卖券还款
+//                  6 现券还券
+//                  7 担保品买入
+//                  8 担保品卖出
+//     nPriceType - 表示报价方式
+//                  0 上海限价委托 深圳限价委托
+//                  1 (市价委托)深圳对方最优价格
+//                  2 (市价委托)深圳本方最优价格
+//                  3 (市价委托)深圳即时成交剩余撤销
+//                  4 (市价委托)上海五档即成剩撤 深圳五档即成剩撤
+//                  5 (市价委托)深圳全额成交或撤销
+//                  6 (市价委托)上海五档即成转限价
+//     pszGddm    - 股东代码, 交易上海股票填上海的股东代码；交易深圳的股票填入深圳的股东代码
+//     pszZqdm    - 证券代码
+//     fPrice     - 委托价格
+//     nQuantity  - 委托数量
+//     pszResult  - 同上,其中含有委托编号数据
+//     pszErrInfo - 同上
 //$decl(tdx2m_SendOrder,ffic_func_i);//error for maybe arguments packing
 int (*tdx2m_SendOrder)(
 		int nClientID,
@@ -549,7 +574,8 @@ int tx_order(char** argv, int argc, char* timestamp){
 	float fPrice = (float) c_atof(argv[3+offset]);
 	int nQuantity = (int) c_atol(argv[2+offset]);
 
-	int nCategory = (nQuantity>0) ? 0 : 1;//0 buy, 1 sell
+	//int nCategory = (nQuantity>0) ? 0 : 1;//0 buy, 1 sell
+	int nCategory = (nQuantity>0) ? 2 : 1;//0 buy, 1 sell, 2 buy(w/ credit)
 
 	float total = fPrice*nQuantity;//for debug only
 	if(total>99999 || total<-99999){
