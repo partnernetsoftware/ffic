@@ -10,8 +10,8 @@ var out = d => (console.log(d),d);
 var err = d => console.log('\x1b[44m',''+trim(d),'\x1b[0m');
 var cb_pool = {};
 var child_a = {};
-var start_child = (child_name,exe_name)=>{
-	var the_child = spawn(exe_name);
+var start_child = (child_name,exe_name,args)=>{
+	var the_child = spawn(exe_name,args);
 	the_child.stdout.on('data', (data)=>{
 		var o = s2o(''+data) || [];//we always design the child response json-array
 		var timestamp_id = o[0];
@@ -37,15 +37,17 @@ var start_child = (child_name,exe_name)=>{
 	the_child.on('close', (code)=>{
 		err('## '+child_name+'.close:' + code);
 		try{ the_child.kill("SIGINT"); }catch(ex){ err('## '+child_name+'.kill:'+ex) }
-		child_a[child_name] = start_child(child_name,exe_name);
+		child_a[child_name] = start_child(child_name,exe_name,args);
 	});
 	err('## child '+child_name+' Start');
 	return the_child;
 }
 ///child_a['hq'] = start_child('hq', 'hq_win32.exe');
 ///child_a['bt'] = start_child('bt', '9_win32.exe' );
-child_a['hq'] = start_child('hq', 'txhq.exe');
-child_a['bt'] = start_child('bt', 'tx10.exe' );
+//child_a['hq'] = start_child('hq', 'txhq.exe');
+//child_a['bt'] = start_child('bt', 'tx10.exe' );
+child_a['hq'] = start_child('hq', '..\\..\\bin\\ffic32.exe',['txhq.c']);
+child_a['hq'] = start_child('hq', '..\\..\\bin\\ffic32.exe',['tx10.c']);
 //process.stdin.setEncoding('utf8');
 //NOTES: no need readline here... 'coz data comes as line
 process.stdin.on('end',()=>err("# stdin end"));
