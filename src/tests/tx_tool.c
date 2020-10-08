@@ -288,7 +288,7 @@ int tx_output(int f,char* timestamp,char* out,char* err){
 	int len = c_strlen(txt);
 	ffic_string_new(txt_base64, 64 * len);
 	if(len>0) b64_encode(txt,len,txt_base64);
-	c_printf("[\"%s\",\"%s\",\"%s\"]\n",timestamp?timestamp:"",(f>=0)?"OK":"KO",txt_base64?txt_base64:0);
+	c_printf("[\"%s\",\"%s\",\"%s\"]\n",timestamp?timestamp:"",(f>=0)?"OK":"KO",(len>0)?txt_base64:0);
 	c_fflush(c_stdout);
 	return f;
 }
