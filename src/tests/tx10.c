@@ -1,6 +1,4 @@
-//#include "stdio.h"
 #include "tx_tool.c"
-extern void printf(const char*,...);
 int main(int argc, char *argv[]) {
 
 	tx_init();

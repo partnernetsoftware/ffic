@@ -699,18 +699,19 @@ unsigned long handle_request(ffic_ptr lpParameter)
 	int argc = tx_split(line, argv);
 	if(argc>0){
 		char timestamp[256] = {0};
-		c_strcpy(timestamp, argv[0]);
 		char* cmd = argv[0];
 		if(!c_strcmp(cmd,"#")){
 			c_fprintf(c_stderr, "# COMMENT %s\n",line_out);
 			c_fflush (c_stderr);
 			return 0;
 		}else if(c_atol(cmd)>0){
+			c_strcpy(timestamp, argv[0]);
 			if(argc>1){
 				cmd = argv[1];
 			}
-		}
-		tx_call(cmd,argv,argc,timestamp);
+			tx_call(cmd,argv,argc,timestamp);
+		}else
+			tx_call(cmd,argv,argc,0);
 	}
 	return 0;
 }
