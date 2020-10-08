@@ -419,9 +419,8 @@ int tx_quote(char** argv, int argc, char* timestamp){
 	int offset = timestamp ? 1:0;
 	if(argc-offset<1){
 		char * usage = "quote $stock\n";
-		c_fprintf(c_stderr,usage);
-		tx_output(-1,timestamp,"",usage);
-		return 0;
+		//c_fprintf(c_stderr,usage); return 0;
+		return tx_output(-1,timestamp,"",usage);
 	}
 	ffic_string_new(szErrInfo, ffic_line_len);
 	char* pszZqdm = argv[1+offset];
@@ -435,9 +434,9 @@ int hq_bars(char** argv, int argc, char* timestamp){
 	int offset = timestamp ? 1:0;
 
 	if(argc-offset<2){
-		c_fprintf(c_stderr,"hq $stock $type $line $market\n");
-		tx_output(-1,timestamp,"","hq $stock $type $line $market");
-		return 0;
+		//c_fprintf(c_stderr,"hq $stock $type $line $market\n");
+		return tx_output(-1,timestamp,"","hq $stock $type $line $market");
+		//return 0;
 	}
 
 	ffic_string_new(szErrInfo, ffic_line_len);
@@ -519,9 +518,9 @@ int hq_conn(char** argv, int argc, char* timestamp){
 
 	if(argc-offset<2){
 		char * hq_usage = "conn $hq_server $hq_port\n";
-		c_fprintf(c_stderr,hq_usage);
-		tx_output(-1,timestamp,"",hq_usage);
-		return 0;
+		//c_fprintf(c_stderr,hq_usage);
+		return tx_output(-1,timestamp,"",hq_usage);
+		//return 0;
 	}
 
 	ffic_string_new(szErrInfo, ffic_line_len);
@@ -547,8 +546,11 @@ int hq_conn(char** argv, int argc, char* timestamp){
 
 int tx_cancel_order(char** argv, int argc, char* timestamp){
 	int offset = timestamp ? 1:0;
-	const char* usage = "# cancel $order_id\n";
-	if(argc<2){ c_fprintf(c_stderr,usage); return 0; }
+	char* usage = "# cancel $order_id\n";
+	if(argc<2){
+		//c_fprintf(c_stderr,usage); return 0;
+		return tx_output(-1,timestamp,"",usage);
+	}
 
 	char nMarket = 0;
 	for(int i=1;i<argc;i++){
@@ -568,11 +570,11 @@ int tx_cancel_order(char** argv, int argc, char* timestamp){
 }
 
 int tx_order(char** argv, int argc, char* timestamp){
-	const char* usage = "# play $StockCode +/-$amount $price\n";
+	char* usage = "# play $StockCode +/-$amount $price\n";
 	int offset = timestamp ? 1:0;
 	if(argc<4+offset){
-		c_fprintf(c_stderr,usage);
-		return 0;
+		//c_fprintf(c_stderr,usage); return 0;
+		return tx_output(-1,timestamp,"",usage);
 	}
 
 	int nPriceType = 0;
@@ -592,8 +594,8 @@ int tx_order(char** argv, int argc, char* timestamp){
 
 	float total = fPrice*nQuantity;//for debug only
 	if(total>99999 || total<-99999){
-		tx_output(-1,timestamp,"","too much");
-		return 0;
+		//tx_output(-1,timestamp,"","too much"); return 0;
+		return tx_output(-1,timestamp,"","too much?");
 	}
 	c_fprintf(c_stderr,"# SendOrder %f,%d,(%f),\"%s\"\n",fPrice,nQuantity,total,pszZqdm);
 
