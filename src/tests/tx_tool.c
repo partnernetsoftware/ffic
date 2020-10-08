@@ -13,13 +13,15 @@
 ///////////////////////////////////////////////////////////////////////
 #define ffic_line_len 1024
 #define ffic_string_new(name,size) char name[size];c_memset(name,0,sizeof(name));
+
+//FAIL $import(c,m);//as c##_##m
 //TODO merge as line-def mode
 #define $decl(n,t) t n
 #define $use(c,m,t) (t) ffic(#c,#m)
-#define $import(c,m,n,t) $decl(t,n) = $use(c,m,t)
+//#define $import(c,m,n,t) $decl(t,n) = $use(c,m,t)
 //#define $import(c,m,n,t) $decl(t,n) = $use(c,m,typeof(n))
-#define $dump(v,t) c_printf(#v "=%" #t "\n",v)
-#define $link(n,c,m) n = $use(c,m,typeof(n))
+//#define $dump(v,t) c_printf(#v "=%" #t "\n",v)
+//#define $link(n,c,m) n = $use(c,m,typeof(n))
 #define $linkx(c,m) c##_##m = $use(c,m,typeof(c##_##m))
 
 $decl(tx_sleep,ffic_func);
@@ -203,9 +205,14 @@ $decl(CloseHandle,ffic_func);
 $decl(CreateThread,ffic_func);
 $decl(kernel32_SetUnhandledExceptionFilter,ffic_func);
 
+int tx_flag_quit = 0;
+int tx_flag_ever = 0;
+
 long MyUnhandledExceptionFilter(ffic_ptr pExceptionPtrs){
 	c_fprintf(c_stderr,"# MyUnhandledExceptionFilter()\n");
-	tdx2m_CloseTdx();
+	c_fflush(c_stderr);
+	//tdx2m_CloseTdx();
+	tx_flag_quit = 1;
 	return -1;
 }
 
@@ -263,7 +270,9 @@ void tx_init(){
 	CreateThread = $use(kernel32,CreateThread,ffic_func);
 	$linkx(kernel32,SetUnhandledExceptionFilter);
 
-	kernel32_SetUnhandledExceptionFilter(MyUnhandledExceptionFilter);
+//TODO ctrl-c
+
+	//kernel32_SetUnhandledExceptionFilter(MyUnhandledExceptionFilter);
 
 	c_fprintf(c_stderr, "# tx_init() }\n");
 	c_fflush(c_stderr);
@@ -278,7 +287,7 @@ int tx_output(int f,char* timestamp,char* out,char* err){
 
 	int len = c_strlen(txt);
 	ffic_string_new(txt_base64, 64 * len);
-	b64_encode(txt,c_strlen(txt),txt_base64);
+	if(len>0) b64_encode(txt,c_strlen(txt),txt_base64);
 	c_printf("[\"%s\",\"%s\",\"%s\"]\n",timestamp?timestamp:"",(f>=0)?"OK":"KO",txt_base64);
 	c_fflush(c_stdout);
 	return f;
@@ -304,8 +313,7 @@ int tx_unknown(char** argv, int argc, char* timestamp){
 	c_fprintf(c_stderr,"\n");
 	c_fflush(c_stderr);
 
-	tx_output(0,timestamp,"wrong cmd","");
-	return 0;
+	return tx_output(-1,timestamp,"wrong cmd","");
 }
 typedef int (*tx_func)();
 typedef struct _tx_method_desc tx_method_desc,*p_tx_method_desc;
@@ -339,9 +347,6 @@ int tx_read_config(char* str){
 	c_fclose(fp);
 	return 0;
 }
-
-int tx_flag_quit = 0;
-int tx_flag_ever = 0;
 
 int tx_login(char** argv, int argc, char* timestamp){
 
