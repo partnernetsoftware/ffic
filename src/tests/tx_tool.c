@@ -5,6 +5,7 @@
 #include "base64.c"
 
 ///////////////////////////////////////////////////////////////////////
+#define ffic_line_len 1024
 #define ffic_string_new(name,size) char name[size];c_memset(name,0,sizeof(name));
 //TODO merge as line-def mode
 #define $decl(n,t) t n
@@ -211,6 +212,9 @@ void tx_init(){
 	//c_fprintf = $use(c,fprintf,ffic_func);
 	//c_sprintf = $use(c,sprintf,ffic_func);
 	c_fflush = $use(c,fflush,ffic_func);
+	c_fprintf(c_stderr, "# tx_init() {\n");
+	c_fflush(c_stderr);
+
 	c_calloc = $use(c,calloc,ffic_func);
 	c_strtok = $use(c,strtok,ffic_func);
 	c_strcpy = $use(c,strcpy,ffic_func);
@@ -242,7 +246,7 @@ void tx_init(){
 
 	CloseHandle = $use(kernel32,CloseHandle,ffic_func);
 	CreateThread = $use(kernel32,CreateThread,ffic_func);
-	c_fprintf(c_stderr, "# tx_init()\n");
+	c_fprintf(c_stderr, "# tx_init() }\n");
 	c_fflush(c_stderr);
 }
 ///////////////////////////////////////////////////////////////////////
@@ -296,7 +300,7 @@ tx_func tx_type_get(tx_method_desc * self, const char* name)
 {
 	tx_method_desc * fn = self;
 	while(fn->fp){
-		if(0==c_strcmp(fn->name,name)) {
+		if(!c_strcmp(fn->name,name)) {
 			return fn->fp;
 		}
 		fn++;
@@ -315,7 +319,7 @@ int tx_read_config(char* str){
 		c_fprintf(c_stderr,"# Error opening config file");
 		return(-1);
 	}
-	c_fgets (str, 1024, fp);
+	c_fgets (str, ffic_line_len, fp);
 	c_fclose(fp);
 	return 0;
 }
@@ -350,7 +354,7 @@ int tx_login(char** argv, int argc, char* timestamp){
 	c_strcpy(m_sTradeAccount[0], str_a[9]);
 	c_strcpy(m_sTradeAccount[1], str_a[10]);
 
-	ffic_string_new(szErrInfo,1024);
+	ffic_string_new(szErrInfo, ffic_line_len);
 	c_fprintf(c_stderr,"# Logon START\n");
 	nClientID = (int) tdx2m_Logon(m_nQsid,
 			m_sHost,
@@ -413,9 +417,9 @@ int tx_quote(char** argv, int argc, char* timestamp){
 		tx_output(-1,timestamp,"",usage);
 		return 0;
 	}
-	ffic_string_new(szErrInfo,1024);
+	ffic_string_new(szErrInfo, ffic_line_len);
 	char* pszZqdm = argv[1+offset];
-	ffic_string_new(szResult,1024*10);
+	ffic_string_new(szResult, ffic_line_len *10);//TODO
 	int f = tdx2m_GetQuote(nClientID, pszZqdm, szResult, szErrInfo);
 	tx_output(f,timestamp,szResult,szErrInfo);
 	return 0;
@@ -430,7 +434,7 @@ int hq_bars(char** argv, int argc, char* timestamp){
 		return 0;
 	}
 
-	ffic_string_new(szErrInfo,1024);
+	ffic_string_new(szErrInfo, ffic_line_len);
 
 	char* pszZqdm = argv[1+offset];
 
@@ -446,12 +450,12 @@ int hq_bars(char** argv, int argc, char* timestamp){
 
 	int nMarket = tx_market( pszZqdm );
 
-	//char szResult2[nCount*1024];
-	//c_memset(szResult2, '\0', nCount*1024);
+	//char szResult2[nCount* ffic_line_len];
+	//c_memset(szResult2, '\0', nCount* ffic_line_len);
 	//int f = tdx2m_TdxHq_GetSecurityBars(nConn, nCategory, nMarket, pszZqdm, 0, &nCount, &szResult2, szErrInfo);
 	//tx_output(f,timestamp,szResult2,szErrInfo);
 
-	ffic_string_new(szResult,1024*nCount);
+	ffic_string_new(szResult, ffic_line_len *nCount);
 	int f = tdx2m_TdxHq_GetSecurityBars(nConn, nCategory, nMarket, pszZqdm, 0, &nCount, szResult, szErrInfo);
 	tx_output(f,timestamp,szResult,szErrInfo);
 	return 0;
@@ -466,7 +470,7 @@ int hq_bars(char** argv, int argc, char* timestamp){
 //	if(argc-offset>1){
 //		nMarket = (int) c_atol(argv[1+offset]);
 //	}
-//	ffic_string_new(szErrInfo,1024);
+//	ffic_string_new(szErrInfo, ffic_line_len);
 //	short pnCount;
 //	int f = tdx2m_TdxHq_GetSecurityCount(nConn, nMarket, &pnCount, szErrInfo);
 //	$dump(pnCount,f);
@@ -478,7 +482,7 @@ int hq_bars(char** argv, int argc, char* timestamp){
 int hq_market_stock_count(char** argv, int argc, char* timestamp){
 	long offset = c_atol(timestamp)>0?1:0;
 
-	ffic_string_new(szErrInfo,1024);
+	ffic_string_new(szErrInfo, ffic_line_len);
 
 	int nMarket = 0;//0 sz 1 sh .... TMP
 	if(argc-offset>1){
@@ -488,7 +492,7 @@ int hq_market_stock_count(char** argv, int argc, char* timestamp){
 	short pnCount = 0;
 	int f = tdx2m_TdxHq_GetSecurityCount(nConn, nMarket, &pnCount, szErrInfo);
 
-	ffic_string_new(szResult,1024);
+	ffic_string_new(szResult, ffic_line_len);
 	c_sprintf(szResult,"pnCount=%d",pnCount);
 	tx_output(f,timestamp,szResult,szErrInfo);
 	return 0;
@@ -497,8 +501,8 @@ int hq_market_stock_count(char** argv, int argc, char* timestamp){
 int tx_info(char** argv, int argc, char* timestamp){
 	long offset = c_atol(timestamp)>0?1:0;
 	int t = (argc-offset>1)?c_atol(argv[1+offset]):0;
-	ffic_string_new(szResult,1024*128);
-	ffic_string_new(szErrInfo,1024);
+	ffic_string_new(szResult, ffic_line_len *128);
+	ffic_string_new(szErrInfo, ffic_line_len);
 	int f = tdx2m_QueryData(nClientID, t, szResult, szErrInfo);
 	tx_output(f,timestamp,szResult,szErrInfo);
 	return 0;
@@ -514,8 +518,8 @@ int hq_conn(char** argv, int argc, char* timestamp){
 		return 0;
 	}
 
-	ffic_string_new(szErrInfo,1024);
-	ffic_string_new(szResult,1024*10);
+	ffic_string_new(szErrInfo, ffic_line_len);
+	ffic_string_new(szResult, ffic_line_len *10);
 
 	char * pszHqSvrIP = argv[1+offset];
 	int nPort = 7709;
@@ -544,8 +548,8 @@ int tx_cancel_order(char** argv, int argc, char* timestamp){
 	for(int i=1;i<argc;i++){
 		char* pszHth = argv[i+offset];
 		c_fprintf(c_stderr,"# CancelOrder %s\n",pszHth);
-		ffic_string_new(szErrInfo,1024);
-		ffic_string_new(szResult,1024);
+		ffic_string_new(szErrInfo, ffic_line_len);
+		ffic_string_new(szResult, ffic_line_len);
 		int f = tdx2m_CancelOrder(
 				nClientID,
 				nMarket,
@@ -584,8 +588,8 @@ int tx_order(char** argv, int argc, char* timestamp){
 	}
 	c_fprintf(c_stderr,"# SendOrder %f,%d,(%f),\"%s\"\n",fPrice,nQuantity,total,pszZqdm);
 
-	ffic_string_new(szErrInfo,1024);
-	ffic_string_new(szResult,1024);
+	ffic_string_new(szErrInfo, ffic_line_len);
+	ffic_string_new(szResult, ffic_line_len);
 
 	int f = tdx2m_SendOrder
 		(nClientID,
@@ -602,7 +606,7 @@ int tx_order(char** argv, int argc, char* timestamp){
 }
 
 int tx_start(){
-	ffic_string_new(szErrInfo,1024);
+	ffic_string_new(szErrInfo, ffic_line_len);
 	c_fprintf(c_stderr,"# OpenTdx START\n");
 	char* pszClientVersion = "9.40";
 	char nCliType = 12;
@@ -674,14 +678,14 @@ int tx_call(char* cmd,char** argv,int argc, char* timestamp){
 
 void tx_thread(ffic_ptr func, char* line){
 	unsigned long tid;
-	CloseHandle(CreateThread(0,1024,func,line,0,&tid));
+	CloseHandle(CreateThread(0, ffic_line_len, func,line,0,&tid));
 }
 
 unsigned long handle_request(ffic_ptr lpParameter)
 {
 	char* argv[30];
-	char line[1024];
-	char line_out[1024];
+	char line[ffic_line_len];
+	char line_out[ffic_line_len];
 	c_strcpy(line, (char*) lpParameter);
 	c_strcpy(line_out, line);
 	int argc = tx_split(line, argv);
@@ -689,7 +693,7 @@ unsigned long handle_request(ffic_ptr lpParameter)
 		char timestamp[256] = {0};
 		c_strcpy(timestamp, argv[0]);
 		char* cmd = argv[0];
-		if(0==c_strcmp(cmd,"#")){
+		if(!c_strcmp(cmd,"#")){
 			c_fprintf(c_stderr, "# COMMENT %s\n",line_out);
 			c_fflush (c_stderr);
 			return 0;
@@ -703,21 +707,19 @@ unsigned long handle_request(ffic_ptr lpParameter)
 	return 0;
 }
 
+//@doc tx_thread(&handle_stdin,0);
 unsigned long handle_stdin(ffic_ptr lpParameter)
 {
 	while(!tx_flag_quit){
-		int len = 1024;
-		char line[len];
-		//ffic_string_new(line,1024);//ko
-		c_fgets(line,len,c_stdin);
-		if( line ) {
-			tx_thread(&handle_request,line);
-		}
+		char line[ffic_line_len];
+		c_fgets(line, ffic_line_len, c_stdin);
+		if( line ) tx_thread(&handle_request,line);
 	}
-	tx_sleep(666);//important to prevent a quiting failure
+	tx_sleep(333);//important to prevent a quiting failure
 	return 0;
 }
 
+//no use:
 //@ref  __attribute__((dllimport)) LPTOP_LEVEL_EXCEPTION_FILTER __attribute__((__stdcall__)) SetUnhandledExceptionFilter(LPTOP_LEVEL_EXCEPTION_FILTER lpTopLevelExceptionFilter);
 //@usage: SetUnhandledExceptionFilter(MyUnhandledExceptionFilter);
 //long MyUnhandledExceptionFilter(ffic_ptr pExceptionPtrs){
