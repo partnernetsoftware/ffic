@@ -46,14 +46,14 @@ var start_child = (child_name,exe_name,args)=>{
 ///child_a['bt'] = start_child('bt', '9_win32.exe' );
 //child_a['hq'] = start_child('hq', 'txhq.exe');
 //child_a['bt'] = start_child('bt', 'tx10.exe' );
-child_a['hq'] = start_child('hq', '..\\..\\bin\\ffic32.exe',['txhq.c']);
-child_a['hq'] = start_child('hq', '..\\..\\bin\\ffic32.exe',['tx10.c']);
+////child_a['hq'] = start_child('hq', '..\\..\\bin\\ffic32.exe',['txhq.c']);
+child_a['bt'] = start_child('hq', '..\\..\\bin\\ffic32.exe',['tx10.c']);
 //process.stdin.setEncoding('utf8');
 //NOTES: no need readline here... 'coz data comes as line
 process.stdin.on('end',()=>err("# stdin end"));
 var exit = ()=>{
 	try{ child_a['bt'].kill("SIGINT"); }catch(ex){ err(ex) }
-	try{ child_a['hq'].kill("SIGINT"); }catch(ex){ err(ex) }
+	////try{ child_a['hq'].kill("SIGINT"); }catch(ex){ err(ex) }
 	process.exit();
 }
 
@@ -184,12 +184,12 @@ var call_logic_cb = (line, cb)=>{
 			return d;
 		};
 	}else{
-		err("not matching m");
+		err("TODO:"+line);
 	}
 	
 	switch(true){
 		case (new RegExp("^(q$|quit|exit)").test(line)): exit(); break;
-		case (new RegExp("^(count|b\\s)").test(line)): child_a['hq'].stdin.write(`${timestamp_id} ${line}\r\n`); break;
+		////case (new RegExp("^(count|b\\s)").test(line)): child_a['hq'].stdin.write(`${timestamp_id} ${line}\r\n`); break;
 		default: child_a['bt'].stdin.write(`${timestamp_id} ${line}\r\n`);
 	}
 }
