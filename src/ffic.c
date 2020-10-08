@@ -129,6 +129,14 @@ int main(int argc, char **argv, char **envp)
 	if (argc > 1)
 	{
 		//TODO get path of the argv1
+		//#ifdef _WIN32
+		//	char Bdir2[512] = {"-L"};
+		//#else
+		//	char Bdir2[512] = {"-B"};
+		//#endif
+		//	int size = 500;
+		//	$__DIR__(&Bdir2[2], &size);
+		//	_tcc.tcc_set_options(tcc_ptr, Bdir2);
 		_tcc.tcc_add_file(tcc_ptr, argv[1]);
 	}
 	else

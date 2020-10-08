@@ -21,11 +21,23 @@ echo "(exit)" | ../bin/ffic tests/scheme.c
 
 # TODO
 
+* pathname(argv[1])
+* tiny sock server 
+```
+# pipe cmd to sock (ref https://github.com/joewalnes/websocketd)
+--port
+--style
+uplink as stdin (also accept real stdin)
+downlink as stdout (json)
+stderr to console
+
+```
 * tinyAI/NN
 * merge libdl
 * tiny syscall wrapper
 * tiny libc from https://github.com/lattera/glibc/
 * tiny OS kernel
+* so/dll w+ https://github.com/saprykin/plibsys
 
 # Links for learning
 
