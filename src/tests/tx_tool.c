@@ -5,7 +5,7 @@
 //   check quit every few seconds;
 // stdin spawn thread for handling every cmd
 // stderr as #....
-// stdout as json
+// stdout as json (w/ base64 data)
 
 #include "ffic.h"
 #include "base64.c"
@@ -201,6 +201,15 @@ $decl(tdx2m_TdxHq_Connect,ffic_func_i);
 
 $decl(CloseHandle,ffic_func);
 $decl(CreateThread,ffic_func);
+$decl(kernel32_SetUnhandledExceptionFilter,ffic_func);
+
+long MyUnhandledExceptionFilter(ffic_ptr pExceptionPtrs){
+	c_fprintf(c_stderr,"# MyUnhandledExceptionFilter()\n");
+	tdx2m_CloseTdx();
+	return -1;
+}
+
+//TODO handle ctrl-c
 
 void tx_init(){
 	$linkx(c,stdin);
@@ -252,6 +261,10 @@ void tx_init(){
 
 	CloseHandle = $use(kernel32,CloseHandle,ffic_func);
 	CreateThread = $use(kernel32,CreateThread,ffic_func);
+	$linkx(kernel32,SetUnhandledExceptionFilter);
+
+	kernel32_SetUnhandledExceptionFilter(MyUnhandledExceptionFilter);
+
 	c_fprintf(c_stderr, "# tx_init() }\n");
 	c_fflush(c_stderr);
 }
@@ -729,15 +742,6 @@ unsigned long handle_stdin(ffic_ptr lpParameter)
 	tx_sleep(666);//important to prevent a quiting failure
 	return 0;
 }
-
-//no use:
-//@ref  __attribute__((dllimport)) LPTOP_LEVEL_EXCEPTION_FILTER __attribute__((__stdcall__)) SetUnhandledExceptionFilter(LPTOP_LEVEL_EXCEPTION_FILTER lpTopLevelExceptionFilter);
-//@usage: SetUnhandledExceptionFilter(MyUnhandledExceptionFilter);
-//long MyUnhandledExceptionFilter(ffic_ptr pExceptionPtrs){
-//	c_fprintf(c_stderr,"# MyUnhandledExceptionFilter()\n");
-//	tdx2m_CloseTdx();
-//	return 0;
-//}
 
 #endif
 
