@@ -1,5 +1,10 @@
 #ifndef TX_TOOL_C
 #define TX_TOOL_C
+///////////////////////////////////////////////////////////////////////
+// thread: stdin read 1024 as line; check quit every few seconds;
+// stdin spawn thread for handling every cmd
+// stderr as #....
+// stdout as json
 
 #include "ffic.h"
 #include "base64.c"
@@ -563,13 +568,13 @@ int tx_cancel_order(char** argv, int argc, char* timestamp){
 
 int tx_order(char** argv, int argc, char* timestamp){
 	const char* usage = "# play $StockCode +/-$amount $price\n";
-	if(argc<4){
+	long offset = c_atol(timestamp)>0?1:0;
+	if(argc<4+offset){
 		c_fprintf(c_stderr,usage);
 		return 0;
 	}
-	long offset = c_atol(timestamp)>0?1:0;
 
-	int nPriceType =  0;
+	int nPriceType = 0;
 	char pszZqdm[64] = {0};
 	c_strcpy(pszZqdm, argv[1+offset]);//stock code
 
@@ -578,8 +583,11 @@ int tx_order(char** argv, int argc, char* timestamp){
 	float fPrice = (float) c_atof(argv[3+offset]);
 	int nQuantity = (int) c_atol(argv[2+offset]);
 
-	//int nCategory = (nQuantity>0) ? 0 : 1;//0 buy, 1 sell
-	int nCategory = (nQuantity>0) ? 2 : 1;//0 buy, 1 sell, 2 buy(w/ credit)
+	int nCategory = (nQuantity>0) ? (
+			//(argc==(offset+5))? ((int)c_atol(argv[4+offset])) : 0
+			(argc>(offset+4))? 2 : 0
+			) : 1;//0 buy, 1 sell
+	//int nCategory = (nQuantity>0) ? 2 : 1;//0 buy, 1 sell, 2 buy(w/ credit)
 
 	float total = fPrice*nQuantity;//for debug only
 	if(total>99999 || total<-99999){
@@ -715,7 +723,7 @@ unsigned long handle_stdin(ffic_ptr lpParameter)
 		c_fgets(line, ffic_line_len, c_stdin);
 		if( line ) tx_thread(&handle_request,line);
 	}
-	tx_sleep(333);//important to prevent a quiting failure
+	tx_sleep(666);//important to prevent a quiting failure
 	return 0;
 }
 
