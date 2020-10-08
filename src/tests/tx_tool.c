@@ -1,7 +1,8 @@
 #ifndef TX_TOOL_C
 #define TX_TOOL_C
 ///////////////////////////////////////////////////////////////////////
-// thread: stdin read 1024 as line; check quit every few seconds;
+// thread: stdin read 1024 as line; start with [timestamp] cmd
+//   check quit every few seconds;
 // stdin spawn thread for handling every cmd
 // stderr as #....
 // stdout as json
@@ -265,7 +266,6 @@ int tx_output(int f,char* timestamp,char* out,char* err){
 	int len = c_strlen(txt);
 	ffic_string_new(txt_base64,4*len);
 	b64_encode(txt,c_strlen(txt),txt_base64);
-	//cas_printf("[\"%s\",\"%s\",\"%s\"]\n",timestamp,(f>=0)?"OK":"KO",txt_base64);
 	c_printf("[\"%s\",\"%s\",\"%s\"]\n",timestamp,(f>=0)?"OK":"KO",txt_base64);
 	c_fflush(c_stdout);
 	return f;
@@ -305,9 +305,7 @@ tx_func tx_type_get(tx_method_desc * self, const char* name)
 {
 	tx_method_desc * fn = self;
 	while(fn->fp){
-		if(!c_strcmp(fn->name,name)) {
-			return fn->fp;
-		}
+		if(!c_strcmp(fn->name,name)) return fn->fp;
 		fn++;
 	}
 	return tx_unknown;
@@ -330,6 +328,7 @@ int tx_read_config(char* str){
 }
 
 int tx_flag_quit = 0;
+int tx_flag_ever = 0;
 
 int tx_login(char** argv, int argc, char* timestamp){
 
@@ -376,8 +375,10 @@ int tx_login(char** argv, int argc, char* timestamp){
 		c_fprintf(c_stderr,"# Logon KO %s\n",szErrInfo);
 		tx_flag_quit = 1;
 	}else{
+		tx_flag_ever = 1;
 		c_fprintf(c_stderr,"# Logon OK %d\n",nClientID);
 	}
+	c_fflush(c_stderr);
 	return 0;
 }
 
@@ -415,7 +416,7 @@ int tx_market(char* pszZqdm){
 int nConn = -1;
 
 int tx_quote(char** argv, int argc, char* timestamp){
-	long offset = c_atol(timestamp)>0?1:0;
+	int offset = timestamp ? 1:0;
 	if(argc-offset<1){
 		char * usage = "quote $stock\n";
 		c_fprintf(c_stderr,usage);
@@ -431,7 +432,7 @@ int tx_quote(char** argv, int argc, char* timestamp){
 }
 
 int hq_bars(char** argv, int argc, char* timestamp){
-	long offset = c_atol(timestamp)>0?1:0;
+	int offset = timestamp ? 1:0;
 
 	if(argc-offset<2){
 		c_fprintf(c_stderr,"hq $stock $type $line $market\n");
@@ -470,7 +471,7 @@ int hq_bars(char** argv, int argc, char* timestamp){
 //	if(tx_flag_quit==1){
 //		return 0;
 //	}
-//	long offset = c_atol(timestamp)>0?1:0;
+//	int offset = timestamp ? 1:0;
 //	int nMarket = 0;//0 sz 1 sh .... TMP
 //	if(argc-offset>1){
 //		nMarket = (int) c_atol(argv[1+offset]);
@@ -485,7 +486,7 @@ int hq_bars(char** argv, int argc, char* timestamp){
 //}
 
 int hq_market_stock_count(char** argv, int argc, char* timestamp){
-	long offset = c_atol(timestamp)>0?1:0;
+	int offset = timestamp ? 1:0;
 
 	ffic_string_new(szErrInfo, ffic_line_len);
 
@@ -504,7 +505,7 @@ int hq_market_stock_count(char** argv, int argc, char* timestamp){
 }
 
 int tx_info(char** argv, int argc, char* timestamp){
-	long offset = c_atol(timestamp)>0?1:0;
+	int offset = timestamp ? 1:0;
 	int t = (argc-offset>1)?c_atol(argv[1+offset]):0;
 	ffic_string_new(szResult, ffic_line_len *128);
 	ffic_string_new(szErrInfo, ffic_line_len);
@@ -514,7 +515,7 @@ int tx_info(char** argv, int argc, char* timestamp){
 }
 
 int hq_conn(char** argv, int argc, char* timestamp){
-	long offset = c_atol(timestamp)>0?1:0;
+	int offset = timestamp ? 1:0;
 
 	if(argc-offset<2){
 		char * hq_usage = "conn $hq_server $hq_port\n";
@@ -545,7 +546,7 @@ int hq_conn(char** argv, int argc, char* timestamp){
 }
 
 int tx_cancel_order(char** argv, int argc, char* timestamp){
-	long offset = c_atol(timestamp)>0?1:0;
+	int offset = timestamp ? 1:0;
 	const char* usage = "# cancel $order_id\n";
 	if(argc<2){ c_fprintf(c_stderr,usage); return 0; }
 
@@ -568,7 +569,7 @@ int tx_cancel_order(char** argv, int argc, char* timestamp){
 
 int tx_order(char** argv, int argc, char* timestamp){
 	const char* usage = "# play $StockCode +/-$amount $price\n";
-	long offset = c_atol(timestamp)>0?1:0;
+	int offset = timestamp ? 1:0;
 	if(argc<4+offset){
 		c_fprintf(c_stderr,usage);
 		return 0;
@@ -625,6 +626,7 @@ int tx_start(){
 	} else {
 		c_fprintf(c_stderr,"# OpenTdx OK\n");
 	}
+	c_fflush(c_stderr);
 	return 0;
 }
 
@@ -679,9 +681,7 @@ tx_method_desc tx_a_tx[] = {
 tx_method_desc * tx_a = tx_a_tx;
 
 int tx_call(char* cmd,char** argv,int argc, char* timestamp){
-	int rt = tx_type_get(tx_a,cmd)(argv,argc,timestamp);
-	c_fflush(c_stderr);
-	return rt;
+	return tx_type_get(tx_a,cmd)(argv,argc,timestamp);
 }
 
 void tx_thread(ffic_ptr func, char* line){

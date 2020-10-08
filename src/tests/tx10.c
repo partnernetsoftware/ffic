@@ -15,8 +15,9 @@ int main(int argc, char *argv[]) {
 			tx_sleep(4000);
 			if(nClientID>=0){
 				if( !tdx2m_IsConnectOK( nClientID ) ){
-					tx_flag_quit = 1;
 					c_fprintf(c_stderr,"# IsConnectOK(%d)=%d\n",nClientID);
+					if (tx_flag_ever) { tx_call("login",0,0,0); } else 
+					tx_flag_quit = 1;
 				}
 			}
 		}
