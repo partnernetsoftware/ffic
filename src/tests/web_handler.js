@@ -184,7 +184,7 @@ var call_logic_cb = (line, cb)=>{
 			return d;
 		};
 	}else{
-		err("TODO:"+line);
+		//err("# TODO:"+line);
 	}
 	
 	switch(true){
