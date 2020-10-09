@@ -19,7 +19,21 @@
 #endif
 
 //GET THE PATH OF THIS PROGRAM
-void $0(char *path, int *p_size)
+char ffic_dir_sep =
+#ifdef _WIN32
+		'\\'
+#else
+		'/'
+#endif
+		;
+void ffic_path(char *path)
+{
+	extern char *strrchr(const char *, int);
+	char *basename = strrchr(path, ffic_dir_sep);
+	if (basename && !(*(basename + 1))) //remove if found
+		*basename = 0;
+}
+void ffic_0(char *path, int *p_size)
 {
 #ifdef _WIN32
 	void(__attribute__((__stdcall__)) * c_GetModuleFileName)();
@@ -30,20 +44,11 @@ void $0(char *path, int *p_size)
 	void (*c___NSGetExecutablePath)(char *, int *) = ffic("libc", "_NSGetExecutablePath");
 	c___NSGetExecutablePath(path, p_size);
 #else
-	//extern void strcpy(char*,char*);
+	//extern void strcpy(char *, char *);
 	strcpy(path, "./"); //TODO !!!... linux using /proc/self
 #endif
 #endif
-	extern char *strrchr(const char *, int);
-	char *basename = strrchr(path,
-#ifdef _WIN32
-													 '\\'
-#else
-													 '/'
-#endif
-	);
-	if (basename && !(*(basename + 1)))
-		*basename = 0;
+	ffic_path(path);
 }
 
 #define dump(v, t) printf(#v "=%" #t "\n", v)
@@ -89,7 +94,7 @@ int main(int argc, char **argv, char **envp)
 	char Bdir[512] = {"-B"};
 #endif
 	int size = 500;
-	$0(&Bdir[2], &size);
+	ffic_0(&Bdir[2], &size);
 	_tcc.tcc_set_options(tcc_ptr, Bdir);
 	_tcc.tcc_set_options(tcc_ptr, "-I.");
 	_tcc.tcc_set_options(tcc_ptr, "-I..");
@@ -128,15 +133,17 @@ int main(int argc, char **argv, char **envp)
 
 	if (argc > 1)
 	{
-		//TODO get path of the argv1
-		//#ifdef _WIN32
-		//	char Bdir2[512] = {"-L"};
-		//#else
-		//	char Bdir2[512] = {"-B"};
-		//#endif
-		//	int size = 500;
-		//	$__DIR__(&Bdir2[2], &size);
-		//	_tcc.tcc_set_options(tcc_ptr, Bdir2);
+		//get path of the argv1
+		#ifdef _WIN32
+			char Bdir2[512] = {"-L"};
+		#else
+			char Bdir2[512] = {"-B"};
+		#endif
+		int size = 500;
+		//extern void strcpy(char *, char *);
+		strcpy(&Bdir2[2],argv[1]);
+		ffic_path(Bdir);
+		_tcc.tcc_set_options(tcc_ptr, Bdir2);
 		_tcc.tcc_add_file(tcc_ptr, argv[1]);
 	}
 	else
