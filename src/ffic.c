@@ -8,14 +8,16 @@
 #include "ffic.h"
 #define tcc(f) f
 #else //
-#include "ffic.h"
-#ifdef _WIN64
-#define tcc(f) ffic("libtcc64", #f)
-#elif defined(_WIN32)
-#define tcc(f) ffic("libtcc32", #f)
-#else
-#define tcc(f) ffic("libtcc", #f)
-#endif
+#error no longer maintain w- ONE_SOURCE
+//#include "ffic.h"
+//#ifdef _WIN64
+//#define tcc(f) ffic("libtcc64", #f)
+//#elif defined(_WIN32)
+//#define tcc(f) ffic("libtcc32", #f)
+//#else
+//#define tcc(f) ffic("libtcc", #f)
+//#endif
+//#define tcc(f) ffic( (sizeof(void*)==4)?"libtcc32":"libtcc64", #f)
 #endif
 
 //GET THE PATH OF THIS PROGRAM
@@ -55,7 +57,21 @@ void ffic_0(char *path, int *p_size)
 extern int printf(const char *, ...);
 int main(int argc, char **argv, char **envp)
 {
-	//TODO make list - macro:
+	//$import( ffic_func tcc_new from );
+//#define ffic_define(name, ...) struct { __VA_ARGS__ } name
+//	const ffic_define(_tcc,
+//		ffic_func tcc_new;
+//		ffic_func tcc_set_output_type;
+//		ffic_func tcc_define_symbol;
+//		ffic_func tcc_set_options;
+//		ffic_func tcc_get_symbol;
+//		ffic_func tcc_add_symbol;
+//		ffic_func tcc_add_file;
+//		ffic_func_i tcc_run;
+//		ffic_func tcc_delete;
+//		ffic_func_i tcc_relocate;
+//			);
+//	//TODO make list - macro:
 	const struct
 	{
 		ffic_func tcc_new;
@@ -68,7 +84,8 @@ int main(int argc, char **argv, char **envp)
 		ffic_func_i tcc_run;
 		ffic_func tcc_delete;
 		ffic_func_i tcc_relocate;
-	} _tcc = {
+	}
+	_tcc = {
 			(ffic_func)tcc(tcc_new),
 			(ffic_func)tcc(tcc_set_output_type),
 			(ffic_func)tcc(tcc_define_symbol),
