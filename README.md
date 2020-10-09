@@ -32,12 +32,18 @@ downlink as stdout (json)
 stderr to console
 
 ```
-* tinyAI/NN
 * merge libdl
 * tiny syscall wrapper
 * tiny libc from https://github.com/lattera/glibc/
 * tiny OS kernel
 * so/dll w+ https://github.com/saprykin/plibsys
+* tinyAI/NN
+```
+https://en.wikipedia.org/wiki/OpenGL_ES
+https://github.com/rexbu/libGDL
+https://github.com/suyashnigam/Visualizing-Neural-Netowrks-using-OpenGL.
+https://github.com/albertnadal/Tensar
+```
 
 # Links for learning
 
