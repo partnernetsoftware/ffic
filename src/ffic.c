@@ -142,7 +142,7 @@ int main(int argc, char **argv, char **envp)
 		int size = 500;
 		//extern void strcpy(char *, char *);
 		strcpy(&Bdir2[2],argv[1]);
-		ffic_dirname(Bdir);
+		ffic_dirname(Bdir2);
 		_tcc.tcc_set_options(tcc_ptr, Bdir2);
 		_tcc.tcc_add_file(tcc_ptr, argv[1]);
 	}
