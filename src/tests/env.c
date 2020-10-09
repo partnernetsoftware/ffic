@@ -69,6 +69,7 @@ int main(int argc, char* argv[], char** envp){
 	}
 	printf("------------------------------------------------------------\n");
 
+#if 0
 	//extern void getcwd();
 	//char buffer[255];
 	//getcwd(buffer,255);
@@ -123,6 +124,7 @@ typedef ffic_ptr(
 	//NetBSD: readlink /proc/curproc/exe
 	//DragonFly BSD: readlink /proc/curproc/file
 	//Windows: GetModuleFileName() with hModule = NULL
+#endif
 	return 0;	
 }
 //tcc(-tcc1)

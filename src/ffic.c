@@ -26,7 +26,7 @@ char ffic_dir_sep =
 		'/'
 #endif
 		;
-void ffic_path(char *path)
+void ffic_dirname(char *path)
 {
 	extern char *strrchr(const char *, int);
 	char *basename = strrchr(path, ffic_dir_sep);
@@ -48,7 +48,7 @@ void ffic_0(char *path, int *p_size)
 	strcpy(path, "./"); //TODO !!!... linux using /proc/self
 #endif
 #endif
-	ffic_path(path);
+	ffic_dirname(path);
 }
 
 #define dump(v, t) printf(#v "=%" #t "\n", v)
@@ -142,7 +142,7 @@ int main(int argc, char **argv, char **envp)
 		int size = 500;
 		//extern void strcpy(char *, char *);
 		strcpy(&Bdir2[2],argv[1]);
-		ffic_path(Bdir);
+		ffic_dirname(Bdir);
 		_tcc.tcc_set_options(tcc_ptr, Bdir2);
 		_tcc.tcc_add_file(tcc_ptr, argv[1]);
 	}
