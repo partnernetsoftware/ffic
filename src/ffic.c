@@ -28,12 +28,15 @@ char ffic_dir_sep =
 		'/'
 #endif
 		;
+#define dump(v, t) printf(#v "=%" #t "\n", v)
+//WARN: input will be changed:
 void ffic_dirname(char *path)
 {
 	extern char *strrchr(const char *, int);
 	char *basename = strrchr(path, ffic_dir_sep);
-	if (basename && !(*(basename + 1))) //remove if found
-		*basename = 0;
+	//if (basename && !(*(basename + 1))) //remove if found
+	//	*basename = 0;
+	if(basename)*basename=0;
 }
 void ffic_0(char *path, int *p_size)
 {
@@ -59,7 +62,6 @@ void ffic_0(char *path, int *p_size)
 #define $var(c,m) c##_##m
 #define $use(c,m,t) (t) tcc(m)
 #define $import(c,m,t) t $var(c,m) = $use(c,m,t)
-//#define dump(v, t) printf(#v "=%" #t "\n", v)
 extern int printf(const char *, ...);
 int main(int argc, char **argv, char **envp)
 {
@@ -89,6 +91,7 @@ int main(int argc, char **argv, char **envp)
 #endif
 	int size = 500;
 	ffic_0(&Bdir[2], &size);
+	//dump(Bdir,s);
 	tcc_tcc_set_options(tcc_ptr, Bdir);
 	tcc_tcc_set_options(tcc_ptr, "-I.");
 	tcc_tcc_set_options(tcc_ptr, "-I..");
