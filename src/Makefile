@@ -12,6 +12,7 @@ tcc-reset:
 
 bin_ffic_osx:
 	rm -f ../bin/ffic64.osx && ../tcc_osx/tcc -nostdlib -DTCC_TARGET_X86_64 -DTCC_TARGET_MACHO -DTCC_LIBTCC1="\"\"" -I../tinycc -I. -DONE_SOURCE=1 ffic.c -lc -o ../bin/ffic64.osx
+	#tools/upx -f -o ../bin/ffic64upx.osx ../bin/ffic64.osx
 	../bin/ffic64.osx tests/env.c
 	ls -al ../bin/*.osx
 
@@ -36,11 +37,11 @@ tcc_osx:#with system cc
 submodule_init:
 	#cd .. && git submodule add --force https://github.com/mirror/tinycc.git --depth 1 && git submodule update --init --recursive
 	cd .. && git submodule init && git submodule update
-test_osx:
-	cat tests/42.c | ./ffic_static_osx
-	./ffic_static_osx tests/42.c
-	cat tests/42.c | ./ffic_osx
-	./ffic_osx tests/42.c
+#test_osx:
+#	cat tests/42.c | ./ffic_static_osx
+#	./ffic_static_osx tests/42.c
+#	cat tests/42.c | ./ffic_osx
+#	./ffic_osx tests/42.c
 
 bin_ffic_win:#build from osx...
 	rm -f ../bin/ffic*.exe
