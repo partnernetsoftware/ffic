@@ -38,6 +38,9 @@ void ffic_dirname(char *path)
 	//	*basename = 0;
 	if(basename)*basename=0;
 }
+
+#if 0
+//NOTES: as targe dir is used, the source binary path is no longer needed
 void ffic_0(char *path, int *p_size)
 {
 #ifdef _WIN32
@@ -55,6 +58,7 @@ void ffic_0(char *path, int *p_size)
 #endif
 	ffic_dirname(path);
 }
+#endif
 
 //#define $decl(n,t) t n
 //#define $use(c,m,t) (t) ffic(#c,#m)
@@ -83,6 +87,7 @@ int main(int argc, char **argv, char **envp)
 	tcc_tcc_define_symbol(tcc_ptr, "FFIC", "2");
 	tcc_tcc_set_options(tcc_ptr, "-Llib");
 	tcc_tcc_set_options(tcc_ptr, "-L.");
+#if 0
 	tcc_tcc_set_options(tcc_ptr, "-L..");
 #ifdef _WIN32
 	char Bdir[512] = {"-L"};
@@ -90,9 +95,12 @@ int main(int argc, char **argv, char **envp)
 	char Bdir[512] = {"-B"};
 #endif
 	int size = 500;
-	ffic_0(&Bdir[2], &size);
+	//dump(argv[0],s);
+if(argc>0) strcpy(&Bdir[2],argv[0]);
+//	ffic_0(&Bdir[2], &size);
 	//dump(Bdir,s);
-	tcc_tcc_set_options(tcc_ptr, Bdir);
+tcc_tcc_set_options(tcc_ptr, Bdir);
+#endif
 	tcc_tcc_set_options(tcc_ptr, "-I.");
 	tcc_tcc_set_options(tcc_ptr, "-I..");
 	tcc_tcc_set_options(tcc_ptr, "-DCONFIG_LDDIR=\".\"");
@@ -130,11 +138,13 @@ int main(int argc, char **argv, char **envp)
 
 	if (argc > 1)
 	{
+		//dump(argv[0],s);
 		//get path of the argv1
 #ifdef _WIN32
 		char Bdir2[512] = {"-L"};
 #else
-		char Bdir2[512] = {"-B"};
+		//char Bdir2[512] = {"-B"};
+		char Bdir2[512] = {"-L"};
 #endif
 		int size = 500;
 		//extern void strcpy(char *, char *);

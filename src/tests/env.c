@@ -61,7 +61,7 @@ int main(int argc, char* argv[], char** envp){
 	int ii = 0;
 	while (envp && envp[ii] != 0) 
 	{
-		printf("%s\n",envp[ii]); 
+		printf("envp: %s\n",envp[ii]); 
 		ii++;
 	}
 	for(int j=0; j<argc; j++){
@@ -128,6 +128,6 @@ typedef ffic_ptr(
 	return 0;	
 }
 //tcc(-tcc1)
-int _runmain(int argc, char* argv[], char** envp){
-	return main(argc,argv,envp);
-}
+//int _runmain(int argc, char* argv[], char** envp){
+//	return main(argc,argv,envp);
+//}

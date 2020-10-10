@@ -44,10 +44,10 @@ test_osx:
 
 bin_ffic_win:#build from osx...
 	rm -f ../bin/ffic*.exe
-	sh tccwin32.sh -DONE_SOURCE=1 -I. ../tinycc/tcc.c -o ../bin/tcc32.exe
-	sh tccwin64.sh -DONE_SOURCE=1 -I. ../tinycc/tcc.c -o ../bin/tcc64.exe
-	sh tccwin32.sh ffic.c -o ../bin/ffic32s.exe
-	sh tccwin64.sh ffic.c -o ../bin/ffic64s.exe
+	#sh tccwin32.sh -DONE_SOURCE=1 -I. ../tinycc/tcc.c -o ../bin/tcc32.exe
+	#sh tccwin64.sh -DONE_SOURCE=1 -I. ../tinycc/tcc.c -o ../bin/tcc64.exe
+	#sh tccwin32.sh ffic.c -o ../bin/ffic32s.exe
+	#sh tccwin64.sh ffic.c -o ../bin/ffic64s.exe
 	###../tcc_osx/tcc -m32 -DTCC_TARGET_PE -DTCC_TARGET_I386 -D_WIN32 -c ../tinycc/lib/alloca86.S
 	###../tcc_osx/tcc -m32 -DTCC_TARGET_PE -DTCC_TARGET_I386 -D_WIN32 -c ../tinycc/win32/lib/chkstk.S
 	# ffic32a.exe: single release file (not depends on tcc1)
