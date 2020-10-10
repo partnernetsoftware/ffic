@@ -54,7 +54,7 @@ bin_ffic_win:#build from osx...
 	# with i386-win32-tcc
 	# rm -f ../bin/ffic32a.exe && ../tcc_osx/i386-win32-tcc -DTCC_LIBTCC1="\"\"" -DTCC_TARGET_PE -DTCC_TARGET_I386 -D_WIN32 -DONE_SOURCE=1 -nostdlib -I../tinycc/include -I../tinycc/win32/include -I../tinycc/win32/include/winapi -I../tinycc -I. ../tinycc/lib/libtcc1.c ../tinycc/win32/lib/crt1.c  ../tinycc/lib/alloca86.S ../tinycc/win32/lib/chkstk.S ffic.c ../tinycc/win32/lib/msvcrt.def ../tinycc/win32/lib/kernel32.def -o ../bin/ffic32a.exe
 	###rm -f ../bin/ffic32a.exe && ../tcc_osx/i386-win32-tcc -DTCC_LIBTCC1="\"\"" -DTCC_TARGET_PE -DTCC_TARGET_I386 -D_WIN32 -D__i386__ -DONE_SOURCE=1 -nostdlib -I../tinycc/include -I../tinycc/win32/include -I../tinycc/win32/include/winapi -I../tinycc -I. ../tinycc/lib/libtcc1.c ../tinycc/win32/lib/crt1.c ../tinycc/lib/alloca86.S ../tinycc/win32/lib/chkstk.S ffic.c ../tinycc/win32/lib/msvcrt.def ../tinycc/win32/lib/kernel32.def -o ../bin/ffic32a.exe
-	rm -f ../bin/ffic32a.exe && ../tcc_osx/i386-win32-tcc -DTCC_LIBTCC1="\"\"" -DTCC_TARGET_PE -DTCC_TARGET_I386 -D_WIN32 -D__i386__ -DONE_SOURCE=1 -nostdlib -I../tinycc/include -I../tinycc/win32/include -I../tinycc/win32/include/winapi -I../tinycc -I. ../tinycc/lib/libtcc1.c ../tinycc/win32/lib/crt1.c ../tinycc/lib/alloca86.S ../tinycc/win32/lib/chkstk.S ffic.c ../tinycc/win32/lib/msvcrt.def ../tinycc/win32/lib/kernel32.def -o ../bin/ffic32a.exe
+	rm -f ../bin/ffic32a.exe && ../tcc_osx/i386-win32-tcc -DTCC_LIBTCC1="\"\"" -DTCC_TARGET_PE -DTCC_TARGET_I386 -D_WIN32 -D__i386__ -DONE_SOURCE=1 -nostdlib -I../tinycc/include -I../tinycc/win32/include -I../tinycc/win32/include/winapi -I../tinycc -I. ../tinycc/lib/libtcc1.c ../tinycc/win32/lib/crt1.c ../tinycc/lib/alloca86.S ../tinycc/win32/lib/chkstk.S ffic.c ../tinycc/win32/lib/msvcrt.def ../tinycc/win32/lib/kernel32.def -o ../bin/ffic32.exe
 	# with tcc (not support load .def yet)
 	# ##  ../tcc_osx/tcc -m32 -DTCC_TARGET_PE -DTCC_TARGET_I386 -D_WIN32 -c ../tinycc/lib/alloca86.S &&
 	# rm -f ../bin/ffic32b.exe && ../tcc_osx/tcc -m32 -DTCC_TARGET_PE -DTCC_TARGET_I386 -D_WIN32 -DONE_SOURCE=1 -nostdlib -I../tinycc/include -I../tinycc/win32/include -I../tinycc/win32/include/winapi -I../tinycc -I. ../tinycc/lib/libtcc1.c ../tinycc/win32/lib/crt1.c alloca86.o chkstk.o ffic.c -o ../bin/ffic32b.exe
@@ -63,11 +63,11 @@ bin_ffic_win:#build from osx...
 	###../tcc_osx/tcc -m64 -DTCC_TARGET_PE -DTCC_TARGET_X86_64 -D_WIN32 -D_WIN64 -c ../tinycc/lib/alloca86_64.S
 	###../tcc_osx/tcc -m64 -DTCC_TARGET_PE -DTCC_TARGET_X86_64 -D_WIN32 -D_WIN64 -c ../tinycc/win32/lib/chkstk.S
 	###rm -f ../bin/ffic64a.exe && ../tcc_osx/x86_64-win32-tcc -DTCC_LIBTCC1="\"\"" -DTCC_TARGET_PE -DTCC_TARGET_X86_64 -D_WIN32 -D_WIN64 -D__x86_64__ -DONE_SOURCE=1 -nostdlib -I../tinycc/include -I../tinycc/win32/include -I../tinycc/win32/include/winapi -I../tinycc -I. ../tinycc/lib/libtcc1.c ../tinycc/win32/lib/crt1.c ../tinycc/lib/alloca86_64.S ../tinycc/win32/lib/chkstk.S ffic.c ../tinycc/win32/lib/msvcrt.def ../tinycc/win32/lib/kernel32.def -o ../bin/ffic64a.exe
-	rm -f ../bin/ffic64a.exe && ../tcc_osx/x86_64-win32-tcc -DTCC_TARGET_PE -DTCC_TARGET_X86_64 -D_WIN32 -D_WIN64 -D__x86_64__ -DONE_SOURCE=1 -nostdlib -I../tinycc/include -I../tinycc/win32/include -I../tinycc/win32/include/winapi -I../tinycc -I. ../tinycc/lib/libtcc1.c ../tinycc/win32/lib/crt1.c ../tinycc/lib/alloca86_64.S ../tinycc/win32/lib/chkstk.S ffic.c ../tinycc/win32/lib/msvcrt.def ../tinycc/win32/lib/kernel32.def -o ../bin/ffic64a.exe
+	rm -f ../bin/ffic64a.exe && ../tcc_osx/x86_64-win32-tcc -DTCC_TARGET_PE -DTCC_TARGET_X86_64 -D_WIN32 -D_WIN64 -D__x86_64__ -DONE_SOURCE=1 -nostdlib -I../tinycc/include -I../tinycc/win32/include -I../tinycc/win32/include/winapi -I../tinycc -I. ../tinycc/lib/libtcc1.c ../tinycc/win32/lib/crt1.c ../tinycc/lib/alloca86_64.S ../tinycc/win32/lib/chkstk.S ffic.c ../tinycc/win32/lib/msvcrt.def ../tinycc/win32/lib/kernel32.def -o ../bin/ffic64.exe
 	#sh tccwin32.sh ../tinycc/libtcc.c -DLIBTCC_AS_DLL -shared -o ../bin/libtcc32.dll
 	#sh tccwin64.sh ../tinycc/libtcc.c -DLIBTCC_AS_DLL -shared -o ../bin/libtcc64.dll
-	sh tccwin32.sh -DONE_SOURCE=1 -I. ffic.c -o ../bin/ffic32.exe
-	sh tccwin64.sh -DONE_SOURCE=1 -I. ffic.c -o ../bin/ffic64.exe
+	##sh tccwin32.sh -DONE_SOURCE=1 -I. ffic.c -o ../bin/ffic32a.exe
+	##sh tccwin64.sh -DONE_SOURCE=1 -I. ffic.c -o ../bin/ffic64a.exe
 	tools/upx -f -o ../bin/ffic32upx.exe ../bin/ffic32.exe
 	tools/upx -f -o ../bin/ffic64upx.exe ../bin/ffic64.exe
 	ls -al ../bin/*.exe

@@ -246,3 +246,7 @@ int main()
 
 	return (int) msg.wParam;
 }
+//int _runmain(){
+//	return main();
+//}
+

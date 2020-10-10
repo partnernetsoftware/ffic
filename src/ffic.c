@@ -148,7 +148,7 @@ int main(int argc, char **argv, char **envp)
 		tcc_tcc_add_file(tcc_ptr, "-");
 	}
 
-#if 0
+#if 1
 	if (tcc_tcc_relocate(tcc_ptr, (void *)1 /*TCC_RELOCATE_AUTO*/) < 0)
 		return 2;
 	int (*entry)() = tcc_tcc_get_symbol(tcc_ptr, "main");
